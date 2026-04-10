@@ -351,6 +351,10 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     const next = !micActive;
     setMicActive_(next);
     setMicActive(next);
+    // Ducking: abbassa la musica quando il mic è attivo
+    if (soundRef.current) {
+      soundRef.current.setVolumeAsync(next ? 0.15 : 1.0).catch(() => {});
+    }
     try { await setHostMicLive(room.id, next); } catch {}
   };
 

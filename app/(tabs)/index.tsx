@@ -63,7 +63,9 @@ import {
   cancelFriendRequest,
   acceptFriendRequest,
   rejectFriendRequest,
+  removeFriend,
   getFriendStatus,
+  getFriendsList,
   listenPendingFriendRequests,
 } from '../../services/firebaseService';
 
@@ -137,6 +139,8 @@ export default function App() {
   const [loadingFriend, setLoadingFriend] = useState(false);
   const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
   const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
+  const [friendsList, setFriendsList] = useState<any[]>([]);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
   
   
   // Form per nuovo suono
@@ -1048,7 +1052,8 @@ const handleFriendAction = async (action: 'send'|'cancel'|'accept'|'reject'|'rem
   setLoadingFriend(true);
   try {
     if (action === 'send') await sendFriendRequest(userProfile.id);
-    else if (action === 'cancel' || action === 'remove') await cancelFriendRequest(userProfile.id);
+    else if (action === 'cancel') await cancelFriendRequest(userProfile.id);
+    else if (action === 'remove') await removeFriend(userProfile.id);
     else if (action === 'accept') await acceptFriendRequest(userProfile.id);
     else if (action === 'reject') await rejectFriendRequest(userProfile.id);
     const updated = await getFriendStatus(userProfile.id);
@@ -1078,7 +1083,13 @@ const handleFollowToggle = async () => {
   
   
   
- const fetchAndShowFollowers = async () => {
+ const fetchAndShowFriends = async () => {
+  const list = await getFriendsList(userProfile.id);
+  setFriendsList(list);
+  setShowFriendsModal(true);
+};
+
+const fetchAndShowFollowers = async () => {
   const list = await getFollowersList(userProfile.id); // ti serve in firebaseService!
   setFollowersList(list);
   setShowFollowersModal(true);
@@ -1397,6 +1408,11 @@ if (loading) {
     <Text style={styles.profileStatNumber}>{mySounds.length}</Text>
     <Text style={styles.profileStatLabel}>Suoni</Text>
   </View>
+  {/* Amici cliccabile */}
+  <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFriends}>
+    <Text style={styles.profileStatNumber}>{userProfile?.friendsCount || 0}</Text>
+    <Text style={styles.profileStatLabel}>Amici</Text>
+  </TouchableOpacity>
   {/* Followers cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
     <Text style={styles.profileStatNumber}>{userProfile?.followersCount || 0}</Text>
@@ -2410,8 +2426,54 @@ if (loading) {
 </Modal>
 
 
+    {/* Amici Modal */}
+<Modal
+  visible={showFriendsModal}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setShowFriendsModal(false)}
+>
+  <TouchableWithoutFeedback onPress={() => setShowFriendsModal(false)}>
+    <View style={styles.modalOverlay}>
+      <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>👥 Amici</Text>
+          <TouchableOpacity onPress={() => setShowFriendsModal(false)}>
+            <Text style={styles.modalClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={{ padding: 16 }}>
+          {friendsList.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>👥</Text>
+              <Text style={styles.emptyText}>Nessun amico ancora</Text>
+            </View>
+          ) : (
+            friendsList.map(u => (
+              <TouchableOpacity
+                key={u.id}
+                onPress={() => { setShowFriendsModal(false); openUserProfile(u.id); }}
+                style={styles.userListItem}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{u.avatar}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.userName}>{u.username}</Text>
+                  <Text style={styles.soundLocation}>@{u.username}</Text>
+                </View>
+                <Text style={styles.navIcon}>→</Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
+
     {/* Followers Modal */}
-<Modal 
+<Modal
   visible={showFollowersModal} 
   animationType="slide"
   transparent={true}

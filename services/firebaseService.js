@@ -611,23 +611,26 @@ export const acceptFriendRequest = async (targetUserId) => {
     getDoc(doc(db, 'follows', followBtoA)),
   ]);
 
-  const batch = [];
+  const ops = [];
   if (!snapAtoB.exists()) {
-    batch.push(setDoc(doc(db, 'follows', followAtoB), {
+    ops.push(setDoc(doc(db, 'follows', followAtoB), {
       followerId: themId, followingId: meId, createdAt: serverTimestamp(),
     }));
-    batch.push(updateDoc(doc(db, 'users', themId), { followingCount: increment(1) }));
-    batch.push(updateDoc(doc(db, 'users', meId), { followersCount: increment(1) }));
+    ops.push(updateDoc(doc(db, 'users', themId), { followingCount: increment(1) }));
+    ops.push(updateDoc(doc(db, 'users', meId), { followersCount: increment(1) }));
   }
   if (!snapBtoA.exists()) {
-    batch.push(setDoc(doc(db, 'follows', followBtoA), {
+    ops.push(setDoc(doc(db, 'follows', followBtoA), {
       followerId: meId, followingId: themId, createdAt: serverTimestamp(),
     }));
-    batch.push(updateDoc(doc(db, 'users', meId), { followingCount: increment(1) }));
-    batch.push(updateDoc(doc(db, 'users', themId), { followersCount: increment(1) }));
+    ops.push(updateDoc(doc(db, 'users', meId), { followingCount: increment(1) }));
+    ops.push(updateDoc(doc(db, 'users', themId), { followersCount: increment(1) }));
   }
+  // Aggiorna friendsCount su entrambi
+  ops.push(updateDoc(doc(db, 'users', meId), { friendsCount: increment(1) }));
+  ops.push(updateDoc(doc(db, 'users', themId), { friendsCount: increment(1) }));
 
-  await Promise.all(batch);
+  await Promise.all(ops);
 };
 
 /**
@@ -638,6 +641,68 @@ export const rejectFriendRequest = async (targetUserId) => {
   if (!user) throw new Error('Not authenticated');
   const id = sortedFriendId(user.uid, targetUserId);
   await deleteDoc(doc(db, 'friendRequests', id));
+};
+
+/**
+ * Rimuove un amico: cancella friendRequest, follow reciproci e aggiorna contatori.
+ */
+export const removeFriend = async (targetUserId) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not authenticated');
+  const meId = user.uid;
+  const themId = targetUserId;
+
+  const id = sortedFriendId(meId, themId);
+  const followAtoB = `${themId}_${meId}`;
+  const followBtoA = `${meId}_${themId}`;
+
+  const ops = [
+    deleteDoc(doc(db, 'friendRequests', id)),
+  ];
+
+  const [snapAtoB, snapBtoA] = await Promise.all([
+    getDoc(doc(db, 'follows', followAtoB)),
+    getDoc(doc(db, 'follows', followBtoA)),
+  ]);
+
+  if (snapAtoB.exists()) {
+    ops.push(deleteDoc(doc(db, 'follows', followAtoB)));
+    ops.push(updateDoc(doc(db, 'users', themId), { followingCount: increment(-1) }));
+    ops.push(updateDoc(doc(db, 'users', meId), { followersCount: increment(-1) }));
+  }
+  if (snapBtoA.exists()) {
+    ops.push(deleteDoc(doc(db, 'follows', followBtoA)));
+    ops.push(updateDoc(doc(db, 'users', meId), { followingCount: increment(-1) }));
+    ops.push(updateDoc(doc(db, 'users', themId), { followersCount: increment(-1) }));
+  }
+  ops.push(updateDoc(doc(db, 'users', meId), { friendsCount: increment(-1) }));
+  ops.push(updateDoc(doc(db, 'users', themId), { friendsCount: increment(-1) }));
+
+  await Promise.all(ops);
+};
+
+/**
+ * Restituisce la lista degli amici (friendRequests accepted).
+ */
+export const getFriendsList = async (userId) => {
+  try {
+    const q = query(
+      collection(db, 'friendRequests'),
+      where('users', 'array-contains', userId),
+      where('status', '==', 'accepted'),
+    );
+    const snap = await getDocs(q);
+    const friends = await Promise.all(
+      snap.docs.map(async (d) => {
+        const friendId = d.data().users.find((u) => u !== userId);
+        const profile = await getUserProfile(friendId);
+        return { id: friendId, username: profile?.username || 'Utente', avatar: profile?.avatar || '🎧', bio: profile?.bio || '' };
+      })
+    );
+    return friends;
+  } catch {
+    return [];
+  }
 };
 
 /**
