@@ -1,0 +1,1432 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  ActivityIndicator,
+  Dimensions,
+  PanResponder,
+  TextInput,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
+import Slider from '@react-native-community/slider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createRemix, requestRemixRendering, subscribeToRemix } from '../services/remixService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CANVAS_WIDTH = SCREEN_WIDTH - 32;
+
+export default function RemixScreen({ availableSounds = [], onClose }) {
+  // Stati principali
+  const [tracks, setTracks] = useState([]);
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(30);
+  
+  // Stati per editing
+  const [editMode, setEditMode] = useState(null);
+  const [showSoundPicker, setShowSoundPicker] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [remixName, setRemixName] = useState('');
+  const [savedRemixes, setSavedRemixes] = useState([]);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+
+  // Stati pubblicazione
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedRemixId, setPublishedRemixId] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState(null); // null | 'processing' | 'done' | 'error'
+
+  // Ref per il listener real-time
+  const remixUnsubscribeRef = useRef(null);
+  
+  // Audio players
+  const soundObjects = useRef({});
+  const playbackInterval = useRef(null);
+  const startTimeRef = useRef(null);
+
+  // 📥 Carica remix salvati all'avvio
+  useEffect(() => {
+    loadSavedRemixes();
+  }, []);
+
+  // 🧹 Cleanup al unmount
+  useEffect(() => {
+    return () => {
+      stopAllSounds();
+      if (playbackInterval.current) {
+        clearInterval(playbackInterval.current);
+        playbackInterval.current = null;
+      }
+      if (remixUnsubscribeRef.current) {
+        remixUnsubscribeRef.current();
+        remixUnsubscribeRef.current = null;
+      }
+    };
+  }, []);
+
+  // ═══════════════════════════════════════════════════════
+  // 💾 SAVE & LOAD SYSTEM
+  // ═══════════════════════════════════════════════════════
+
+  const loadSavedRemixes = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('saved_remixes');
+      if (saved) {
+        setSavedRemixes(JSON.parse(saved));
+      }
+    } catch (_) {}
+  };
+
+  const saveRemix = async () => {
+    if (!remixName.trim()) {
+      Alert.alert('⚠️ Nome mancante', 'Inserisci un nome per il remix!');
+      return;
+    }
+
+    if (tracks.length === 0) {
+      Alert.alert('⚠️ Remix vuoto', 'Aggiungi almeno una traccia!');
+      return;
+    }
+
+    try {
+      const remixData = {
+        id: Date.now().toString(),
+        name: remixName.trim(),
+        tracks: tracks.map(t => ({
+          id: t.id,
+          soundId: t.soundId,
+          title: t.title,
+          audioUrl: t.audioUrl,
+          startTime: t.startTime,
+          endTime: t.endTime,
+          offsetStart: t.offsetStart,
+          offsetEnd: t.offsetEnd,
+          volume: t.volume,
+          effects: t.effects,
+          duration: t.duration,
+          color: t.color,
+        })),
+        totalDuration,
+        createdAt: new Date().toISOString(),
+      };
+
+      const existing = [...savedRemixes];
+      existing.push(remixData);
+      
+      await AsyncStorage.setItem('saved_remixes', JSON.stringify(existing));
+      setSavedRemixes(existing);
+      setShowSaveModal(false);
+      setRemixName('');
+      
+      Alert.alert('✅ Salvato!', `Remix "${remixData.name}" salvato con successo`);
+    } catch (error) {
+      Alert.alert('❌ Errore', 'Impossibile salvare il remix');
+    }
+  };
+
+  // Pubblica il remix su Firebase e avvia il processing
+  const publishRemix = async () => {
+    if (!remixName.trim()) {
+      Alert.alert('⚠️ Nome mancante', 'Inserisci un nome per il remix!');
+      return;
+    }
+    if (tracks.length === 0) {
+      Alert.alert('⚠️ Remix vuoto', 'Aggiungi almeno una traccia!');
+      return;
+    }
+
+    setIsPublishing(true);
+    setShowSaveModal(false);
+
+    try {
+      // Salva metadata su Firestore
+      const remixId = await createRemix({
+        title: remixName.trim(),
+        tracks,
+        totalDuration,
+        isPublic: true,
+      });
+
+      setPublishedRemixId(remixId);
+      setProcessingStatus('processing');
+      setRemixName('');
+
+      // Sottoscrivi agli aggiornamenti real-time del remix
+      if (remixUnsubscribeRef.current) remixUnsubscribeRef.current();
+      remixUnsubscribeRef.current = subscribeToRemix(remixId, (updatedRemix) => {
+        setProcessingStatus(updatedRemix.processingStatus || null);
+        if (updatedRemix.isProcessed) {
+          setIsPublishing(false);
+          Alert.alert('✅ Remix pronto!', 'Il tuo remix è stato pubblicato ed è ora disponibile nel feed.');
+          if (remixUnsubscribeRef.current) {
+            remixUnsubscribeRef.current();
+            remixUnsubscribeRef.current = null;
+          }
+        }
+        if (updatedRemix.processingStatus === 'error') {
+          setIsPublishing(false);
+          Alert.alert('❌ Errore processing', updatedRemix.processingError || 'Impossibile elaborare il remix.');
+          if (remixUnsubscribeRef.current) {
+            remixUnsubscribeRef.current();
+            remixUnsubscribeRef.current = null;
+          }
+        }
+      });
+
+      // Avvia il processing sulla Cloud Function
+      await requestRemixRendering(remixId);
+
+    } catch (error) {
+      setIsPublishing(false);
+      setProcessingStatus('error');
+      Alert.alert('❌ Errore', 'Impossibile pubblicare il remix: ' + error.message);
+    }
+  };
+
+  const loadRemix = (remix) => {
+    Alert.alert(
+      '⚠️ Carica Remix',
+      `Vuoi caricare "${remix.name}"? Il remix corrente sarà sostituito.`,
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Carica',
+          onPress: () => {
+            stopAllSounds();
+            setTracks(remix.tracks);
+            setTotalDuration(remix.totalDuration);
+            setCurrentTime(0);
+            setSelectedTrack(null);
+            setShowLoadModal(false);
+            Alert.alert('✅ Caricato!', `Remix "${remix.name}" caricato`);
+          },
+        },
+      ]
+    );
+  };
+
+  const deleteRemix = async (remixId) => {
+    Alert.alert(
+      '🗑️ Elimina Remix',
+      'Vuoi eliminare questo remix? Questa azione è irreversibile.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Elimina',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updated = savedRemixes.filter(r => r.id !== remixId);
+              await AsyncStorage.setItem('saved_remixes', JSON.stringify(updated));
+              setSavedRemixes(updated);
+              Alert.alert('✅ Eliminato', 'Remix eliminato con successo');
+            } catch (error) {
+              Alert.alert('❌ Errore', 'Impossibile eliminare il remix');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 🎵 GESTIONE TRACCE
+  // ═══════════════════════════════════════════════════════
+
+  const addTrack = (sound) => {
+    if (!sound.audioUrl || sound.audioUrl === '') {
+      Alert.alert('❌ Errore', 'URL audio mancante per questo suono');
+      return;
+    }
+
+    const newTrack = {
+      id: Date.now().toString(),
+      soundId: sound.id,
+      title: sound.title,
+      audioUrl: sound.audioUrl,
+      startTime: 0,
+      endTime: sound.duration,
+      offsetStart: 0,
+      offsetEnd: sound.duration,
+      volume: 1.0,
+      effects: { reverb: 0, echo: 0, pitch: 0 },
+      duration: sound.duration,
+      color: getRandomColor(),
+    };
+    
+    setTracks([...tracks, newTrack]);
+    setShowSoundPicker(false);
+    Alert.alert('✅ Traccia aggiunta!', `"${sound.title}" è ora nel remix`);
+  };
+
+  const removeTrack = (trackId) => {
+    Alert.alert(
+      'Rimuovi Traccia',
+      'Vuoi rimuovere questa traccia dal remix?',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Rimuovi',
+          style: 'destructive',
+          onPress: () => {
+            setTracks(tracks.filter(t => t.id !== trackId));
+            if (selectedTrack?.id === trackId) {
+              setSelectedTrack(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const updateTrack = (trackId, updates) => {
+    setTracks(tracks.map(t => 
+      t.id === trackId ? { ...t, ...updates } : t
+    ));
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 🎮 PLAYBACK SYSTEM (FIXED!)
+  // ═══════════════════════════════════════════════════════
+
+  const handlePlayPause = async () => {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      await startPlayback();
+    }
+  };
+
+  // 🎯 SEEK - Sposta il cursore manualmente
+  const seekTo = (newTime) => {
+    const validTime = Math.max(0, Math.min(newTime, totalDuration));
+    setCurrentTime(validTime);
+    
+    if (isPlaying) {
+      // Se sta suonando, riavvia dal nuovo punto
+      stopPlayback().then(() => {
+        setCurrentTime(validTime);
+        startPlayback();
+      });
+    }
+  };
+
+  const stopPlayback = async () => {
+    
+    // 1. Ferma l'interval
+    if (playbackInterval.current) {
+      clearInterval(playbackInterval.current);
+      playbackInterval.current = null;
+    }
+
+    // 2. Ferma tutti i suoni
+    await stopAllSounds();
+
+    // 3. Reset stati
+    setIsPlaying(false);
+    startTimeRef.current = null;
+  };
+
+  const resetPlayback = async () => {
+    await stopPlayback();
+    setCurrentTime(0);
+  };
+
+  const startPlayback = async () => {
+    if (tracks.length === 0) {
+      Alert.alert('⚠️ Nessuna traccia', 'Aggiungi almeno una traccia per riprodurre');
+      return;
+    }
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      setIsPlaying(true);
+      startTimeRef.current = Date.now() - (currentTime * 1000);
+
+      // Carica e avvia tracce
+      const loadPromises = tracks.map(async (track) => {
+        try {
+          if (soundObjects.current[track.id]) {
+            await soundObjects.current[track.id].unloadAsync();
+          }
+
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: track.audioUrl },
+            {
+              shouldPlay: false,
+              volume: track.volume,
+              isLooping: false,
+            }
+          );
+
+          soundObjects.current[track.id] = sound;
+          
+          // Calcola quando avviare questa traccia
+          const trackStart = track.offsetStart;
+          const trackEnd = track.offsetEnd;
+          const trackDuration = (track.endTime - track.startTime) * 1000;
+
+          if (currentTime >= trackStart && currentTime < trackEnd) {
+            // Se siamo già dentro la traccia
+            const position = (currentTime - trackStart) * 1000 + track.startTime * 1000;
+            await sound.setPositionAsync(position);
+            await sound.playAsync();
+            
+            // Stoppa alla fine
+            const remainingTime = trackDuration - (currentTime - trackStart) * 1000;
+            setTimeout(async () => {
+              try {
+                await sound.pauseAsync();
+              } catch (e) {}
+            }, remainingTime);
+          } else if (currentTime < trackStart) {
+            // Avvia nel futuro
+            const delay = (trackStart - currentTime) * 1000;
+            setTimeout(async () => {
+              try {
+                await sound.setPositionAsync(track.startTime * 1000);
+                await sound.playAsync();
+                
+                setTimeout(async () => {
+                  try {
+                    await sound.pauseAsync();
+                  } catch (e) {}
+                }, trackDuration);
+              } catch (e) {}
+            }, delay);
+          }
+
+          return { success: true, track };
+        } catch (err) {
+          return { success: false, track };
+        }
+      });
+
+      await Promise.all(loadPromises);
+
+      // Avvia timeline updater con controllo migliorato
+      playbackInterval.current = setInterval(() => {
+        if (!startTimeRef.current) {
+          // Se non c'è startTime, ferma
+          stopPlayback();
+          return;
+        }
+
+        const elapsed = (Date.now() - startTimeRef.current) / 1000;
+        
+        if (elapsed >= totalDuration) {
+          // Fine del remix
+          stopPlayback();
+          setCurrentTime(0);
+        } else {
+          setCurrentTime(elapsed);
+        }
+      }, 50); // Aggiornamento più frequente per fluidità
+
+    } catch (error) {
+      Alert.alert('❌ Errore', 'Impossibile riprodurre il remix');
+      await stopPlayback();
+    }
+  };
+
+  const stopAllSounds = async () => {
+    const promises = Object.keys(soundObjects.current).map(async (key) => {
+      try {
+        await soundObjects.current[key].stopAsync();
+        await soundObjects.current[key].unloadAsync();
+      } catch (e) {
+      }
+    });
+    
+    await Promise.all(promises);
+    soundObjects.current = {};
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // ✂️ EDITING FUNCTIONS
+  // ═══════════════════════════════════════════════════════
+
+  const trimTrack = (trackId, newStart, newEnd) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    const validStart = Math.max(0, Math.min(newStart, track.duration));
+    const validEnd = Math.max(validStart + 0.5, Math.min(newEnd, track.duration));
+
+    updateTrack(trackId, {
+      startTime: validStart,
+      endTime: validEnd,
+      offsetEnd: track.offsetStart + (validEnd - validStart),
+    });
+  };
+
+  const moveTrack = (trackId, newOffset) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    const duration = track.endTime - track.startTime;
+    const validOffset = Math.max(0, Math.min(newOffset, totalDuration - duration));
+
+    updateTrack(trackId, {
+      offsetStart: validOffset,
+      offsetEnd: validOffset + duration,
+    });
+  };
+
+  const duplicateTrack = (trackId) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    const newTrack = {
+      ...track,
+      id: Date.now().toString(),
+      offsetStart: track.offsetEnd + 0.5,
+      offsetEnd: track.offsetEnd + 0.5 + (track.endTime - track.startTime),
+    };
+
+    setTracks([...tracks, newTrack]);
+    Alert.alert('✅ Duplicato!', 'Traccia duplicata con successo');
+  };
+
+  const clearAll = () => {
+    Alert.alert(
+      '🗑️ Pulisci tutto',
+      'Vuoi rimuovere tutte le tracce? Questa azione non può essere annullata.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Pulisci',
+          style: 'destructive',
+          onPress: async () => {
+            await stopPlayback();
+            setTracks([]);
+            setSelectedTrack(null);
+            setCurrentTime(0);
+          },
+        },
+      ]
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 🎨 UTILITY
+  // ═══════════════════════════════════════════════════════
+
+  const getRandomColor = () => {
+    const colors = ['#ef4444', '#f97316', '#eab308', '#06b6d4', '#8b5cf6', '#ec4899'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 🎨 RENDER
+  // ═══════════════════════════════════════════════════════
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient 
+        colors={['#0f172a', '#1e293b', '#0f172a']} 
+        style={StyleSheet.absoluteFill} 
+      />
+
+      {/* Banner stato processing */}
+      {isPublishing && (
+        <View style={styles.processingBanner}>
+          <ActivityIndicator size="small" color="#fff" />
+          <Text style={styles.processingText}>
+            {processingStatus === 'processing'
+              ? '⚙️ Elaborazione audio in corso...'
+              : '📤 Caricamento...'}
+          </Text>
+        </View>
+      )}
+
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          {onClose && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onClose}
+            >
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title} numberOfLines={1}>Remix Studio</Text>
+        </View>
+        <View style={styles.headerButtons}>
+  <TouchableOpacity 
+    style={styles.headerButton}
+    onPress={() => setShowLoadModal(true)}
+  >
+    <Text style={styles.headerButtonText}>📂</Text>
+  </TouchableOpacity>
+  <TouchableOpacity 
+    style={styles.headerButton}
+    onPress={() => setShowSaveModal(true)}
+  >
+    <Text style={styles.headerButtonText}>💾</Text>
+  </TouchableOpacity>
+  <TouchableOpacity 
+    style={styles.headerButton}
+    onPress={() => setShowSoundPicker(true)}
+  >
+    <Text style={styles.headerButtonText}>➕</Text>
+  </TouchableOpacity>
+  <TouchableOpacity 
+    style={styles.headerButton}
+    onPress={clearAll}
+  >
+    <Text style={styles.headerButtonText}>🗑️</Text>
+  </TouchableOpacity>
+</View>
+      </View>
+
+      {/* Timeline Canvas */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.canvasContainer}>
+          {/* Time ruler */}
+          <View style={styles.timeRuler}>
+            {Array.from({ length: Math.ceil(totalDuration) + 1 }).map((_, i) => (
+              <View key={i} style={styles.timeMarker}>
+                <Text style={styles.timeLabel}>{i}s</Text>
+                <View style={styles.timeTick} />
+              </View>
+            ))}
+          </View>
+
+          {/* Playhead */}
+          <View 
+            style={[
+              styles.playhead, 
+              { left: (currentTime / totalDuration) * CANVAS_WIDTH }
+            ]} 
+          />
+
+          {/* Tracks */}
+          <View style={styles.tracksContainer}>
+            {tracks.length === 0 ? (
+              <View style={styles.emptyCanvas}>
+                <Text style={styles.emptyIcon}>🎵</Text>
+                <Text style={styles.emptyText}>Canvas vuoto</Text>
+                <Text style={styles.emptySubtext}>
+                  Tocca ➕ per aggiungere suoni
+                </Text>
+              </View>
+            ) : (
+              tracks.map((track, index) => (
+                <TrackComponent
+                  key={track.id}
+                  track={track}
+                  index={index}
+                  isSelected={selectedTrack?.id === track.id}
+                  onSelect={() => setSelectedTrack(track)}
+                  onMove={(offset) => moveTrack(track.id, offset)}
+                  onRemove={() => removeTrack(track.id)}
+                  onDuplicate={() => duplicateTrack(track.id)}
+                  totalDuration={totalDuration}
+                  canvasWidth={CANVAS_WIDTH}
+                />
+              ))
+            )}
+          </View>
+        </View>
+
+        {/* Track Editor */}
+        {selectedTrack && (
+          <View style={styles.editorPanel}>
+            <View style={styles.editorHeader}>
+              <Text style={styles.editorTitle}>
+                ✂️ {selectedTrack.title}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedTrack(null)}>
+                <Text style={styles.editorClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Trim Controls */}
+            <View style={styles.editorSection}>
+              <Text style={styles.editorLabel}>
+                ✂️ Taglia: {formatTime(selectedTrack.startTime)} - {formatTime(selectedTrack.endTime)}
+              </Text>
+              <View style={styles.sliderRow}>
+                <Text style={styles.sliderLabel}>Inizio</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={selectedTrack.duration}
+                  value={selectedTrack.startTime}
+                  onValueChange={(val) => 
+                    trimTrack(selectedTrack.id, val, selectedTrack.endTime)
+                  }
+                  minimumTrackTintColor="#06b6d4"
+                  maximumTrackTintColor="#334155"
+                  thumbTintColor="#06b6d4"
+                />
+              </View>
+              <View style={styles.sliderRow}>
+                <Text style={styles.sliderLabel}>Fine</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={selectedTrack.duration}
+                  value={selectedTrack.endTime}
+                  onValueChange={(val) => 
+                    trimTrack(selectedTrack.id, selectedTrack.startTime, val)
+                  }
+                  minimumTrackTintColor="#06b6d4"
+                  maximumTrackTintColor="#334155"
+                  thumbTintColor="#06b6d4"
+                />
+              </View>
+            </View>
+
+            {/* Volume Control */}
+            <View style={styles.editorSection}>
+              <Text style={styles.editorLabel}>
+                🔊 Volume: {Math.round(selectedTrack.volume * 100)}%
+              </Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                value={selectedTrack.volume}
+                onValueChange={(val) => 
+                  updateTrack(selectedTrack.id, { volume: val })
+                }
+                minimumTrackTintColor="#06b6d4"
+                maximumTrackTintColor="#334155"
+                thumbTintColor="#06b6d4"
+              />
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Transport Controls */}
+      <View style={styles.transport}>
+        <View style={styles.timeDisplay}>
+          <Text style={styles.timeText}>
+            {formatTime(currentTime)} / {formatTime(totalDuration)}
+          </Text>
+        </View>
+        
+        <View style={styles.transportButtons}>
+          <TouchableOpacity 
+            style={styles.transportButton}
+            onPress={resetPlayback}
+          >
+            <Text style={styles.transportIcon}>⏹</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.transportButton, styles.playButton]}
+            onPress={handlePlayPause}
+            disabled={tracks.length === 0}
+          >
+            <Text style={styles.transportIcon}>
+              {isPlaying ? '⏸' : '▶️'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.transportButton}
+            onPress={() => {
+              const newDuration = totalDuration + 10;
+              setTotalDuration(newDuration);
+            }}
+          >
+            <Text style={styles.transportIcon}>➕</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Sound Picker Modal */}
+      <Modal
+        visible={showSoundPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSoundPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📚 I Tuoi Suoni</Text>
+              <TouchableOpacity onPress={() => setShowSoundPicker(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.soundList}>
+              {availableSounds.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>🎤</Text>
+                  <Text style={styles.emptyText}>Nessun suono disponibile</Text>
+                  <Text style={styles.emptySubtext}>
+                    Registra un suono nella Home e torna qui!
+                  </Text>
+                </View>
+              ) : (
+                availableSounds.map(sound => (
+                  <TouchableOpacity
+                    key={sound.id}
+                    style={styles.soundPickerItem}
+                    onPress={() => addTrack(sound)}
+                  >
+                    <View style={styles.soundPickerInfo}>
+                      <Text style={styles.soundPickerTitle}>{sound.title}</Text>
+                      <Text style={styles.soundPickerMeta}>
+                        {sound.duration}s · {sound.mood}
+                      </Text>
+                    </View>
+                    <View style={styles.soundPickerAction}>
+                      <Text style={styles.soundPickerIcon}>➕</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Save Modal */}
+      <Modal
+        visible={showSaveModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSaveModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.saveModal}>
+            <Text style={styles.saveModalTitle}>💾 Salva Remix</Text>
+            <TextInput
+              style={styles.saveInput}
+              placeholder="Nome del remix..."
+              placeholderTextColor="#64748b"
+              value={remixName}
+              onChangeText={setRemixName}
+              autoFocus
+            />
+            <View style={styles.saveModalButtons}>
+              <TouchableOpacity
+                style={[styles.saveModalButton, styles.cancelButton]}
+                onPress={() => { setShowSaveModal(false); setRemixName(''); }}
+              >
+                <Text style={styles.saveModalButtonText}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveModalButton, styles.confirmButton]}
+                onPress={saveRemix}
+              >
+                <Text style={styles.saveModalButtonText}>💾 Locale</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveModalButton, styles.publishButton]}
+                onPress={publishRemix}
+              >
+                <Text style={styles.saveModalButtonText}>🌐 Pubblica</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Load Modal */}
+      <Modal
+        visible={showLoadModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLoadModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📂 Remix Salvati</Text>
+              <TouchableOpacity onPress={() => setShowLoadModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.soundList}>
+              {savedRemixes.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>📂</Text>
+                  <Text style={styles.emptyText}>Nessun remix salvato</Text>
+                  <Text style={styles.emptySubtext}>
+                    Salva il tuo primo remix usando 💾
+                  </Text>
+                </View>
+              ) : (
+                savedRemixes.map(remix => (
+                  <View key={remix.id} style={styles.remixItem}>
+                    <TouchableOpacity
+                      style={styles.remixItemContent}
+                      onPress={() => loadRemix(remix)}
+                    >
+                      <View style={styles.remixItemInfo}>
+                        <Text style={styles.remixItemTitle}>{remix.name}</Text>
+                        <Text style={styles.remixItemMeta}>
+                          {remix.tracks.length} tracce · {formatTime(remix.totalDuration)}
+                        </Text>
+                        <Text style={styles.remixItemDate}>
+                          {new Date(remix.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.remixDeleteButton}
+                      onPress={() => deleteRemix(remix.id)}
+                    >
+                      <Text style={styles.remixDeleteIcon}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// 🎨 STYLES
+// ═══════════════════════════════════════════════════════
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  backButton: {
+    backgroundColor: '#1e293b',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: '#06b6d4',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    flexShrink: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 6,
+    flexShrink: 0,
+  },
+  headerButton: {
+    backgroundColor: '#1e293b',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerButtonText: {
+    fontSize: 20,
+  },
+  content: {
+    flex: 1,
+  },
+  canvasContainer: {
+    padding: 16,
+    minHeight: 400,
+  },
+  timeRuler: {
+    flexDirection: 'row',
+    height: 40,
+    marginBottom: 16,
+  },
+  timeMarker: {
+    width: CANVAS_WIDTH / 30,
+    alignItems: 'center',
+  },
+  timeLabel: {
+    fontSize: 10,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  timeTick: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#334155',
+  },
+  playhead: {
+    position: 'absolute',
+    top: 40,
+    width: 2,
+    height: 400,
+    backgroundColor: '#ef4444',
+    zIndex: 100,
+  },
+  tracksContainer: {
+    height: 300,
+    position: 'relative',
+  },
+  emptyCanvas: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  track: {
+    position: 'absolute',
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 2,
+    overflow: 'hidden',
+  },
+  trackDragging: {
+    opacity: 0.8,
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+  },
+  trackContent: {
+    flex: 1,
+    padding: 8,
+    justifyContent: 'center',
+  },
+  trackTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  trackDuration: {
+    fontSize: 10,
+    color: '#e2e8f0',
+  },
+  trackActions: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  trackActionButton: {
+    backgroundColor: '#0f172a',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackActionIcon: {
+    fontSize: 12,
+  },
+  editorPanel: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    margin: 16,
+    marginTop: 0,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  editorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  editorTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  editorClose: {
+    fontSize: 20,
+    color: '#94a3b8',
+  },
+  editorSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  editorLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94a3b8',
+    marginBottom: 12,
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    width: 50,
+  },
+  slider: {
+    flex: 1,
+    height: 40,
+  },
+  transport: {
+    backgroundColor: '#1e293b',
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    padding: 16,
+  },
+  timeDisplay: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  timeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#06b6d4',
+  },
+  transportButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  transportButton: {
+    backgroundColor: '#334155',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButton: {
+    backgroundColor: '#06b6d4',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  transportIcon: {
+    fontSize: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1e293b',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '70%',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#94a3b8',
+  },
+  soundList: {
+    flex: 1,
+    padding: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  soundPickerItem: {
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  soundPickerInfo: {
+    flex: 1,
+  },
+  soundPickerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  soundPickerMeta: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  soundPickerAction: {
+    backgroundColor: '#06b6d4',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  soundPickerIcon: {
+    fontSize: 18,
+    color: '#fff',
+  },
+  // Save Modal Styles
+  saveModal: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 24,
+    margin: 32,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  saveModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  saveInput: {
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 20,
+  },
+  saveModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  saveModalButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#334155',
+  },
+  confirmButton: {
+    backgroundColor: '#06b6d4',
+  },
+  publishButton: {
+    backgroundColor: '#7c3aed',
+  },
+  processingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  processingText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  saveModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // Remix Item Styles
+  remixItem: {
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+  },
+  remixItemContent: {
+    flex: 1,
+    padding: 16,
+  },
+  remixItemInfo: {
+    flex: 1,
+  },
+  remixItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  remixItemMeta: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  remixItemDate: {
+    fontSize: 11,
+    color: '#475569',
+  },
+  remixDeleteButton: {
+    backgroundColor: '#991b1b',
+    width: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  remixDeleteIcon: {
+    fontSize: 20,
+  },
+});
+
+// ═══════════════════════════════════════════════════════
+// 🎨 TRACK COMPONENT
+// ═══════════════════════════════════════════════════════
+
+function TrackComponent({ 
+  track, 
+  index, 
+  isSelected, 
+  onSelect, 
+  onMove,
+  onRemove, 
+  onDuplicate,
+  totalDuration,
+  canvasWidth 
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const initialOffset = useRef(0);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        setIsDragging(true);
+        dragStartX.current = evt.nativeEvent.pageX;
+        initialOffset.current = track.offsetStart;
+      },
+      onPanResponderMove: (evt) => {
+        const deltaX = evt.nativeEvent.pageX - dragStartX.current;
+        const deltaTime = (deltaX / canvasWidth) * totalDuration;
+        const newOffset = initialOffset.current + deltaTime;
+        onMove(newOffset);
+      },
+      onPanResponderRelease: () => {
+        setIsDragging(false);
+      },
+    })
+  ).current;
+
+  const trackWidth = ((track.endTime - track.startTime) / totalDuration) * canvasWidth;
+  const trackLeft = (track.offsetStart / totalDuration) * canvasWidth;
+
+  return (
+    <View 
+      style={[
+        styles.track,
+        { 
+          top: index * 70,
+          left: trackLeft,
+          width: trackWidth,
+          borderColor: isSelected ? '#06b6d4' : track.color,
+          backgroundColor: track.color + '40',
+        },
+        isDragging && styles.trackDragging,
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <TouchableOpacity 
+        style={styles.trackContent}
+        onPress={onSelect}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.trackTitle} numberOfLines={1}>
+          {track.title}
+        </Text>
+        <Text style={styles.trackDuration}>
+          {((track.endTime - track.startTime)).toFixed(1)}s
+        </Text>
+      </TouchableOpacity>
+
+      {isSelected && (
+        <View style={styles.trackActions}>
+          <TouchableOpacity 
+            style={styles.trackActionButton}
+            onPress={onDuplicate}
+          >
+            <Text style={styles.trackActionIcon}>📋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.trackActionButton}
+            onPress={onRemove}
+          >
+            <Text style={styles.trackActionIcon}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}

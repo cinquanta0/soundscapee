@@ -1,0 +1,345 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+    function isNotAnonymous() {
+      return isAuth() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
+    }
+    function validString(val, maxLen) {
+      return val is string && val.size() > 0 && val.size() <= maxLen;
+    }
+
+    // ── Rate limiting: controlla soundsQuota/{uid} prima di creare un suono ──
+    function withinDailyLimit() {
+      let quotaPath = /databases/$(database)/documents/soundsQuota/$(request.auth.uid);
+      return !exists(quotaPath) || get(quotaPath).data.get('count', 0) < 10;
+    }
+
+    // ── USERS ─────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuth();
+
+      allow create: if isOwner(userId)
+                    && validString(request.resource.data.get('displayName', 'x'), 100);
+
+      // Proprietario: può modificare tutto tranne isAdmin e followersCount
+      // (followersCount è gestito da chi segue, non da sé stessi)
+      allow update: if isOwner(userId)
+                    && validString(request.resource.data.get('displayName', 'x'), 100)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['isAdmin', 'followersCount']);
+
+      // Chiunque autenticato può modificare solo followersCount di un altro utente (±1)
+      // usato da follow/unfollow
+      allow update: if isAuth() && !isOwner(userId)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['followersCount'])
+                    && (request.resource.data.followersCount == resource.data.followersCount + 1
+                        || request.resource.data.followersCount == resource.data.followersCount - 1);
+
+      allow delete: if isOwner(userId);
+
+      match /followers/{followerId} {
+        allow read: if isAuth();
+        allow write: if isOwner(followerId);
+      }
+      match /following/{followingId} {
+        allow read: if isAuth();
+        allow write: if isOwner(request.auth.uid);
+      }
+    }
+
+    // ── SOUNDS ────────────────────────────────────────────────────────────────
+    match /sounds/{soundId} {
+      allow read: if isAuth();
+
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.userId)
+                    && validString(request.resource.data.title, 200)
+                    && request.resource.data.title.size() > 0
+                    && withinDailyLimit();
+
+      // Proprietario: può modificare i propri campi, ma NON i contatori sociali
+      allow update: if isOwner(resource.data.userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['userId', 'likesCount', 'commentsCount', 'listensCount']);
+
+      // Qualsiasi utente autenticato può incrementare/decrementare likesCount (±1) — web
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['likesCount'])
+                    && (request.resource.data.likesCount == resource.data.get('likesCount', 0) + 1
+                        || request.resource.data.likesCount == resource.data.get('likesCount', 0) - 1);
+
+      // Qualsiasi utente autenticato può incrementare/decrementare likes (±1) — mobile
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['likes'])
+                    && (request.resource.data.likes == resource.data.get('likes', 0) + 1
+                        || request.resource.data.likes == resource.data.get('likes', 0) - 1);
+
+      // Utenti non-anonimi possono incrementare commentsCount (+1) — web
+      allow update: if isNotAnonymous()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['commentsCount'])
+                    && request.resource.data.commentsCount == resource.data.get('commentsCount', 0) + 1;
+
+      // Utenti non-anonimi possono incrementare comments (+1) — mobile
+      allow update: if isNotAnonymous()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['comments'])
+                    && request.resource.data.comments == resource.data.get('comments', 0) + 1;
+
+      // Qualsiasi utente autenticato può incrementare listensCount (+1) — web
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['listensCount'])
+                    && request.resource.data.listensCount == resource.data.get('listensCount', 0) + 1;
+
+      // Qualsiasi utente autenticato può incrementare listens (+1) — mobile
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['listens'])
+                    && request.resource.data.listens == resource.data.get('listens', 0) + 1;
+
+      allow delete: if isOwner(resource.data.userId);
+
+      match /likes/{userId} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+      match /comments/{commentId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous()
+                      && isOwner(request.resource.data.userId)
+                      && validString(request.resource.data.text, 1000);
+        allow delete: if isOwner(resource.data.userId);
+        allow update: if false;
+      }
+    }
+
+    // ── SOUNDS QUOTA (rate limiting giornaliero) ───────────────────────────────
+    // Il client legge/scrive il proprio documento quota.
+    // La Cloud Function può scrivere con Admin SDK ignorando queste regole.
+    match /soundsQuota/{userId} {
+      allow read: if isOwner(userId);
+      // Il client aggiorna solo count e date (non altri campi)
+      allow write: if isOwner(userId)
+                   && request.resource.data.keys().hasOnly(['count', 'date'])
+                   && request.resource.data.count is int
+                   && request.resource.data.count >= 0
+                   && request.resource.data.count <= 10;
+    }
+
+    // ── REMIXES ───────────────────────────────────────────────────────────────
+    match /remixes/{remixId} {
+      allow read: if isAuth() &&
+                    (resource.data.userId == request.auth.uid ||
+                     resource.data.get('isPublic', false) == true);
+      allow create: if isNotAnonymous() && isOwner(request.resource.data.userId);
+      allow update: if isOwner(resource.data.userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['userId']);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── REPORTS ───────────────────────────────────────────────────────────────
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.userId)
+                    && validString(request.resource.data.reason, 200);
+      allow update, delete: if false;
+    }
+
+    // ── COMMUNITIES ───────────────────────────────────────────────────────────
+    match /communities/{communityId} {
+      allow read: if isAuth();
+      allow create: if isNotAnonymous();
+      allow update: if isAdmin()
+                    || isOwner(resource.data.createdBy)
+                    // Chiunque autenticato può aggiornare solo membersCount (join/leave)
+                    || (isAuth()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['membersCount']));
+      allow delete: if isAdmin() || isOwner(resource.data.createdBy);
+
+      match /members/{userId} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+      match /posts/{postId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous()
+                      && isOwner(request.resource.data.userId)
+                      && validString(request.resource.data.get('text', 'x'), 2000);
+        allow delete: if isOwner(resource.data.userId) || isAdmin();
+        allow update: if false;
+      }
+    }
+
+    // ── CHALLENGES ────────────────────────────────────────────────────────────
+    match /challenges/{challengeId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isAdmin();
+
+      match /participants/{userId} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+    // Le notifiche vengono create solo da Cloud Functions (Admin SDK, bypassa le regole).
+    // Il client può solo leggerle e aggiornarle (solo campo 'read') o eliminarle.
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if false; // solo Cloud Function
+      allow update: if isOwner(resource.data.userId)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['read']);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── PODCAST ───────────────────────────────────────────────────────────────
+    match /podcast/{episodeId} {
+      allow read: if isAuth();
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.userId)
+                    && validString(request.resource.data.title, 200);
+      allow update: if isOwner(resource.data.userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── RADIO ─────────────────────────────────────────────────────────────────
+    match /radio/{roomId} {
+      allow read: if isAuth();
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.hostId)
+                    && validString(request.resource.data.title, 200);
+      allow update: if isAuth()
+                    && (
+                      // Ascoltatori: solo contatore
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['listenerCount'])
+                      ||
+                      // Host: gestione tracce e fine trasmissione
+                      (isOwner(resource.data.hostId)
+                       && request.resource.data.diff(resource.data).affectedKeys()
+                            .hasOnly(['currentTrackIndex', 'trackStartedAt', 'isLive',
+                                      'currentChunkUrl', 'chunkIndex', 'listenerCount', 'hostMicLive']))
+                    );
+      allow delete: if isOwner(resource.data.hostId);
+
+      // Chat live
+      match /chat/{msgId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous()
+                      && validString(request.resource.data.text, 500);
+        allow delete: if false;
+      }
+
+      // Reazioni emoji
+      match /reactions/{reactionId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous();
+        allow delete: if false;
+      }
+
+      // Mani alzate
+      match /handRaises/{userId} {
+        allow read: if isAuth();
+        allow create, update: if isNotAnonymous() && isOwner(userId);
+        allow delete: if isAuth()
+                      && (isOwner(userId)
+                          || isOwner(get(/databases/$(database)/documents/radio/$(roomId)).data.hostId));
+      }
+    }
+
+    // ── STATI (stories 24h) ───────────────────────────────────────────────────
+    match /stati/{statoId} {
+      allow read: if isAuth();
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.userId)
+                    && validString(request.resource.data.get('title', 'x'), 200);
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['visti']);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── FRIEND REQUESTS ───────────────────────────────────────────────────────
+    // requestId = [uid1, uid2].sort().join('_')
+    match /friendRequests/{requestId} {
+      // resource == null quando il doc non esiste (getDoc su doc assente) → permettiamo la lettura
+      allow read: if isAuth() && (resource == null || request.auth.uid in resource.data.users);
+      allow create: if isAuth()
+                    && request.resource.data.initiatedBy == request.auth.uid
+                    && request.auth.uid in request.resource.data.users
+                    && request.resource.data.users.size() == 2
+                    && request.resource.data.status == 'pending';
+      // Solo il ricevente può accettare (non chi ha inviato)
+      allow update: if isAuth()
+                    && request.auth.uid in resource.data.users
+                    && request.auth.uid != resource.data.initiatedBy
+                    && request.resource.data.status == 'accepted'
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'respondedAt']);
+      // Entrambi possono cancellare (rifiuta, annulla, rimuovi amico)
+      allow delete: if isAuth() && request.auth.uid in resource.data.users;
+    }
+
+    // ── FOLLOWS (relazioni follow/unfollow) ──────────────────────────────────
+    match /follows/{followId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isOwner(request.resource.data.followerId);
+      allow delete: if isAuth() && isOwner(resource.data.followerId);
+    }
+
+    // ── REMIX QUOTA (usato dalla Cloud Function per rate limiting) ────────────
+    match /remixQuota/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // solo Cloud Function con Admin SDK
+    }
+
+    // ── MESSAGGI VOCALI ───────────────────────────────────────────────────────
+    // conversationId deterministico: [uid1, uid2].sort().join('_')
+    match /conversations/{convId} {
+      // get: verifica partecipante (resource == null quando la conv non esiste ancora)
+      allow get: if isAuth() && (resource == null || request.auth.uid in resource.data.participants);
+      // list: la query filtra già per participants array-contains uid, isAuth() basta
+      allow list: if isAuth();
+      allow create: if isAuth() && request.auth.uid in request.resource.data.participants;
+      allow update: if isAuth() && request.auth.uid in resource.data.participants;
+      allow delete: if false;
+    }
+
+    match /messaggi/{msgId} {
+      // get: verifica mittente o destinatario
+      allow get: if isAuth() &&
+                   (resource.data.senderId == request.auth.uid ||
+                    resource.data.receiverId == request.auth.uid);
+      // list: la query filtra già per conversationId, isAuth() basta
+      allow list: if isAuth();
+      // Solo il mittente autenticato può creare
+      allow create: if isAuth() && request.resource.data.senderId == request.auth.uid;
+      // Solo il destinatario può aggiornare (segna come ascoltato)
+      allow update: if isAuth() &&
+                    resource.data.receiverId == request.auth.uid &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ascoltato']);
+      allow delete: if false;
+    }
+  }
+}

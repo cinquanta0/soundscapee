@@ -1,0 +1,327 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "create": "Erstellen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "error": "Fehler",
+    "loading": "Laden...",
+    "or": "ODER",
+    "ok": "OK",
+    "yes": "Ja",
+    "no": "Nein",
+    "send": "Senden",
+    "optional": "optional",
+    "required": "erforderlich",
+    "none": "Keiner"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "subtitle": "Fange die Klänge deiner Welt ein",
+    "signIn": "🔑 Anmelden",
+    "signUp": "📝 Registrieren",
+    "alreadyHaveAccount": "Bereits ein Konto? Anmelden",
+    "noAccount": "Kein Konto? Registrieren",
+    "continueAsGuest": "👤 Als Gast fortfahren",
+    "termsInfo": "Durch die Anmeldung stimmst du unseren Nutzungsbedingungen und der Datenschutzrichtlinie zu",
+    "forgotPassword": "Passwort vergessen?",
+    "errors": {
+      "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
+      "emptyPassword": "Bitte gib dein Passwort ein",
+      "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen haben"
+    },
+    "success": {
+      "accountCreated": "Konto erfolgreich erstellt!"
+    },
+    "logoutConfirm": "Möchtest du dich abmelden?",
+    "logoutAction": "Abmelden"
+  },
+  "nav": {
+    "home": "Feed",
+    "explore": "Erkunden",
+    "map": "Karte",
+    "challenges": "Herausforderungen",
+    "communities": "Community",
+    "messages": "Nachrichten",
+    "profile": "Profil"
+  },
+  "home": {
+    "live": "🔴 LIVE",
+    "soundsInWorld": "{{count}} Klänge in der Welt",
+    "captureSound": "🎤 Klang aufnehmen",
+    "recording": "⏺ Aufnahme {{time}}s",
+    "recordHint": "Tippen zum Speichern (3-30s)",
+    "searchPlaceholder": "Klänge suchen...",
+    "noSoundsFound": "Keine Klänge gefunden",
+    "all": "Alle",
+    "options": "⋯ Optionen",
+    "reportContent": "Inhalt melden",
+    "copyLink": "Link kopieren"
+  },
+  "moods": {
+    "all": "Alle",
+    "energico": "Energetisch",
+    "rilassante": "Entspannend",
+    "gioioso": "Fröhlich",
+    "nostalgico": "Nostalgisch"
+  },
+  "upload": {
+    "title": "🎵 Deinen Klang veröffentlichen",
+    "titlePlaceholder": "Z.B. Regen auf dem Dach, Berliner Markt...",
+    "descriptionPlaceholder": "Beschreibung (optional)",
+    "titleRequired": "Gib deinem Klang einen Namen 🎵",
+    "mood": "Stimmung:",
+    "duration": "⏱️ Dauer: {{seconds}}s",
+    "gps": "📍 GPS: {{status}}",
+    "gpsOk": "✓",
+    "gpsNo": "✗",
+    "publish": "Veröffentlichen 🎵",
+    "published": "🎵 Veröffentlicht!",
+    "publishedMsg": "Dein Klang wurde mit der Welt geteilt!",
+    "challenge": "🏆 An einer Herausforderung teilnehmen:",
+    "challengeFantastic": "🎉 Fantastisch!",
+    "challengeJoined": "Du hast an der Herausforderung \"{{title}}\" teilgenommen!",
+    "errors": {
+      "cannotPublish": "Klang kann nicht veröffentlicht werden",
+      "cannotRecord": "Aufnahme kann nicht gestartet werden",
+      "cannotStop": "Aufnahme kann nicht gestoppt werden",
+      "tooShort": "Zu kurz",
+      "tooShortMsg": "Nehme mindestens 3 Sekunden auf"
+    }
+  },
+  "profile": {
+    "sounds": "Klänge",
+    "followers": "Follower",
+    "following": "Gefolgt",
+    "streak": "Serie",
+    "edit": "✏️ Bearbeiten",
+    "share": "🔗 Teilen",
+    "follow": "Folgen",
+    "unfollow": "Nicht mehr folgen",
+    "mySounds": "📼 Meine Klänge ({{count}})",
+    "noRecordings": "Noch keine Aufnahmen",
+    "noRecordingsHint": "Gehe zur Startseite und fange an aufzunehmen!",
+    "featureComingSoon": "Funktion demnächst verfügbar!",
+    "editProfile": "✏️ Profil bearbeiten",
+    "chooseAvatar": "Avatar wählen",
+    "username": "Benutzername",
+    "usernamePlaceholder": "Dein Benutzername",
+    "bio": "Bio",
+    "bioPlaceholder": "Erzähl uns von dir...",
+    "saveChanges": "💾 Änderungen speichern",
+    "profileUpdated": "✅ Fertig!",
+    "profileUpdatedMsg": "Profil erfolgreich aktualisiert!",
+    "errors": {
+      "usernameRequired": "Benutzername ist erforderlich",
+      "usernameTooShort": "Benutzername zu kurz (mindestens 3 Zeichen)",
+      "cannotSave": "Profil kann nicht gespeichert werden",
+      "cannotFollow": "Aktion kann nicht ausgeführt werden.",
+      "cannotOpen": "Profil kann nicht geöffnet werden"
+    }
+  },
+  "settings": {
+    "title": "⚙️ Einstellungen",
+    "account": "Konto",
+    "email": "E-Mail: {{email}}",
+    "anonymous": "Anonym",
+    "soundsPublished": "Veröffentlichte Klänge: {{count}}",
+    "legal": "Rechtliches",
+    "privacyPolicy": "📄 Datenschutzrichtlinie",
+    "termsOfService": "📋 Nutzungsbedingungen",
+    "actions": "Aktionen",
+    "logout": "🚪 Abmelden",
+    "deleteAccount": "🗑️ Konto löschen",
+    "language": "Sprache",
+    "deleteConfirmTitle": "Bist du sicher?",
+    "deleteConfirmMsg": "Diese Aktion ist irreversibel. Alle deine Audios, Kommentare und Daten werden dauerhaft gelöscht.",
+    "deletingAccount": "Löschen...",
+    "deleteForever": "Dauerhaft löschen",
+    "errors": {
+      "cannotDelete": "Konto kann nicht gelöscht werden. Bitte erneut versuchen."
+    }
+  },
+  "explore": {
+    "searchPlaceholder": "Klänge, Benutzer suchen...",
+    "sortBy": "Sortieren:",
+    "recent": "🕐 Aktuell",
+    "likes": "❤️ Likes",
+    "listens": "🎧 Hörspiele",
+    "noResults": "Keine Klänge gefunden",
+    "noResultsHint": "Versuche andere Filter oder Suchbegriffe",
+    "errors": {
+      "cannotLoad": "Klänge können nicht geladen werden",
+      "cannotPlay": "Klang kann nicht abgespielt werden"
+    }
+  },
+  "map": {
+    "nearby": "In der Nähe",
+    "all": "Alle",
+    "radius": "Radius:",
+    "kmAway": "{{km}} km entfernt",
+    "listen": "▶ Hören",
+    "pause": "⏸ Pause",
+    "errors": {
+      "permissionDenied": "GPS-Berechtigung verweigert",
+      "permissionMsg": "GPS ist erforderlich, um nahe Klänge zu sehen",
+      "cannotLoad": "Nahe Klänge können nicht geladen werden",
+      "cannotPlay": "Klang kann nicht abgespielt werden"
+    }
+  },
+  "challenges": {
+    "title": "🏆 Klang-Herausforderungen",
+    "subtitle": "Mitmachen und gewinnen!",
+    "loading": "Herausforderungen laden...",
+    "noActive": "Keine aktiven Herausforderungen",
+    "noActiveHint": "Erstelle die erste!",
+    "participate": "🎤 Jetzt mitmachen",
+    "participateWithSound": "🎤 Mit einem Klang mitmachen",
+    "howToParticipate": "🎤 Wie mitmachen",
+    "howToParticipateMsg": "Gehe zur Startseite und nimm einen Klang auf. Wähle beim Veröffentlichen diese Herausforderung aus dem Menü!",
+    "endsIn": "⏰ Endet in: {{time}}",
+    "ended": "Beendet",
+    "daysHours": "{{days}}T {{hours}}h",
+    "hours": "{{hours}}h",
+    "noSounds": "Noch keine Klänge",
+    "noSoundsHint": "Sei der Erste, der mitmacht!",
+    "voteRegistered": "Stimme registriert!",
+    "createTitle": "🏆 Herausforderung erstellen",
+    "chooseEmoji": "Emoji wählen",
+    "challengeTitle": "Titel *",
+    "challengeTitlePlaceholder": "Z.B: Naturklänge",
+    "description": "Beschreibung *",
+    "descriptionPlaceholder": "Beschreibe die Herausforderung...",
+    "duration": "Dauer (Tage)",
+    "createButton": "🚀 Herausforderung erstellen",
+    "created": "🎉 Herausforderung erstellt!",
+    "createdMsg": "Deine Herausforderung wurde veröffentlicht!",
+    "errors": {
+      "titleRequired": "Bitte gib einen Titel ein",
+      "descriptionRequired": "Bitte gib eine Beschreibung ein",
+      "cannotLoad": "Herausforderungen können nicht geladen werden",
+      "cannotCreate": "Herausforderung kann nicht erstellt werden",
+      "cannotLoadSounds": "Klänge können nicht geladen werden",
+      "cannotPlay": "Klang kann nicht abgespielt werden",
+      "alreadyVoted": "Du hast bereits für diesen Klang abgestimmt"
+    }
+  },
+  "communities": {
+    "title": "🎵 Communities",
+    "create": "+ Erstellen",
+    "join": "Beitreten",
+    "members": "{{count}} Mitglieder",
+    "sounds": "{{count}} Klänge",
+    "membersAndSounds": "{{members}} Mitglieder • {{sounds}} Klänge",
+    "joined": "✅ Beigetreten!",
+    "left": "👋 Community verlassen",
+    "createTitle": "Community erstellen",
+    "namePlaceholder": "Community-Name",
+    "descriptionPlaceholder": "Beschreibung",
+    "selected": "Du hast ausgewählt: {{name}}",
+    "noCommunities": "Noch keine Communities",
+    "noCommunitiesHint": "Erstelle die erste!",
+    "errors": {
+      "nameRequired": "Bitte gib einen Namen ein",
+      "cannotLoad": "Communities können nicht geladen werden",
+      "cannotJoin": "Community kann nicht beigetreten werden"
+    }
+  },
+  "timeMachine": {
+    "title": "Klang-Zeitmaschine",
+    "subtitle": "Reise durch die Zeit mit Klängen",
+    "loading": "Zeitmaschine wird initialisiert...",
+    "today": "Heute",
+    "daysAgo": "Vor {{count}} Tagen",
+    "todayLabel": "🔴 Heute",
+    "weekMinus": "-1 Woche",
+    "monthMinus": "-1 Monat",
+    "yearMinus": "-1 Jahr",
+    "night": "Nacht",
+    "morning": "Morgen",
+    "afternoon": "Nachmittag",
+    "evening": "Abend",
+    "statsTitle": "📊 Standortstatistiken",
+    "totalSounds": "Gesamt Klänge",
+    "users": "Benutzer",
+    "topMood": "Top Stimmung",
+    "avgDuration": "Ø Dauer",
+    "comparePast": "🔀 Mit Vergangenheit vergleichen",
+    "compareModeOn": "🔀 Vergleichsmodus EIN",
+    "soundsAt": "🎵 Klänge vom {{date}} um {{hour}}:00",
+    "noSounds": "Keine Klänge zu dieser Zeit",
+    "noSoundsHint": "Versuche eine andere Uhrzeit oder ein anderes Datum",
+    "comparison": "📅 Vergleich: {{date}}",
+    "listen": "▶️ Hören",
+    "pause": "⏸ Pause",
+    "errors": {
+      "permissionDenied": "Berechtigung verweigert",
+      "permissionMsg": "GPS ist für die Zeitmaschine erforderlich",
+      "cannotGetLocation": "Standort kann nicht ermittelt werden",
+      "cannotPlay": "Kann nicht abgespielt werden"
+    }
+  },
+  "comments": {
+    "title": "💬 Kommentare",
+    "noComments": "Keine Kommentare",
+    "noCommentsHint": "Sei der Erste, der kommentiert!",
+    "placeholder": "Schreibe einen Kommentar...",
+    "published": "✅ Kommentar veröffentlicht!",
+    "errors": {
+      "cannotLoad": "Kommentare können nicht geladen werden",
+      "cannotSend": "Kommentar kann nicht gesendet werden"
+    }
+  },
+  "notifications": {
+    "title": "🔔 Benachrichtigungen",
+    "noNotifications": "Keine Benachrichtigungen",
+    "noNotificationsHint": "Wir informieren dich, wenn etwas passiert!"
+  },
+  "report": {
+    "title": "Inhalt melden",
+    "selectReason": "Wähle einen Grund:",
+    "inappropriate": "Unangemessen",
+    "spam": "Spam",
+    "violence": "Gewalt",
+    "other": "Andere",
+    "notesPlaceholder": "Zusätzliche Notizen (optional)",
+    "submit": "Meldung senden",
+    "sending": "Senden...",
+    "sent": "Meldung gesendet, danke!",
+    "errors": {
+      "cannotSend": "Meldung kann nicht gesendet werden."
+    }
+  },
+  "permissions": {
+    "microphoneDenied": "Berechtigung verweigert",
+    "microphoneMsg": "Mikrofonberechtigung ist für Aufnahmen erforderlich",
+    "audioError": "Klang kann nicht abgespielt werden",
+    "audioUrl": "Audio-URL nicht verfügbar"
+  },
+  "onboarding": {
+    "slide1Title": "SoundScape — Die Welt klingt",
+    "slide1Subtitle": "Das soziale Netzwerk der Klänge der realen Welt",
+    "slide2Title": "Live-Klänge aufnehmen",
+    "slide2Subtitle": "Nehme auf, was du um dich herum hörst, und teile es mit der Community",
+    "slide3Title": "Erforsche die Klangwelt",
+    "slide3Subtitle": "Höre Klänge von Menschen aus der ganzen Welt auf der Karte",
+    "skip": "Überspringen",
+    "next": "Weiter →",
+    "start": "Starten 🎵"
+  },
+  "language": {
+    "title": "Sprache",
+    "select": "Sprache auswählen",
+    "it": "Italiano",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch",
+    "pt": "Português"
+  }
+}

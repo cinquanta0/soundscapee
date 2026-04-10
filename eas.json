@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 16.26.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAvBTHZ4mlSEbUTHYaU9Tkg6q4CXL4nrzc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "soundscape-74397.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "soundscape-74397",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "soundscape-74397.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "1048962605733",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:1048962605733:web:a226ed05a8ef039db5a34c",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-F2XF6F0LVN",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD_HN9zqVTxfdsFzn3hDCklDbF2_TZtS3I",
+        "EXPO_PUBLIC_AGORA_APP_ID": "23988471385143f7bc25ce3824347312"
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

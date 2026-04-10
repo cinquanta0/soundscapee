@@ -1,0 +1,327 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "create": "Create",
+    "close": "Close",
+    "back": "Back",
+    "error": "Error",
+    "loading": "Loading...",
+    "or": "OR",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "send": "Send",
+    "optional": "optional",
+    "required": "required",
+    "none": "None"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "subtitle": "Capture the sounds of your world",
+    "signIn": "🔑 Sign In",
+    "signUp": "📝 Sign Up",
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "noAccount": "Don't have an account? Sign up",
+    "continueAsGuest": "👤 Continue as guest",
+    "termsInfo": "By signing in you accept our Terms of Service and Privacy Policy",
+    "forgotPassword": "Forgot password?",
+    "errors": {
+      "invalidEmail": "Please enter a valid email address",
+      "emptyPassword": "Please enter your password",
+      "passwordTooShort": "Password must be at least 8 characters"
+    },
+    "success": {
+      "accountCreated": "Account created successfully!"
+    },
+    "logoutConfirm": "Do you want to sign out?",
+    "logoutAction": "Sign out"
+  },
+  "nav": {
+    "home": "Feed",
+    "explore": "Explore",
+    "map": "Map",
+    "challenges": "Challenges",
+    "communities": "Community",
+    "messages": "Messages",
+    "profile": "Profile"
+  },
+  "home": {
+    "live": "🔴 LIVE",
+    "soundsInWorld": "{{count}} sounds in the world",
+    "captureSound": "🎤 Capture a sound",
+    "recording": "⏺ Recording {{time}}s",
+    "recordHint": "Tap to save (3-30s)",
+    "searchPlaceholder": "Search sounds...",
+    "noSoundsFound": "No sounds found",
+    "all": "All",
+    "options": "⋯ Options",
+    "reportContent": "Report content",
+    "copyLink": "Copy link"
+  },
+  "moods": {
+    "all": "All",
+    "energico": "Energetic",
+    "rilassante": "Relaxing",
+    "gioioso": "Joyful",
+    "nostalgico": "Nostalgic"
+  },
+  "upload": {
+    "title": "🎵 Publish your sound",
+    "titlePlaceholder": "E.g. Rain on the roof, Rome Market...",
+    "descriptionPlaceholder": "Description (optional)",
+    "titleRequired": "Give your sound a name 🎵",
+    "mood": "Mood:",
+    "duration": "⏱️ Duration: {{seconds}}s",
+    "gps": "📍 GPS: {{status}}",
+    "gpsOk": "✓",
+    "gpsNo": "✗",
+    "publish": "Publish 🎵",
+    "published": "🎵 Published!",
+    "publishedMsg": "Your sound has been shared with the world!",
+    "challenge": "🏆 Join a Challenge:",
+    "challengeFantastic": "🎉 Fantastic!",
+    "challengeJoined": "You joined the challenge \"{{title}}\"!",
+    "errors": {
+      "cannotPublish": "Unable to publish the sound",
+      "cannotRecord": "Unable to start recording",
+      "cannotStop": "Unable to stop recording",
+      "tooShort": "Too short",
+      "tooShortMsg": "Record at least 3 seconds"
+    }
+  },
+  "profile": {
+    "sounds": "Sounds",
+    "followers": "Followers",
+    "following": "Following",
+    "streak": "Streak",
+    "edit": "✏️ Edit",
+    "share": "🔗 Share",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "mySounds": "📼 My Sounds ({{count}})",
+    "noRecordings": "No recordings yet",
+    "noRecordingsHint": "Go to Home and start recording!",
+    "featureComingSoon": "Feature coming soon!",
+    "editProfile": "✏️ Edit Profile",
+    "chooseAvatar": "Choose Avatar",
+    "username": "Username",
+    "usernamePlaceholder": "Your username",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "saveChanges": "💾 Save Changes",
+    "profileUpdated": "✅ Done!",
+    "profileUpdatedMsg": "Profile updated successfully!",
+    "errors": {
+      "usernameRequired": "Username is required",
+      "usernameTooShort": "Username too short (minimum 3 characters)",
+      "cannotSave": "Unable to save profile",
+      "cannotFollow": "Unable to perform this action.",
+      "cannotOpen": "Unable to open profile"
+    }
+  },
+  "settings": {
+    "title": "⚙️ Settings",
+    "account": "Account",
+    "email": "Email: {{email}}",
+    "anonymous": "Anonymous",
+    "soundsPublished": "Published sounds: {{count}}",
+    "legal": "Legal",
+    "privacyPolicy": "📄 Privacy Policy",
+    "termsOfService": "📋 Terms of Service",
+    "actions": "Actions",
+    "logout": "🚪 Logout",
+    "deleteAccount": "🗑️ Delete account",
+    "language": "Language",
+    "deleteConfirmTitle": "Are you sure?",
+    "deleteConfirmMsg": "This action is irreversible. All your audio, comments and data will be permanently deleted.",
+    "deletingAccount": "Deleting...",
+    "deleteForever": "Delete permanently",
+    "errors": {
+      "cannotDelete": "Unable to delete account. Please try again."
+    }
+  },
+  "explore": {
+    "searchPlaceholder": "Search sounds, users...",
+    "sortBy": "Sort by:",
+    "recent": "🕐 Recent",
+    "likes": "❤️ Likes",
+    "listens": "🎧 Listens",
+    "noResults": "No sounds found",
+    "noResultsHint": "Try other filters or search terms",
+    "errors": {
+      "cannotLoad": "Unable to load sounds",
+      "cannotPlay": "Unable to play the sound"
+    }
+  },
+  "map": {
+    "nearby": "Nearby",
+    "all": "All",
+    "radius": "Radius:",
+    "kmAway": "{{km}} km away",
+    "listen": "▶ Listen",
+    "pause": "⏸ Pause",
+    "errors": {
+      "permissionDenied": "GPS permission denied",
+      "permissionMsg": "GPS is required to see nearby sounds",
+      "cannotLoad": "Unable to load nearby sounds",
+      "cannotPlay": "Unable to play the sound"
+    }
+  },
+  "challenges": {
+    "title": "🏆 Sound Challenges",
+    "subtitle": "Participate and win!",
+    "loading": "Loading challenges...",
+    "noActive": "No active challenges",
+    "noActiveHint": "Create the first one!",
+    "participate": "🎤 Join Now",
+    "participateWithSound": "🎤 Participate with a Sound",
+    "howToParticipate": "🎤 How to Participate",
+    "howToParticipateMsg": "Go to Home and record a sound. During publishing, select this challenge from the menu!",
+    "endsIn": "⏰ Ends in: {{time}}",
+    "ended": "Ended",
+    "daysHours": "{{days}}d {{hours}}h",
+    "hours": "{{hours}}h",
+    "noSounds": "No sounds yet",
+    "noSoundsHint": "Be the first to participate!",
+    "voteRegistered": "Vote registered!",
+    "createTitle": "🏆 Create Challenge",
+    "chooseEmoji": "Choose Emoji",
+    "challengeTitle": "Title *",
+    "challengeTitlePlaceholder": "E.g: Nature Sounds",
+    "description": "Description *",
+    "descriptionPlaceholder": "Describe the challenge...",
+    "duration": "Duration (days)",
+    "createButton": "🚀 Create Challenge",
+    "created": "🎉 Challenge Created!",
+    "createdMsg": "Your challenge has been published!",
+    "errors": {
+      "titleRequired": "Please enter a title",
+      "descriptionRequired": "Please enter a description",
+      "cannotLoad": "Unable to load challenges",
+      "cannotCreate": "Unable to create the challenge",
+      "cannotLoadSounds": "Unable to load sounds",
+      "cannotPlay": "Unable to play the sound",
+      "alreadyVoted": "You already voted for this sound"
+    }
+  },
+  "communities": {
+    "title": "🎵 Communities",
+    "create": "+ Create",
+    "join": "Join",
+    "members": "{{count}} members",
+    "sounds": "{{count}} sounds",
+    "membersAndSounds": "{{members}} members • {{sounds}} sounds",
+    "joined": "✅ Joined!",
+    "left": "👋 Left the community",
+    "createTitle": "Create Community",
+    "namePlaceholder": "Community name",
+    "descriptionPlaceholder": "Description",
+    "selected": "You selected: {{name}}",
+    "noCommunities": "No communities yet",
+    "noCommunitiesHint": "Create the first one!",
+    "errors": {
+      "nameRequired": "Please enter a name",
+      "cannotLoad": "Unable to load communities",
+      "cannotJoin": "Unable to join the community"
+    }
+  },
+  "timeMachine": {
+    "title": "Sound Time Machine",
+    "subtitle": "Travel through time with sounds",
+    "loading": "Initializing Time Machine...",
+    "today": "Today",
+    "daysAgo": "{{count}} days ago",
+    "todayLabel": "🔴 Today",
+    "weekMinus": "-1 week",
+    "monthMinus": "-1 month",
+    "yearMinus": "-1 year",
+    "night": "Night",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "statsTitle": "📊 Location Statistics",
+    "totalSounds": "Total sounds",
+    "users": "Users",
+    "topMood": "Top mood",
+    "avgDuration": "Avg duration",
+    "comparePast": "🔀 Compare with the past",
+    "compareModeOn": "🔀 Compare Mode ON",
+    "soundsAt": "🎵 Sounds on {{date}} at {{hour}}:00",
+    "noSounds": "No sounds at this time",
+    "noSoundsHint": "Try another time or date",
+    "comparison": "📅 Comparison: {{date}}",
+    "listen": "▶️ Listen",
+    "pause": "⏸ Pause",
+    "errors": {
+      "permissionDenied": "Permission denied",
+      "permissionMsg": "GPS is required for the Time Machine",
+      "cannotGetLocation": "Unable to get location",
+      "cannotPlay": "Unable to play"
+    }
+  },
+  "comments": {
+    "title": "💬 Comments",
+    "noComments": "No comments",
+    "noCommentsHint": "Be the first to comment!",
+    "placeholder": "Write a comment...",
+    "published": "✅ Comment published!",
+    "errors": {
+      "cannotLoad": "Unable to load comments",
+      "cannotSend": "Unable to send the comment"
+    }
+  },
+  "notifications": {
+    "title": "🔔 Notifications",
+    "noNotifications": "No notifications",
+    "noNotificationsHint": "We'll notify you when something happens!"
+  },
+  "report": {
+    "title": "Report content",
+    "selectReason": "Select a reason:",
+    "inappropriate": "Inappropriate",
+    "spam": "Spam",
+    "violence": "Violence",
+    "other": "Other",
+    "notesPlaceholder": "Additional notes (optional)",
+    "submit": "Submit report",
+    "sending": "Sending...",
+    "sent": "Report sent, thank you!",
+    "errors": {
+      "cannotSend": "Unable to send the report."
+    }
+  },
+  "permissions": {
+    "microphoneDenied": "Permission denied",
+    "microphoneMsg": "Microphone permission is required to record",
+    "audioError": "Unable to play the sound",
+    "audioUrl": "Audio URL not available"
+  },
+  "onboarding": {
+    "slide1Title": "SoundScape — The World Sounds",
+    "slide1Subtitle": "The social network of real-world sounds",
+    "slide2Title": "Capture live sounds",
+    "slide2Subtitle": "Record what you hear around you and share it with the community",
+    "slide3Title": "Explore the sound world",
+    "slide3Subtitle": "Listen to sounds from people all over the world on the map",
+    "skip": "Skip",
+    "next": "Next →",
+    "start": "Start 🎵"
+  },
+  "language": {
+    "title": "Language",
+    "select": "Select language",
+    "it": "Italiano",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch",
+    "pt": "Português"
+  }
+}

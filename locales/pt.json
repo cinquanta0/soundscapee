@@ -1,0 +1,327 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "create": "Criar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "error": "Erro",
+    "loading": "Carregando...",
+    "or": "OU",
+    "ok": "OK",
+    "yes": "Sim",
+    "no": "Não",
+    "send": "Enviar",
+    "optional": "opcional",
+    "required": "obrigatório",
+    "none": "Nenhum"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Registrar",
+    "logout": "Sair",
+    "email": "E-mail",
+    "password": "Senha",
+    "subtitle": "Capture os sons do seu mundo",
+    "signIn": "🔑 Entrar",
+    "signUp": "📝 Registrar",
+    "alreadyHaveAccount": "Já tem conta? Entre",
+    "noAccount": "Não tem conta? Registre-se",
+    "continueAsGuest": "👤 Continuar como convidado",
+    "termsInfo": "Ao entrar, você aceita nossos Termos de Serviço e Política de Privacidade",
+    "forgotPassword": "Esqueceu a senha?",
+    "errors": {
+      "invalidEmail": "Por favor, insira um endereço de e-mail válido",
+      "emptyPassword": "Por favor, insira sua senha",
+      "passwordTooShort": "A senha deve ter pelo menos 8 caracteres"
+    },
+    "success": {
+      "accountCreated": "Conta criada com sucesso!"
+    },
+    "logoutConfirm": "Deseja sair?",
+    "logoutAction": "Sair"
+  },
+  "nav": {
+    "home": "Feed",
+    "explore": "Explorar",
+    "map": "Mapa",
+    "challenges": "Desafios",
+    "communities": "Comunidade",
+    "messages": "Mensagens",
+    "profile": "Perfil"
+  },
+  "home": {
+    "live": "🔴 AO VIVO",
+    "soundsInWorld": "{{count}} sons no mundo",
+    "captureSound": "🎤 Capturar um som",
+    "recording": "⏺ Gravando {{time}}s",
+    "recordHint": "Toque para salvar (3-30s)",
+    "searchPlaceholder": "Buscar sons...",
+    "noSoundsFound": "Nenhum som encontrado",
+    "all": "Todos",
+    "options": "⋯ Opções",
+    "reportContent": "Denunciar conteúdo",
+    "copyLink": "Copiar link"
+  },
+  "moods": {
+    "all": "Todos",
+    "energico": "Energético",
+    "rilassante": "Relaxante",
+    "gioioso": "Alegre",
+    "nostalgico": "Nostálgico"
+  },
+  "upload": {
+    "title": "🎵 Publicar seu som",
+    "titlePlaceholder": "Ex. Chuva no telhado, Mercado de Lisboa...",
+    "descriptionPlaceholder": "Descrição (opcional)",
+    "titleRequired": "Dê um nome ao seu som 🎵",
+    "mood": "Clima:",
+    "duration": "⏱️ Duração: {{seconds}}s",
+    "gps": "📍 GPS: {{status}}",
+    "gpsOk": "✓",
+    "gpsNo": "✗",
+    "publish": "Publicar 🎵",
+    "published": "🎵 Publicado!",
+    "publishedMsg": "Seu som foi compartilhado com o mundo!",
+    "challenge": "🏆 Participar de um desafio:",
+    "challengeFantastic": "🎉 Fantástico!",
+    "challengeJoined": "Você participou do desafio \"{{title}}\"!",
+    "errors": {
+      "cannotPublish": "Não é possível publicar o som",
+      "cannotRecord": "Não é possível iniciar a gravação",
+      "cannotStop": "Não é possível parar a gravação",
+      "tooShort": "Muito curto",
+      "tooShortMsg": "Grave pelo menos 3 segundos"
+    }
+  },
+  "profile": {
+    "sounds": "Sons",
+    "followers": "Seguidores",
+    "following": "Seguindo",
+    "streak": "Sequência",
+    "edit": "✏️ Editar",
+    "share": "🔗 Compartilhar",
+    "follow": "Seguir",
+    "unfollow": "Deixar de seguir",
+    "mySounds": "📼 Meus Sons ({{count}})",
+    "noRecordings": "Sem gravações ainda",
+    "noRecordingsHint": "Vá para Início e comece a gravar!",
+    "featureComingSoon": "Funcionalidade em breve!",
+    "editProfile": "✏️ Editar Perfil",
+    "chooseAvatar": "Escolher Avatar",
+    "username": "Nome de usuário",
+    "usernamePlaceholder": "Seu nome de usuário",
+    "bio": "Bio",
+    "bioPlaceholder": "Conte-nos sobre você...",
+    "saveChanges": "💾 Salvar Alterações",
+    "profileUpdated": "✅ Pronto!",
+    "profileUpdatedMsg": "Perfil atualizado com sucesso!",
+    "errors": {
+      "usernameRequired": "Nome de usuário é obrigatório",
+      "usernameTooShort": "Nome de usuário muito curto (mínimo 3 caracteres)",
+      "cannotSave": "Não é possível salvar o perfil",
+      "cannotFollow": "Não é possível realizar esta ação.",
+      "cannotOpen": "Não é possível abrir o perfil"
+    }
+  },
+  "settings": {
+    "title": "⚙️ Configurações",
+    "account": "Conta",
+    "email": "E-mail: {{email}}",
+    "anonymous": "Anônimo",
+    "soundsPublished": "Sons publicados: {{count}}",
+    "legal": "Legal",
+    "privacyPolicy": "📄 Política de Privacidade",
+    "termsOfService": "📋 Termos de Serviço",
+    "actions": "Ações",
+    "logout": "🚪 Sair",
+    "deleteAccount": "🗑️ Excluir conta",
+    "language": "Idioma",
+    "deleteConfirmTitle": "Tem certeza?",
+    "deleteConfirmMsg": "Esta ação é irreversível. Todos os seus áudios, comentários e dados serão excluídos permanentemente.",
+    "deletingAccount": "Excluindo...",
+    "deleteForever": "Excluir permanentemente",
+    "errors": {
+      "cannotDelete": "Não é possível excluir a conta. Tente novamente."
+    }
+  },
+  "explore": {
+    "searchPlaceholder": "Buscar sons, usuários...",
+    "sortBy": "Ordenar:",
+    "recent": "🕐 Recentes",
+    "likes": "❤️ Likes",
+    "listens": "🎧 Plays",
+    "noResults": "Nenhum som encontrado",
+    "noResultsHint": "Tente outros filtros ou termos de pesquisa",
+    "errors": {
+      "cannotLoad": "Não é possível carregar os sons",
+      "cannotPlay": "Não é possível reproduzir o som"
+    }
+  },
+  "map": {
+    "nearby": "Próximos",
+    "all": "Todos",
+    "radius": "Raio:",
+    "kmAway": "{{km}} km de distância",
+    "listen": "▶ Ouvir",
+    "pause": "⏸ Pausa",
+    "errors": {
+      "permissionDenied": "Permissão de GPS negada",
+      "permissionMsg": "GPS é necessário para ver sons próximos",
+      "cannotLoad": "Não é possível carregar sons próximos",
+      "cannotPlay": "Não é possível reproduzir o som"
+    }
+  },
+  "challenges": {
+    "title": "🏆 Desafios de Som",
+    "subtitle": "Participe e ganhe!",
+    "loading": "Carregando desafios...",
+    "noActive": "Nenhum desafio ativo",
+    "noActiveHint": "Crie o primeiro!",
+    "participate": "🎤 Participar Agora",
+    "participateWithSound": "🎤 Participar com um Som",
+    "howToParticipate": "🎤 Como Participar",
+    "howToParticipateMsg": "Vá para Início e grave um som. Durante a publicação, selecione este desafio no menu!",
+    "endsIn": "⏰ Termina em: {{time}}",
+    "ended": "Encerrado",
+    "daysHours": "{{days}}d {{hours}}h",
+    "hours": "{{hours}}h",
+    "noSounds": "Nenhum som ainda",
+    "noSoundsHint": "Seja o primeiro a participar!",
+    "voteRegistered": "Voto registrado!",
+    "createTitle": "🏆 Criar Desafio",
+    "chooseEmoji": "Escolher Emoji",
+    "challengeTitle": "Título *",
+    "challengeTitlePlaceholder": "Ex: Sons da Natureza",
+    "description": "Descrição *",
+    "descriptionPlaceholder": "Descreva o desafio...",
+    "duration": "Duração (dias)",
+    "createButton": "🚀 Criar Desafio",
+    "created": "🎉 Desafio Criado!",
+    "createdMsg": "Seu desafio foi publicado!",
+    "errors": {
+      "titleRequired": "Por favor, insira um título",
+      "descriptionRequired": "Por favor, insira uma descrição",
+      "cannotLoad": "Não é possível carregar os desafios",
+      "cannotCreate": "Não é possível criar o desafio",
+      "cannotLoadSounds": "Não é possível carregar os sons",
+      "cannotPlay": "Não é possível reproduzir o som",
+      "alreadyVoted": "Você já votou neste som"
+    }
+  },
+  "communities": {
+    "title": "🎵 Comunidades",
+    "create": "+ Criar",
+    "join": "Entrar",
+    "members": "{{count}} membros",
+    "sounds": "{{count}} sons",
+    "membersAndSounds": "{{members}} membros • {{sounds}} sons",
+    "joined": "✅ Entrou!",
+    "left": "👋 Saiu da comunidade",
+    "createTitle": "Criar Comunidade",
+    "namePlaceholder": "Nome da comunidade",
+    "descriptionPlaceholder": "Descrição",
+    "selected": "Você selecionou: {{name}}",
+    "noCommunities": "Nenhuma comunidade ainda",
+    "noCommunitiesHint": "Crie a primeira!",
+    "errors": {
+      "nameRequired": "Por favor, insira um nome",
+      "cannotLoad": "Não é possível carregar as comunidades",
+      "cannotJoin": "Não é possível entrar na comunidade"
+    }
+  },
+  "timeMachine": {
+    "title": "Máquina do Tempo de Sons",
+    "subtitle": "Viaje no tempo através dos sons",
+    "loading": "Inicializando Máquina do Tempo...",
+    "today": "Hoje",
+    "daysAgo": "Há {{count}} dias",
+    "todayLabel": "🔴 Hoje",
+    "weekMinus": "-1 semana",
+    "monthMinus": "-1 mês",
+    "yearMinus": "-1 ano",
+    "night": "Noite",
+    "morning": "Manhã",
+    "afternoon": "Tarde",
+    "evening": "Noite",
+    "statsTitle": "📊 Estatísticas de Localização",
+    "totalSounds": "Total sons",
+    "users": "Usuários",
+    "topMood": "Clima principal",
+    "avgDuration": "Duração média",
+    "comparePast": "🔀 Comparar com o passado",
+    "compareModeOn": "🔀 Modo Comparação ON",
+    "soundsAt": "🎵 Sons do {{date}} às {{hour}}:00",
+    "noSounds": "Nenhum som neste momento",
+    "noSoundsHint": "Tente outro horário ou data",
+    "comparison": "📅 Comparação: {{date}}",
+    "listen": "▶️ Ouvir",
+    "pause": "⏸ Pausa",
+    "errors": {
+      "permissionDenied": "Permissão negada",
+      "permissionMsg": "GPS é necessário para a Máquina do Tempo",
+      "cannotGetLocation": "Não é possível obter a localização",
+      "cannotPlay": "Não é possível reproduzir"
+    }
+  },
+  "comments": {
+    "title": "💬 Comentários",
+    "noComments": "Nenhum comentário",
+    "noCommentsHint": "Seja o primeiro a comentar!",
+    "placeholder": "Escreva um comentário...",
+    "published": "✅ Comentário publicado!",
+    "errors": {
+      "cannotLoad": "Não é possível carregar os comentários",
+      "cannotSend": "Não é possível enviar o comentário"
+    }
+  },
+  "notifications": {
+    "title": "🔔 Notificações",
+    "noNotifications": "Nenhuma notificação",
+    "noNotificationsHint": "Iremos notificá-lo quando algo acontecer!"
+  },
+  "report": {
+    "title": "Denunciar conteúdo",
+    "selectReason": "Selecione um motivo:",
+    "inappropriate": "Inapropriado",
+    "spam": "Spam",
+    "violence": "Violência",
+    "other": "Outro",
+    "notesPlaceholder": "Notas adicionais (opcional)",
+    "submit": "Enviar denúncia",
+    "sending": "Enviando...",
+    "sent": "Denúncia enviada, obrigado!",
+    "errors": {
+      "cannotSend": "Não é possível enviar a denúncia."
+    }
+  },
+  "permissions": {
+    "microphoneDenied": "Permissão negada",
+    "microphoneMsg": "Permissão do microfone é necessária para gravar",
+    "audioError": "Não é possível reproduzir o som",
+    "audioUrl": "URL de áudio não disponível"
+  },
+  "onboarding": {
+    "slide1Title": "SoundScape — O Mundo Soa",
+    "slide1Subtitle": "A rede social dos sons do mundo real",
+    "slide2Title": "Capture sons ao vivo",
+    "slide2Subtitle": "Grave o que você ouve ao seu redor e compartilhe com a comunidade",
+    "slide3Title": "Explore o mundo sonoro",
+    "slide3Subtitle": "Ouça sons de pessoas de todo o mundo no mapa",
+    "skip": "Pular",
+    "next": "Próximo →",
+    "start": "Começar 🎵"
+  },
+  "language": {
+    "title": "Idioma",
+    "select": "Selecionar idioma",
+    "it": "Italiano",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "de": "Deutsch",
+    "pt": "Português"
+  }
+}
