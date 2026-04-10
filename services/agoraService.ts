@@ -79,8 +79,13 @@ export async function leaveAgoraChannel(): Promise<void> {
 
 // ─── Microphone ───────────────────────────────────────────────────────────────
 
+export function refreshSpeakerphone(): void {
+  _engine?.setEnableSpeakerphone(true);
+}
+
 export function setMicActive(active: boolean): void {
   const engine = getEngine();
+  engine.enableLocalAudio(active);
   engine.muteLocalAudioStream(!active);
   engine.updateChannelMediaOptions({
     publishMicrophoneTrack: active,

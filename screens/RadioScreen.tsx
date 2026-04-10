@@ -17,7 +17,7 @@ import {
 } from '../services/radioService';
 import {
   fetchAgoraToken, joinAsHost, joinAsAudience, leaveAgoraChannel,
-  setMicActive, destroyAgoraEngine,
+  setMicActive, destroyAgoraEngine, refreshSpeakerphone,
 } from '../services/agoraService';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -228,6 +228,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         soundRef.current = null;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync(
         { uri: track.url, headers: { 'Cache-Control': 'no-cache' } },
         { shouldPlay: false },
@@ -701,6 +702,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         soundRef.current = null;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync({ uri: track.url, headers: { 'Cache-Control': 'no-cache' } }, { shouldPlay: false });
       const durationMs = status.isLoaded && status.durationMillis ? status.durationMillis : Infinity;
       const elapsed = Math.max(0, now - startAt);

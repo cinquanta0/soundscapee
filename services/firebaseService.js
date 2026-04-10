@@ -593,10 +593,41 @@ export const acceptFriendRequest = async (targetUserId) => {
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
   const id = sortedFriendId(user.uid, targetUserId);
+
+  // Aggiorna status friendRequest
   await updateDoc(doc(db, 'friendRequests', id), {
     status: 'accepted',
     respondedAt: serverTimestamp(),
   });
+
+  // Crea follow reciproco (A segue B e B segue A)
+  const meId = user.uid;
+  const themId = targetUserId;
+  const followAtoB = `${themId}_${meId}`;
+  const followBtoA = `${meId}_${themId}`;
+
+  const [snapAtoB, snapBtoA] = await Promise.all([
+    getDoc(doc(db, 'follows', followAtoB)),
+    getDoc(doc(db, 'follows', followBtoA)),
+  ]);
+
+  const batch = [];
+  if (!snapAtoB.exists()) {
+    batch.push(setDoc(doc(db, 'follows', followAtoB), {
+      followerId: themId, followingId: meId, createdAt: serverTimestamp(),
+    }));
+    batch.push(updateDoc(doc(db, 'users', themId), { followingCount: increment(1) }));
+    batch.push(updateDoc(doc(db, 'users', meId), { followersCount: increment(1) }));
+  }
+  if (!snapBtoA.exists()) {
+    batch.push(setDoc(doc(db, 'follows', followBtoA), {
+      followerId: meId, followingId: themId, createdAt: serverTimestamp(),
+    }));
+    batch.push(updateDoc(doc(db, 'users', meId), { followingCount: increment(1) }));
+    batch.push(updateDoc(doc(db, 'users', themId), { followersCount: increment(1) }));
+  }
+
+  await Promise.all(batch);
 };
 
 /**
