@@ -33,20 +33,23 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && validString(request.resource.data.get('displayName', 'x'), 100);
 
-      // Proprietario: può modificare tutto tranne isAdmin e followersCount
-      // (followersCount è gestito da chi segue, non da sé stessi)
+      // Proprietario: può modificare tutto tranne isAdmin
       allow update: if isOwner(userId)
                     && validString(request.resource.data.get('displayName', 'x'), 100)
                     && !request.resource.data.diff(resource.data).affectedKeys()
-                         .hasAny(['isAdmin', 'followersCount']);
+                         .hasAny(['isAdmin']);
 
-      // Chiunque autenticato può modificare solo followersCount di un altro utente (±1)
-      // usato da follow/unfollow
+      // Chiunque autenticato può modificare followersCount, followingCount, friendsCount (±1)
+      // usato da follow/unfollow, accept/remove friend
       allow update: if isAuth() && !isOwner(userId)
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['followersCount'])
-                    && (request.resource.data.followersCount == resource.data.followersCount + 1
-                        || request.resource.data.followersCount == resource.data.followersCount - 1);
+                         .hasOnly(['followersCount', 'followingCount', 'friendsCount'])
+                    && request.resource.data.get('followersCount', 0) >= resource.data.get('followersCount', 0) - 1
+                    && request.resource.data.get('followersCount', 0) <= resource.data.get('followersCount', 0) + 1
+                    && request.resource.data.get('followingCount', 0) >= resource.data.get('followingCount', 0) - 1
+                    && request.resource.data.get('followingCount', 0) <= resource.data.get('followingCount', 0) + 1
+                    && request.resource.data.get('friendsCount', 0) >= resource.data.get('friendsCount', 0) - 1
+                    && request.resource.data.get('friendsCount', 0) <= resource.data.get('friendsCount', 0) + 1;
 
       allow delete: if isOwner(userId);
 
