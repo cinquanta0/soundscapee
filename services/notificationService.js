@@ -55,10 +55,13 @@ export async function registerForPushNotifications(userId) {
     }
 
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? '1acc4f41-619c-423f-8db0-fcc6e7243ba2';
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } catch (e) {
       console.log('⚠️ Impossibile ottenere push token:', e.message);
+      if (userId) {
+        await setDoc(doc(db, 'users', userId), { pushTokenError: e.message }, { merge: true }).catch(() => {});
+      }
       return null;
     }
 
