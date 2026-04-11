@@ -55,7 +55,8 @@ export async function registerForPushNotifications(userId) {
     }
 
     try {
-      token = (await Notifications.getExpoPushTokenAsync()).data;
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } catch (e) {
       console.log('⚠️ Impossibile ottenere push token:', e.message);
       return null;
