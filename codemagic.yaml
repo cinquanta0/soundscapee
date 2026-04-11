@@ -1,0 +1,58 @@
+workflows:
+  ios-unsigned:
+    name: iOS Unsigned IPA
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      node: 20.x
+      xcode: latest
+      vars:
+        EXPO_PUBLIC_FIREBASE_API_KEY: $EXPO_PUBLIC_FIREBASE_API_KEY
+        EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: $EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+        EXPO_PUBLIC_FIREBASE_PROJECT_ID: $EXPO_PUBLIC_FIREBASE_PROJECT_ID
+        EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: $EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+        EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: $EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        EXPO_PUBLIC_FIREBASE_APP_ID: $EXPO_PUBLIC_FIREBASE_APP_ID
+        EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: $EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+        EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: $EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+        EXPO_PUBLIC_AGORA_APP_ID: $EXPO_PUBLIC_AGORA_APP_ID
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Create .env file
+        script: |
+          cat > .env << EOF
+          EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=$EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+          EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=$EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+          EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=$EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+          EXPO_PUBLIC_AGORA_APP_ID=$EXPO_PUBLIC_AGORA_APP_ID
+          EOF
+      - name: Expo Prebuild
+        script: npx expo prebuild --platform ios --clean --non-interactive
+      - name: Build unsigned archive
+        script: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Using workspace: $WORKSPACE, scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/soundscape.xcarchive" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
+      - name: Export IPA
+        script: |
+          mkdir -p "$CM_BUILD_DIR/Payload"
+          cp -r "$CM_BUILD_DIR/soundscape.xcarchive/Products/Applications/"*.app "$CM_BUILD_DIR/Payload/"
+          cd "$CM_BUILD_DIR" && zip -r soundscape.ipa Payload/
+    artifacts:
+      - $CM_BUILD_DIR/soundscape.ipa
