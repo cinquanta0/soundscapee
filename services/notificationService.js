@@ -51,6 +51,9 @@ export async function registerForPushNotifications(userId) {
 
     if (finalStatus !== 'granted') {
       console.log('❌ Permesso notifiche negato');
+      if (userId) {
+        await setDoc(doc(db, 'users', userId), { pushTokenError: 'permissions_denied' }, { merge: true }).catch(() => {});
+      }
       return null;
     }
 
