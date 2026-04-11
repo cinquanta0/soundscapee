@@ -10,7 +10,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
-import { getPodcasts, publishPodcast, updatePodcast, deletePodcast, Podcast } from '../services/podcastService';
+import { getPodcasts, publishPodcast, updatePodcast, deletePodcast, searchSounds, Podcast, SoundResult } from '../services/podcastService';
 
 const { width: SW } = Dimensions.get('window');
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -353,6 +353,85 @@ function EditPodcastModal({
   );
 }
 
+// ─── SoundScape search modal ──────────────────────────────────────────────────
+function SoundScapeSearchModal({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (sound: SoundResult) => void;
+  onClose: () => void;
+}) {
+  const [queryText, setQueryText] = useState('');
+  const [results, setResults] = useState<SoundResult[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    doSearch('');
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => doSearch(queryText), 300);
+    return () => clearTimeout(t);
+  }, [queryText]);
+
+  const doSearch = async (text: string) => {
+    setLoading(true);
+    try { setResults(await searchSounds(text)); }
+    catch {}
+    finally { setLoading(false); }
+  };
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <View style={pm.overlay}>
+        <View style={[pm.sheet, { paddingBottom: 16 }]}>
+          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+          <View style={pm.handle} />
+          <Text style={pm.sheetTitle}>Cerca su SoundScape</Text>
+
+          <TextInput
+            style={pm.input}
+            placeholder="Cerca per titolo o autore..."
+            placeholderTextColor="#4A4D56"
+            value={queryText}
+            onChangeText={setQueryText}
+            autoFocus
+          />
+
+          {loading ? (
+            <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
+          ) : (
+            <FlatList
+              data={results}
+              keyExtractor={(i) => i.id}
+              style={{ maxHeight: 320, marginTop: 4 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={ss.row} onPress={() => onSelect(item)} activeOpacity={0.75}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={ss.soundTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={ss.soundMeta}>@{item.username} · {fmtTime(item.duration)}</Text>
+                  </View>
+                  <View style={ss.usaBtn}>
+                    <Text style={ss.usaTxt}>Usa</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text style={ss.emptyTxt}>Nessun suono trovato</Text>
+              }
+            />
+          )}
+
+          <TouchableOpacity style={[pm.cancelBtn, { marginTop: 12, alignSelf: 'center', paddingHorizontal: 32 }]} onPress={onClose}>
+            <Text style={pm.cancelTxt}>Annulla</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const [title, setTitle] = useState('');
@@ -362,6 +441,16 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const [audioDuration, setAudioDuration] = useState(0);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [soundscapeAudioUrl, setSoundscapeAudioUrl] = useState<string | null>(null);
+
+  const handleSelectSound = (sound: SoundResult) => {
+    setSoundscapeAudioUrl(sound.audioUrl);
+    setAudioUri(null);
+    setAudioName(sound.title);
+    setAudioDuration(sound.duration);
+    setShowSearch(false);
+  };
 
   const pickAudio = async () => {
     try {
@@ -369,6 +458,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
         setAudioUri(asset.uri);
+        setSoundscapeAudioUrl(null);
         setAudioName(asset.name ?? 'audio');
         // Misura durata
         try {
@@ -399,13 +489,14 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 
   const handlePublish = async () => {
     if (!title.trim()) { Alert.alert('Inserisci un titolo'); return; }
-    if (!audioUri) { Alert.alert('Seleziona un audio'); return; }
+    if (!audioUri && !soundscapeAudioUrl) { Alert.alert('Seleziona un audio'); return; }
     const user = auth.currentUser;
     if (!user) { Alert.alert('Non autenticato'); return; }
     setLoading(true);
     try {
       await publishPodcast({
-        audioUri,
+        audioUri: audioUri ?? undefined,
+        audioUrl: soundscapeAudioUrl ?? undefined,
         coverUri,
         title: title.trim(),
         description: description.trim(),
@@ -422,6 +513,13 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   };
 
   return (
+    <>
+      {showSearch && (
+        <SoundScapeSearchModal
+          onSelect={handleSelectSound}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={pm.overlay}>
         <View style={pm.sheet}>
@@ -447,7 +545,13 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 
           <TouchableOpacity style={pm.pickBtn} onPress={pickAudio}>
             <Text style={pm.pickBtnTxt}>
-              {audioUri ? `✅ ${audioName}` : '🎵 Scegli audio'}
+              {audioUri ? `✅ ${audioName}` : '📁 Scegli da dispositivo'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[pm.pickBtn, { marginTop: 8, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
+            <Text style={[pm.pickBtnTxt, soundscapeAudioUrl && { color: '#00FF9C' }]}>
+              {soundscapeAudioUrl ? `✅ ${audioName}` : '🔍 Cerca su SoundScape'}
             </Text>
           </TouchableOpacity>
 
@@ -468,6 +572,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         </View>
       </View>
     </Modal>
+    </>
   );
 }
 
@@ -638,4 +743,13 @@ const pm = StyleSheet.create({
   coverThumb: { width: 72, height: 72, borderRadius: 10 },
   coverThumbEmpty: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' },
   coverBtns: { flex: 1 },
+});
+
+const ss = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  soundTitle: { fontSize: 14, color: '#fff', fontWeight: '600', marginBottom: 2 },
+  soundMeta: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace' },
+  usaBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
+  usaTxt: { color: '#00FF9C', fontSize: 12, fontWeight: '700' },
+  emptyTxt: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
 });

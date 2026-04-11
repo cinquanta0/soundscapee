@@ -1,6 +1,6 @@
 import {
   collection, addDoc, getDocs, query, orderBy,
-  limit, serverTimestamp, doc, updateDoc, deleteDoc,
+  limit, serverTimestamp, doc, updateDoc, deleteDoc, where,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -55,7 +55,8 @@ export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
 }
 
 export async function publishPodcast(params: {
-  audioUri: string;
+  audioUri?: string;   // file locale da caricare
+  audioUrl?: string;   // URL già su Storage (es. suono da SoundScape)
   coverUri: string | null;
   title: string;
   description: string;
@@ -65,29 +66,35 @@ export async function publishPodcast(params: {
 }): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
+  if (!params.audioUri && !params.audioUrl) throw new Error('Audio mancante');
 
-  const token = await user.getIdToken();
-  const bucket = (storage.app.options as any).storageBucket as string;
+  let audioUrl: string;
 
-  // Determina estensione reale dal URI
-  const ext = extFromUri(params.audioUri);
-  const contentType = mimeFromExt(ext);
+  if (params.audioUrl) {
+    // Suono già su Firebase Storage — nessun upload necessario
+    audioUrl = params.audioUrl;
+  } else {
+    const token = await user.getIdToken();
+    const bucket = (storage.app.options as any).storageBucket as string;
 
-  // Upload audio via REST API (FileSystem.uploadAsync — funziona su Android e iOS)
-  const audioPath = `podcast/${user.uid}/${Date.now()}.${ext}`;
-  const encodedAudioPath = encodeURIComponent(audioPath);
-  const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedAudioPath}`;
+    const ext = extFromUri(params.audioUri!);
+    const contentType = mimeFromExt(ext);
 
-  const audioResult = await FileSystem.uploadAsync(uploadUrl, params.audioUri, {
-    httpMethod: 'POST',
-    headers: { 'Content-Type': contentType, Authorization: `Bearer ${token}` },
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-  });
-  if (audioResult.status < 200 || audioResult.status >= 300) {
-    throw new Error(`Audio upload failed: HTTP ${audioResult.status}`);
+    const audioPath = `podcast/${user.uid}/${Date.now()}.${ext}`;
+    const encodedAudioPath = encodeURIComponent(audioPath);
+    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedAudioPath}`;
+
+    const audioResult = await FileSystem.uploadAsync(uploadUrl, params.audioUri!, {
+      httpMethod: 'POST',
+      headers: { 'Content-Type': contentType, Authorization: `Bearer ${token}` },
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    });
+    if (audioResult.status < 200 || audioResult.status >= 300) {
+      throw new Error(`Audio upload failed: HTTP ${audioResult.status}`);
+    }
+    const audioData = JSON.parse(audioResult.body);
+    audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedAudioPath}?alt=media&token=${audioData.downloadTokens}`;
   }
-  const audioData = JSON.parse(audioResult.body);
-  const audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedAudioPath}?alt=media&token=${audioData.downloadTokens}`;
 
   // Upload cover se presente (immagine — usa uploadBytes va bene)
   let coverUrl: string | null = null;
@@ -139,4 +146,31 @@ export async function updatePodcast(
 
 export async function deletePodcast(id: string): Promise<void> {
   await deleteDoc(doc(db, 'podcast', id));
+}
+
+// ─── SoundScape sound search ──────────────────────────────────────────────────
+
+export interface SoundResult {
+  id: string;
+  title: string;
+  username: string;
+  audioUrl: string;
+  duration: number;
+}
+
+export async function searchSounds(queryText: string): Promise<SoundResult[]> {
+  const q = query(collection(db, 'sounds'), orderBy('createdAt', 'desc'), limit(40));
+  const snap = await getDocs(q);
+  const all = snap.docs.map((d) => ({
+    id: d.id,
+    title: d.data().title ?? '',
+    username: d.data().username ?? '',
+    audioUrl: d.data().audioUrl ?? '',
+    duration: d.data().duration ?? 0,
+  }));
+  if (!queryText.trim()) return all;
+  const lower = queryText.toLowerCase();
+  return all.filter((r) =>
+    r.title.toLowerCase().includes(lower) || r.username.toLowerCase().includes(lower),
+  );
 }

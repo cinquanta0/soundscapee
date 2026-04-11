@@ -664,6 +664,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const reactionsUnsubRef = useRef<(() => void) | null>(null);
   const handRaiseUnsubRef = useRef<(() => void) | null>(null);
   const chatListRef = useRef<FlatList<ChatMessage>>(null);
+  const hostMicLiveRef = useRef(initialRoom.hostMicLive ?? false);
 
   const clearGapTimers = () => {
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
@@ -707,13 +708,14 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
       refreshSpeakerphone();
-      const { sound, status } = await Audio.Sound.createAsync({ uri: track.url, headers: { 'Cache-Control': 'no-cache' } }, { shouldPlay: false });
-      const durationMs = status.isLoaded && status.durationMillis ? status.durationMillis : Infinity;
       const elapsed = Math.max(0, now - startAt);
-      const offset = Math.min(elapsed, isFinite(durationMs) && durationMs > 1000 ? durationMs - 1000 : elapsed);
-      if (offset > 0) await sound.setPositionAsync(offset);
-      await sound.playAsync();
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: track.url },
+        { shouldPlay: true, positionMillis: elapsed > 500 ? elapsed : 0 },
+      );
       sound.setOnPlaybackStatusUpdate((s) => { if (s.isLoaded) setIsPlaying(s.isPlaying); });
+      // Applica ducking se l'host sta già parlando quando carichiamo la traccia
+      if (hostMicLiveRef.current) sound.setVolumeAsync(0.15).catch(() => {});
       soundRef.current = sound;
     } catch {
       Alert.alert('Errore', 'Impossibile caricare la traccia.');
@@ -766,6 +768,12 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       leaveAgoraChannel().catch(() => {});
     };
   }, []);
+
+  // Ducking lato listener: abbassa la musica quando l'host attiva il microfono
+  useEffect(() => {
+    hostMicLiveRef.current = room.hostMicLive ?? false;
+    soundRef.current?.setVolumeAsync(room.hostMicLive ? 0.15 : 1.0).catch(() => {});
+  }, [room.hostMicLive]);
 
   const togglePlay = async () => {
     if (!soundRef.current) return;
