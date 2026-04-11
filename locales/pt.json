@@ -16,7 +16,12 @@
     "send": "Enviar",
     "optional": "opcional",
     "required": "obrigatório",
-    "none": "Nenhum"
+    "none": "Nenhum",
+    "remove": "Remover",
+    "accept": "Aceitar",
+    "reject": "Rejeitar",
+    "areYouSure": "Tem certeza?",
+    "info": "Info"
   },
   "auth": {
     "login": "Entrar",
@@ -63,7 +68,11 @@
     "all": "Todos",
     "options": "⋯ Opções",
     "reportContent": "Denunciar conteúdo",
-    "copyLink": "Copiar link"
+    "copyLink": "Copiar link",
+    "publish": "🎤 Publicar",
+    "loadingSounds": "Carregando sons...",
+    "deleteConfirm": "Tem certeza que deseja excluir este som?",
+    "soundDeleted": "Som excluído"
   },
   "moods": {
     "all": "Todos",
@@ -88,12 +97,41 @@
     "challenge": "🏆 Participar de um desafio:",
     "challengeFantastic": "🎉 Fantástico!",
     "challengeJoined": "Você participou do desafio \"{{title}}\"!",
+    "backstage": "🎬 Bastidores (opcional):",
+    "videoSelected": "Vídeo selecionado",
+    "photoSelected": "Foto selecionada",
+    "photo": "Foto",
+    "videoMax30": "Vídeo (máx 30s)",
+    "whatToPublish": "O que você quer publicar?",
+    "typeSound": "Som",
+    "typeSoundDesc": "Grave um som curto (máx 30s)",
+    "typePodcast": "Episódio de Podcast",
+    "typePodcastDesc": "Carregue um episódio longo da sua biblioteca",
+    "typeRadio": "Ir para o Rádio",
+    "typeRadioDesc": "Transmita ao vivo em uma sala de live",
     "errors": {
       "cannotPublish": "Não é possível publicar o som",
       "cannotRecord": "Não é possível iniciar a gravação",
       "cannotStop": "Não é possível parar a gravação",
       "tooShort": "Muito curto",
       "tooShortMsg": "Grave pelo menos 3 segundos"
+    }
+  },
+  "podcast": {
+    "title": "🎙 Novo Podcast",
+    "selectAudio": "🎵 Escolher arquivo de áudio",
+    "audioSelected": "✅ Áudio selecionado ({{duration}}s)",
+    "selectCover": "🖼 Capa (opcional)",
+    "coverSelected": "✅ Capa selecionada",
+    "titlePlaceholder": "Título do episódio...",
+    "publish": "Publicar 🎙",
+    "published": "🎙 Podcast publicado!",
+    "publishedMsg": "Seu episódio está disponível na seção Podcast.",
+    "titleRequired": "Insira um título",
+    "audioRequired": "Selecione um áudio",
+    "errors": {
+      "cannotPublish": "Não é possível publicar o podcast.",
+      "cannotSelect": "Não é possível selecionar o arquivo."
     }
   },
   "profile": {
@@ -118,6 +156,20 @@
     "saveChanges": "💾 Salvar Alterações",
     "profileUpdated": "✅ Pronto!",
     "profileUpdatedMsg": "Perfil atualizado com sucesso!",
+    "defaultName": "Usuário",
+    "friends": "Amigos",
+    "addFriend": "👤 Adicionar amigo",
+    "requestSent": "⏳ Solicitação enviada",
+    "accept": "✅ Aceitar",
+    "reject": "✕ Rejeitar",
+    "removeFriend": "Remover amigo",
+    "friendsButton": "👥 Amigos",
+    "friendRequestsBtn": "👥 Pedidos de amizade ({{count}})",
+    "friendRequestsTitle": "👥 Pedidos de amizade",
+    "noPendingRequests": "Nenhum pedido pendente",
+    "noFriends": "Nenhum amigo ainda",
+    "noFollowers": "Nenhum seguidor",
+    "notFollowing": "Você ainda não segue ninguém",
     "errors": {
       "usernameRequired": "Nome de usuário é obrigatório",
       "usernameTooShort": "Nome de usuário muito curto (mínimo 3 caracteres)",
@@ -301,7 +353,14 @@
     "microphoneDenied": "Permissão negada",
     "microphoneMsg": "Permissão do microfone é necessária para gravar",
     "audioError": "Não é possível reproduzir o som",
-    "audioUrl": "URL de áudio não disponível"
+    "audioUrl": "URL de áudio não disponível",
+    "denied": "Permissão negada",
+    "galleryMsg": "Permita o acesso à galeria nas configurações.",
+    "fileTooLarge": "Arquivo muito grande",
+    "maxSize50": "Máximo 50MB",
+    "maxSize200": "Máximo 200MB",
+    "formatNotSupported": "Formato não suportado",
+    "formatIosMsg": "Este áudio não é compatível com iOS."
   },
   "onboarding": {
     "slide1Title": "SoundScape — O Mundo Soa",

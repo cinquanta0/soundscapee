@@ -16,7 +16,12 @@
     "send": "Enviar",
     "optional": "opcional",
     "required": "obligatorio",
-    "none": "Ninguna"
+    "none": "Ninguna",
+    "remove": "Eliminar",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "areYouSure": "¿Estás seguro?",
+    "info": "Info"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -63,7 +68,11 @@
     "all": "Todos",
     "options": "⋯ Opciones",
     "reportContent": "Reportar contenido",
-    "copyLink": "Copiar enlace"
+    "copyLink": "Copiar enlace",
+    "publish": "🎤 Publicar",
+    "loadingSounds": "Cargando sonidos...",
+    "deleteConfirm": "¿Seguro que quieres eliminar este sonido?",
+    "soundDeleted": "Sonido eliminado"
   },
   "moods": {
     "all": "Todos",
@@ -88,12 +97,41 @@
     "challenge": "🏆 Participar en un reto:",
     "challengeFantastic": "🎉 ¡Fantástico!",
     "challengeJoined": "¡Participaste en el reto \"{{title}}\"!",
+    "backstage": "🎬 Backstage (opcional):",
+    "videoSelected": "Video seleccionado",
+    "photoSelected": "Foto seleccionada",
+    "photo": "Foto",
+    "videoMax30": "Video (máx 30s)",
+    "whatToPublish": "¿Qué quieres publicar?",
+    "typeSound": "Sonido",
+    "typeSoundDesc": "Graba un sonido corto (máx 30s)",
+    "typePodcast": "Episodio de Podcast",
+    "typePodcastDesc": "Sube un episodio largo desde tu biblioteca",
+    "typeRadio": "Ir a la Radio",
+    "typeRadioDesc": "Transmite en vivo en una sala en directo",
     "errors": {
       "cannotPublish": "No se puede publicar el sonido",
       "cannotRecord": "No se puede iniciar la grabación",
       "cannotStop": "No se puede detener la grabación",
       "tooShort": "Demasiado corto",
       "tooShortMsg": "Graba al menos 3 segundos"
+    }
+  },
+  "podcast": {
+    "title": "🎙 Nuevo Podcast",
+    "selectAudio": "🎵 Elegir archivo de audio",
+    "audioSelected": "✅ Audio seleccionado ({{duration}}s)",
+    "selectCover": "🖼 Portada (opcional)",
+    "coverSelected": "✅ Portada seleccionada",
+    "titlePlaceholder": "Título del episodio...",
+    "publish": "Publicar 🎙",
+    "published": "🎙 ¡Podcast publicado!",
+    "publishedMsg": "Tu episodio está disponible en la sección Podcast.",
+    "titleRequired": "Introduce un título",
+    "audioRequired": "Selecciona un audio",
+    "errors": {
+      "cannotPublish": "No se puede publicar el podcast.",
+      "cannotSelect": "No se puede seleccionar el archivo."
     }
   },
   "profile": {
@@ -118,6 +156,20 @@
     "saveChanges": "💾 Guardar Cambios",
     "profileUpdated": "✅ ¡Listo!",
     "profileUpdatedMsg": "¡Perfil actualizado con éxito!",
+    "defaultName": "Usuario",
+    "friends": "Amigos",
+    "addFriend": "👤 Añadir amigo",
+    "requestSent": "⏳ Solicitud enviada",
+    "accept": "✅ Aceptar",
+    "reject": "✕ Rechazar",
+    "removeFriend": "Eliminar amigo",
+    "friendsButton": "👥 Amigos",
+    "friendRequestsBtn": "👥 Solicitudes de amistad ({{count}})",
+    "friendRequestsTitle": "👥 Solicitudes de amistad",
+    "noPendingRequests": "No hay solicitudes pendientes",
+    "noFriends": "Sin amigos aún",
+    "noFollowers": "Sin seguidores",
+    "notFollowing": "No sigues a nadie aún",
     "errors": {
       "usernameRequired": "El nombre de usuario es obligatorio",
       "usernameTooShort": "Nombre de usuario demasiado corto (mínimo 3 caracteres)",
@@ -301,7 +353,14 @@
     "microphoneDenied": "Permiso denegado",
     "microphoneMsg": "Se necesita permiso del micrófono para grabar",
     "audioError": "No se puede reproducir el sonido",
-    "audioUrl": "URL de audio no disponible"
+    "audioUrl": "URL de audio no disponible",
+    "denied": "Permiso denegado",
+    "galleryMsg": "Permite el acceso a la galería en configuración.",
+    "fileTooLarge": "Archivo demasiado grande",
+    "maxSize50": "Máximo 50MB",
+    "maxSize200": "Máximo 200MB",
+    "formatNotSupported": "Formato no compatible",
+    "formatIosMsg": "Este audio no es compatible con iOS."
   },
   "onboarding": {
     "slide1Title": "SoundScape — El Mundo Suena",

@@ -16,7 +16,12 @@
     "send": "Senden",
     "optional": "optional",
     "required": "erforderlich",
-    "none": "Keiner"
+    "none": "Keiner",
+    "remove": "Entfernen",
+    "accept": "Annehmen",
+    "reject": "Ablehnen",
+    "areYouSure": "Bist du sicher?",
+    "info": "Info"
   },
   "auth": {
     "login": "Anmelden",
@@ -63,7 +68,11 @@
     "all": "Alle",
     "options": "⋯ Optionen",
     "reportContent": "Inhalt melden",
-    "copyLink": "Link kopieren"
+    "copyLink": "Link kopieren",
+    "publish": "🎤 Veröffentlichen",
+    "loadingSounds": "Klänge laden...",
+    "deleteConfirm": "Möchtest du diesen Klang wirklich löschen?",
+    "soundDeleted": "Klang gelöscht"
   },
   "moods": {
     "all": "Alle",
@@ -88,12 +97,41 @@
     "challenge": "🏆 An einer Herausforderung teilnehmen:",
     "challengeFantastic": "🎉 Fantastisch!",
     "challengeJoined": "Du hast an der Herausforderung \"{{title}}\" teilgenommen!",
+    "backstage": "🎬 Backstage (optional):",
+    "videoSelected": "Video ausgewählt",
+    "photoSelected": "Foto ausgewählt",
+    "photo": "Foto",
+    "videoMax30": "Video (max 30s)",
+    "whatToPublish": "Was möchtest du veröffentlichen?",
+    "typeSound": "Klang",
+    "typeSoundDesc": "Nehme einen kurzen Klang auf (max 30s)",
+    "typePodcast": "Podcast-Episode",
+    "typePodcastDesc": "Lade eine lange Episode aus deiner Bibliothek hoch",
+    "typeRadio": "Im Radio live gehen",
+    "typeRadioDesc": "Übertrage live in einem Live-Raum",
     "errors": {
       "cannotPublish": "Klang kann nicht veröffentlicht werden",
       "cannotRecord": "Aufnahme kann nicht gestartet werden",
       "cannotStop": "Aufnahme kann nicht gestoppt werden",
       "tooShort": "Zu kurz",
       "tooShortMsg": "Nehme mindestens 3 Sekunden auf"
+    }
+  },
+  "podcast": {
+    "title": "🎙 Neuer Podcast",
+    "selectAudio": "🎵 Audiodatei wählen",
+    "audioSelected": "✅ Audio ausgewählt ({{duration}}s)",
+    "selectCover": "🖼 Cover (optional)",
+    "coverSelected": "✅ Cover ausgewählt",
+    "titlePlaceholder": "Episodentitel...",
+    "publish": "Veröffentlichen 🎙",
+    "published": "🎙 Podcast veröffentlicht!",
+    "publishedMsg": "Deine Episode ist im Podcast-Bereich verfügbar.",
+    "titleRequired": "Bitte gib einen Titel ein",
+    "audioRequired": "Wähle eine Audiodatei",
+    "errors": {
+      "cannotPublish": "Podcast kann nicht veröffentlicht werden.",
+      "cannotSelect": "Datei kann nicht ausgewählt werden."
     }
   },
   "profile": {
@@ -118,6 +156,20 @@
     "saveChanges": "💾 Änderungen speichern",
     "profileUpdated": "✅ Fertig!",
     "profileUpdatedMsg": "Profil erfolgreich aktualisiert!",
+    "defaultName": "Benutzer",
+    "friends": "Freunde",
+    "addFriend": "👤 Freund hinzufügen",
+    "requestSent": "⏳ Anfrage gesendet",
+    "accept": "✅ Annehmen",
+    "reject": "✕ Ablehnen",
+    "removeFriend": "Freund entfernen",
+    "friendsButton": "👥 Freunde",
+    "friendRequestsBtn": "👥 Freundschaftsanfragen ({{count}})",
+    "friendRequestsTitle": "👥 Freundschaftsanfragen",
+    "noPendingRequests": "Keine ausstehenden Anfragen",
+    "noFriends": "Noch keine Freunde",
+    "noFollowers": "Keine Follower",
+    "notFollowing": "Du folgst noch niemandem",
     "errors": {
       "usernameRequired": "Benutzername ist erforderlich",
       "usernameTooShort": "Benutzername zu kurz (mindestens 3 Zeichen)",
@@ -301,7 +353,14 @@
     "microphoneDenied": "Berechtigung verweigert",
     "microphoneMsg": "Mikrofonberechtigung ist für Aufnahmen erforderlich",
     "audioError": "Klang kann nicht abgespielt werden",
-    "audioUrl": "Audio-URL nicht verfügbar"
+    "audioUrl": "Audio-URL nicht verfügbar",
+    "denied": "Berechtigung verweigert",
+    "galleryMsg": "Erlaube den Zugriff auf die Galerie in den Einstellungen.",
+    "fileTooLarge": "Datei zu groß",
+    "maxSize50": "Maximal 50 MB",
+    "maxSize200": "Maximal 200 MB",
+    "formatNotSupported": "Format nicht unterstützt",
+    "formatIosMsg": "Dieses Audio ist nicht mit iOS kompatibel."
   },
   "onboarding": {
     "slide1Title": "SoundScape — Die Welt klingt",

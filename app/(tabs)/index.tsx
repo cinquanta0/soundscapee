@@ -388,19 +388,19 @@ const loadSoundsForRemix = async () => {
     setRemixSounds(userSounds);
   } catch (error) {
     console.error('Error loading sounds for remix:', error);
-    Alert.alert('Errore', 'Impossibile caricare i suoni');
+    Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
   } finally {
     setLoadingRemixSounds(false);
   }
 };
-  
-  
+
+
   // Request permissions
   const requestPermissions = async () => {
     try {
       const audioPermission = await Audio.requestPermissionsAsync();
       if (!audioPermission.granted) {
-        Alert.alert('Permesso negato', 'Serve il permesso del microfono per registrare');
+        Alert.alert(t('permissions.microphoneDenied'), t('permissions.microphoneMsg'));
       }
 
       const locationPermission = await Location.requestForegroundPermissionsAsync();
@@ -432,7 +432,7 @@ const loadSoundsForRemix = async () => {
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording:', err);
-      Alert.alert('Errore', 'Impossibile avviare la registrazione');
+      Alert.alert(t('common.error'), t('upload.errors.cannotRecord'));
     }
   };
 
@@ -459,7 +459,7 @@ const loadSoundsForRemix = async () => {
       setShowRecordModal(true);
     } catch (err) {
       console.error('Failed to stop recording:', err);
-      Alert.alert('Errore', 'Impossibile fermare la registrazione');
+      Alert.alert(t('common.error'), t('upload.errors.cannotStop'));
     }
   };
 
@@ -470,7 +470,7 @@ const loadSoundsForRemix = async () => {
     } else if (!isRecording) {
       startRecording();
     } else {
-      Alert.alert('Troppo breve', 'Registra almeno 3 secondi');
+      Alert.alert(t('upload.errors.tooShort'), t('upload.errors.tooShortMsg'));
     }
   };
 
@@ -479,7 +479,7 @@ const loadSoundsForRemix = async () => {
 const pickBackstage = async (tipo: 'foto' | 'video') => {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert('Permesso negato', 'Consenti l\'accesso alla galleria nelle impostazioni.');
+    Alert.alert(t('permissions.denied'), t('permissions.galleryMsg'));
     return;
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -494,7 +494,7 @@ const pickBackstage = async (tipo: 'foto' | 'video') => {
     const asset = result.assets[0];
     // Limite 50MB
     if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
-      Alert.alert('File troppo grande', 'Massimo 50MB.');
+      Alert.alert(t('permissions.fileTooLarge'), t('permissions.maxSize50'));
       return;
     }
     setBackstageUri(asset.uri);
@@ -509,7 +509,7 @@ const pickPodcastAudio = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
     if (!result.canceled && result.assets?.[0]) {
       const asset = result.assets[0];
-      if (asset.size && asset.size > 200 * 1024 * 1024) { Alert.alert('File troppo grande', 'Max 200MB.'); return; }
+      if (asset.size && asset.size > 200 * 1024 * 1024) { Alert.alert(t('permissions.fileTooLarge'), t('permissions.maxSize200')); return; }
       setPodcastAudioUri(asset.uri);
       // Stima durata
       const { sound } = await Audio.Sound.createAsync({ uri: asset.uri });
@@ -517,7 +517,7 @@ const pickPodcastAudio = async () => {
       if (status.isLoaded) setPodcastDuration(Math.floor((status.durationMillis || 0) / 1000));
       await sound.unloadAsync();
     }
-  } catch { Alert.alert('Errore', 'Impossibile selezionare il file.'); }
+  } catch { Alert.alert(t('common.error'), t('podcast.errors.cannotSelect')); }
 };
 
 const pickPodcastCover = async () => {
@@ -528,8 +528,8 @@ const pickPodcastCover = async () => {
 };
 
 const handlePublishPodcast = async () => {
-  if (!podcastTitle.trim()) { Alert.alert('Inserisci un titolo'); return; }
-  if (!podcastAudioUri) { Alert.alert('Seleziona un audio'); return; }
+  if (!podcastTitle.trim()) { Alert.alert(t('podcast.titleRequired')); return; }
+  if (!podcastAudioUri) { Alert.alert(t('podcast.audioRequired')); return; }
   setUploadingPodcast(true);
   try {
     await publishPodcast({
@@ -543,9 +543,9 @@ const handlePublishPodcast = async () => {
     });
     setPodcastTitle(''); setPodcastDesc(''); setPodcastAudioUri(null); setPodcastCoverUri(null);
     setShowPodcastModal(false);
-    Alert.alert('🎙 Podcast pubblicato!', 'Il tuo episodio è disponibile nella sezione Podcast.');
+    Alert.alert(t('podcast.published'), t('podcast.publishedMsg'));
   } catch (e) {
-    Alert.alert('Errore', 'Impossibile pubblicare il podcast.');
+    Alert.alert(t('common.error'), t('podcast.errors.cannotPublish'));
   } finally {
     setUploadingPodcast(false);
   }
@@ -554,7 +554,7 @@ const handlePublishPodcast = async () => {
 // Publish recording
 const handlePublish = async () => {
   if (!newSoundTitle.trim()) {
-    setTitleError('Dai un nome al tuo suono 🎵');
+    setTitleError(t('upload.titleRequired'));
     return;
   }
   setTitleError('');
@@ -590,8 +590,8 @@ const handlePublish = async () => {
     if (selectedChallengeForSubmit && soundId) {
       await submitSoundToChallenge(selectedChallengeForSubmit.id, soundId);
       Alert.alert(
-        '🎉 Fantastico!', 
-        `Hai partecipato alla challenge "${selectedChallengeForSubmit.title}"!`
+        t('upload.challengeFantastic'),
+        t('upload.challengeJoined', { title: selectedChallengeForSubmit.title })
       );
     }
 
@@ -609,12 +609,12 @@ const handlePublish = async () => {
     await loadMySounds();
 
     if (!selectedChallengeForSubmit) {
-      Alert.alert('🎵 Pubblicato!', 'Il tuo suono è stato condiviso con il mondo!');
+      Alert.alert(t('upload.published'), t('upload.publishedMsg'));
     }
   } catch (error) {
     console.error('Error publishing sound:', error);
-    const msg = error instanceof Error ? error.message : 'Impossibile pubblicare il suono';
-    Alert.alert('Errore', msg);
+    const msg = error instanceof Error ? error.message : t('upload.errors.cannotPublish');
+    Alert.alert(t('common.error'), msg);
   } finally {
     setUploading(false);
   }
@@ -669,7 +669,7 @@ const handlePlay = async (item) => {
     // Verifica che audioUrl esista
     if (!item.audioUrl) {
       console.error('❌ [PLAY] No audioUrl found!');
-      Alert.alert('Errore', 'URL audio non disponibile');
+      Alert.alert(t('common.error'), t('permissions.audioUrl'));
       return;
     }
 
@@ -686,11 +686,11 @@ const handlePlay = async (item) => {
             // Usa il nuovo URL M4A per questa riproduzione
             item = { ...item, audioUrl: result.data.audioUrl };
           } else {
-            Alert.alert('Formato non supportato', 'Questo audio non è compatibile con iOS.');
+            Alert.alert(t('permissions.formatNotSupported'), t('permissions.formatIosMsg'));
             return;
           }
         } catch (convErr) {
-          Alert.alert('Formato non supportato', 'Questo audio non è compatibile con iOS.');
+          Alert.alert(t('permissions.formatNotSupported'), t('permissions.formatIosMsg'));
           return;
         }
       }
@@ -733,7 +733,7 @@ const handlePlay = async (item) => {
       const ext = item.audioUrl?.includes('.webm') ? 'webm' : item.audioUrl?.includes('.ogg') ? 'ogg' : 'm4a';
       await FileSystem.deleteAsync(FileSystem.cacheDirectory + `sound_${item.id}.${ext}`, { idempotent: true });
     } catch {}
-    Alert.alert('Errore', 'Impossibile riprodurre il suono');
+    Alert.alert(t('common.error'), t('explore.errors.cannotPlay'));
   } finally {
     isLoadingSound.current = false;
   }
@@ -742,21 +742,21 @@ const handlePlay = async (item) => {
   // Delete sound
   const handleDelete = async (id) => {
     Alert.alert(
-      'Conferma',
-      'Vuoi davvero eliminare questo suono?',
+      t('common.confirm'),
+      t('home.deleteConfirm'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Elimina',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteSound(id);
               await loadMySounds();
-              Alert.alert('✓', 'Suono eliminato');
+              Alert.alert('✓', t('home.soundDeleted'));
             } catch (error) {
               console.error('Error deleting sound:', error);
-              Alert.alert('Errore', 'Impossibile eliminare il suono');
+              Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
             }
           },
         },
@@ -781,7 +781,7 @@ const handlePlay = async (item) => {
       });
     } catch (error) {
       console.error('Error toggling like:', error);
-      Alert.alert('Errore', 'Impossibile mettere like');
+      Alert.alert(t('common.error'), t('explore.errors.cannotPlay'));
     }
   };
 
@@ -794,7 +794,7 @@ const handlePlay = async (item) => {
       setComments(data);
     } catch (error) {
       console.error('Error loading comments:', error);
-      Alert.alert('Errore', 'Impossibile caricare i commenti');
+      Alert.alert(t('common.error'), t('comments.errors.cannotLoad'));
     } finally {
       setLoadingComments(false);
     }
@@ -809,10 +809,10 @@ const handlePlay = async (item) => {
       await addComment(selectedSoundForComments, newComment);
       setNewComment('');
       await loadComments(selectedSoundForComments);
-      Alert.alert('✅', 'Commento pubblicato!');
+      Alert.alert(t('common.ok'), t('comments.published'));
     } catch (error) {
       console.error('Error sending comment:', error);
-      Alert.alert('Errore', 'Impossibile inviare il commento');
+      Alert.alert(t('common.error'), t('comments.errors.cannotSend'));
     } finally {
       setSendingComment(false);
     }
@@ -885,12 +885,12 @@ const loadNotifications = async () => {
   
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Vuoi uscire?',
+      t('settings.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Esci',
+          text: t('auth.logoutAction'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -927,7 +927,7 @@ const loadNotifications = async () => {
       setReportSent(true);
     } catch (err) {
       console.error('Report error:', err);
-      Alert.alert('Errore', 'Impossibile inviare la segnalazione.');
+      Alert.alert(t('common.error'), t('report.errors.cannotSend'));
     } finally {
       setReportLoading(false);
     }
@@ -983,12 +983,12 @@ const handleEditProfile = () => {
 // Salva modifiche profilo
 const handleSaveProfile = async () => {
   if (!editUsername.trim()) {
-    Alert.alert('Errore', 'Username obbligatorio');
+    Alert.alert(t('common.error'), t('profile.errors.usernameRequired'));
     return;
   }
 
   if (editUsername.length < 3) {
-    Alert.alert('Errore', 'Username troppo corto (minimo 3 caratteri)');
+    Alert.alert(t('common.error'), t('profile.errors.usernameTooShort'));
     return;
   }
 
@@ -1006,10 +1006,10 @@ const handleSaveProfile = async () => {
     setUserProfile(newProfile);
 
     setShowEditProfileModal(false);
-    Alert.alert('✅ Fatto!', 'Profilo aggiornato con successo!');
+    Alert.alert(t('profile.profileUpdated'), t('profile.profileUpdatedMsg'));
   } catch (error) {
     console.error('Error saving profile:', error);
-    Alert.alert('Errore', 'Impossibile salvare il profilo');
+    Alert.alert(t('common.error'), t('profile.errors.cannotSave'));
   } finally {
     setSavingProfile(false);
   }
@@ -1059,7 +1059,7 @@ const handleFriendAction = async (action: 'send'|'cancel'|'accept'|'reject'|'rem
     const updated = await getFriendStatus(userProfile.id);
     setFriendStatus(updated);
   } catch (e) {
-    Alert.alert('Errore', 'Impossibile eseguire l\'operazione.');
+    Alert.alert(t('common.error'), t('profile.errors.cannotFollow'));
   } finally {
     setLoadingFriend(false);
   }
@@ -1075,7 +1075,7 @@ const handleFollowToggle = async () => {
     const updated = await getUserProfile(userProfile.id);
     setUserProfile(updated);
   } catch (e) {
-    Alert.alert('Errore', 'Impossibile eseguire la richiesta.');
+    Alert.alert(t('common.error'), t('profile.errors.cannotFollow'));
   } finally {
     setLoadingFollow(false);
   }
@@ -1109,7 +1109,7 @@ const openUserProfile = async (userId) => {
     setActiveTab('profile');
   } catch (error) {
     console.error('Error opening user profile:', error);
-    Alert.alert('Errore', 'Impossibile aprire il profilo');
+    Alert.alert(t('common.error'), t('profile.errors.cannotOpen'));
   }
 };
 
@@ -1119,7 +1119,7 @@ if (loading) {
       <View style={styles.loadingContainer}>
         <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#06b6d4" />
-        <Text style={styles.loadingText}>Caricamento...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -1141,8 +1141,8 @@ if (loading) {
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>
-            <Text style={styles.liveIndicator}>🔴 LIVE</Text>
-            <Text style={styles.subtitleText}>{sounds.length} suoni nel mondo</Text>
+            <Text style={styles.liveIndicator}>{t('home.live')}</Text>
+            <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
         </View>
@@ -1190,11 +1190,11 @@ if (loading) {
                 onPress={isRecording ? handleRecord : () => setShowPublishTypeModal(true)}
               >
                 <Text style={styles.recordButtonText}>
-                  {isRecording ? `⏺ Registrando ${recordingTime}s` : '🎤 Pubblica'}
+                  {isRecording ? t('home.recording', { time: recordingTime }) : t('home.publish')}
                 </Text>
               </TouchableOpacity>
               {isRecording && recordingTime >= 3 && (
-                <Text style={styles.recordHint}>Tap per salvare (3-30s)</Text>
+                <Text style={styles.recordHint}>{t('home.recordHint')}</Text>
               )}
             </LinearGradient>
 
@@ -1202,7 +1202,7 @@ if (loading) {
             <View style={styles.searchContainer}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Cerca suoni..."
+                placeholder={t('home.searchPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1222,7 +1222,7 @@ if (loading) {
                 ]}
                 onPress={() => setFilterMood('all')}
               >
-                <Text style={styles.filterChipText}>Tutti</Text>
+                <Text style={styles.filterChipText}>{t('moods.all')}</Text>
               </TouchableOpacity>
               {['Energico', 'Rilassante', 'Gioioso', 'Nostalgico'].map(mood => (
                 <TouchableOpacity
@@ -1278,12 +1278,12 @@ if (loading) {
                     <TouchableOpacity
                       style={{ padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       onPress={() => Alert.alert(
-                        '⋯ Opzioni',
+                        t('home.options'),
                         '',
                         [
-                          { text: 'Segnala contenuto', onPress: () => openReport(post.id) },
-                          { text: 'Copia link', onPress: () => {} },
-                          { text: 'Annulla', style: 'cancel' },
+                          { text: t('home.reportContent'), onPress: () => openReport(post.id) },
+                          { text: t('home.copyLink'), onPress: () => {} },
+                          { text: t('common.cancel'), style: 'cancel' },
                         ]
                       )}
                     >
@@ -1387,7 +1387,7 @@ if (loading) {
             {filteredPosts.length === 0 && (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>🔍</Text>
-                <Text style={styles.emptyText}>Nessun suono trovato</Text>
+                <Text style={styles.emptyText}>{t('home.noSoundsFound')}</Text>
               </View>
             )}
           </View>
@@ -1400,32 +1400,32 @@ if (loading) {
       <View style={styles.profileAvatar}>
         <Text style={styles.profileAvatarText}>{userProfile?.avatar || '🎧'}</Text>
       </View>
-      <Text style={styles.profileName}>{userProfile?.username || 'Utente'}</Text>
+      <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
 
       <View style={styles.profileStats}>
   <View style={styles.profileStat}>
     <Text style={styles.profileStatNumber}>{mySounds.length}</Text>
-    <Text style={styles.profileStatLabel}>Suoni</Text>
+    <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
   </View>
   {/* Amici cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFriends}>
     <Text style={styles.profileStatNumber}>{userProfile?.friendsCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>Amici</Text>
+    <Text style={styles.profileStatLabel}>{t('profile.friends')}</Text>
   </TouchableOpacity>
   {/* Followers cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
     <Text style={styles.profileStatNumber}>{userProfile?.followersCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>Followers</Text>
+    <Text style={styles.profileStatLabel}>{t('profile.followers')}</Text>
   </TouchableOpacity>
   {/* Following cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowing}>
     <Text style={styles.profileStatNumber}>{userProfile?.followingCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>Following</Text>
+    <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
   </TouchableOpacity>
   <View style={styles.profileStat}>
     <Text style={styles.profileStatNumber}>🔥 {userProfile?.streakCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>Streak</Text>
+    <Text style={styles.profileStatLabel}>{t('profile.streak')}</Text>
   </View>
 </View>
 
@@ -1440,7 +1440,7 @@ if (loading) {
               onPress={() => handleFriendAction('send')}
               disabled={loadingFriend}
             >
-              <Text style={styles.profileButtonPrimaryText}>👤 Aggiungi amico</Text>
+              <Text style={styles.profileButtonPrimaryText}>{t('profile.addFriend')}</Text>
             </TouchableOpacity>
           )}
           {friendStatus === 'pending_sent' && (
@@ -1449,7 +1449,7 @@ if (loading) {
               onPress={() => handleFriendAction('cancel')}
               disabled={loadingFriend}
             >
-              <Text style={styles.profileButtonPrimaryText}>⏳ Richiesta inviata</Text>
+              <Text style={styles.profileButtonPrimaryText}>{t('profile.requestSent')}</Text>
             </TouchableOpacity>
           )}
           {friendStatus === 'pending_received' && (
@@ -1459,27 +1459,27 @@ if (loading) {
                 onPress={() => handleFriendAction('accept')}
                 disabled={loadingFriend}
               >
-                <Text style={styles.profileButtonPrimaryText}>✅ Accetta</Text>
+                <Text style={styles.profileButtonPrimaryText}>{t('profile.accept')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#7f1d1d' }, loadingFriend && { opacity: 0.5 }]}
                 onPress={() => handleFriendAction('reject')}
                 disabled={loadingFriend}
               >
-                <Text style={styles.profileButtonPrimaryText}>✕ Rifiuta</Text>
+                <Text style={styles.profileButtonPrimaryText}>{t('profile.reject')}</Text>
               </TouchableOpacity>
             </View>
           )}
           {friendStatus === 'friends' && (
             <TouchableOpacity
               style={[styles.profileButtonPrimary, { backgroundColor: '#1a2e1a', borderWidth: 1, borderColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
-              onPress={() => Alert.alert('Rimuovi amico', 'Sei sicuro?', [
-                { text: 'Annulla', style: 'cancel' },
-                { text: 'Rimuovi', style: 'destructive', onPress: () => handleFriendAction('remove') },
+              onPress={() => Alert.alert(t('profile.removeFriend'), t('common.areYouSure'), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('common.remove'), style: 'destructive', onPress: () => handleFriendAction('remove') },
               ])}
               disabled={loadingFriend}
             >
-              <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>👥 Amici</Text>
+              <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>{t('profile.friendsButton')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1493,7 +1493,7 @@ if (loading) {
           onPress={() => setShowFriendRequestsModal(true)}
         >
           <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>
-            👥 Richieste amicizia ({pendingFriendRequests.length})
+            {t('profile.friendRequestsBtn', { count: pendingFriendRequests.length })}
           </Text>
         </TouchableOpacity>
       )}
@@ -1503,25 +1503,25 @@ if (loading) {
           style={[styles.profileButtonPrimary, { flex: 1 }]}
           onPress={handleEditProfile}
         >
-          <Text style={styles.profileButtonPrimaryText}>✏️ Modifica</Text>
+          <Text style={styles.profileButtonPrimaryText}>{t('profile.edit')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#334155' }]}
-          onPress={() => Alert.alert('Info', 'Funzionalità in arrivo!')}
+          onPress={() => Alert.alert(t('common.info'), t('profile.featureComingSoon'))}
         >
-          <Text style={styles.profileButtonPrimaryText}>🔗 Condividi</Text>
+          <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
         </TouchableOpacity>
       </View>
     </View>
 
     {/* My Recordings */}
     <View style={styles.recordingsSection}>
-      <Text style={styles.sectionTitle}>📼 I Miei Suoni ({mySounds.length})</Text>
+      <Text style={styles.sectionTitle}>{t('profile.mySounds', { count: mySounds.length })}</Text>
       {mySounds.length === 0 ? (
         <View style={styles.emptyRecordings}>
           <Text style={styles.emptyIcon}>🎤</Text>
-          <Text style={styles.emptyText}>Nessuna registrazione ancora</Text>
-          <Text style={styles.emptySubtext}>Vai su Home e inizia a registrare!</Text>
+          <Text style={styles.emptyText}>{t('profile.noRecordings')}</Text>
+          <Text style={styles.emptySubtext}>{t('profile.noRecordingsHint')}</Text>
         </View>
       ) : (
         mySounds.map(rec => (
@@ -1569,7 +1569,7 @@ if (loading) {
     {loadingRemixSounds ? (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#06b6d4" />
-        <Text style={styles.loadingText}>Caricamento suoni...</Text>
+        <Text style={styles.loadingText}>{t('home.loadingSounds')}</Text>
       </View>
     ) : (
       <RemixScreen 
@@ -1632,11 +1632,11 @@ if (loading) {
         <TouchableWithoutFeedback onPress={() => { setShowRecordModal(false); setRecordedSound(null); }}>
           <View style={styles.modalOverlay}>
             <View style={styles.recordModal} onStartShouldSetResponder={() => true}>
-            <Text style={styles.recordModalTitle}>🎵 Pubblica il tuo suono</Text>
+            <Text style={styles.recordModalTitle}>{t('upload.title')}</Text>
             
             <TextInput
               style={[styles.input, titleError ? { borderColor: '#ef4444', borderWidth: 1 } : {}]}
-              placeholder="Es. Pioggia sul tetto, Mercato di Roma..."
+              placeholder={t('upload.titlePlaceholder')}
               placeholderTextColor="#4A4D56"
               value={newSoundTitle}
               onChangeText={(t) => { setNewSoundTitle(t); if (t.trim()) setTitleError(''); }}
@@ -1646,7 +1646,7 @@ if (loading) {
             
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Descrizione (opzionale)"
+              placeholder={t('upload.descriptionPlaceholder')}
               placeholderTextColor="#94a3b8"
               multiline
               value={newSoundDescription}
@@ -1654,7 +1654,7 @@ if (loading) {
               editable={!uploading}
             />
 
-            <Text style={styles.moodLabel}>Mood:</Text>
+            <Text style={styles.moodLabel}>{t('upload.mood')}</Text>
             <View style={styles.moodSelector}>
               {['Energico', 'Rilassante', 'Gioioso', 'Nostalgico'].map(mood => (
                 <TouchableOpacity
@@ -1675,7 +1675,7 @@ if (loading) {
             {/* Challenge Selector */}
 {availableChallenges.length > 0 && (
   <>
-    <Text style={styles.moodLabel}>🏆 Partecipa a una Challenge:</Text>
+    <Text style={styles.moodLabel}>{t('upload.challenge')}</Text>
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false} 
@@ -1689,7 +1689,7 @@ if (loading) {
         onPress={() => setSelectedChallengeForSubmit(null)}
         disabled={uploading}
       >
-        <Text style={styles.challengeChipText}>Nessuna</Text>
+        <Text style={styles.challengeChipText}>{t('common.none')}</Text>
       </TouchableOpacity>
       {availableChallenges.map(ch => (
         <TouchableOpacity
@@ -1716,7 +1716,7 @@ if (loading) {
             
             {/* Backstage opzionale */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.moodLabel}>🎬 Backstage (opzionale):</Text>
+              <Text style={styles.moodLabel}>{t('upload.backstage')}</Text>
               {backstageUri ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{
@@ -1727,7 +1727,7 @@ if (loading) {
                   }}>
                     <Text style={{ fontSize: 20 }}>{backstageTipo === 'video' ? '🎬' : '📷'}</Text>
                     <Text style={{ color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
-                      {backstageTipo === 'video' ? 'Video selezionato' : 'Foto selezionata'}
+                      {backstageTipo === 'video' ? t('upload.videoSelected') : t('upload.photoSelected')}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1750,7 +1750,7 @@ if (loading) {
                     disabled={uploading}
                   >
                     <Text style={{ fontSize: 22 }}>📷</Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>Foto</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.photo')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{
@@ -1763,7 +1763,7 @@ if (loading) {
                     disabled={uploading}
                   >
                     <Text style={{ fontSize: 22 }}>🎬</Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>Video (max 30s)</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.videoMax30')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1771,10 +1771,10 @@ if (loading) {
 
             <View style={styles.recordModalInfo}>
               <Text style={styles.recordModalInfoText}>
-                ⏱️ Durata: {recordedSound?.duration}s
+                {t('upload.duration', { seconds: recordedSound?.duration })}
               </Text>
               <Text style={styles.recordModalInfoText}>
-                📍 GPS: {location ? '✓' : '✗'}
+                {t('upload.gps', { status: location ? t('upload.gpsOk') : t('upload.gpsNo') })}
               </Text>
             </View>
 
@@ -1789,7 +1789,7 @@ if (loading) {
                 }}
                 disabled={uploading}
               >
-                <Text style={styles.recordModalButtonCancelText}>Annulla</Text>
+                <Text style={styles.recordModalButtonCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.recordModalButtonPublish}
@@ -1799,7 +1799,7 @@ if (loading) {
                 {uploading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.recordModalButtonPublishText}>Pubblica 🎵</Text>
+                  <Text style={styles.recordModalButtonPublishText}>{t('upload.publish')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1819,15 +1819,15 @@ if (loading) {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { paddingBottom: 32 }]} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Cosa vuoi pubblicare?</Text>
+              <Text style={styles.modalTitle}>{t('upload.whatToPublish')}</Text>
               <TouchableOpacity onPress={() => setShowPublishTypeModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             {[
-              { icon: '🎤', label: 'Suono', sub: 'Registra un suono breve (max 30s)', action: () => { setShowPublishTypeModal(false); startRecording(); } },
-              { icon: '🎙', label: 'Episodio Podcast', sub: 'Carica un episodio lungo dalla libreria', action: () => { setShowPublishTypeModal(false); setShowPodcastModal(true); } },
-              { icon: '📻', label: 'Vai in Radio', sub: 'Trasmetti in diretta su una stanza live', action: () => { setShowPublishTypeModal(false); setActiveTab('explore'); } },
+              { icon: '🎤', label: t('upload.typeSound'), sub: t('upload.typeSoundDesc'), action: () => { setShowPublishTypeModal(false); startRecording(); } },
+              { icon: '🎙', label: t('upload.typePodcast'), sub: t('upload.typePodcastDesc'), action: () => { setShowPublishTypeModal(false); setShowPodcastModal(true); } },
+              { icon: '📻', label: t('upload.typeRadio'), sub: t('upload.typeRadioDesc'), action: () => { setShowPublishTypeModal(false); setActiveTab('explore'); } },
             ].map(({ icon, label, sub, action }) => (
               <TouchableOpacity
                 key={label}
@@ -1858,7 +1858,7 @@ if (loading) {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '85%' }]} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🎙 Nuovo Podcast</Text>
+              <Text style={styles.modalTitle}>{t('podcast.title')}</Text>
               <TouchableOpacity onPress={() => setShowPodcastModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -1871,7 +1871,7 @@ if (loading) {
                 disabled={uploadingPodcast}
               >
                 <Text style={{ color: podcastAudioUri ? '#00FF9C' : '#94a3b8', fontSize: 14, fontFamily: 'monospace' }}>
-                  {podcastAudioUri ? `✅ Audio selezionato (${podcastDuration}s)` : '🎵 Scegli file audio'}
+                  {podcastAudioUri ? t('podcast.audioSelected', { duration: podcastDuration }) : t('podcast.selectAudio')}
                 </Text>
               </TouchableOpacity>
 
@@ -1882,14 +1882,14 @@ if (loading) {
                 disabled={uploadingPodcast}
               >
                 <Text style={{ color: podcastCoverUri ? '#00FF9C' : '#94a3b8', fontSize: 14, fontFamily: 'monospace' }}>
-                  {podcastCoverUri ? '✅ Copertina selezionata' : '🖼 Copertina (opzionale)'}
+                  {podcastCoverUri ? t('podcast.coverSelected') : t('podcast.selectCover')}
                 </Text>
               </TouchableOpacity>
 
               {/* Titolo */}
               <TextInput
                 style={[styles.input]}
-                placeholder="Titolo episodio..."
+                placeholder={t('podcast.titlePlaceholder')}
                 placeholderTextColor="#4A4D56"
                 value={podcastTitle}
                 onChangeText={setPodcastTitle}
@@ -1897,7 +1897,7 @@ if (loading) {
               />
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Descrizione (opzionale)"
+                placeholder={t('podcast.descriptionPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 value={podcastDesc}
@@ -1907,10 +1907,10 @@ if (loading) {
 
               <View style={styles.recordModalButtons}>
                 <TouchableOpacity style={styles.recordModalButtonCancel} onPress={() => setShowPodcastModal(false)} disabled={uploadingPodcast}>
-                  <Text style={styles.recordModalButtonCancelText}>Annulla</Text>
+                  <Text style={styles.recordModalButtonCancelText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.recordModalButtonPublish} onPress={handlePublishPodcast} disabled={uploadingPodcast}>
-                  {uploadingPodcast ? <ActivityIndicator color="#fff" /> : <Text style={styles.recordModalButtonPublishText}>Pubblica 🎙</Text>}
+                  {uploadingPodcast ? <ActivityIndicator color="#fff" /> : <Text style={styles.recordModalButtonPublishText}>{t('podcast.publish')}</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -1939,7 +1939,7 @@ if (loading) {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '70%' }]} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>👥 Richieste amicizia</Text>
+              <Text style={styles.modalTitle}>{t('profile.friendRequestsTitle')}</Text>
               <TouchableOpacity onPress={() => setShowFriendRequestsModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -1947,7 +1947,7 @@ if (loading) {
             <ScrollView>
               {pendingFriendRequests.length === 0 ? (
                 <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 24, fontFamily: 'monospace' }}>
-                  Nessuna richiesta in attesa
+                  {t('profile.noPendingRequests')}
                 </Text>
               ) : (
                 pendingFriendRequests.map((req) => (
@@ -1968,13 +1968,13 @@ if (loading) {
                         if (userProfile?.id === req.initiatedBy) setFriendStatus(updated);
                       }}
                     >
-                      <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: '600' }}>Accetta</Text>
+                      <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: '600' }}>{t('common.accept')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={{ paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#7f1d1d', borderRadius: 8 }}
                       onPress={() => rejectFriendRequest(req.initiatedBy)}
                     >
-                      <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '600' }}>Rifiuta</Text>
+                      <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '600' }}>{t('common.reject')}</Text>
                     </TouchableOpacity>
                   </View>
                 ))
@@ -2203,7 +2203,7 @@ if (loading) {
             <View style={[styles.modalContent, { height: '80%', borderRadius: 24 }]} onStartShouldSetResponder={() => true}>
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>💬 Commenti</Text>
+              <Text style={styles.modalTitle}>{t('comments.title')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowCommentsModal(false);
@@ -2226,8 +2226,8 @@ if (loading) {
                {comments.length === 0 ? (
   <View style={styles.emptyState}>
     <Text style={styles.emptyIcon}>💬</Text>
-    <Text style={styles.emptyText}>Nessun commento</Text>
-    <Text style={styles.emptySubtext}>Sii il primo a commentare!</Text>
+    <Text style={styles.emptyText}>{t('comments.noComments')}</Text>
+    <Text style={styles.emptySubtext}>{t('comments.noCommentsHint')}</Text>
   </View>
 ) : (
   comments.map(comment => (
@@ -2257,7 +2257,7 @@ if (loading) {
             <View style={styles.commentInputContainer}>
               <TextInput
                 style={styles.commentInput}
-                placeholder="Scrivi un commento..."
+                placeholder={t('comments.placeholder')}
                 placeholderTextColor="#94a3b8"
                 value={newComment}
                 onChangeText={setNewComment}
@@ -2296,7 +2296,7 @@ if (loading) {
     <View style={styles.modalOverlay}>
       <View style={[styles.modalContent, { maxHeight: '90%' }]} onStartShouldSetResponder={() => true}>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>✏️ Modifica Profilo</Text>
+        <Text style={styles.modalTitle}>{t('profile.editProfile')}</Text>
         <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
           <Text style={styles.modalClose}>✕</Text>
         </TouchableOpacity>
@@ -2304,7 +2304,7 @@ if (loading) {
 
       <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Avatar Selector */}
-        <Text style={styles.editLabel}>Scegli Avatar</Text>
+        <Text style={styles.editLabel}>{t('profile.chooseAvatar')}</Text>
         <View style={styles.avatarGrid}>
           {['🎧', '🎵', '🎤', '🎸', '🎹', '🥁', '🎺', '🎻', '🎼', '🔊', '📻', '💿', '🎙️', '🎶', '🎭', '🌟', '⚡', '🔥', '💎', '👑'].map(emoji => (
             <TouchableOpacity
@@ -2321,10 +2321,10 @@ if (loading) {
         </View>
 
         {/* Username */}
-        <Text style={styles.editLabel}>Username</Text>
+        <Text style={styles.editLabel}>{t('profile.username')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Il tuo username"
+          placeholder={t('profile.usernamePlaceholder')}
           placeholderTextColor="#94a3b8"
           value={editUsername}
           onChangeText={setEditUsername}
@@ -2334,10 +2334,10 @@ if (loading) {
         <Text style={styles.charCount}>{editUsername.length}/20</Text>
 
         {/* Bio */}
-        <Text style={styles.editLabel}>Bio</Text>
+        <Text style={styles.editLabel}>{t('profile.bio')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Raccontaci di te..."
+          placeholder={t('profile.bioPlaceholder')}
           placeholderTextColor="#94a3b8"
           value={editBio}
           onChangeText={setEditBio}
@@ -2360,7 +2360,7 @@ if (loading) {
           {savingProfile ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.profileButtonPrimaryText}>💾 Salva Modifiche</Text>
+            <Text style={styles.profileButtonPrimaryText}>{t('profile.saveChanges')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -2380,7 +2380,7 @@ if (loading) {
     <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
       <View style={[styles.modalContent, { height: '80%' }]} onStartShouldSetResponder={() => true}>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>🔔 Notifiche</Text>
+        <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
         <TouchableOpacity onPress={() => setShowNotificationsModal(false)}>
           <Text style={styles.modalClose}>✕</Text>
         </TouchableOpacity>
@@ -2390,8 +2390,8 @@ if (loading) {
         {notifications.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🔔</Text>
-            <Text style={styles.emptyText}>Nessuna notifica</Text>
-            <Text style={styles.emptySubtext}>Ti avviseremo quando succede qualcosa!</Text>
+            <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
+            <Text style={styles.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
           </View>
         ) : (
           notifications.map((notif) => (
@@ -2437,7 +2437,7 @@ if (loading) {
     <View style={styles.modalOverlay}>
       <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>👥 Amici</Text>
+          <Text style={styles.modalTitle}>{t('profile.friendsButton')}</Text>
           <TouchableOpacity onPress={() => setShowFriendsModal(false)}>
             <Text style={styles.modalClose}>✕</Text>
           </TouchableOpacity>
@@ -2446,7 +2446,7 @@ if (loading) {
           {friendsList.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyText}>Nessun amico ancora</Text>
+              <Text style={styles.emptyText}>{t('profile.noFriends')}</Text>
             </View>
           ) : (
             friendsList.map(u => (
@@ -2483,7 +2483,7 @@ if (loading) {
     <View style={styles.modalOverlay}>
       <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>👥 Followers</Text>
+        <Text style={styles.modalTitle}>{t('profile.followers')}</Text>
         <TouchableOpacity onPress={() => setShowFollowersModal(false)}>
           <Text style={styles.modalClose}>✕</Text>
         </TouchableOpacity>
@@ -2493,7 +2493,7 @@ if (loading) {
         {followersList.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyText}>Nessun follower</Text>
+            <Text style={styles.emptyText}>{t('profile.noFollowers')}</Text>
           </View>
         ) : (
           followersList.map(user => (
@@ -2533,7 +2533,7 @@ if (loading) {
     <View style={styles.modalOverlay}>
       <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>⭐ Following</Text>
+        <Text style={styles.modalTitle}>{t('profile.following')}</Text>
         <TouchableOpacity onPress={() => setShowFollowingModal(false)}>
           <Text style={styles.modalClose}>✕</Text>
         </TouchableOpacity>
@@ -2543,7 +2543,7 @@ if (loading) {
         {followingList.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>⭐</Text>
-            <Text style={styles.emptyText}>Non segui ancora nessuno</Text>
+            <Text style={styles.emptyText}>{t('profile.notFollowing')}</Text>
           </View>
         ) : (
           followingList.map(user => (
