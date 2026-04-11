@@ -4,6 +4,12 @@ module.exports = ({ config }) => ({
   slug: "soundscape-mobile",
   version: "1.0.0",
   orientation: "portrait",
+  updates: {
+    url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
+  },
+  runtimeVersion: {
+    policy: "appVersion",
+  },
   icon: "./assets/images/icon.png",
   scheme: "soundscapemobile",
   userInterfaceStyle: "automatic",
