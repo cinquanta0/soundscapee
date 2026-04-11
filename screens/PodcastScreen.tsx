@@ -353,21 +353,19 @@ function EditPodcastModal({
   );
 }
 
-// ─── SoundScape search modal ──────────────────────────────────────────────────
-function SoundScapeSearchModal({
+// ─── Search view (usata dentro PublishModal, non Modal separata) ──────────────
+function SoundSearchView({
   onSelect,
-  onClose,
+  onBack,
 }: {
   onSelect: (sound: SoundResult) => void;
-  onClose: () => void;
+  onBack: () => void;
 }) {
   const [queryText, setQueryText] = useState('');
   const [results, setResults] = useState<SoundResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    doSearch('');
-  }, []);
+  useEffect(() => { doSearch(''); }, []);
 
   useEffect(() => {
     const t = setTimeout(() => doSearch(queryText), 300);
@@ -382,53 +380,41 @@ function SoundScapeSearchModal({
   };
 
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={pm.overlay}>
-        <View style={[pm.sheet, { paddingBottom: 16 }]}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
-          <View style={pm.handle} />
-          <Text style={pm.sheetTitle}>Cerca su SoundScape</Text>
-
-          <TextInput
-            style={pm.input}
-            placeholder="Cerca per titolo o autore..."
-            placeholderTextColor="#4A4D56"
-            value={queryText}
-            onChangeText={setQueryText}
-            autoFocus
-          />
-
-          {loading ? (
-            <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
-          ) : (
-            <FlatList
-              data={results}
-              keyExtractor={(i) => i.id}
-              style={{ maxHeight: 320, marginTop: 4 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={ss.row} onPress={() => onSelect(item)} activeOpacity={0.75}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={ss.soundTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={ss.soundMeta}>@{item.username} · {fmtTime(item.duration)}</Text>
-                  </View>
-                  <View style={ss.usaBtn}>
-                    <Text style={ss.usaTxt}>Usa</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <Text style={ss.emptyTxt}>Nessun suono trovato</Text>
-              }
-            />
+    <>
+      <TouchableOpacity onPress={onBack} style={{ marginBottom: 16 }}>
+        <Text style={{ color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' }}>← Indietro</Text>
+      </TouchableOpacity>
+      <Text style={pm.sheetTitle}>Cerca su SoundScape</Text>
+      <TextInput
+        style={pm.input}
+        placeholder="Cerca per titolo o autore..."
+        placeholderTextColor="#4A4D56"
+        value={queryText}
+        onChangeText={setQueryText}
+      />
+      {loading ? (
+        <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
+      ) : (
+        <FlatList
+          data={results}
+          keyExtractor={(i) => i.id}
+          style={{ maxHeight: 340, marginTop: 4 }}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={ss.row} onPress={() => onSelect(item)} activeOpacity={0.75}>
+              <View style={{ flex: 1 }}>
+                <Text style={ss.soundTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={ss.soundMeta}>@{item.username} · {fmtTime(item.duration)}</Text>
+              </View>
+              <View style={ss.usaBtn}>
+                <Text style={ss.usaTxt}>Usa</Text>
+              </View>
+            </TouchableOpacity>
           )}
-
-          <TouchableOpacity style={[pm.cancelBtn, { marginTop: 12, alignSelf: 'center', paddingHorizontal: 32 }]} onPress={onClose}>
-            <Text style={pm.cancelTxt}>Annulla</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+          ListEmptyComponent={<Text style={ss.emptyTxt}>Nessun suono trovato</Text>}
+        />
+      )}
+    </>
   );
 }
 
@@ -513,18 +499,19 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   };
 
   return (
-    <>
-      {showSearch && (
-        <SoundScapeSearchModal
-          onSelect={handleSelectSound}
-          onClose={() => setShowSearch(false)}
-        />
-      )}
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible animationType="slide" transparent onRequestClose={showSearch ? () => setShowSearch(false) : onClose}>
       <View style={pm.overlay}>
         <View style={pm.sheet}>
           <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
           <View style={pm.handle} />
+
+          {showSearch ? (
+            <SoundSearchView
+              onSelect={handleSelectSound}
+              onBack={() => setShowSearch(false)}
+            />
+          ) : (
+          <>
           <Text style={pm.sheetTitle}>🎙 Pubblica Episodio</Text>
 
           <TextInput
@@ -569,10 +556,11 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
               {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>Pubblica</Text>}
             </TouchableOpacity>
           </View>
+          </>
+          )}
         </View>
       </View>
     </Modal>
-    </>
   );
 }
 
