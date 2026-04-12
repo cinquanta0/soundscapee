@@ -10,12 +10,12 @@ import {
   Modal,
   StatusBar,
   Alert,
-  SafeAreaView,
   ActivityIndicator,
   Platform,
   Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 
@@ -119,6 +119,9 @@ import { useTranslation } from 'react-i18next';
 
 export default function App() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
+  const navBarHeight = 58 + Math.max(insets.bottom, 8);
   const [activeTab, setActiveTab] = useState('home');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -1172,8 +1175,8 @@ if (loading) {
   const isFullScreen = ['map', 'communities', 'challenges', 'explore', 'timemachine', 'messages'].includes(activeTab);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
       {showOnboarding && <OnboardingScreen onComplete={() => setShowOnboarding(false)} />}
 
@@ -1218,7 +1221,7 @@ if (loading) {
       </View>}
 
       {/* Main Content — nascosto sui tab full-screen */}
-      {!isFullScreen && <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      {!isFullScreen && <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + 16 }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
           <View style={styles.content}>
             {/* Quick Record */}
@@ -1629,7 +1632,7 @@ if (loading) {
 
       {/* Schermate full-screen — occupano tutto lo spazio disponibile sopra il nav bar */}
       {isFullScreen && (
-        <View style={styles.fullScreenContainer}>
+        <View style={[styles.fullScreenContainer, { paddingBottom: navBarHeight }]}>
           {activeTab === 'communities' && <CommunitiesScreen />}
           {activeTab === 'map' && <MapScreen />}
           {activeTab === 'timemachine' && <TimeMachineScreen />}
@@ -2654,15 +2657,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingBottom: 80, // spazio per il BottomNavBar assoluto
   },
   fullScreenContainer: {
     flex: 1,
-    paddingBottom: 80, // spazio per il BottomNavBar assoluto
   },
   content: {
     padding: 16,
-    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
