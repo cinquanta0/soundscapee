@@ -10,6 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAvBTHZ4mlSEbUTHYaU9Tkg6q4CXL4nrzc",
