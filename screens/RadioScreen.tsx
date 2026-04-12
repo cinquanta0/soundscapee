@@ -11,14 +11,17 @@ import { auth } from '../firebaseConfig';
 import {
   listenToLiveRooms, createRadioRoom, uploadTrack, endRadioRoom, skipToNextTrack,
   joinRadioRoom, leaveRadioRoom, listenToRoom, RadioRoom, PlaylistTrack,
-  ChatMessage, HandRaise, Reaction,
+  ChatMessage, HandRaise, Reaction, Suggestion, UserSound,
   listenToChat, sendChatMessage, sendReaction, listenToReactions,
   raiseHand, lowerHand, listenToMyHandRaise, listenToHandRaises,
   pickListener, dismissPick, setHostMicLive,
+  grantSpeaker, revokeSpeaker, addCohost, removeCohost,
+  listenToSuggestions, suggestTrack, approveSuggestion, rejectSuggestion, fetchUserSoundsForSuggestion,
+  scheduleRadioRoom, startScheduledRoom, listenToScheduledRooms,
 } from '../services/radioService';
 import {
   fetchAgoraToken, joinAsHost, joinAsAudience, leaveAgoraChannel,
-  setMicActive, destroyAgoraEngine, refreshSpeakerphone,
+  setMicActive, upgradeToSpeaker, downgradeToAudience, destroyAgoraEngine, refreshSpeakerphone,
 } from '../services/agoraService';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -184,11 +187,12 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const [skipping, setSkipping] = useState(false);
   const [trackElapsed, setTrackElapsed] = useState(0);
   const [totalElapsed, setTotalElapsed] = useState(0);
-  const [activeTab, setActiveTab] = useState<'playing' | 'chat' | 'hands'>('playing');
+  const [activeTab, setActiveTab] = useState<'playing' | 'chat' | 'hands' | 'suggestions'>('playing');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [handRaises, setHandRaises] = useState<HandRaise[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isInGapAudio, setIsInGapAudio] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
@@ -198,6 +202,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const unsubRef = useRef<(() => void) | null>(null);
   const chatUnsubRef = useRef<(() => void) | null>(null);
   const handsUnsubRef = useRef<(() => void) | null>(null);
+  const suggestionsUnsubRef = useRef<(() => void) | null>(null);
   const chatListRef = useRef<FlatList<ChatMessage>>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentIndexRef = useRef(initialRoom.currentTrackIndex);
@@ -262,6 +267,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 80);
     });
     handsUnsubRef.current = listenToHandRaises(room.id, setHandRaises);
+    suggestionsUnsubRef.current = listenToSuggestions(room.id, setSuggestions);
     // Agora: join as host (mic off by default)
     fetchAgoraToken(initialRoom.id).then(async (token) => {
       try {
@@ -276,6 +282,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       unsubRef.current?.();
       chatUnsubRef.current?.();
       handsUnsubRef.current?.();
+      suggestionsUnsubRef.current?.();
       // Agora cleanup
       setHostMicLive(initialRoom.id, false).catch(() => {});
       leaveAgoraChannel().catch(() => {});
@@ -362,12 +369,37 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   };
 
   const handlePickListener = async (h: HandRaise) => {
-    try { await pickListener(room.id, h.userId, h.userName); }
-    catch { Alert.alert(t('common.error'), t('radio.errors.cannotPick')); }
+    try {
+      await pickListener(room.id, h.userId, h.userName);
+      await grantSpeaker(room.id, h.userId);
+    } catch { Alert.alert(t('common.error'), t('radio.errors.cannotPick')); }
   };
 
   const handleDismiss = async (h: HandRaise) => {
-    try { await dismissPick(room.id, h.userId); } catch {}
+    try {
+      await dismissPick(room.id, h.userId);
+      await revokeSpeaker(room.id, h.userId);
+    } catch {}
+  };
+
+  const handleAddCohost = async (h: HandRaise) => {
+    try {
+      await addCohost(room.id, h.userId);
+      await dismissPick(room.id, h.userId).catch(() => {});
+    } catch { Alert.alert(t('common.error'), 'Impossibile promuovere a cohost.'); }
+  };
+
+  const handleRemoveCohost = async (userId: string) => {
+    try { await removeCohost(room.id, userId); } catch {}
+  };
+
+  const handleApproveSuggestion = async (s: Suggestion) => {
+    try { await approveSuggestion(room.id, s.id, s.soundUrl, s.soundName); }
+    catch { Alert.alert(t('common.error'), 'Impossibile approvare il suggerimento.'); }
+  };
+
+  const handleRejectSuggestion = async (s: Suggestion) => {
+    try { await rejectSuggestion(room.id, s.id); } catch {}
   };
 
   const currentTrack = room.playlist[room.currentTrackIndex];
@@ -376,6 +408,9 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const gapRemaining = isInGap ? Math.ceil((room.trackStartedAt.getTime() - Date.now()) / 1000) : 0;
   const pendingHands = handRaises.filter(h => h.status === 'pending');
   const pickedHands = handRaises.filter(h => h.status === 'picked');
+  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
+  const cohosts = room.cohosts ?? [];
+  const activeSpeakers = room.activeSpeakers ?? [];
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -397,14 +432,14 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
       {/* Tab bar */}
       <View style={hm.tabBar}>
-        {(['playing', 'chat', 'hands'] as const).map((tab) => {
-          const label = tab === 'playing' ? t('radio.nowPlaying') : tab === 'chat' ? t('radio.chatTab') : t('radio.handsTab');
-          const badge = tab === 'chat' ? chatMessages.length : tab === 'hands' ? pendingHands.length : 0;
+        {(['playing', 'chat', 'hands', 'suggestions'] as const).map((tab) => {
+          const label = tab === 'playing' ? '♪' : tab === 'chat' ? t('radio.chatTab') : tab === 'hands' ? t('radio.handsTab') : '🎵';
+          const badge = tab === 'chat' ? chatMessages.length : tab === 'hands' ? pendingHands.length : tab === 'suggestions' ? pendingSuggestions.length : 0;
           return (
             <TouchableOpacity key={tab} style={[hm.tab, activeTab === tab && hm.tabActive]} onPress={() => setActiveTab(tab)}>
               <Text style={[hm.tabTxt, activeTab === tab && hm.tabTxtActive]}>{label}</Text>
               {badge > 0 && (
-                <View style={[hm.tabBadge, tab === 'hands' && { backgroundColor: '#FF2D55' }]}>
+                <View style={[hm.tabBadge, (tab === 'hands' || tab === 'suggestions') && { backgroundColor: '#FF2D55' }]}>
                   <Text style={hm.tabBadgeTxt}>{badge > 99 ? '99+' : badge}</Text>
                 </View>
               )}
@@ -527,16 +562,38 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       {/* Tab: MANI ALZATE */}
       {activeTab === 'hands' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          {pickedHands.length > 0 && (
+          {/* Cohost permanenti */}
+          {cohosts.length > 0 && (
             <>
-              <Text style={hm.handsSection}>{t('radio.featured')}</Text>
-              {pickedHands.map(h => (
-                <View key={h.id} style={hm.handCardPicked}>
-                  <Text style={hm.pickedStar}>⭐</Text>
-                  <Text style={hm.handName}>{h.userName}</Text>
-                  <TouchableOpacity style={hm.dismissBtn} onPress={() => handleDismiss(h)}>
-                    <Text style={hm.dismissTxt}>{t('common.remove')}</Text>
+              <Text style={hm.handsSection}>COHOST</Text>
+              {cohosts.map(uid => (
+                <View key={uid} style={[hm.handCardPicked, { borderColor: 'rgba(0,255,156,0.3)', backgroundColor: 'rgba(0,255,156,0.06)' }]}>
+                  <Text style={{ fontSize: 18 }}>🎙</Text>
+                  <Text style={hm.handName}>{handRaises.find(h => h.userId === uid)?.userName ?? uid.slice(0, 8)}</Text>
+                  <TouchableOpacity style={hm.dismissBtn} onPress={() => handleRemoveCohost(uid)}>
+                    <Text style={hm.dismissTxt}>Rimuovi</Text>
                   </TouchableOpacity>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* In evidenza (speaker temporanei) */}
+          {pickedHands.filter(h => !cohosts.includes(h.userId)).length > 0 && (
+            <>
+              <Text style={[hm.handsSection, cohosts.length > 0 && { marginTop: 20 }]}>{t('radio.featured')}</Text>
+              {pickedHands.filter(h => !cohosts.includes(h.userId)).map(h => (
+                <View key={h.id} style={hm.handCardPicked}>
+                  <Text style={hm.pickedStar}>{activeSpeakers.includes(h.userId) ? '🎙' : '⭐'}</Text>
+                  <Text style={hm.handName}>{h.userName}</Text>
+                  <View style={hm.handBtns}>
+                    <TouchableOpacity style={[hm.pickBtn, { borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.12)' }]} onPress={() => handleAddCohost(h)}>
+                      <Text style={[hm.pickBtnTxt, { color: '#00FF9C' }]}>Cohost</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={hm.dismissBtn} onPress={() => handleDismiss(h)}>
+                      <Text style={hm.dismissTxt}>{t('common.remove')}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </>
@@ -544,7 +601,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
           {pendingHands.length > 0 ? (
             <>
-              <Text style={[hm.handsSection, pickedHands.length > 0 && { marginTop: 20 }]}>{t('radio.raisedHands')}</Text>
+              <Text style={[hm.handsSection, (pickedHands.length > 0 || cohosts.length > 0) && { marginTop: 20 }]}>{t('radio.raisedHands')}</Text>
               {pendingHands.map(h => (
                 <View key={h.id} style={hm.handCard}>
                   <View style={hm.handAvatar}><Text style={hm.handAvatarTxt}>{h.userName[0]?.toUpperCase()}</Text></View>
@@ -561,7 +618,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
               ))}
             </>
           ) : (
-            pickedHands.length === 0 && (
+            pickedHands.length === 0 && cohosts.length === 0 && (
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🙋</Text>
                 <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
@@ -569,6 +626,66 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                 </Text>
               </View>
             )
+          )}
+        </ScrollView>
+      )}
+
+      {/* Tab: SUGGERIMENTI */}
+      {activeTab === 'suggestions' && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          {pendingSuggestions.length > 0 && (
+            <>
+              <Text style={hm.handsSection}>IN ATTESA</Text>
+              {pendingSuggestions.map(s => (
+                <View key={s.id} style={hm.handCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{s.soundName}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>da {s.userName}</Text>
+                  </View>
+                  <View style={hm.handBtns}>
+                    <TouchableOpacity style={hm.pickBtn} onPress={() => handleApproveSuggestion(s)}>
+                      <Text style={hm.pickBtnTxt}>✓ Aggiungi</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={hm.ignoreBtn} onPress={() => handleRejectSuggestion(s)}>
+                      <Text style={hm.ignoreBtnTxt}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+          {suggestions.filter(s => s.status === 'approved').length > 0 && (
+            <>
+              <Text style={[hm.handsSection, { marginTop: pendingSuggestions.length > 0 ? 20 : 0 }]}>APPROVATI</Text>
+              {suggestions.filter(s => s.status === 'approved').map(s => (
+                <View key={s.id} style={[hm.handCard, { borderColor: 'rgba(0,255,156,0.2)', backgroundColor: 'rgba(0,255,156,0.04)' }]}>
+                  <Text style={{ fontSize: 16 }}>✅</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={1}>{s.soundName}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'monospace', marginTop: 1 }}>da {s.userName}</Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+          {suggestions.filter(s => s.status === 'rejected').length > 0 && (
+            <>
+              <Text style={[hm.handsSection, { marginTop: 20 }]}>RIFIUTATI</Text>
+              {suggestions.filter(s => s.status === 'rejected').map(s => (
+                <View key={s.id} style={[hm.handCard, { opacity: 0.45 }]}>
+                  <Text style={{ fontSize: 16 }}>✕</Text>
+                  <Text style={{ flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: 13 }} numberOfLines={1}>{s.soundName}</Text>
+                </View>
+              ))}
+            </>
+          )}
+          {suggestions.length === 0 && (
+            <View style={{ alignItems: 'center', marginTop: 60 }}>
+              <Text style={{ fontSize: 40, marginBottom: 12 }}>🎵</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+                nessun suggerimento ancora{'\n'}gli ascoltatori possono suggerire suoni
+              </Text>
+            </View>
           )}
         </ScrollView>
       )}
@@ -658,6 +775,11 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const [sendingMsg, setSendingMsg] = useState(false);
   const [myHandRaise, setMyHandRaise] = useState<HandRaise | null>(null);
   const [floaters, setFloaters] = useState<FloatingItem[]>([]);
+  const [speakerMicActive, setSpeakerMicActive] = useState(false);
+  const [agoraJoined, setAgoraJoined] = useState(false);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [userSounds, setUserSounds] = useState<UserSound[]>([]);
+  const [loadingSounds, setLoadingSounds] = useState(false);
   const seenReactionsRef = useRef<Set<string>>(new Set());
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentIndexRef = useRef(initialRoom.currentTrackIndex);
@@ -669,6 +791,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const handRaiseUnsubRef = useRef<(() => void) | null>(null);
   const chatListRef = useRef<FlatList<ChatMessage>>(null);
   const hostMicLiveRef = useRef(initialRoom.hostMicLive ?? false);
+  const wasSpeakerRef = useRef(false);
 
   const clearGapTimers = () => {
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
@@ -758,7 +881,16 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
 
     // Agora: join as audience
     fetchAgoraToken(initialRoom.id).then(async (token) => {
-      try { await joinAsAudience(initialRoom.id, token); } catch {}
+      try {
+        const uid = auth.currentUser?.uid ?? '';
+        const isCohost = initialRoom.cohosts?.includes(uid) ?? false;
+        if (isCohost) {
+          await joinAsHost(initialRoom.id, token);
+        } else {
+          await joinAsAudience(initialRoom.id, token);
+        }
+        setAgoraJoined(true);
+      } catch {}
     });
 
     return () => {
@@ -770,6 +902,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       reactionsUnsubRef.current?.();
       handRaiseUnsubRef.current?.();
       leaveAgoraChannel().catch(() => {});
+      destroyAgoraEngine();
     };
   }, []);
 
@@ -778,6 +911,21 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     hostMicLiveRef.current = room.hostMicLive ?? false;
     soundRef.current?.setVolumeAsync(room.hostMicLive ? 0.15 : 1.0).catch(() => {});
   }, [room.hostMicLive]);
+
+  // Promozione/revoca speaker — reagisce ai cambiamenti di activeSpeakers e cohosts
+  const myUid = auth.currentUser?.uid ?? '';
+  const isSpeaker = (room.activeSpeakers?.includes(myUid) ?? false) || (room.cohosts?.includes(myUid) ?? false);
+  useEffect(() => {
+    if (!agoraJoined) return;
+    if (isSpeaker && !wasSpeakerRef.current) {
+      wasSpeakerRef.current = true;
+      upgradeToSpeaker().catch(() => {});
+    } else if (!isSpeaker && wasSpeakerRef.current) {
+      wasSpeakerRef.current = false;
+      setSpeakerMicActive(false);
+      downgradeToAudience().catch(() => {});
+    }
+  }, [isSpeaker, agoraJoined]);
 
   const togglePlay = async () => {
     if (!soundRef.current) return;
@@ -810,8 +958,36 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     }
   };
 
+  const handleSpeakerMicToggle = () => {
+    if (!agoraJoined || !isSpeaker) return;
+    const next = !speakerMicActive;
+    setSpeakerMicActive(next);
+    setMicActive(next);
+    soundRef.current?.setVolumeAsync(next ? 0.15 : 1.0).catch(() => {});
+  };
+
+  const openSuggest = async () => {
+    setShowSuggest(true);
+    if (userSounds.length > 0 || loadingSounds) return;
+    setLoadingSounds(true);
+    try {
+      const sounds = await fetchUserSoundsForSuggestion();
+      setUserSounds(sounds);
+    } catch {} finally { setLoadingSounds(false); }
+  };
+
+  const handleSuggest = async (sound: UserSound) => {
+    const name = auth.currentUser?.displayName ?? 'Ascoltatore';
+    try {
+      await suggestTrack(room.id, { soundId: sound.id, soundName: sound.title, soundUrl: sound.audioUrl, userName: name });
+      setShowSuggest(false);
+      Alert.alert('Suggerimento inviato! 🎵', 'L\'host può approvare il tuo suono.');
+    } catch { Alert.alert(t('common.error'), 'Impossibile inviare il suggerimento.'); }
+  };
+
   const currentTrack = room.playlist[room.currentTrackIndex];
   const isPicked = myHandRaise?.status === 'picked';
+  const isCohost = room.cohosts?.includes(myUid) ?? false;
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -864,11 +1040,27 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             )}
           </View>
 
+          {/* Cohost banner */}
+          {isCohost && (
+            <View style={[lm.pickedBanner, { borderColor: 'rgba(0,255,156,0.3)', backgroundColor: 'rgba(0,255,156,0.1)' }]}>
+              <Text style={[lm.pickedBannerTxt, { color: '#00FF9C' }]}>🎙 Sei cohost!</Text>
+            </View>
+          )}
           {/* Scelto banner */}
-          {isPicked && (
+          {isPicked && !isCohost && (
             <View style={lm.pickedBanner}>
               <Text style={lm.pickedBannerTxt}>⭐ Sei stato scelto dall'host!</Text>
             </View>
+          )}
+          {/* Mic button for speaker/cohost */}
+          {isSpeaker && (
+            <TouchableOpacity
+              style={[lm.speakerMicBtn, speakerMicActive && lm.speakerMicBtnActive]}
+              onPress={handleSpeakerMicToggle}
+              disabled={!agoraJoined}
+            >
+              <Text style={lm.speakerMicIcon}>{speakerMicActive ? '🎙 Microfono on' : '🔇 Microfono off'}</Text>
+            </TouchableOpacity>
           )}
 
           <View style={lm.nowCard}>
@@ -901,7 +1093,12 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             ))}
           </View>
 
-          <Text style={lm.listenerTxt}>🎧 {room.listenerCount} {t('radio.listeners')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Text style={lm.listenerTxt}>🎧 {room.listenerCount} {t('radio.listeners')}</Text>
+            <TouchableOpacity style={lm.suggestBtn} onPress={openSuggest}>
+              <Text style={lm.suggestBtnTxt}>🎵 Suggerisci</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={lm.queueTitle}>{t('radio.queue')}</Text>
           {room.playlist.map((track, i) => (
@@ -913,12 +1110,52 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         </ScrollView>
       )}
 
+      {/* Suggest modal */}
+      {showSuggest && (
+        <Modal visible animationType="slide" transparent onRequestClose={() => setShowSuggest(false)}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' }}>
+            <View style={{ backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, maxHeight: '70%' }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>🎵 Suggerisci un suono</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
+              {loadingSounds ? (
+                <ActivityIndicator color="#FF2D55" style={{ marginTop: 20 }} />
+              ) : userSounds.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 10 }}>🎵</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+                    nessun suono caricato{'\n'}registra un suono nella Home!
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {userSounds.map(s => (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
+                      onPress={() => handleSuggest(s)}
+                    >
+                      <Text style={{ fontSize: 22 }}>🎧</Text>
+                      <Text style={{ flex: 1, color: '#fff', fontSize: 13, fontWeight: '500' }} numberOfLines={2}>{s.title}</Text>
+                      <Text style={{ color: '#FF2D55', fontSize: 12, fontWeight: '700' }}>Suggerisci →</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              <TouchableOpacity style={{ marginTop: 12, padding: 12, alignItems: 'center' }} onPress={() => setShowSuggest(false)}>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Annulla</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Tab: CHAT */}
       {activeTab === 'chat' && (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
-          {isPicked && (
-            <View style={lm.pickedBannerSmall}>
-              <Text style={lm.pickedBannerTxt}>⭐ Sei in evidenza!</Text>
+          {(isPicked || isCohost) && (
+            <View style={[lm.pickedBannerSmall, isCohost && { backgroundColor: 'rgba(0,255,156,0.1)', borderBottomColor: 'rgba(0,255,156,0.2)' }]}>
+              <Text style={[lm.pickedBannerTxt, isCohost && { color: '#00FF9C' }]}>{isCohost ? '🎙 Sei cohost!' : '⭐ Sei in evidenza!'}</Text>
             </View>
           )}
           <FlatList
@@ -1025,9 +1262,24 @@ const lm = StyleSheet.create({
   handBtnRaised: { backgroundColor: 'rgba(255,165,0,0.2)', borderColor: 'rgba(255,165,0,0.5)' },
   handBtnPicked: { backgroundColor: 'rgba(255,215,0,0.2)', borderColor: 'rgba(255,215,0,0.5)' },
   handBtnTxt: { fontSize: 18 },
+  // Speaker mic
+  speakerMicBtn: { alignSelf: 'center', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', marginBottom: 14 },
+  speakerMicBtnActive: { backgroundColor: 'rgba(255,45,85,0.2)', borderColor: '#FF2D55', shadowColor: '#FF2D55', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  speakerMicIcon: { color: '#fff', fontSize: 14, fontWeight: '700', fontFamily: 'monospace' },
+  // Suggest
+  suggestBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(255,45,85,0.1)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.25)' },
+  suggestBtnTxt: { color: '#FF2D55', fontSize: 11, fontWeight: '600', fontFamily: 'monospace' },
 });
 
 // ─── CREA STANZA ──────────────────────────────────────────────────────────────
+const SCHEDULE_PRESETS = [
+  { label: '30 min', minutes: 30 },
+  { label: '1h', minutes: 60 },
+  { label: '2h', minutes: 120 },
+  { label: '3h', minutes: 180 },
+  { label: 'Domani', minutes: 24 * 60 },
+];
+
 function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClose: () => void }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
@@ -1037,6 +1289,8 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
   const [uploadIdx, setUploadIdx] = useState(0);
   const [editingName, setEditingName] = useState<number | null>(null);
   const [editingNameValue, setEditingNameValue] = useState('');
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduleMinutes, setScheduleMinutes] = useState(60);
 
   const addTrack = async () => {
     try {
@@ -1106,11 +1360,16 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
       const uploaded: PlaylistTrack[] = [];
       for (let i = 0; i < tracks.length; i++) {
         setUploadIdx(i);
-        const t = tracks[i];
-        const pt = await uploadTrack({ uri: t.uri, name: t.name, duration: t.duration, gapAfter: t.gapAfter });
+        const tr = tracks[i];
+        const pt = await uploadTrack({ uri: tr.uri, name: tr.name, duration: tr.duration, gapAfter: tr.gapAfter });
         uploaded.push(pt);
       }
-      await createRadioRoom({ title: title.trim(), description: description.trim(), playlist: uploaded, hostName });
+      if (isScheduled) {
+        const scheduledFor = new Date(Date.now() + scheduleMinutes * 60 * 1000);
+        await scheduleRadioRoom({ title: title.trim(), description: description.trim(), playlist: uploaded, hostName, scheduledFor });
+      } else {
+        await createRadioRoom({ title: title.trim(), description: description.trim(), playlist: uploaded, hostName });
+      }
       onCreated();
     } catch { Alert.alert(t('common.error'), t('radio.errors.cannotStart')); }
     finally { setUploading(false); }
@@ -1211,6 +1470,29 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
               </TouchableOpacity>
             </View>
 
+            {/* Programma per dopo */}
+            <View style={cm.scheduleSection}>
+              <TouchableOpacity style={cm.scheduleToggle} onPress={() => setIsScheduled(!isScheduled)}>
+                <View style={[cm.scheduleCheck, isScheduled && cm.scheduleCheckOn]}>
+                  {isScheduled && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+                </View>
+                <Text style={cm.scheduleLbl}>Programma per dopo</Text>
+              </TouchableOpacity>
+              {isScheduled && (
+                <View style={cm.presetRow}>
+                  {SCHEDULE_PRESETS.map(p => (
+                    <TouchableOpacity
+                      key={p.minutes}
+                      style={[cm.presetChip, scheduleMinutes === p.minutes && cm.presetChipActive]}
+                      onPress={() => setScheduleMinutes(p.minutes)}
+                    >
+                      <Text style={[cm.presetChipTxt, scheduleMinutes === p.minutes && cm.presetChipTxtActive]}>{p.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
             {/* Upload progress */}
             {uploading && (
               <View style={cm.progressWrap}>
@@ -1228,7 +1510,7 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
               <TouchableOpacity style={cm.createBtn} onPress={handleCreate} disabled={uploading}>
                 {uploading
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={cm.createTxt}>{t('radio.goLive')}</Text>}
+                  : <Text style={cm.createTxt}>{isScheduled ? '📅 Programma' : t('radio.goLive')}</Text>}
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1274,6 +1556,16 @@ const cm = StyleSheet.create({
   cancelTxt: { color: 'rgba(255,255,255,0.6)', fontSize: 14 },
   createBtn: { flex: 1, padding: 13, borderRadius: 12, backgroundColor: '#FF2D55', alignItems: 'center' },
   createTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  scheduleSection: { marginBottom: 14 },
+  scheduleToggle: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  scheduleCheck: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  scheduleCheckOn: { backgroundColor: '#FF2D55', borderColor: '#FF2D55' },
+  scheduleLbl: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+  presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 4 },
+  presetChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  presetChipActive: { backgroundColor: 'rgba(255,45,85,0.2)', borderColor: 'rgba(255,45,85,0.4)' },
+  presetChipTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'monospace' },
+  presetChipTxtActive: { color: '#FF2D55', fontWeight: '700' },
 });
 
 // ─── Room card ────────────────────────────────────────────────────────────────
@@ -1341,22 +1633,38 @@ const rc = StyleSheet.create({
 export default function RadioScreen() {
   const { t } = useTranslation();
   const [rooms, setRooms] = useState<RadioRoom[]>([]);
+  const [scheduledRooms, setScheduledRooms] = useState<RadioRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<RadioRoom | null>(null);
   const [hostRoom, setHostRoom] = useState<RadioRoom | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [startingRoom, setStartingRoom] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = listenToLiveRooms((liveRooms) => {
       setRooms(liveRooms);
       setLoading(false);
     });
-    return unsub;
+    const uid = auth.currentUser?.uid;
+    let unsubScheduled: (() => void) | undefined;
+    if (uid) {
+      unsubScheduled = listenToScheduledRooms(uid, setScheduledRooms);
+    }
+    return () => { unsub(); unsubScheduled?.(); };
   }, []);
 
   const handleRoomPress = (room: RadioRoom) => {
     if (auth.currentUser?.uid === room.hostId) setHostRoom(room);
     else setSelectedRoom(room);
+  };
+
+  const handleStartScheduled = async (room: RadioRoom) => {
+    setStartingRoom(room.id);
+    try {
+      await startScheduledRoom(room.id);
+      // The room will now appear in live rooms via listenToLiveRooms
+    } catch { Alert.alert(t('common.error'), 'Impossibile avviare la trasmissione.'); }
+    finally { setStartingRoom(null); }
   };
 
   return (
@@ -1373,6 +1681,34 @@ export default function RadioScreen() {
           <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Programmate (solo tue) */}
+      {scheduledRooms.length > 0 && (
+        <View style={ms.scheduledSection}>
+          <Text style={ms.scheduledTitle}>📅 PROGRAMMATE</Text>
+          {scheduledRooms.map(r => {
+            const eta = r.scheduledFor ? Math.max(0, Math.floor((r.scheduledFor.getTime() - Date.now()) / 60000)) : 0;
+            const etaStr = eta >= 60 ? `${Math.floor(eta / 60)}h ${eta % 60}m` : `${eta}m`;
+            return (
+              <View key={r.id} style={ms.scheduledCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={ms.scheduledName} numberOfLines={1}>{r.title}</Text>
+                  <Text style={ms.scheduledEta}>tra {etaStr}</Text>
+                </View>
+                <TouchableOpacity
+                  style={ms.startNowBtn}
+                  onPress={() => handleStartScheduled(r)}
+                  disabled={startingRoom === r.id}
+                >
+                  {startingRoom === r.id
+                    ? <ActivityIndicator color="#FF2D55" size="small" />
+                    : <Text style={ms.startNowTxt}>🔴 Vai live ora</Text>}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {loading ? (
         <View style={ms.center}><ActivityIndicator color="#FF2D55" /></View>
@@ -1415,4 +1751,11 @@ const ms = StyleSheet.create({
   emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center', lineHeight: 18 },
   emptyBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 24, backgroundColor: 'rgba(255,45,85,0.18)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   emptyBtnTxt: { color: '#FF2D55', fontSize: 15, fontWeight: '700' },
+  scheduledSection: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  scheduledTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, marginBottom: 8 },
+  scheduledCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,45,85,0.15)' },
+  scheduledName: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  scheduledEta: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 },
+  startNowBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(255,45,85,0.2)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
+  startNowTxt: { color: '#FF2D55', fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
 });

@@ -2,6 +2,7 @@ import {
   collection, addDoc, query, where, orderBy,
   limit, serverTimestamp, doc, updateDoc, increment,
   onSnapshot, Unsubscribe, Timestamp, setDoc, deleteDoc,
+  arrayUnion, arrayRemove, getDocs,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
@@ -36,6 +37,9 @@ export interface RadioRoom {
   startedAt: Date;
   createdAt: Date;
   hostMicLive?: boolean;
+  activeSpeakers?: string[];  // userIds currently speaking (picked + cohosts)
+  cohosts?: string[];         // userIds promoted to permanent cohost
+  scheduledFor?: Date;        // set when room is not yet live
 }
 
 function mapRoom(id: string, data: Record<string, any>): RadioRoom {
@@ -54,6 +58,9 @@ function mapRoom(id: string, data: Record<string, any>): RadioRoom {
     startedAt: data.startedAt?.toDate() ?? new Date(),
     createdAt: data.createdAt?.toDate() ?? new Date(),
     hostMicLive: data.hostMicLive ?? false,
+    activeSpeakers: data.activeSpeakers ?? [],
+    cohosts: data.cohosts ?? [],
+    scheduledFor: data.scheduledFor?.toDate?.() ?? undefined,
   };
 }
 
@@ -314,4 +321,178 @@ export async function pickListener(
 
 export async function dismissPick(roomId: string, userId: string): Promise<void> {
   await deleteDoc(doc(db, 'radio', roomId, 'handRaises', userId));
+}
+
+// ─── Speaker management (listener che parla) ──────────────────────────────────
+
+export async function grantSpeaker(roomId: string, userId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), { activeSpeakers: arrayUnion(userId) });
+}
+
+export async function revokeSpeaker(roomId: string, userId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), { activeSpeakers: arrayRemove(userId) });
+}
+
+// ─── Cohost ───────────────────────────────────────────────────────────────────
+
+export async function addCohost(roomId: string, userId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), {
+    cohosts: arrayUnion(userId),
+    activeSpeakers: arrayUnion(userId),
+  });
+}
+
+export async function removeCohost(roomId: string, userId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), {
+    cohosts: arrayRemove(userId),
+    activeSpeakers: arrayRemove(userId),
+  });
+}
+
+// ─── Playlist Collaborativa (Suggerimenti) ────────────────────────────────────
+
+export interface Suggestion {
+  id: string;
+  userId: string;
+  userName: string;
+  soundId: string;
+  soundName: string;
+  soundUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: Date;
+}
+
+export async function suggestTrack(
+  roomId: string,
+  params: { soundId: string; soundName: string; soundUrl: string; userName: string },
+): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) return;
+  await addDoc(collection(db, 'radio', roomId, 'suggestions'), {
+    userId: user.uid,
+    userName: params.userName,
+    soundId: params.soundId,
+    soundName: params.soundName,
+    soundUrl: params.soundUrl,
+    status: 'pending',
+    timestamp: serverTimestamp(),
+  });
+}
+
+export async function approveSuggestion(
+  roomId: string,
+  suggestionId: string,
+  soundUrl: string,
+  soundName: string,
+): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId, 'suggestions', suggestionId), { status: 'approved' });
+  await updateDoc(doc(db, 'radio', roomId), {
+    playlist: arrayUnion({ url: soundUrl, name: soundName }),
+  });
+}
+
+export async function rejectSuggestion(roomId: string, suggestionId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId, 'suggestions', suggestionId), { status: 'rejected' });
+}
+
+export function listenToSuggestions(
+  roomId: string,
+  cb: (suggestions: Suggestion[]) => void,
+): Unsubscribe {
+  const q = query(
+    collection(db, 'radio', roomId, 'suggestions'),
+    orderBy('timestamp', 'asc'),
+    limit(50),
+  );
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({
+      id: d.id,
+      userId: d.data().userId ?? '',
+      userName: d.data().userName ?? '',
+      soundId: d.data().soundId ?? '',
+      soundName: d.data().soundName ?? 'Suono',
+      soundUrl: d.data().soundUrl ?? '',
+      status: d.data().status ?? 'pending',
+      timestamp: d.data().timestamp?.toDate() ?? new Date(),
+    })));
+  });
+}
+
+// ─── Suoni utente (per suggerimenti) ─────────────────────────────────────────
+
+export interface UserSound {
+  id: string;
+  title: string;
+  audioUrl: string;
+}
+
+export async function fetchUserSoundsForSuggestion(): Promise<UserSound[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(
+    collection(db, 'sounds'),
+    where('userId', '==', user.uid),
+    orderBy('createdAt', 'desc'),
+    limit(15),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    id: d.id,
+    title: d.data().title ?? d.data().name ?? 'Suono',
+    audioUrl: d.data().audioUrl ?? d.data().url ?? d.data().fileUrl ?? '',
+  })).filter((s) => s.audioUrl);
+}
+
+// ─── Radio programmata ────────────────────────────────────────────────────────
+
+export async function scheduleRadioRoom(params: {
+  title: string;
+  description?: string;
+  playlist: PlaylistTrack[];
+  hostName: string;
+  scheduledFor: Date;
+}): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  const docRef = await addDoc(collection(db, 'radio'), {
+    hostId: user.uid,
+    hostName: params.hostName,
+    title: params.title,
+    description: params.description ?? '',
+    isLive: false,
+    listenerCount: 0,
+    playlist: params.playlist,
+    currentTrackIndex: 0,
+    trackStartedAt: Timestamp.fromDate(params.scheduledFor),
+    audioUrl: params.playlist[0]?.url ?? '',
+    startedAt: Timestamp.fromDate(params.scheduledFor),
+    createdAt: serverTimestamp(),
+    scheduledFor: Timestamp.fromDate(params.scheduledFor),
+  });
+  return docRef.id;
+}
+
+export async function startScheduledRoom(roomId: string): Promise<void> {
+  const now = new Date();
+  await updateDoc(doc(db, 'radio', roomId), {
+    isLive: true,
+    trackStartedAt: serverTimestamp(),
+    startedAt: serverTimestamp(),
+    scheduledFor: null,
+  });
+}
+
+export function listenToScheduledRooms(hostId: string, cb: (rooms: RadioRoom[]) => void): Unsubscribe {
+  const q = query(
+    collection(db, 'radio'),
+    where('hostId', '==', hostId),
+    limit(10),
+  );
+  return onSnapshot(q, (snap) => {
+    const now = new Date();
+    const scheduled = snap.docs
+      .map((d) => mapRoom(d.id, d.data()))
+      .filter((r) => !r.isLive);
+    cb(scheduled);
+  });
 }

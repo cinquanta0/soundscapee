@@ -93,6 +93,30 @@ export function setMicActive(active: boolean): void {
   });
 }
 
+/** Promuove un ascoltatore a broadcaster (per speaker/cohost) — mic parte mutato */
+export async function upgradeToSpeaker(): Promise<void> {
+  const engine = getEngine();
+  await engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
+  engine.updateChannelMediaOptions({
+    clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+    publishMicrophoneTrack: false,
+    autoSubscribeAudio: true,
+  });
+}
+
+/** Riporta un broadcaster ad audience (revoca speaker) */
+export async function downgradeToAudience(): Promise<void> {
+  const engine = getEngine();
+  engine.enableLocalAudio(false);
+  engine.muteLocalAudioStream(true);
+  engine.updateChannelMediaOptions({
+    clientRoleType: ClientRoleType.ClientRoleAudience,
+    publishMicrophoneTrack: false,
+    autoSubscribeAudio: true,
+  });
+  await engine.setClientRole(ClientRoleType.ClientRoleAudience);
+}
+
 // ─── Event handler ────────────────────────────────────────────────────────────
 
 export function registerEventHandler(handler: IRtcEngineEventHandler): void {

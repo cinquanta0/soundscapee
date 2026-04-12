@@ -238,11 +238,12 @@ service cloud.firestore {
                       request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['listenerCount'])
                       ||
-                      // Host: gestione tracce e fine trasmissione
+                      // Host: gestione tracce, speaker, cohost, fine trasmissione, programma
                       (isOwner(resource.data.hostId)
                        && request.resource.data.diff(resource.data).affectedKeys()
                             .hasOnly(['currentTrackIndex', 'trackStartedAt', 'isLive',
-                                      'currentChunkUrl', 'chunkIndex', 'listenerCount', 'hostMicLive']))
+                                      'currentChunkUrl', 'chunkIndex', 'listenerCount', 'hostMicLive',
+                                      'activeSpeakers', 'cohosts', 'scheduledFor', 'startedAt', 'playlist']))
                     );
       allow delete: if isOwner(resource.data.hostId);
 
@@ -264,10 +265,24 @@ service cloud.firestore {
       // Mani alzate
       match /handRaises/{userId} {
         allow read: if isAuth();
-        allow create, update: if isNotAnonymous() && isOwner(userId);
+        // Il listener crea/aggiorna la propria mano; l'host può aggiornare (per segnare picked)
+        allow create: if isNotAnonymous() && isOwner(userId);
+        allow update: if isNotAnonymous()
+                      && (isOwner(userId)
+                          || isOwner(get(/databases/$(database)/documents/radio/$(roomId)).data.hostId));
         allow delete: if isAuth()
                       && (isOwner(userId)
                           || isOwner(get(/databases/$(database)/documents/radio/$(roomId)).data.hostId));
+      }
+
+      // Suggerimenti playlist collaborativa
+      match /suggestions/{suggestionId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous()
+                      && isOwner(request.resource.data.userId);
+        allow update: if isOwner(get(/databases/$(database)/documents/radio/$(roomId)).data.hostId)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+        allow delete: if isOwner(get(/databases/$(database)/documents/radio/$(roomId)).data.hostId);
       }
     }
 
