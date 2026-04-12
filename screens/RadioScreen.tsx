@@ -46,19 +46,37 @@ interface OfflineStation {
   name: string;
   genre: string;
   color: string;
-  streamUrl: string;
+  searchName: string; // nome usato per cercare su radio-browser.info
 }
 
 const OFFLINE_STATIONS: OfflineStation[] = [
-  { id: 'rtl', name: 'RTL 102.5', genre: 'Pop · Hit', color: '#E91E63', streamUrl: 'https://rtl1025.ice.infomaniak.ch/rtl1025-high.mp3' },
-  { id: 'r105', name: 'Radio 105', genre: 'Rock · Pop', color: '#FF5722', streamUrl: 'https://icecast.unitedradio.it/Radio105.mp3' },
-  { id: 'deejay', name: 'Radio DeeJay', genre: 'Dance · Electronic', color: '#FF9800', streamUrl: 'https://deejay.akamaized.net/hls/live/2016501/RadioDeejay/playlist.m3u8' },
-  { id: 'radioitalia', name: 'Radio Italia', genre: 'Musica Italiana', color: '#4CAF50', streamUrl: 'https://radioitalia.akamaized.net/hls/live/2000041/radioitalia/playlist.m3u8' },
-  { id: 'rds', name: 'RDS', genre: 'Pop · News', color: '#2196F3', streamUrl: 'https://stream.rds.radio/rds.mp3' },
-  { id: 'virgin', name: 'Virgin Radio', genre: 'Rock · Alternative', color: '#9C27B0', streamUrl: 'https://icecast.unitedradio.it/VirginRadio.mp3' },
-  { id: 'm2o', name: 'm2o', genre: 'Dance · House', color: '#00BCD4', streamUrl: 'https://icecast.unitedradio.it/m2o.mp3' },
-  { id: 'capital', name: 'Capital', genre: 'Hip-Hop · R&B', color: '#F44336', streamUrl: 'https://icecast.unitedradio.it/Capital.mp3' },
+  { id: 'rtl', name: 'RTL 102.5', genre: 'Pop · Hit', color: '#E91E63', searchName: 'RTL 102.5' },
+  { id: 'r105', name: 'Radio 105', genre: 'Rock · Pop', color: '#FF5722', searchName: 'Radio 105' },
+  { id: 'deejay', name: 'Radio DeeJay', genre: 'Dance · Electronic', color: '#FF9800', searchName: 'Radio DeeJay' },
+  { id: 'radioitalia', name: 'Radio Italia', genre: 'Musica Italiana', color: '#4CAF50', searchName: 'Radio Italia' },
+  { id: 'rds', name: 'RDS', genre: 'Pop · News', color: '#2196F3', searchName: 'RDS' },
+  { id: 'virgin', name: 'Virgin Radio', genre: 'Rock · Alternative', color: '#9C27B0', searchName: 'Virgin Radio Italy' },
+  { id: 'm2o', name: 'm2o', genre: 'Dance · House', color: '#00BCD4', searchName: 'm2o' },
+  { id: 'capital', name: 'Capital', genre: 'Hip-Hop · R&B', color: '#F44336', searchName: 'Capital Italia' },
 ];
+
+// Fetch URL stream verificato da radio-browser.info (directory pubblica, aggiornata dalla community)
+async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> {
+  const mirrors = ['de1', 'nl1', 'at1'];
+  for (const mirror of mirrors) {
+    try {
+      const res = await fetch(
+        `https://${mirror}.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(searchName)}&countrycode=IT&hidebroken=true&order=votes&reverse=true&limit=5`,
+        { headers: { 'User-Agent': 'Soundscape/1.0' } },
+      );
+      if (!res.ok) continue;
+      const data: { url_resolved?: string; url?: string }[] = await res.json();
+      const url = data[0]?.url_resolved || data[0]?.url;
+      if (url) return url;
+    } catch {}
+  }
+  return null;
+}
 
 // ─── Floating Reaction ────────────────────────────────────────────────────────
 interface FloatingItem { id: string; emoji: string; x: number; }
@@ -1603,6 +1621,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [statusLabel, setStatusLabel] = useState('Ricerca stream...');
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -1614,8 +1633,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
         });
+
+        if (mounted) setStatusLabel('Connessione...');
+        const streamUrl = await fetchRadioBrowserUrl(station.searchName);
+        if (!streamUrl) throw new Error('Nessun stream trovato');
+
         const { sound } = await Audio.Sound.createAsync(
-          { uri: station.streamUrl },
+          { uri: streamUrl },
           { shouldPlay: true },
           (status) => {
             if (!mounted || !status.isLoaded) return;
@@ -1628,7 +1652,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         } else {
           sound.unloadAsync().catch(() => {});
         }
-      } catch {
+      } catch (e) {
+        console.warn('OfflineStation error:', station.searchName, e);
         if (mounted) { setLoading(false); setError(true); }
       }
     })();
@@ -1646,7 +1671,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     else await soundRef.current.playAsync();
   };
 
-  const statusText = loading ? 'Connessione...' : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+  const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
