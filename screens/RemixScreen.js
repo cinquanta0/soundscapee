@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   StyleSheet,
   Text,
@@ -22,6 +23,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - 32;
 
 export default function RemixScreen({ availableSounds = [], onClose }) {
+  const { t } = useTranslation();
   // Stati principali
   const [tracks, setTracks] = useState([]);
   const [selectedTrack, setSelectedTrack] = useState(null);
@@ -85,12 +87,12 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
 
   const saveRemix = async () => {
     if (!remixName.trim()) {
-      Alert.alert('⚠️ Nome mancante', 'Inserisci un nome per il remix!');
+      Alert.alert(t('remix.nameRequired'), t('remix.nameRequiredMsg'));
       return;
     }
 
     if (tracks.length === 0) {
-      Alert.alert('⚠️ Remix vuoto', 'Aggiungi almeno una traccia!');
+      Alert.alert(t('remix.tracksRequired'), t('remix.tracksRequiredMsg'));
       return;
     }
 
@@ -124,20 +126,20 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       setShowSaveModal(false);
       setRemixName('');
       
-      Alert.alert('✅ Salvato!', `Remix "${remixData.name}" salvato con successo`);
+      Alert.alert(t('remix.saved'), t('remix.savedMsg', { name: remixData.name }));
     } catch (error) {
-      Alert.alert('❌ Errore', 'Impossibile salvare il remix');
+      Alert.alert(t('remix.errors.cannotSave'), t('remix.errors.cannotSaveMsg'));
     }
   };
 
   // Pubblica il remix su Firebase e avvia il processing
   const publishRemix = async () => {
     if (!remixName.trim()) {
-      Alert.alert('⚠️ Nome mancante', 'Inserisci un nome per il remix!');
+      Alert.alert(t('remix.nameRequired'), t('remix.nameRequiredMsg'));
       return;
     }
     if (tracks.length === 0) {
-      Alert.alert('⚠️ Remix vuoto', 'Aggiungi almeno una traccia!');
+      Alert.alert(t('remix.tracksRequired'), t('remix.tracksRequiredMsg'));
       return;
     }
 
@@ -163,7 +165,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         setProcessingStatus(updatedRemix.processingStatus || null);
         if (updatedRemix.isProcessed) {
           setIsPublishing(false);
-          Alert.alert('✅ Remix pronto!', 'Il tuo remix è stato pubblicato ed è ora disponibile nel feed.');
+          Alert.alert(t('remix.published'), t('remix.publishedMsg'));
           if (remixUnsubscribeRef.current) {
             remixUnsubscribeRef.current();
             remixUnsubscribeRef.current = null;
@@ -171,7 +173,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         }
         if (updatedRemix.processingStatus === 'error') {
           setIsPublishing(false);
-          Alert.alert('❌ Errore processing', updatedRemix.processingError || 'Impossibile elaborare il remix.');
+          Alert.alert(t('remix.errors.processingError'), updatedRemix.processingError || t('remix.errors.cannotPublishMsg'));
           if (remixUnsubscribeRef.current) {
             remixUnsubscribeRef.current();
             remixUnsubscribeRef.current = null;
@@ -185,18 +187,18 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     } catch (error) {
       setIsPublishing(false);
       setProcessingStatus('error');
-      Alert.alert('❌ Errore', 'Impossibile pubblicare il remix: ' + error.message);
+      Alert.alert(t('remix.errors.cannotPublish'), t('remix.errors.cannotPublishMsg') + ': ' + error.message);
     }
   };
 
   const loadRemix = (remix) => {
     Alert.alert(
-      '⚠️ Carica Remix',
-      `Vuoi caricare "${remix.name}"? Il remix corrente sarà sostituito.`,
+      t('remix.confirmDeleteTitle'),
+      `${t('remix.confirmDeleteMsg')} "${remix.name}"?`,
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Carica',
+          text: t('common.confirm'),
           onPress: () => {
             stopAllSounds();
             setTracks(remix.tracks);
@@ -204,7 +206,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             setCurrentTime(0);
             setSelectedTrack(null);
             setShowLoadModal(false);
-            Alert.alert('✅ Caricato!', `Remix "${remix.name}" caricato`);
+            Alert.alert(t('remix.loaded'), t('remix.loadedMsg', { name: remix.name }));
           },
         },
       ]
@@ -213,21 +215,21 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
 
   const deleteRemix = async (remixId) => {
     Alert.alert(
-      '🗑️ Elimina Remix',
-      'Vuoi eliminare questo remix? Questa azione è irreversibile.',
+      t('remix.confirmDeleteTitle'),
+      t('remix.confirmDeleteMsg'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Elimina',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               const updated = savedRemixes.filter(r => r.id !== remixId);
               await AsyncStorage.setItem('saved_remixes', JSON.stringify(updated));
               setSavedRemixes(updated);
-              Alert.alert('✅ Eliminato', 'Remix eliminato con successo');
+              Alert.alert(t('remix.deleted'), t('remix.deletedMsg'));
             } catch (error) {
-              Alert.alert('❌ Errore', 'Impossibile eliminare il remix');
+              Alert.alert(t('remix.errors.cannotDelete'), t('remix.errors.cannotDeleteMsg'));
             }
           },
         },
@@ -241,7 +243,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
 
   const addTrack = (sound) => {
     if (!sound.audioUrl || sound.audioUrl === '') {
-      Alert.alert('❌ Errore', 'URL audio mancante per questo suono');
+      Alert.alert(t('remix.errors.noAudioUrl'), t('remix.errors.noAudioUrlMsg'));
       return;
     }
 
@@ -262,17 +264,17 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     
     setTracks([...tracks, newTrack]);
     setShowSoundPicker(false);
-    Alert.alert('✅ Traccia aggiunta!', `"${sound.title}" è ora nel remix`);
+    Alert.alert(t('remix.trackAdded'), t('remix.trackAddedMsg', { title: sound.title }));
   };
 
   const removeTrack = (trackId) => {
     Alert.alert(
-      'Rimuovi Traccia',
-      'Vuoi rimuovere questa traccia dal remix?',
+      t('remix.confirmRemoveTitle'),
+      t('remix.confirmRemoveMsg'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Rimuovi',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: () => {
             setTracks(tracks.filter(t => t.id !== trackId));
@@ -340,7 +342,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
 
   const startPlayback = async () => {
     if (tracks.length === 0) {
-      Alert.alert('⚠️ Nessuna traccia', 'Aggiungi almeno una traccia per riprodurre');
+      Alert.alert(t('remix.noTracksToPlay'), t('remix.noTracksToPlayMsg'));
       return;
     }
 
@@ -437,7 +439,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       }, 50); // Aggiornamento più frequente per fluidità
 
     } catch (error) {
-      Alert.alert('❌ Errore', 'Impossibile riprodurre il remix');
+      Alert.alert(t('remix.errors.cannotPlay'), t('remix.errors.cannotPlayMsg'));
       await stopPlayback();
     }
   };
@@ -498,15 +500,15 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     };
 
     setTracks([...tracks, newTrack]);
-    Alert.alert('✅ Duplicato!', 'Traccia duplicata con successo');
+    Alert.alert(t('remix.duplicated'), t('remix.duplicatedMsg'));
   };
 
   const clearAll = () => {
     Alert.alert(
-      '🗑️ Pulisci tutto',
-      'Vuoi rimuovere tutte le tracce? Questa azione non può essere annullata.',
+      t('remix.confirmDeleteTitle'),
+      t('remix.confirmDeleteMsg'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Pulisci',
           style: 'destructive',
@@ -570,7 +572,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
           )}
-          <Text style={styles.title} numberOfLines={1}>Remix Studio</Text>
+          <Text style={styles.title} numberOfLines={1}>{t('remix.title')}</Text>
         </View>
         <View style={styles.headerButtons}>
   <TouchableOpacity 
@@ -626,9 +628,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             {tracks.length === 0 ? (
               <View style={styles.emptyCanvas}>
                 <Text style={styles.emptyIcon}>🎵</Text>
-                <Text style={styles.emptyText}>Canvas vuoto</Text>
+                <Text style={styles.emptyText}>{t('remix.emptyCanvas')}</Text>
                 <Text style={styles.emptySubtext}>
-                  Tocca ➕ per aggiungere suoni
+                  {t('remix.addSoundsHint')}
                 </Text>
               </View>
             ) : (
@@ -665,10 +667,10 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             {/* Trim Controls */}
             <View style={styles.editorSection}>
               <Text style={styles.editorLabel}>
-                ✂️ Taglia: {formatTime(selectedTrack.startTime)} - {formatTime(selectedTrack.endTime)}
+                ✂️ {t('remix.trimLabel', { start: formatTime(selectedTrack.startTime), end: formatTime(selectedTrack.endTime) })}
               </Text>
               <View style={styles.sliderRow}>
-                <Text style={styles.sliderLabel}>Inizio</Text>
+                <Text style={styles.sliderLabel}>{t('remix.start')}</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -683,7 +685,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 />
               </View>
               <View style={styles.sliderRow}>
-                <Text style={styles.sliderLabel}>Fine</Text>
+                <Text style={styles.sliderLabel}>{t('remix.end')}</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -769,7 +771,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>📚 I Tuoi Suoni</Text>
+              <Text style={styles.modalTitle}>📚 {t('remix.yourSounds')}</Text>
               <TouchableOpacity onPress={() => setShowSoundPicker(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -778,9 +780,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               {availableSounds.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyIcon}>🎤</Text>
-                  <Text style={styles.emptyText}>Nessun suono disponibile</Text>
+                  <Text style={styles.emptyText}>{t('remix.noSounds')}</Text>
                   <Text style={styles.emptySubtext}>
-                    Registra un suono nella Home e torna qui!
+                    {t('remix.noSoundsHint')}
                   </Text>
                 </View>
               ) : (
@@ -816,10 +818,10 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.saveModal}>
-            <Text style={styles.saveModalTitle}>💾 Salva Remix</Text>
+            <Text style={styles.saveModalTitle}>💾 {t('remix.saveTitle')}</Text>
             <TextInput
               style={styles.saveInput}
-              placeholder="Nome del remix..."
+              placeholder={t('remix.namePlaceholder')}
               placeholderTextColor="#64748b"
               value={remixName}
               onChangeText={setRemixName}
@@ -830,7 +832,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 style={[styles.saveModalButton, styles.cancelButton]}
                 onPress={() => { setShowSaveModal(false); setRemixName(''); }}
               >
-                <Text style={styles.saveModalButtonText}>Annulla</Text>
+                <Text style={styles.saveModalButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveModalButton, styles.confirmButton]}
@@ -859,7 +861,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>📂 Remix Salvati</Text>
+              <Text style={styles.modalTitle}>📂 {t('remix.loadTitle')}</Text>
               <TouchableOpacity onPress={() => setShowLoadModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -868,9 +870,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               {savedRemixes.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyIcon}>📂</Text>
-                  <Text style={styles.emptyText}>Nessun remix salvato</Text>
+                  <Text style={styles.emptyText}>{t('remix.noRemixes')}</Text>
                   <Text style={styles.emptySubtext}>
-                    Salva il tuo primo remix usando 💾
+                    {t('remix.noRemixesHint')}
                   </Text>
                 </View>
               ) : (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Easing, Modal, TextInput,
@@ -134,6 +135,7 @@ const EMOJI_OPTIONS = ['🎵','🎤','🎸','🥁','🎹','🎺','🎻','🔊','
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function StoriesRow({ userProfile }: { userProfile?: any }) {
+  const { t } = useTranslation();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [activeGroups, setActiveGroups] = useState<StoryGroup[]>([]);
   const [startIdx, setStartIdx] = useState(0);
@@ -203,7 +205,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const startRecording = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { setTitleError('Permesso microfono negato'); return; }
+      if (!granted) { setTitleError(t('stories.permissionDenied')); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS_AAC);
       recordingRef.current = recording;
@@ -221,7 +223,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
         }
       }, 1000);
     } catch (e) {
-      setTitleError('Errore avvio registrazione');
+      setTitleError(t('stories.recordingError'));
     }
   };
 
@@ -264,7 +266,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   const handlePublishStato = async () => {
     if (!statoTitle.trim()) {
-      setTitleError('Dai un titolo al tuo stato');
+      setTitleError(t('stories.titleRequired'));
       return;
     }
     setTitleError('');
@@ -292,7 +294,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
       setCreateVisible(false);
       await loadUserStati();
     } catch (e) {
-      setTitleError('Errore durante la pubblicazione');
+      setTitleError(t('stories.publishError'));
     } finally {
       setPublishing(false);
     }
@@ -312,7 +314,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
         {/* "Come funziona" — sempre primo */}
         <StoryCircle
           emoji="❓"
-          label={'Come\nfunziona'}
+          label={t('stories.howItWorks')}
           viewed={viewedTutorial}
           onPress={openTutorial}
         />
@@ -334,7 +336,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
             </TouchableOpacity>
           </View>
           <Text style={styles.circleLabel} numberOfLines={2}>
-            {myGroup ? 'Il mio\nstato' : 'Nuovo\nstato'}
+            {myGroup ? t('stories.myStatus') : t('stories.newStatusLabel')}
           </Text>
         </TouchableOpacity>
 
@@ -366,11 +368,11 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
               <View style={styles.createModal}>
-                <Text style={styles.createTitle}>Nuovo stato 🎵</Text>
-                <Text style={styles.createSubtitle}>Scompare dopo 24 ore</Text>
+                <Text style={styles.createTitle}>{t('stories.newStatus')}</Text>
+                <Text style={styles.createSubtitle}>{t('stories.disappears')}</Text>
 
                 {/* Selezione emoji */}
-                <Text style={styles.fieldLabel}>Emoji</Text>
+                <Text style={styles.fieldLabel}>{t('stories.emojiLabel')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.emojiRow}>
                   {EMOJI_OPTIONS.map((e) => (
                     <TouchableOpacity
@@ -384,11 +386,11 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 </ScrollView>
 
                 {/* Clip audio opzionale */}
-                <Text style={styles.fieldLabel}>Clip audio (opzionale, max 15s)</Text>
+                <Text style={styles.fieldLabel}>{t('stories.audioClip')}</Text>
                 {!recordedUri && !isRecording && (
                   <TouchableOpacity style={styles.recordBtn} onPress={startRecording}>
                     <Text style={styles.recordBtnIcon}>🎤</Text>
-                    <Text style={styles.recordBtnText}>Registra clip</Text>
+                    <Text style={styles.recordBtnText}>{t('stories.recordClip')}</Text>
                   </TouchableOpacity>
                 )}
                 {isRecording && (
@@ -412,10 +414,10 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 )}
 
                 {/* Titolo */}
-                <Text style={styles.fieldLabel}>Titolo *</Text>
+                <Text style={styles.fieldLabel}>{t('stories.titleLabel')}</Text>
                 <TextInput
                   style={[styles.input, titleError ? styles.inputError : null]}
-                  placeholder="Es. Sto ascoltando..."
+                  placeholder={t('stories.titlePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   value={statoTitle}
                   onChangeText={(t) => { setStatoTitle(t); setTitleError(''); }}
@@ -424,10 +426,10 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
 
                 {/* Testo */}
-                <Text style={styles.fieldLabel}>Testo (opzionale)</Text>
+                <Text style={styles.fieldLabel}>{t('stories.textLabel')}</Text>
                 <TextInput
                   style={[styles.input, styles.inputMulti]}
-                  placeholder="Racconta qualcosa..."
+                  placeholder={t('stories.textPlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   value={statoBody}
                   onChangeText={setStatoBody}
@@ -447,12 +449,12 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 {/* Bottoni */}
                 <View style={styles.modalButtons}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setCreateVisible(false)} disabled={publishing}>
-                    <Text style={styles.cancelBtnText}>Annulla</Text>
+                    <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.publishBtn} onPress={handlePublishStato} disabled={publishing}>
                     {publishing
                       ? <ActivityIndicator color="#000" size="small" />
-                      : <Text style={styles.publishBtnText}>Pubblica</Text>
+                      : <Text style={styles.publishBtnText}>{t('stories.publishBtn')}</Text>
                     }
                   </TouchableOpacity>
                 </View>

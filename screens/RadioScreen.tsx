@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Alert, StatusBar, Animated, ScrollView,
@@ -109,6 +110,7 @@ function QueueRow({
   isGap?: boolean;
   gapCountdown?: number;
 }) {
+  const { t } = useTranslation();
   const gap = track.gapAfter ?? 0;
   return (
     <View>
@@ -131,7 +133,7 @@ function QueueRow({
             <Text style={qt.gapBadgeTxt}>⏸ {gapCountdown}s</Text>
           </View>
         )}
-        {current && !isGap && <Text style={qt.onAir}>ON AIR</Text>}
+        {current && !isGap && <Text style={qt.onAir}>{t('radio.onAir')}</Text>}
       </View>
       {/* Gap separator */}
       {gap > 0 && (
@@ -176,6 +178,7 @@ function elapsedStr(ms: number): string {
 
 // ─── HOST PANEL ───────────────────────────────────────────────────────────────
 function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
+  const { t } = useTranslation();
   const [room, setRoom] = useState(initialRoom);
   const [ending, setEnding] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -320,14 +323,14 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     try {
       const currentGap = room.playlist[room.currentTrackIndex]?.gapAfter ?? 0;
       await skipToNextTrack(room.id, room.currentTrackIndex + 1, currentGap);
-    } catch { Alert.alert('Errore', 'Impossibile avanzare.'); }
+    } catch { Alert.alert(t('common.error'), t('radio.errors.cannotSkip')); }
     finally { setSkipping(false); }
   };
 
   const handleEnd = () => {
-    Alert.alert('Termina trasmissione?', 'Tutti gli ascoltatori verranno disconnessi.', [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Termina', style: 'destructive', onPress: async () => {
+    Alert.alert(t('radio.endConfirmTitle'), t('radio.endConfirmMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('radio.endBtn'), style: 'destructive', onPress: async () => {
         setEnding(true);
         try { await endRadioRoom(room.id); } finally { onClose(); }
       }},
@@ -360,7 +363,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
   const handlePickListener = async (h: HandRaise) => {
     try { await pickListener(room.id, h.userId, h.userName); }
-    catch { Alert.alert('Errore', 'Impossibile scegliere il listener.'); }
+    catch { Alert.alert(t('common.error'), t('radio.errors.cannotPick')); }
   };
 
   const handleDismiss = async (h: HandRaise) => {
@@ -387,7 +390,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         </TouchableOpacity>
         <View style={hm.livePill}>
           <View style={hm.liveDot} />
-          <Text style={hm.liveTxt}>ON AIR</Text>
+          <Text style={hm.liveTxt}>{t('radio.onAir')}</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -395,7 +398,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       {/* Tab bar */}
       <View style={hm.tabBar}>
         {(['playing', 'chat', 'hands'] as const).map((tab) => {
-          const label = tab === 'playing' ? 'NOW PLAYING' : tab === 'chat' ? 'CHAT' : '🙋 MANI';
+          const label = tab === 'playing' ? t('radio.nowPlaying') : tab === 'chat' ? t('radio.chatTab') : t('radio.handsTab');
           const badge = tab === 'chat' ? chatMessages.length : tab === 'hands' ? pendingHands.length : 0;
           return (
             <TouchableOpacity key={tab} style={[hm.tab, activeTab === tab && hm.tabActive]} onPress={() => setActiveTab(tab)}>
@@ -418,23 +421,23 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
           <View style={hm.statsRow}>
             <View style={hm.statBox}>
               <Text style={hm.statNum}>{room.listenerCount}</Text>
-              <Text style={hm.statLabel}>ascoltatori</Text>
+              <Text style={hm.statLabel}>{t('radio.listeners')}</Text>
             </View>
             <View style={hm.statBox}>
               <Text style={hm.statNum}>{elapsedStr(totalElapsed)}</Text>
-              <Text style={hm.statLabel}>in onda</Text>
+              <Text style={hm.statLabel}>{t('radio.onAirStat')}</Text>
             </View>
             <View style={hm.statBox}>
               <Text style={hm.statNum}>{room.playlist.length}</Text>
-              <Text style={hm.statLabel}>tracce</Text>
+              <Text style={hm.statLabel}>{t('radio.tracks')}</Text>
             </View>
           </View>
           <View style={hm.nowCard}>
-            <Text style={hm.nowLabel}>{isInGap ? 'PAUSA' : 'ORA IN ONDA'}</Text>
+            <Text style={hm.nowLabel}>{isInGap ? t('radio.pause') : t('radio.nowOnAir')}</Text>
             {isInGap ? (
               <View>
                 <Text style={hm.gapCountdown}>⏸  {gapRemaining}s</Text>
-                {hasNext && <Text style={hm.gapNext}>prossima: {room.playlist[room.currentTrackIndex + 1]?.name.replace(/\.[^.]+$/, '')}</Text>}
+                {hasNext && <Text style={hm.gapNext}>{t('radio.nowPlaying').toLowerCase()}: {room.playlist[room.currentTrackIndex + 1]?.name.replace(/\.[^.]+$/, '')}</Text>}
               </View>
             ) : (
               <>
@@ -478,7 +481,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
               {ending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={hm.stopTxt}>⬛  Termina</Text>}
             </TouchableOpacity>
           </View>
-          <Text style={hm.queueTitle}>SCALETTA COMPLETA</Text>
+          <Text style={hm.queueTitle}>{t('radio.queue')}</Text>
           {room.playlist.map((track, i) => (
             <QueueRow key={i} track={track} index={i} current={i === room.currentTrackIndex}
               isGap={isInGap && i === room.currentTrackIndex}
@@ -510,7 +513,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             }
           />
           <View style={hm.chatInputRow}>
-            <TextInput style={hm.chatInput} placeholder="Scrivi ai tuoi ascoltatori..."
+            <TextInput style={hm.chatInput} placeholder={t('radio.chatPlaceholderHost')}
               placeholderTextColor="rgba(255,255,255,0.25)" value={chatInput}
               onChangeText={setChatInput} onSubmitEditing={handleSendChat} returnKeyType="send" />
             <TouchableOpacity style={[hm.chatSendBtn, (!chatInput.trim() || sendingMsg) && { opacity: 0.4 }]}
@@ -526,13 +529,13 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {pickedHands.length > 0 && (
             <>
-              <Text style={hm.handsSection}>IN EVIDENZA</Text>
+              <Text style={hm.handsSection}>{t('radio.featured')}</Text>
               {pickedHands.map(h => (
                 <View key={h.id} style={hm.handCardPicked}>
                   <Text style={hm.pickedStar}>⭐</Text>
                   <Text style={hm.handName}>{h.userName}</Text>
                   <TouchableOpacity style={hm.dismissBtn} onPress={() => handleDismiss(h)}>
-                    <Text style={hm.dismissTxt}>Rimuovi</Text>
+                    <Text style={hm.dismissTxt}>{t('common.remove')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -541,17 +544,17 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
           {pendingHands.length > 0 ? (
             <>
-              <Text style={[hm.handsSection, pickedHands.length > 0 && { marginTop: 20 }]}>HANNO ALZATO LA MANO</Text>
+              <Text style={[hm.handsSection, pickedHands.length > 0 && { marginTop: 20 }]}>{t('radio.raisedHands')}</Text>
               {pendingHands.map(h => (
                 <View key={h.id} style={hm.handCard}>
                   <View style={hm.handAvatar}><Text style={hm.handAvatarTxt}>{h.userName[0]?.toUpperCase()}</Text></View>
                   <Text style={hm.handName}>{h.userName}</Text>
                   <View style={hm.handBtns}>
                     <TouchableOpacity style={hm.pickBtn} onPress={() => handlePickListener(h)}>
-                      <Text style={hm.pickBtnTxt}>Scegli</Text>
+                      <Text style={hm.pickBtnTxt}>{t('radio.pick')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={hm.ignoreBtn} onPress={() => handleDismiss(h)}>
-                      <Text style={hm.ignoreBtnTxt}>Ignora</Text>
+                      <Text style={hm.ignoreBtnTxt}>{t('radio.ignore')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -643,6 +646,7 @@ const hm = StyleSheet.create({
 
 // ─── LISTENER SCREEN ──────────────────────────────────────────────────────────
 function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
+  const { t } = useTranslation();
   const [room, setRoom] = useState(initialRoom);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isInGap, setIsInGap] = useState(false);
@@ -718,7 +722,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       if (hostMicLiveRef.current) sound.setVolumeAsync(0.15).catch(() => {});
       soundRef.current = sound;
     } catch {
-      Alert.alert('Errore', 'Impossibile caricare la traccia.');
+      Alert.alert(t('common.error'), t('radio.errors.cannotLoad'));
     } finally {
       setLoading(false);
     }
@@ -831,7 +835,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         </TouchableOpacity>
         <View style={lm.liveBadge}>
           <View style={lm.liveDot} />
-          <Text style={lm.liveTxt}>{isInGap ? 'PAUSA' : 'LIVE'}</Text>
+          <Text style={lm.liveTxt}>{isInGap ? t('radio.pause') : t('radio.live')}</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -839,10 +843,10 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       {/* Tab bar */}
       <View style={lm.tabBar}>
         <TouchableOpacity style={[lm.tab, activeTab === 'playing' && lm.tabActive]} onPress={() => setActiveTab('playing')}>
-          <Text style={[lm.tabTxt, activeTab === 'playing' && lm.tabTxtActive]}>IN ONDA</Text>
+          <Text style={[lm.tabTxt, activeTab === 'playing' && lm.tabTxtActive]}>{t('radio.playing')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[lm.tab, activeTab === 'chat' && lm.tabActive]} onPress={() => setActiveTab('chat')}>
-          <Text style={[lm.tabTxt, activeTab === 'chat' && lm.tabTxtActive]}>CHAT</Text>
+          <Text style={[lm.tabTxt, activeTab === 'chat' && lm.tabTxtActive]}>{t('radio.chatTab')}</Text>
           {chatMessages.length > 0 && <View style={lm.tabBadge}><Text style={lm.tabBadgeTxt}>{chatMessages.length > 99 ? '99+' : chatMessages.length}</Text></View>}
         </TouchableOpacity>
       </View>
@@ -868,16 +872,16 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           )}
 
           <View style={lm.nowCard}>
-            <Text style={lm.nowLabel}>{isInGap ? 'PAUSA' : 'ORA IN ONDA'}</Text>
+            <Text style={lm.nowLabel}>{isInGap ? t('radio.pause') : t('radio.nowOnAir')}</Text>
             {isInGap ? (
               <View style={{ alignItems: 'center', paddingVertical: 12 }}>
                 <Text style={lm.gapNum}>{gapCountdown}s</Text>
-                {currentTrack && <Text style={lm.gapInfo}>prossima: {currentTrack.name.replace(/\.[^.]+$/, '')}</Text>}
+                {currentTrack && <Text style={lm.gapInfo}>{t('radio.nowPlaying').toLowerCase()}: {currentTrack.name.replace(/\.[^.]+$/, '')}</Text>}
               </View>
             ) : (
               <>
                 <Text style={lm.nowTrack} numberOfLines={2}>{currentTrack?.name.replace(/\.[^.]+$/, '') ?? '—'}</Text>
-                <Text style={lm.trackPos}>{room.currentTrackIndex + 1} di {room.playlist.length} tracce</Text>
+                <Text style={lm.trackPos}>{room.currentTrackIndex + 1} / {room.playlist.length} {t('radio.tracks')}</Text>
                 <WaveformAnim active={isPlaying && !isInGap} color="#FF2D55" />
               </>
             )}
@@ -897,15 +901,15 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             ))}
           </View>
 
-          <Text style={lm.listenerTxt}>🎧 {room.listenerCount} {room.listenerCount === 1 ? 'ascoltatore' : 'ascoltatori'}</Text>
+          <Text style={lm.listenerTxt}>🎧 {room.listenerCount} {t('radio.listeners')}</Text>
 
-          <Text style={lm.queueTitle}>SCALETTA COMPLETA</Text>
+          <Text style={lm.queueTitle}>{t('radio.queue')}</Text>
           {room.playlist.map((track, i) => (
             <QueueRow key={i} track={track} index={i} current={i === room.currentTrackIndex}
               isGap={isInGap && i === room.currentTrackIndex}
               gapCountdown={isInGap && i === room.currentTrackIndex ? gapCountdown : undefined} />
           ))}
-          {!room.isLive && <Text style={lm.offAir}>Trasmissione terminata</Text>}
+          {!room.isLive && <Text style={lm.offAir}>{t('radio.ended')}</Text>}
         </ScrollView>
       )}
 
@@ -952,7 +956,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             >
               <Text style={lm.handBtnTxt}>{myHandRaise ? (isPicked ? '⭐' : '✋') : '🙋'}</Text>
             </TouchableOpacity>
-            <TextInput style={lm.chatInput} placeholder="Scrivi un messaggio..."
+            <TextInput style={lm.chatInput} placeholder={t('radio.chatPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.25)" value={chatInput}
               onChangeText={setChatInput} onSubmitEditing={handleSendChat} returnKeyType="send" />
             <TouchableOpacity style={[lm.chatSendBtn, (!chatInput.trim() || sendingMsg) && { opacity: 0.4 }]}
@@ -1025,6 +1029,7 @@ const lm = StyleSheet.create({
 
 // ─── CREA STANZA ──────────────────────────────────────────────────────────────
 function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClose: () => void }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tracks, setTracks] = useState<LocalTrack[]>([]);
@@ -1058,7 +1063,7 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
         gapAfter: 0,
         uploaded: false,
       }]);
-    } catch { Alert.alert('Errore', 'Impossibile aprire il selettore.'); }
+    } catch { Alert.alert(t('common.error'), t('radio.errors.cannotOpen')); }
   };
 
   const removeTrack = (i: number) => setTracks(prev => prev.filter((_, idx) => idx !== i));
@@ -1093,8 +1098,8 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
   };
 
   const handleCreate = async () => {
-    if (!title.trim()) { Alert.alert('Inserisci un titolo'); return; }
-    if (tracks.length === 0) { Alert.alert('Aggiungi almeno una traccia'); return; }
+    if (!title.trim()) { Alert.alert(t('radio.titleRequired')); return; }
+    if (tracks.length === 0) { Alert.alert(t('radio.tracksRequired')); return; }
     const hostName = auth.currentUser?.displayName ?? auth.currentUser?.email ?? 'utente';
     setUploading(true);
     try {
@@ -1107,7 +1112,7 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
       }
       await createRadioRoom({ title: title.trim(), description: description.trim(), playlist: uploaded, hostName });
       onCreated();
-    } catch { Alert.alert('Errore', 'Impossibile avviare la trasmissione.'); }
+    } catch { Alert.alert(t('common.error'), t('radio.errors.cannotStart')); }
     finally { setUploading(false); }
   };
 
@@ -1122,14 +1127,14 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <TextInput
               style={cm.input}
-              placeholder="Nome della stazione..."
+              placeholder={t('radio.stationNamePlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.25)"
               value={title}
               onChangeText={setTitle}
             />
             <TextInput
               style={[cm.input, { height: 64, textAlignVertical: 'top' }]}
-              placeholder="Descrizione (opzionale)..."
+              placeholder={t('radio.descriptionPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.25)"
               value={description}
               onChangeText={setDescription}
@@ -1218,12 +1223,12 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
 
             <View style={cm.actions}>
               <TouchableOpacity style={cm.cancelBtn} onPress={onClose} disabled={uploading}>
-                <Text style={cm.cancelTxt}>Annulla</Text>
+                <Text style={cm.cancelTxt}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={cm.createBtn} onPress={handleCreate} disabled={uploading}>
                 {uploading
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={cm.createTxt}>Vai Live 🔴</Text>}
+                  : <Text style={cm.createTxt}>{t('radio.goLive')}</Text>}
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1273,6 +1278,7 @@ const cm = StyleSheet.create({
 
 // ─── Room card ────────────────────────────────────────────────────────────────
 function RoomCard({ room, onPress }: { room: RadioRoom; onPress: () => void }) {
+  const { t } = useTranslation();
   const isOwn = auth.currentUser?.uid === room.hostId;
   const currentTrack = room.playlist[room.currentTrackIndex];
   return (
@@ -1285,7 +1291,7 @@ function RoomCard({ room, onPress }: { room: RadioRoom; onPress: () => void }) {
       <View style={rc.top}>
         <View style={rc.liveWrap}>
           <View style={rc.liveDot} />
-          <Text style={rc.liveTxt}>LIVE</Text>
+          <Text style={rc.liveTxt}>{t('radio.live')}</Text>
         </View>
         <Text style={rc.trackBadge}>{room.playlist.length} tracce</Text>
       </View>
@@ -1333,6 +1339,7 @@ const rc = StyleSheet.create({
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function RadioScreen() {
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<RadioRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<RadioRoom | null>(null);
@@ -1356,14 +1363,14 @@ export default function RadioScreen() {
     <View style={{ flex: 1 }}>
       <View style={ms.topBar}>
         <View>
-          <Text style={ms.topTitle}>Radio Live</Text>
+          <Text style={ms.topTitle}>{t('radio.title')}</Text>
           {rooms.length > 0 && (
             <Text style={ms.topSub}>{rooms.length} {rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}</Text>
           )}
         </View>
         <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
           <View style={ms.liveDot} />
-          <Text style={ms.liveBtnTxt}>Vai Live</Text>
+          <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -1372,8 +1379,8 @@ export default function RadioScreen() {
       ) : rooms.length === 0 ? (
         <View style={ms.empty}>
           <Text style={{ fontSize: 52, marginBottom: 14 }}>📻</Text>
-          <Text style={ms.emptyTitle}>Nessuna radio live</Text>
-          <Text style={ms.emptyDesc}>Sii il primo ad andare live con la tua playlist</Text>
+          <Text style={ms.emptyTitle}>{t('radio.empty')}</Text>
+          <Text style={ms.emptyDesc}>{t('radio.emptyDesc')}</Text>
           <TouchableOpacity style={ms.emptyBtn} onPress={() => setShowCreate(true)}>
             <Text style={ms.emptyBtnTxt}>🔴  Vai Live</Text>
           </TouchableOpacity>

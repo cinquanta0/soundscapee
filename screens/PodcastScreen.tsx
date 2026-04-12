@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Animated, Image, StatusBar,
@@ -209,11 +210,12 @@ function PodcastCard({
   const mins = Math.floor(item.duration / 60);
   const isOwn = auth.currentUser?.uid === item.userId;
 
+  const { t } = useTranslation();
   const showMenu = () => {
     Alert.alert(item.title, '', [
-      { text: 'Modifica', onPress: onEdit },
-      { text: 'Elimina', style: 'destructive', onPress: onDelete },
-      { text: 'Annulla', style: 'cancel' },
+      { text: t('podcast.editMenu'), onPress: onEdit },
+      { text: t('common.delete'), style: 'destructive', onPress: onDelete },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -257,11 +259,12 @@ function EditPodcastModal({
   const [description, setDescription] = useState(podcast.description ?? '');
   const [coverUri, setCoverUri] = useState<string | null | undefined>(undefined); // undefined = invariata
   const [coverPreview, setCoverPreview] = useState<string | null>(podcast.coverUrl);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const pickCover = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permesso negato'); return; }
+    if (!perm.granted) { Alert.alert(t('permissions.denied')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
@@ -278,7 +281,7 @@ function EditPodcastModal({
   };
 
   const handleSave = async () => {
-    if (!title.trim()) { Alert.alert('Inserisci un titolo'); return; }
+    if (!title.trim()) { Alert.alert(t('podcast.titleRequired')); return; }
     setLoading(true);
     try {
       await updatePodcast(podcast.id, {
@@ -288,7 +291,7 @@ function EditPodcastModal({
       });
       onDone();
     } catch {
-      Alert.alert('Errore', 'Impossibile salvare le modifiche.');
+      Alert.alert(t('common.error'), t('podcast.errors.cannotSaveChanges'));
     } finally {
       setLoading(false);
     }
@@ -300,18 +303,18 @@ function EditPodcastModal({
         <View style={pm.sheet}>
           <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
           <View style={pm.handle} />
-          <Text style={pm.sheetTitle}>✏️ Modifica Episodio</Text>
+          <Text style={pm.sheetTitle}>{t('podcast.editTitle')}</Text>
 
           <TextInput
             style={pm.input}
-            placeholder="Titolo del podcast..."
+            placeholder={t('podcast.titlePlaceholderLong')}
             placeholderTextColor="#4A4D56"
             value={title}
             onChangeText={setTitle}
           />
           <TextInput
             style={[pm.input, { height: 72, textAlignVertical: 'top' }]}
-            placeholder="Descrizione (opzionale)..."
+            placeholder={t('podcast.descriptionPlaceholder')}
             placeholderTextColor="#4A4D56"
             value={description}
             onChangeText={setDescription}
@@ -329,11 +332,11 @@ function EditPodcastModal({
             )}
             <View style={pm.coverBtns}>
               <TouchableOpacity style={pm.pickBtn} onPress={pickCover}>
-                <Text style={pm.pickBtnTxt}>{coverPreview ? '🔄 Cambia copertina' : '🖼 Aggiungi copertina'}</Text>
+                <Text style={pm.pickBtnTxt}>{coverPreview ? t('podcast.changeCover') : t('podcast.addCover')}</Text>
               </TouchableOpacity>
               {coverPreview ? (
                 <TouchableOpacity style={[pm.pickBtn, { marginTop: 8, borderColor: '#FF2D55' }]} onPress={removeCover}>
-                  <Text style={[pm.pickBtnTxt, { color: '#FF2D55' }]}>🗑 Rimuovi copertina</Text>
+                  <Text style={[pm.pickBtnTxt, { color: '#FF2D55' }]}>{t('podcast.removeCover')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -341,10 +344,10 @@ function EditPodcastModal({
 
           <View style={pm.actions}>
             <TouchableOpacity style={pm.cancelBtn} onPress={onClose}>
-              <Text style={pm.cancelTxt}>Annulla</Text>
+              <Text style={pm.cancelTxt}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={pm.publishBtn} onPress={handleSave} disabled={loading}>
-              {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>Salva</Text>}
+              {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>{t('common.save')}</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -361,6 +364,7 @@ function SoundSearchView({
   onSelect: (sound: SoundResult) => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   const [queryText, setQueryText] = useState('');
   const [results, setResults] = useState<SoundResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -382,12 +386,12 @@ function SoundSearchView({
   return (
     <>
       <TouchableOpacity onPress={onBack} style={{ marginBottom: 16 }}>
-        <Text style={{ color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' }}>← Indietro</Text>
+        <Text style={{ color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' }}>{t('podcast.back')}</Text>
       </TouchableOpacity>
-      <Text style={pm.sheetTitle}>Cerca su SoundScape</Text>
+      <Text style={pm.sheetTitle}>{t('podcast.searchSoundScape')}</Text>
       <TextInput
         style={pm.input}
-        placeholder="Cerca per titolo o autore..."
+        placeholder={t('podcast.searchPlaceholder')}
         placeholderTextColor="#4A4D56"
         value={queryText}
         onChangeText={setQueryText}
@@ -407,11 +411,11 @@ function SoundSearchView({
                 <Text style={ss.soundMeta}>@{item.username} · {fmtTime(item.duration)}</Text>
               </View>
               <View style={ss.usaBtn}>
-                <Text style={ss.usaTxt}>Usa</Text>
+                <Text style={ss.usaTxt}>{t('podcast.use')}</Text>
               </View>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={ss.emptyTxt}>Nessun suono trovato</Text>}
+          ListEmptyComponent={<Text style={ss.emptyTxt}>{t('podcast.noSoundsFound')}</Text>}
         />
       )}
     </>
@@ -420,6 +424,7 @@ function SoundSearchView({
 
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [audioUri, setAudioUri] = useState<string | null>(null);
@@ -457,13 +462,13 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         } catch { /* durata non disponibile, usa 0 */ }
       }
     } catch {
-      Alert.alert('Errore', 'Impossibile aprire il selettore file.');
+      Alert.alert(t('common.error'), t('podcast.errors.cannotSelect'));
     }
   };
 
   const pickCover = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permesso negato'); return; }
+    if (!perm.granted) { Alert.alert(t('permissions.denied')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
@@ -474,10 +479,10 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   };
 
   const handlePublish = async () => {
-    if (!title.trim()) { Alert.alert('Inserisci un titolo'); return; }
-    if (!audioUri && !soundscapeAudioUrl) { Alert.alert('Seleziona un audio'); return; }
+    if (!title.trim()) { Alert.alert(t('podcast.titleRequired')); return; }
+    if (!audioUri && !soundscapeAudioUrl) { Alert.alert(t('podcast.audioRequired')); return; }
     const user = auth.currentUser;
-    if (!user) { Alert.alert('Non autenticato'); return; }
+    if (!user) { Alert.alert(t('podcast.notAuthenticated')); return; }
     setLoading(true);
     try {
       await publishPodcast({
@@ -492,7 +497,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       });
       onDone();
     } catch {
-      Alert.alert('Errore', 'Impossibile pubblicare il podcast.');
+      Alert.alert(t('common.error'), t('podcast.errors.cannotPublish'));
     } finally {
       setLoading(false);
     }
@@ -512,18 +517,18 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
             />
           ) : (
           <>
-          <Text style={pm.sheetTitle}>🎙 Pubblica Episodio</Text>
+          <Text style={pm.sheetTitle}>{t('podcast.publishTitle')}</Text>
 
           <TextInput
             style={pm.input}
-            placeholder="Titolo del podcast..."
+            placeholder={t('podcast.titlePlaceholderLong')}
             placeholderTextColor="#4A4D56"
             value={title}
             onChangeText={setTitle}
           />
           <TextInput
             style={[pm.input, { height: 72, textAlignVertical: 'top' }]}
-            placeholder="Descrizione (opzionale)..."
+            placeholder={t('podcast.descriptionPlaceholder')}
             placeholderTextColor="#4A4D56"
             value={description}
             onChangeText={setDescription}
@@ -532,28 +537,28 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 
           <TouchableOpacity style={pm.pickBtn} onPress={pickAudio}>
             <Text style={pm.pickBtnTxt}>
-              {audioUri ? `✅ ${audioName}` : '📁 Scegli da dispositivo'}
+              {audioUri ? `✅ ${audioName}` : t('podcast.chooseFile')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[pm.pickBtn, { marginTop: 8, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
             <Text style={[pm.pickBtnTxt, soundscapeAudioUrl && { color: '#00FF9C' }]}>
-              {soundscapeAudioUrl ? `✅ ${audioName}` : '🔍 Cerca su SoundScape'}
+              {soundscapeAudioUrl ? `✅ ${audioName}` : `🔍 ${t('podcast.searchSoundScape')}`}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[pm.pickBtn, { marginTop: 8 }]} onPress={pickCover}>
             <Text style={pm.pickBtnTxt}>
-              {coverUri ? '🖼 Copertina selezionata' : '🖼 Aggiungi copertina (opz.)'}
+              {coverUri ? t('podcast.coverSelectedLabel') : t('podcast.addCoverOptional')}
             </Text>
           </TouchableOpacity>
 
           <View style={pm.actions}>
             <TouchableOpacity style={pm.cancelBtn} onPress={onClose}>
-              <Text style={pm.cancelTxt}>Annulla</Text>
+              <Text style={pm.cancelTxt}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={pm.publishBtn} onPress={handlePublish} disabled={loading}>
-              {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>Pubblica</Text>}
+              {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>{t('podcast.publish').replace(' 🎙', '')}</Text>}
             </TouchableOpacity>
           </View>
           </>
@@ -566,6 +571,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 
 // ─── Main screen ───────────────────────────────────────────────────────────────
 export default function PodcastScreen() {
+  const { t } = useTranslation();
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Podcast | null>(null);
@@ -583,17 +589,17 @@ export default function PodcastScreen() {
 
   const handleDelete = (item: Podcast) => {
     Alert.alert(
-      'Elimina episodio',
-      `Vuoi eliminare "${item.title}"?`,
+      t('podcast.deleteConfirmTitle'),
+      t('podcast.deleteConfirmMsg', { title: item.title }),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Elimina', style: 'destructive', onPress: async () => {
+          text: t('common.delete'), style: 'destructive', onPress: async () => {
             try {
               await deletePodcast(item.id);
               load();
             } catch {
-              Alert.alert('Errore', 'Impossibile eliminare il podcast.');
+              Alert.alert(t('common.error'), t('podcast.errors.cannotDelete'));
             }
           },
         },
@@ -611,17 +617,17 @@ export default function PodcastScreen() {
     <View style={{ flex: 1 }}>
       {/* Header con pulsante pubblica */}
       <View style={sc.topBar}>
-        <Text style={sc.topBarTitle}>Podcast</Text>
+        <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
         <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
-          <Text style={sc.publishBtnTxt}>+ Pubblica</Text>
+          <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
         </TouchableOpacity>
       </View>
 
       {podcasts.length === 0 ? (
         <View style={sc.empty}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>🎙</Text>
-          <Text style={sc.emptyTitle}>Nessun podcast ancora</Text>
-          <Text style={sc.emptyDesc}>Pubblica il primo episodio!</Text>
+          <Text style={sc.emptyTitle}>{t('podcast.empty')}</Text>
+          <Text style={sc.emptyDesc}>{t('podcast.emptyDesc')}</Text>
         </View>
       ) : (
         <FlatList

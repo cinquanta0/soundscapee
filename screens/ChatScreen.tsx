@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, StatusBar, Dimensions, Animated,
@@ -116,6 +117,7 @@ function MessageBubble({
 
 // ─── Record button ─────────────────────────────────────────────────────────────
 function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => void }) {
+  const { t } = useTranslation();
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -135,7 +137,7 @@ function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => v
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       Animated.spring(scaleAnim, { toValue: 1.25, useNativeDriver: true, tension: 200, friction: 8 }).start();
     } catch {
-      Alert.alert('Errore', 'Impossibile avviare la registrazione.');
+      Alert.alert(t('common.error'), t('chat.errors.cannotRecord'));
     }
   };
 
@@ -164,7 +166,7 @@ function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => v
       {isRecording && (
         <View style={rb.recordingHint}>
           <View style={rb.recDot} />
-          <Text style={rb.recTxt}>rec {elapsed}s — rilascia per inviare</Text>
+          <Text style={rb.recTxt}>{t('chat.recHint', { elapsed })}</Text>
         </View>
       )}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -192,6 +194,7 @@ interface Props {
 }
 
 export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, onBack }: Props) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Messaggio[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingPosition, setPlayingPosition] = useState(0); // secondi, aggiornato live
@@ -276,7 +279,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         duration,
       });
     } catch {
-      Alert.alert('Errore', 'Impossibile inviare il messaggio.');
+      Alert.alert(t('common.error'), t('chat.errors.cannotSend'));
     } finally {
       setSending(false);
     }
@@ -299,7 +302,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         </View>
         <View>
           <Text style={cs.headerName}>{otherUserName}</Text>
-          <Text style={cs.headerSub}>messaggi vocali</Text>
+          <Text style={cs.headerSub}>{t('chat.voiceMessages')}</Text>
         </View>
       </View>
 
@@ -316,7 +319,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         ListEmptyComponent={
           <View style={cs.empty}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>🎤</Text>
-            <Text style={cs.emptyTxt}>Tieni premuto il microfono per registrare</Text>
+            <Text style={cs.emptyTxt}>{t('chat.holdToRecord')}</Text>
           </View>
         }
       />
@@ -325,7 +328,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       <View style={cs.inputBar}>
         <View style={cs.inputHint}>
           <Text style={cs.inputHintTxt}>
-            {sending ? 'Invio in corso...' : 'Tieni premuto 🎤 per registrare'}
+            {sending ? t('chat.sending') : t('chat.holdHint')}
           </Text>
         </View>
         {sending

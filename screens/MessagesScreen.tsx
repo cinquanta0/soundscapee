@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
@@ -57,6 +58,7 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
 
 // ─── New conversation search ───────────────────────────────────────────────────
 function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => void; onClose: () => void }) {
+  const { t } = useTranslation();
   const [query_text, setQueryText] = useState('');
   const [results, setResults] = useState<OtherUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,7 +81,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
           .filter((d) => d.id !== me)
           .map((d) => ({
             id: d.id,
-            displayName: d.data().displayName || d.data().username || 'Utente',
+            displayName: d.data().displayName || d.data().username || t('messages.defaultUser'),
             username: d.data().username || '',
             avatar: d.data().avatar || '🎵',
           })),
@@ -97,10 +99,10 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
       <View style={nm.sheet}>
         <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
         <View style={nm.handle} />
-        <Text style={nm.title}>Nuova conversazione</Text>
+        <Text style={nm.title}>{t('messages.newConversation')}</Text>
         <TextInput
           style={nm.input}
-          placeholder="Cerca per username..."
+          placeholder={t('messages.searchPlaceholder')}
           placeholderTextColor="#4A4D56"
           value={query_text}
           onChangeText={search}
@@ -119,7 +121,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
           </TouchableOpacity>
         ))}
         <TouchableOpacity style={nm.cancelBtn} onPress={onClose}>
-          <Text style={nm.cancelTxt}>Annulla</Text>
+          <Text style={nm.cancelTxt}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -132,6 +134,7 @@ interface Props {
 }
 
 export default function MessagesScreen({ initialChat }: Props) {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversazione[]>([]);
   const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(initialChat ?? null);
   const [showNewConv, setShowNewConv] = useState(false);
@@ -170,19 +173,19 @@ export default function MessagesScreen({ initialChat }: Props) {
 
       {/* Header */}
       <View style={ms.header}>
-        <Text style={ms.headerTitle}>messaggi</Text>
+        <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
         <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
-          <Text style={ms.newBtnTxt}>+ nuovo</Text>
+          <Text style={ms.newBtnTxt}>{t('messages.newBtn')}</Text>
         </TouchableOpacity>
       </View>
 
       {conversations.length === 0 ? (
         <View style={ms.empty}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>🎤</Text>
-          <Text style={ms.emptyTitle}>nessun messaggio</Text>
-          <Text style={ms.emptyDesc}>inizia una conversazione vocale!</Text>
+          <Text style={ms.emptyTitle}>{t('messages.emptyTitle')}</Text>
+          <Text style={ms.emptyDesc}>{t('messages.emptyDesc')}</Text>
           <TouchableOpacity style={ms.emptyBtn} onPress={() => setShowNewConv(true)}>
-            <Text style={ms.emptyBtnTxt}>+ nuova conversazione</Text>
+            <Text style={ms.emptyBtnTxt}>{t('messages.newConvBtn')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
