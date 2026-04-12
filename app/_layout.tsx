@@ -9,10 +9,6 @@ import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
-import TrackPlayer, { Capability } from 'react-native-track-player';
-import { PlaybackService } from '../services/trackPlayerService';
-
-try { TrackPlayer.registerPlaybackService(() => PlaybackService); } catch {}
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 if (SENTRY_DSN) {
@@ -59,29 +55,6 @@ export default function RootLayout() {
   // Initialise i18n as early as possible
   useEffect(() => {
     initI18n().then(() => setI18nReady(true));
-  }, []);
-
-  // Inizializza TrackPlayer (una sola volta)
-  useEffect(() => {
-    TrackPlayer.setupPlayer({
-      maxCacheSize: 1024 * 5, // 5MB cache
-    }).then(() => {
-      TrackPlayer.updateOptions({
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SeekTo,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-        progressUpdateEventThrottle: 1000,
-        jumpInterval: 15,
-      });
-    }).catch(() => {
-      // Già inizializzato (hot reload) — ignora
-    });
   }, []);
 
   // Controlla se la build è ancora supportata

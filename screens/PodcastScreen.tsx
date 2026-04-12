@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Animated, Image, StatusBar,
-  Dimensions, Alert,
+  Dimensions, Alert, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
-import TrackPlayer, { State, usePlaybackState, useProgress } from 'react-native-track-player';
-import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
@@ -25,83 +24,96 @@ function fmtTime(secs: number) {
 
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => void }) {
-  const playbackState = usePlaybackState();
-  const tpProgress = useProgress(500);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(podcast.duration || 0);
   const [loading, setLoading] = useState(true);
   const [speed, setSpeed] = useState(1);
   const seekBarWidth = SW - 80;
 
-  const isPlaying = playbackState.state === State.Playing;
-  const isBuffering = playbackState.state === State.Buffering || playbackState.state === State.Loading;
-  const position = tpProgress.position;
-  const duration = tpProgress.duration > 0 ? tpProgress.duration : (podcast.duration || 0);
+  const isBuffering = false;
   const progress = duration > 0 ? position / duration : 0;
 
   useEffect(() => {
-    loadTrack();
-    // Non fermiamo il player alla chiusura: il podcast continua in background
-    // e appare sul lock screen / Control Center come Spotify
+    loadAudio();
+    return () => { soundRef.current?.unloadAsync(); };
   }, []);
 
-  const loadTrack = async () => {
+  const loadAudio = async () => {
     try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+      });
+
       const urlPath = decodeURIComponent(podcast.audioUrl.split('?')[0]);
       const rawExt = urlPath.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? '';
-      const allowed = ['mp3', 'm4a', 'mp4', 'aac', 'wav', 'flac'];
+      const allowed = ['mp3', 'm4a', 'mp4', 'aac', 'wav', 'ogg', 'flac', 'webm'];
       const ext = allowed.includes(rawExt) ? rawExt : 'mp3';
 
-      // Android: scarica in cache per evitare problemi ExoPlayer con Firebase range requests
-      let audioUrl = podcast.audioUrl;
-      if (Platform.OS === 'android') {
-        try {
-          const localUri = FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`;
-          const fileInfo = await FileSystem.getInfoAsync(localUri);
-          const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
-          if (needsDownload) {
-            if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
-            await FileSystem.downloadAsync(podcast.audioUrl, localUri);
-          }
-          audioUrl = localUri;
-        } catch {
-          // fallback URL remoto
-        }
-      }
+      const onStatus = (status: any) => {
+        if (!status.isLoaded) return;
+        setPosition(status.positionMillis / 1000);
+        setDuration(status.durationMillis ? status.durationMillis / 1000 : podcast.duration);
+        setIsPlaying(status.isPlaying);
+        if (status.didJustFinish) { setIsPlaying(false); setPosition(0); }
+      };
 
-      await TrackPlayer.reset();
-      await TrackPlayer.add({
-        id: podcast.id,
-        url: audioUrl,
-        title: podcast.title,
-        artist: podcast.username ?? 'Soundscape',
-        artwork: podcast.coverUrl ?? undefined,
-        duration: podcast.duration,
-      });
-      await TrackPlayer.play();
+      try {
+        const localUri = FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`;
+        const fileInfo = await FileSystem.getInfoAsync(localUri);
+        const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
+        if (needsDownload) {
+          if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
+          await FileSystem.downloadAsync(podcast.audioUrl, localUri);
+        }
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: localUri },
+          { shouldPlay: true, rate: speed },
+          onStatus,
+        );
+        soundRef.current = sound;
+      } catch {
+        await FileSystem.deleteAsync(
+          FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`,
+          { idempotent: true },
+        ).catch(() => {});
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: podcast.audioUrl },
+          { shouldPlay: true, rate: speed },
+          onStatus,
+        );
+        soundRef.current = sound;
+      }
     } catch (e) {
-      console.error('TrackPlayer podcast error', e);
+      console.error('Podcast load error', e);
     } finally {
       setLoading(false);
     }
   };
 
   const togglePlay = async () => {
-    if (isPlaying) await TrackPlayer.pause();
-    else await TrackPlayer.play();
+    if (!soundRef.current) return;
+    if (isPlaying) await soundRef.current.pauseAsync();
+    else await soundRef.current.playAsync();
   };
 
   const seekTo = async (ratio: number) => {
-    if (!duration) return;
-    await TrackPlayer.seekTo(ratio * duration);
+    if (!soundRef.current || !duration) return;
+    await soundRef.current.setPositionAsync(ratio * duration * 1000);
   };
 
   const changeSpeed = async (s: number) => {
     setSpeed(s);
-    await TrackPlayer.setRate(s);
+    await soundRef.current?.setRateAsync(s, true);
   };
 
   const skip = async (secs: number) => {
-    const newPos = Math.max(0, Math.min(position + secs, duration));
-    await TrackPlayer.seekTo(newPos);
+    if (!soundRef.current) return;
+    const newPos = Math.max(0, Math.min((position + secs) * 1000, duration * 1000));
+    await soundRef.current.setPositionAsync(newPos);
   };
 
   return (
