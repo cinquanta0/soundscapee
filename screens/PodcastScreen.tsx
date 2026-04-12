@@ -385,9 +385,15 @@ function SoundSearchView({
 
   return (
     <>
-      <TouchableOpacity onPress={onBack} style={{ marginBottom: 16 }}>
-        <Text style={{ color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' }}>{t('podcast.back')}</Text>
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' }}
+        >
+          <Text style={{ color: '#00FF9C', fontSize: 14 }}>←</Text>
+          <Text style={{ color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' }}>{t('podcast.back')}</Text>
+        </TouchableOpacity>
+      </View>
       <Text style={pm.sheetTitle}>{t('podcast.searchSoundScape')}</Text>
       <TextInput
         style={pm.input}
