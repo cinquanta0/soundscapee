@@ -1992,9 +1992,9 @@ if (loading) {
         transparent={true}
         onRequestClose={() => setShowSettings(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setShowSettings(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+        <View style={styles.modalOverlay}>
+            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowSettings(false)} activeOpacity={1} />
+            <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('settings.title')}</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
@@ -2059,7 +2059,6 @@ if (loading) {
             </ScrollView>
           </View>
           </View>
-        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Report Modal */}
