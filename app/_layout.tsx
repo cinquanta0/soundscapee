@@ -12,7 +12,7 @@ import { registerForPushNotifications } from '../services/notificationService';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 import { PlaybackService } from '../services/trackPlayerService';
 
-TrackPlayer.registerPlaybackService(() => PlaybackService);
+try { TrackPlayer.registerPlaybackService(() => PlaybackService); } catch {}
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 if (SENTRY_DSN) {
