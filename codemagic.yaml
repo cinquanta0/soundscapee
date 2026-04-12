@@ -47,12 +47,12 @@ workflows:
           echo "=== ios/ after pod install ==="
           ls -la
           echo "=== xcworkspace check ==="
-          test -d soundscape-mobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
+          test -d soundscapemobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
       - name: Build unsigned archive
         script: |
           set -e
-          WORKSPACE="ios/soundscape-mobile.xcworkspace"
-          SCHEME="soundscape-mobile"
+          WORKSPACE="ios/soundscapemobile.xcworkspace"
+          SCHEME="soundscapemobile"
           echo "Using workspace: $WORKSPACE, scheme: $SCHEME"
           xcodebuild \
             -workspace "$WORKSPACE" \
