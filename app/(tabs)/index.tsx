@@ -14,7 +14,9 @@ import {
   Platform,
   Keyboard,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -116,6 +118,53 @@ import * as ImagePicker from 'expo-image-picker';
 import { publishPodcast } from '../../services/podcastService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+
+// ─── Avatar helpers ──────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = ['#06b6d4','#8b5cf6','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#3b82f6'];
+
+function getAvatarColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// Avatar field può essere: emoji ("🎵"), nome icona Feather ("music"), o vuoto (→ iniziali)
+const FEATHER_ICON_OPTIONS = ['music','headphones','radio','mic','speaker','disc','volume-2','play-circle','star','zap','heart','sun','moon','cloud','wind','droplet'];
+
+function isFeatherIcon(val: string | undefined): boolean {
+  return !!val && FEATHER_ICON_OPTIONS.includes(val);
+}
+
+function AppAvatar({ avatar, username, size = 36 }: { avatar?: string; username?: string; size?: number }) {
+  const color = getAvatarColor(username || avatar || '?');
+  const r = size / 2;
+  const initial = (username?.[0] || '?').toUpperCase();
+
+  if (isFeatherIcon(avatar)) {
+    return (
+      <View style={{ width: size, height: size, borderRadius: r, backgroundColor: color, justifyContent: 'center', alignItems: 'center' }}>
+        <Feather name={avatar as any} size={Math.round(size * 0.44)} color="#fff" />
+      </View>
+    );
+  }
+  if (avatar && avatar.trim().length > 0) {
+    // emoji o testo custom — sfondo tenue della stessa palette
+    return (
+      <View style={{ width: size, height: size, borderRadius: r, backgroundColor: color + '28', borderWidth: 1.5, borderColor: color + '55', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: Math.round(size * 0.44) }}>{avatar}</Text>
+      </View>
+    );
+  }
+  // default: iniziale + colore
+  return (
+    <View style={{ width: size, height: size, borderRadius: r, backgroundColor: color, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: '#fff', fontSize: Math.round(size * 0.38), fontWeight: '700' }}>{initial}</Text>
+    </View>
+  );
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const { t } = useTranslation();
@@ -478,24 +527,19 @@ const loadSoundsForRemix = async () => {
   };
 
   // Publish recording
-// Scegli backstage (foto o video)
-const pickBackstage = async (tipo: 'foto' | 'video') => {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) {
-    Alert.alert(t('permissions.denied'), t('permissions.galleryMsg'));
-    return;
-  }
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: tipo === 'foto'
-      ? ImagePicker.MediaTypeOptions.Images
-      : ImagePicker.MediaTypeOptions.Videos,
-    quality: 0.8,
-    videoMaxDuration: 30,
-    allowsEditing: true,
-  });
+// Backstage: mostra scelta fotocamera / galleria
+const selectBackstage = (tipo: 'foto' | 'video') => {
+  const label = tipo === 'foto' ? t('upload.photo') : t('upload.videoMax30');
+  Alert.alert(label, '', [
+    { text: t('upload.camera'), onPress: () => captureBackstage(tipo) },
+    { text: t('upload.gallery'), onPress: () => pickBackstageFromGallery(tipo) },
+    { text: t('common.cancel'), style: 'cancel' },
+  ]);
+};
+
+const _handleBackstageAsset = (result: ImagePicker.ImagePickerResult, tipo: 'foto' | 'video') => {
   if (!result.canceled && result.assets[0]) {
     const asset = result.assets[0];
-    // Limite 50MB
     if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
       Alert.alert(t('permissions.fileTooLarge'), t('permissions.maxSize50'));
       return;
@@ -503,6 +547,36 @@ const pickBackstage = async (tipo: 'foto' | 'video') => {
     setBackstageUri(asset.uri);
     setBackstageTipo(tipo);
   }
+};
+
+const captureBackstage = async (tipo: 'foto' | 'video') => {
+  const perm = await ImagePicker.requestCameraPermissionsAsync();
+  if (!perm.granted) {
+    Alert.alert(t('permissions.denied'), t('permissions.cameraMsg'));
+    return;
+  }
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: tipo === 'foto' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
+    quality: 0.8,
+    videoMaxDuration: 30,
+    allowsEditing: true,
+  });
+  _handleBackstageAsset(result, tipo);
+};
+
+const pickBackstageFromGallery = async (tipo: 'foto' | 'video') => {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    Alert.alert(t('permissions.denied'), t('permissions.galleryMsg'));
+    return;
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: tipo === 'foto' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
+    quality: 0.8,
+    videoMaxDuration: 30,
+    allowsEditing: true,
+  });
+  _handleBackstageAsset(result, tipo);
 };
 
 // Seleziona audio per podcast
@@ -1303,9 +1377,7 @@ if (loading) {
     style={{ flexDirection: 'row', alignItems: 'center' }}
     onPress={() => openUserProfile(post.userId)}
   >
-    <View style={styles.avatar}>
-      <Text style={styles.avatarText}>{post.userAvatar}</Text>
-    </View>
+    <AppAvatar avatar={post.userAvatar} username={post.username} size={36} />
     <View>
       <Text style={styles.userName}>{post.username}</Text>
       <Text style={styles.soundLocation}>
@@ -1388,7 +1460,7 @@ if (loading) {
                         setShowBackstageViewer(true);
                       }}
                     >
-                      <Text style={{ fontSize: 14 }}>🎬</Text>
+                      <Feather name="video" size={13} color="#00FF9C" />
                       <Text style={{ color: '#00FF9C', fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.5 }}>
                         backstage
                       </Text>
@@ -1445,9 +1517,7 @@ if (loading) {
   <View style={styles.content}>
     {/* Profile Card */}
     <View style={styles.profileCard}>
-      <View style={styles.profileAvatar}>
-        <Text style={styles.profileAvatarText}>{userProfile?.avatar || '🎧'}</Text>
-      </View>
+      <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} />
       <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
 
@@ -1778,7 +1848,13 @@ if (loading) {
                     borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)',
                     flexDirection: 'row', alignItems: 'center', gap: 8,
                   }}>
-                    <Text style={{ fontSize: 20 }}>{backstageTipo === 'video' ? '🎬' : '📷'}</Text>
+                    {backstageTipo === 'foto' ? (
+                      <Image source={{ uri: backstageUri! }} style={{ width: 44, height: 44, borderRadius: 6 }} />
+                    ) : (
+                      <View style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: 'rgba(0,255,156,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                        <Feather name="video" size={20} color="#00FF9C" />
+                      </View>
+                    )}
                     <Text style={{ color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
                       {backstageTipo === 'video' ? t('upload.videoSelected') : t('upload.photoSelected')}
                     </Text>
@@ -1797,12 +1873,12 @@ if (loading) {
                       flex: 1, padding: 12, borderRadius: 10,
                       backgroundColor: '#1e293b',
                       borderWidth: 1, borderColor: '#334155',
-                      alignItems: 'center', gap: 4,
+                      alignItems: 'center', gap: 6,
                     }}
-                    onPress={() => pickBackstage('foto')}
+                    onPress={() => selectBackstage('foto')}
                     disabled={uploading}
                   >
-                    <Text style={{ fontSize: 22 }}>📷</Text>
+                    <Feather name="camera" size={22} color="#94a3b8" />
                     <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.photo')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1810,12 +1886,12 @@ if (loading) {
                       flex: 1, padding: 12, borderRadius: 10,
                       backgroundColor: '#1e293b',
                       borderWidth: 1, borderColor: '#334155',
-                      alignItems: 'center', gap: 4,
+                      alignItems: 'center', gap: 6,
                     }}
-                    onPress={() => pickBackstage('video')}
+                    onPress={() => selectBackstage('video')}
                     disabled={uploading}
                   >
-                    <Text style={{ fontSize: 22 }}>🎬</Text>
+                    <Feather name="video" size={22} color="#94a3b8" />
                     <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.videoMax30')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -2289,9 +2365,7 @@ if (loading) {
           onPress={() => openUserProfile(comment.userId)} 
           style={{ flexDirection: "row", alignItems: "center" }}
         >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{comment.userAvatar}</Text>
-          </View>
+          <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} />
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Text style={styles.userName}>{comment.username}</Text>
             <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
@@ -2357,14 +2431,30 @@ if (loading) {
       <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Avatar Selector */}
         <Text style={styles.editLabel}>{t('profile.chooseAvatar')}</Text>
+        {/* Anteprima avatar corrente */}
+        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+          <AppAvatar avatar={editAvatar} username={editUsername} size={64} />
+        </View>
+        {/* Icone vettoriali */}
+        <Text style={{ color: '#64748b', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>ICONE</Text>
         <View style={styles.avatarGrid}>
-          {['🎧', '🎵', '🎤', '🎸', '🎹', '🥁', '🎺', '🎻', '🎼', '🔊', '📻', '💿', '🎙️', '🎶', '🎭', '🌟', '⚡', '🔥', '💎', '👑'].map(emoji => (
+          {FEATHER_ICON_OPTIONS.map(icon => (
+            <TouchableOpacity
+              key={icon}
+              style={[styles.avatarOption, editAvatar === icon && styles.avatarOptionSelected]}
+              onPress={() => setEditAvatar(icon)}
+            >
+              <Feather name={icon as any} size={20} color={editAvatar === icon ? '#06b6d4' : '#94a3b8'} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Emoji personalità */}
+        <Text style={{ color: '#64748b', fontSize: 11, fontFamily: 'monospace', marginBottom: 6, marginTop: 8 }}>EMOJI</Text>
+        <View style={styles.avatarGrid}>
+          {['🔥', '💎', '👑', '⚡', '🌟', '🎭', '😎', '🦋', '🐺', '🎯'].map(emoji => (
             <TouchableOpacity
               key={emoji}
-              style={[
-                styles.avatarOption,
-                editAvatar === emoji && styles.avatarOptionSelected
-              ]}
+              style={[styles.avatarOption, editAvatar === emoji && styles.avatarOptionSelected]}
               onPress={() => setEditAvatar(emoji)}
             >
               <Text style={styles.avatarOptionText}>{emoji}</Text>
