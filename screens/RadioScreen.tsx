@@ -62,11 +62,29 @@ const OFFLINE_STATIONS: OfflineStation[] = [
 
 // Fetch URL stream verificato da radio-browser.info (directory pubblica, aggiornata dalla community)
 async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> {
+  // Domini che supportano HTTPS anche se radio-browser li indicizza come HTTP
+  const HTTP_TO_HTTPS_DOMAINS = [
+    'icecast.unitedradio.it',
+    'icy.unitedradio.it',
+    'shoutcast.unitedradio.it',
+    'streaming.unitedradio.it',
+  ];
+
+  const upgradeToHttps = (url: string): string => {
+    if (url.startsWith('http://')) {
+      const domain = url.replace('http://', '').split('/')[0];
+      if (HTTP_TO_HTTPS_DOMAINS.some(d => domain.includes(d))) {
+        return url.replace('http://', 'https://');
+      }
+    }
+    return url;
+  };
+
   const pickBest = (data: { url_resolved?: string; url?: string }[]): string | null => {
+    const candidates = data.map(s => upgradeToHttps(s.url_resolved || s.url || ''));
     // Preferisci HTTPS (Android blocca HTTP in release)
-    const https = data.find(s => (s.url_resolved || s.url || '').startsWith('https://'));
-    const any = data[0];
-    return https?.url_resolved || https?.url || any?.url_resolved || any?.url || null;
+    const https = candidates.find(u => u.startsWith('https://'));
+    return https || candidates[0] || null;
   };
 
   const queries = [
