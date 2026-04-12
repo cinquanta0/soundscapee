@@ -76,7 +76,7 @@ import {
 
 
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore';
 import { db as firestoreDb } from '../../firebaseConfig';
 import {
   subscribeToSoundsFeed,
@@ -253,6 +253,7 @@ export default function App() {
 
   // Firebase data
   const [sounds, setSounds] = useState([]);
+  const [totalSoundsCount, setTotalSoundsCount] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState(null);
   const [mySounds, setMySounds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -399,10 +400,19 @@ useEffect(() => {
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
 
+      // Conta il totale reale dei suoni (non limitato a 20)
+      getCountFromServer(collection(firestoreDb, 'sounds'))
+        .then((snap) => setTotalSoundsCount(snap.data().count))
+        .catch(() => {});
+
       // Subscribe to feed
       const unsubscribe = subscribeToSoundsFeed((newSounds) => {
         setSounds(newSounds);
         setLoading(false);
+        // Riaggiorna il contatore ad ogni nuovo suono nel feed
+        getCountFromServer(collection(firestoreDb, 'sounds'))
+          .then((snap) => setTotalSoundsCount(snap.data().count))
+          .catch(() => {});
       });
 
       // Get user sounds
@@ -1264,7 +1274,7 @@ if (loading) {
           </View>
           <View style={styles.headerSubtitle}>
             <Text style={styles.liveIndicator}>{t('home.live')}</Text>
-            <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: sounds.length })}</Text>
+            <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
         </View>
