@@ -492,7 +492,7 @@ export function listenToScheduledRooms(hostId: string, cb: (rooms: RadioRoom[]) 
     const now = new Date();
     const scheduled = snap.docs
       .map((d) => mapRoom(d.id, d.data()))
-      .filter((r) => !r.isLive);
+      .filter((r) => !r.isLive && r.scheduledFor && r.scheduledFor > now);
     cb(scheduled);
   });
 }

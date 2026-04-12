@@ -278,7 +278,11 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
     return () => {
       if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
-      soundRef.current?.unloadAsync().catch(() => {});
+      if (soundRef.current) {
+        const s = soundRef.current;
+        soundRef.current = null;
+        s.stopAsync().catch(() => {}).finally(() => s.unloadAsync().catch(() => {}));
+      }
       unsubRef.current?.();
       chatUnsubRef.current?.();
       handsUnsubRef.current?.();
@@ -896,7 +900,13 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     return () => {
       clearGapTimers();
       leaveRadioRoom(initialRoom.id).catch(() => {});
-      soundRef.current?.unloadAsync().catch(() => {});
+      // Ferma e scarica l'audio — stopAsync prima di unloadAsync garantisce
+      // che la riproduzione si fermi immediatamente anche su Android
+      if (soundRef.current) {
+        const s = soundRef.current;
+        soundRef.current = null;
+        s.stopAsync().catch(() => {}).finally(() => s.unloadAsync().catch(() => {}));
+      }
       unsubRef.current?.();
       chatUnsubRef.current?.();
       reactionsUnsubRef.current?.();
@@ -1029,7 +1039,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
 
       {/* Tab: IN ONDA */}
       {activeTab === 'playing' && (
-        <ScrollView contentContainerStyle={lm.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={lm.content} showsVerticalScrollIndicator={false}>
           <Text style={lm.stationName}>{room.title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Text style={lm.hostLine}>condotta da @{room.hostName}</Text>
@@ -1717,12 +1727,10 @@ export default function RadioScreen() {
           <Text style={{ fontSize: 52, marginBottom: 14 }}>📻</Text>
           <Text style={ms.emptyTitle}>{t('radio.empty')}</Text>
           <Text style={ms.emptyDesc}>{t('radio.emptyDesc')}</Text>
-          <TouchableOpacity style={ms.emptyBtn} onPress={() => setShowCreate(true)}>
-            <Text style={ms.emptyBtnTxt}>🔴  Vai Live</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={rooms}
           keyExtractor={(r) => r.id}
           renderItem={({ item }) => <RoomCard room={item} onPress={() => handleRoomPress(item)} />}
