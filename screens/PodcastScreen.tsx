@@ -39,7 +39,11 @@ function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => 
 
   const loadAudio = async () => {
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+      });
 
       // Estrae estensione reale dall'URL (decodifica il path Storage prima del ?)
       const urlPath = decodeURIComponent(podcast.audioUrl.split('?')[0]);

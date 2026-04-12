@@ -40,6 +40,26 @@ interface LocalTrack {
 const GAP_OPTIONS = [0, 3, 5, 10, 15, 30, 60];
 const REACTION_EMOJIS = ['❤️', '🔥', '🎵', '🎧'];
 
+// ─── Stazioni radio offline ────────────────────────────────────────────────────
+interface OfflineStation {
+  id: string;
+  name: string;
+  genre: string;
+  color: string;
+  streamUrl: string;
+}
+
+const OFFLINE_STATIONS: OfflineStation[] = [
+  { id: 'rtl', name: 'RTL 102.5', genre: 'Pop · Hit', color: '#E91E63', streamUrl: 'https://rtl1025.ice.infomaniak.ch/rtl1025-high.mp3' },
+  { id: 'r105', name: 'Radio 105', genre: 'Rock · Pop', color: '#FF5722', streamUrl: 'https://icecast.unitedradio.it/Radio105.mp3' },
+  { id: 'deejay', name: 'Radio DeeJay', genre: 'Dance · Electronic', color: '#FF9800', streamUrl: 'https://deejay.akamaized.net/hls/live/2016501/RadioDeejay/playlist.m3u8' },
+  { id: 'radioitalia', name: 'Radio Italia', genre: 'Musica Italiana', color: '#4CAF50', streamUrl: 'https://radioitalia.akamaized.net/hls/live/2000041/radioitalia/playlist.m3u8' },
+  { id: 'rds', name: 'RDS', genre: 'Pop · News', color: '#2196F3', streamUrl: 'https://stream.rds.radio/rds.mp3' },
+  { id: 'virgin', name: 'Virgin Radio', genre: 'Rock · Alternative', color: '#9C27B0', streamUrl: 'https://icecast.unitedradio.it/VirginRadio.mp3' },
+  { id: 'm2o', name: 'm2o', genre: 'Dance · House', color: '#00BCD4', streamUrl: 'https://icecast.unitedradio.it/m2o.mp3' },
+  { id: 'capital', name: 'Capital', genre: 'Hip-Hop · R&B', color: '#F44336', streamUrl: 'https://icecast.unitedradio.it/Capital.mp3' },
+];
+
 // ─── Floating Reaction ────────────────────────────────────────────────────────
 interface FloatingItem { id: string; emoji: string; x: number; }
 
@@ -1578,6 +1598,163 @@ const cm = StyleSheet.create({
   presetChipTxtActive: { color: '#FF2D55', fontWeight: '700' },
 });
 
+// ─── Offline Station Player ───────────────────────────────────────────────────
+function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; onClose: () => void }) {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+        });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: station.streamUrl },
+          { shouldPlay: true },
+          (status) => {
+            if (!mounted || !status.isLoaded) return;
+            setIsPlaying(status.isPlaying);
+          },
+        );
+        if (mounted) {
+          soundRef.current = sound;
+          setLoading(false);
+        } else {
+          sound.unloadAsync().catch(() => {});
+        }
+      } catch {
+        if (mounted) { setLoading(false); setError(true); }
+      }
+    })();
+    return () => {
+      mounted = false;
+      const s = soundRef.current;
+      soundRef.current = null;
+      s?.stopAsync().catch(() => {}).finally(() => s?.unloadAsync().catch(() => {}));
+    };
+  }, []);
+
+  const togglePlay = async () => {
+    if (!soundRef.current) return;
+    if (isPlaying) await soundRef.current.pauseAsync();
+    else await soundRef.current.playAsync();
+  };
+
+  const statusText = loading ? 'Connessione...' : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+
+  return (
+    <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <StatusBar hidden />
+      <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
+
+      {/* Orb decorativa colorata */}
+      <View style={[osp.orb, { backgroundColor: station.color + '18' }]} />
+
+      {/* Header */}
+      <View style={osp.header}>
+        <TouchableOpacity onPress={onClose} style={osp.closeBtn} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
+          <Text style={osp.closeTxt}>✕</Text>
+        </TouchableOpacity>
+        <Text style={osp.headerLabel}>📻 RADIO</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      {/* Body */}
+      <View style={osp.body}>
+        {/* Cerchio con waveform */}
+        <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
+          <LinearGradient
+            colors={[station.color + '30', station.color + '10']}
+            style={StyleSheet.absoluteFill}
+            borderRadius={80}
+          />
+          <WaveformAnim active={isPlaying && !loading} color={station.color} />
+        </View>
+
+        <Text style={osp.stationName}>{station.name}</Text>
+        <Text style={osp.genre}>{station.genre}</Text>
+
+        {/* Badge stato */}
+        <View style={[osp.statusBadge, { backgroundColor: station.color + '20', borderColor: station.color + '50' }]}>
+          <View style={[osp.statusDot, { backgroundColor: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.25)' }]} />
+          <Text style={[osp.statusTxt, { color: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.4)' }]}>
+            {statusText}
+          </Text>
+        </View>
+
+        {/* Play/Pause */}
+        <TouchableOpacity
+          style={[osp.playBtn, { backgroundColor: station.color, shadowColor: station.color, opacity: error ? 0.4 : 1 }]}
+          onPress={togglePlay}
+          disabled={loading || error}
+          activeOpacity={0.8}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={osp.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>}
+        </TouchableOpacity>
+
+        {error && (
+          <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+const osp = StyleSheet.create({
+  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150, top: -80, alignSelf: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  headerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
+  circle: { width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 32, overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
+  stationName: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
+  genre: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 36 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusTxt: { fontSize: 11, fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1.5 },
+  playBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+  playIcon: { fontSize: 28, color: '#fff' },
+  errorTxt: { marginTop: 20, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', textAlign: 'center' },
+});
+
+// ─── Station card (card orizzontale) ─────────────────────────────────────────
+function OfflineStationCard({ station, onPress }: { station: OfflineStation; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={[osc.card, { borderColor: station.color + '40' }]} onPress={onPress} activeOpacity={0.8}>
+      <LinearGradient
+        colors={[station.color + '28', station.color + '0A']}
+        style={StyleSheet.absoluteFill}
+        borderRadius={14}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      />
+      <Text style={[osc.initial, { color: station.color }]}>{station.name.charAt(0)}</Text>
+      <Text style={osc.name} numberOfLines={1}>{station.name}</Text>
+      <Text style={osc.genre} numberOfLines={1}>{station.genre}</Text>
+      <View style={[osc.playPill, { backgroundColor: station.color + '25', borderColor: station.color + '55' }]}>
+        <Text style={[osc.playPillTxt, { color: station.color }]}>▶ Live</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const osc = StyleSheet.create({
+  card: { width: 120, borderRadius: 14, borderWidth: 1, padding: 14, marginRight: 10, overflow: 'hidden', backgroundColor: '#0D0D1A' },
+  initial: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', marginBottom: 6 },
+  name: { fontSize: 12, fontWeight: '700', color: '#fff', marginBottom: 3 },
+  genre: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 10, lineHeight: 13 },
+  playPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, alignSelf: 'flex-start' },
+  playPillTxt: { fontSize: 10, fontWeight: '700', fontFamily: 'monospace' },
+});
+
 // ─── Room card ────────────────────────────────────────────────────────────────
 function RoomCard({ room, onPress }: { room: RadioRoom; onPress: () => void }) {
   const { t } = useTranslation();
@@ -1649,6 +1826,7 @@ export default function RadioScreen() {
   const [hostRoom, setHostRoom] = useState<RadioRoom | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [startingRoom, setStartingRoom] = useState<string | null>(null);
+  const [selectedStation, setSelectedStation] = useState<OfflineStation | null>(null);
 
   useEffect(() => {
     const unsub = listenToLiveRooms((liveRooms) => {
@@ -1692,6 +1870,16 @@ export default function RadioScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Stazioni radio offline */}
+      <View style={ms.stationsSection}>
+        <Text style={ms.stationsTitle}>📻 STAZIONI RADIO</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+          {OFFLINE_STATIONS.map(s => (
+            <OfflineStationCard key={s.id} station={s} onPress={() => setSelectedStation(s)} />
+          ))}
+        </ScrollView>
+      </View>
+
       {/* Programmate (solo tue) */}
       {scheduledRooms.length > 0 && (
         <View style={ms.scheduledSection}>
@@ -1720,12 +1908,14 @@ export default function RadioScreen() {
         </View>
       )}
 
+      {/* Stanze live utenti */}
+      {!loading && rooms.length > 0 && (
+        <Text style={ms.liveSection}>🔴 IN DIRETTA</Text>
+      )}
       {loading ? (
         <View style={ms.center}><ActivityIndicator color="#FF2D55" /></View>
       ) : rooms.length === 0 ? (
-        <View style={ms.empty}>
-          <Text style={{ fontSize: 52, marginBottom: 14 }}>📻</Text>
-          <Text style={ms.emptyTitle}>{t('radio.empty')}</Text>
+        <View style={ms.emptyLive}>
           <Text style={ms.emptyDesc}>{t('radio.emptyDesc')}</Text>
         </View>
       ) : (
@@ -1742,6 +1932,7 @@ export default function RadioScreen() {
       {selectedRoom && <RadioListenerModal room={selectedRoom} onClose={() => setSelectedRoom(null)} />}
       {hostRoom && <HostRadioModal room={hostRoom} onClose={() => setHostRoom(null)} />}
       {showCreate && <CreateRoomModal onCreated={() => setShowCreate(false)} onClose={() => setShowCreate(false)} />}
+      {selectedStation && <OfflineStationPlayer station={selectedStation} onClose={() => setSelectedStation(null)} />}
     </View>
   );
 }
@@ -1766,4 +1957,8 @@ const ms = StyleSheet.create({
   scheduledEta: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 },
   startNowBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(255,45,85,0.2)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   startNowTxt: { color: '#FF2D55', fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
+  stationsSection: { marginBottom: 8 },
+  stationsTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, paddingHorizontal: 16, marginBottom: 10 },
+  liveSection: { fontSize: 9, color: 'rgba(255,45,85,0.6)', fontFamily: 'monospace', letterSpacing: 2, paddingHorizontal: 16, marginBottom: 4, marginTop: 8 },
+  emptyLive: { paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center' },
 });
