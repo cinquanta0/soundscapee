@@ -38,6 +38,7 @@ module.exports = ({ config }) => ({
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    usesCleartextTraffic: true,
     package: "com.cucucucucuione.soundscapemobile",
     versionCode: 1,
     permissions: [

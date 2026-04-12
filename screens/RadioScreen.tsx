@@ -62,18 +62,38 @@ const OFFLINE_STATIONS: OfflineStation[] = [
 
 // Fetch URL stream verificato da radio-browser.info (directory pubblica, aggiornata dalla community)
 async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> {
-  const mirrors = ['de1', 'nl1', 'at1'];
-  for (const mirror of mirrors) {
-    try {
-      const res = await fetch(
-        `https://${mirror}.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(searchName)}&countrycode=IT&hidebroken=true&order=votes&reverse=true&limit=5`,
-        { headers: { 'User-Agent': 'Soundscape/1.0' } },
-      );
-      if (!res.ok) continue;
-      const data: { url_resolved?: string; url?: string }[] = await res.json();
-      const url = data[0]?.url_resolved || data[0]?.url;
-      if (url) return url;
-    } catch {}
+  const pickBest = (data: { url_resolved?: string; url?: string }[]): string | null => {
+    // Preferisci HTTPS (Android blocca HTTP in release)
+    const https = data.find(s => (s.url_resolved || s.url || '').startsWith('https://'));
+    const any = data[0];
+    return https?.url_resolved || https?.url || any?.url_resolved || any?.url || null;
+  };
+
+  const queries = [
+    // Prima prova: nome esatto + Italia
+    `name=${encodeURIComponent(searchName)}&countrycode=IT&hidebroken=true&order=votes&reverse=true&limit=10`,
+    // Seconda prova: solo nome, qualsiasi paese (alcune stazioni non hanno country code)
+    `name=${encodeURIComponent(searchName)}&hidebroken=true&order=votes&reverse=true&limit=10`,
+  ];
+
+  for (const query of queries) {
+    for (const mirror of ['all', 'de1', 'nl1']) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(
+          `https://${mirror}.api.radio-browser.info/json/stations/search?${query}`,
+          { headers: { 'User-Agent': 'Soundscape/1.0' }, signal: controller.signal },
+        );
+        clearTimeout(timer);
+        if (!res.ok) continue;
+        const data: { url_resolved?: string; url?: string }[] = await res.json();
+        const url = pickBest(data);
+        if (url) return url;
+      } catch (e) {
+        console.warn('radio-browser fetch error:', mirror, e);
+      }
+    }
   }
   return null;
 }
