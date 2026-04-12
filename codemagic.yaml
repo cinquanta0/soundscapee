@@ -25,11 +25,17 @@ workflows:
           EXPO_PUBLIC_AGORA_APP_ID=$EXPO_PUBLIC_AGORA_APP_ID
           EOF
       - name: Expo Prebuild
-        script: npx expo prebuild --platform ios --clean --non-interactive
+        script: |
+          npx expo prebuild --platform ios --clean --non-interactive
+          echo "--- ios/ content after prebuild ---"
+          ls ios/ || echo "ios dir missing"
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install --repo-update
       - name: Build unsigned archive
         script: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
-          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          WORKSPACE="ios/soundscape-mobile.xcworkspace"
+          SCHEME="soundscape-mobile"
           echo "Using workspace: $WORKSPACE, scheme: $SCHEME"
           xcodebuild \
             -workspace "$WORKSPACE" \
