@@ -2418,9 +2418,17 @@ if (loading) {
   transparent={true}
   onRequestClose={() => setShowEditProfileModal(false)}
 >
-  <TouchableWithoutFeedback onPress={() => setShowEditProfileModal(false)}>
-    <View style={styles.modalOverlay}>
-      <View style={[styles.modalContent, { maxHeight: '90%' }]} onStartShouldSetResponder={() => true}>
+  <KeyboardAvoidingView
+    style={styles.modalOverlay}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
+    {/* Backdrop separato — non interferisce con lo scroll */}
+    <TouchableOpacity
+      style={StyleSheet.absoluteFillObject}
+      activeOpacity={1}
+      onPress={() => { Keyboard.dismiss(); setShowEditProfileModal(false); }}
+    />
+    <View style={[styles.modalContent, { maxHeight: '92%' }]}>
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>{t('profile.editProfile')}</Text>
         <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
@@ -2428,7 +2436,11 @@ if (loading) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Avatar Selector */}
         <Text style={styles.editLabel}>{t('profile.chooseAvatar')}</Text>
         {/* Anteprima avatar corrente */}
@@ -2507,8 +2519,7 @@ if (loading) {
         </TouchableOpacity>
       </ScrollView>
     </View>
-    </View>
-  </TouchableWithoutFeedback>
+  </KeyboardAvoidingView>
 </Modal>
 
 {/* Notifications Modal */}
