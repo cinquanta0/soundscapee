@@ -57,7 +57,7 @@ const OFFLINE_STATIONS: OfflineStation[] = [
   { id: 'rds', name: 'RDS', genre: 'Pop · News', color: '#2196F3', searchName: 'RDS' },
   { id: 'virgin', name: 'Virgin Radio', genre: 'Rock · Alternative', color: '#9C27B0', searchName: 'Virgin Radio Italy' },
   { id: 'm2o', name: 'm2o', genre: 'Dance · House', color: '#00BCD4', searchName: 'm2o' },
-  { id: 'capital', name: 'Capital', genre: 'Hip-Hop · R&B', color: '#F44336', searchName: 'Capital Italia' },
+  { id: 'capital', name: 'Radio Capital', genre: 'Pop · Hits', color: '#F44336', searchName: 'Radio Capital' },
 ];
 
 // Fetch URL stream verificato da radio-browser.info (directory pubblica, aggiornata dalla community)
