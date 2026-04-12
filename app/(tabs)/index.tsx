@@ -50,10 +50,11 @@ import { httpsCallable } from 'firebase/functions';
 
 
 import * as Notifications from 'expo-notifications';
-import { 
-  registerForPushNotifications, 
+import {
+  registerForPushNotifications,
   getUserNotifications,
-  markNotificationAsRead 
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from '../../services/notificationService';
 
 import {
@@ -216,6 +217,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [pendingChat, setPendingChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null);
   
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editUsername, setEditUsername] = useState('');
@@ -277,9 +279,7 @@ useEffect(() => {
 
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
-      if (data.type === 'like' || data.type === 'comment') {
-        setActiveTab('home');
-      }
+      handleNotificationNavigation(data);
     });
 
     return () => {
@@ -1033,9 +1033,11 @@ const handleSaveProfile = async () => {
     return matchesSearch && matchesMood;
   });
 
-  // Format time ago
+  // Format time ago — gestisce Firestore Timestamp, Date JS e numeri
   const timeAgo = (date) => {
-    const seconds = Math.floor((new Date() - date) / 1000);
+    if (!date) return '';
+    const d = date?.toDate ? date.toDate() : (date instanceof Date ? date : new Date(date));
+    const seconds = Math.floor((new Date() - d) / 1000);
     if (seconds < 60) return 'ora';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m fa`;
@@ -1110,6 +1112,49 @@ const openUserProfile = async (userId) => {
   } catch (error) {
     console.error('Error opening user profile:', error);
     Alert.alert(t('common.error'), t('profile.errors.cannotOpen'));
+  }
+};
+
+// Gestisce la navigazione da tap notifica (system tray o modal)
+const handleNotificationNavigation = async (data: any) => {
+  if (!data?.type) return;
+  switch (data.type) {
+    case 'like':
+    case 'comment':
+    case 'remix':
+    case 'streak_reminder':
+      setActiveTab('home');
+      break;
+    case 'message': {
+      const senderId = data.senderId;
+      if (!senderId) { setActiveTab('messages'); break; }
+      try {
+        const senderDoc = await getUserProfile(senderId);
+        setPendingChat({
+          userId: senderId,
+          userName: senderDoc?.username || senderDoc?.displayName || 'Utente',
+          userAvatar: senderDoc?.avatar || '🎵',
+        });
+      } catch { /* fallback: apri lista messaggi senza chat specifica */ }
+      setActiveTab('messages');
+      break;
+    }
+    case 'follow':
+    case 'friend_request': {
+      const uid = data.userId || data.senderId;
+      if (uid) await openUserProfile(uid);
+      break;
+    }
+    case 'friend_accepted': {
+      const uid = data.userId || data.senderId;
+      if (uid) await openUserProfile(uid);
+      break;
+    }
+    case 'radio_live':
+      setActiveTab('explore');
+      break;
+    default:
+      setActiveTab('home');
   }
 };
 
@@ -1590,7 +1635,12 @@ if (loading) {
           {activeTab === 'timemachine' && <TimeMachineScreen />}
           {activeTab === 'challenges' && <ChallengesScreen />}
           {activeTab === 'explore' && <ExploreScreen />}
-          {activeTab === 'messages' && <MessagesScreen />}
+          {activeTab === 'messages' && (
+            <MessagesScreen
+              initialChat={pendingChat}
+              key={pendingChat?.userId ?? 'messages'}
+            />
+          )}
         </View>
       )}
 
@@ -2385,6 +2435,20 @@ if (loading) {
         </TouchableOpacity>
       </View>
 
+      {unreadCount > 0 && (
+        <TouchableOpacity
+          style={{ marginHorizontal: 16, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)', backgroundColor: 'rgba(0,255,156,0.07)', alignItems: 'center' }}
+          onPress={async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            await markAllNotificationsAsRead(user.uid);
+            loadNotifications();
+          }}
+        >
+          <Text style={{ color: '#00FF9C', fontSize: 13, fontWeight: '600' }}>{t('notifications.markAllRead')}</Text>
+        </TouchableOpacity>
+      )}
+
       <ScrollView style={{ flex: 1, padding: 16 }}>
         {notifications.length === 0 ? (
           <View style={styles.emptyState}>
@@ -2404,10 +2468,7 @@ if (loading) {
                 await markNotificationAsRead(notif.id);
                 loadNotifications();
                 setShowNotificationsModal(false);
-                
-                if (notif.data?.type === 'like' || notif.data?.type === 'comment') {
-                  setActiveTab('home');
-                }
+                await handleNotificationNavigation(notif.data);
               }}
             >
               <Text style={styles.notificationTitle}>{notif.title}</Text>

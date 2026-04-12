@@ -358,7 +358,8 @@
   "notifications": {
     "title": "🔔 Notifiche",
     "noNotifications": "Nessuna notifica",
-    "noNotificationsHint": "Ti avviseremo quando succede qualcosa!"
+    "noNotificationsHint": "Ti avviseremo quando succede qualcosa!",
+    "markAllRead": "Segna tutte come lette"
   },
   "report": {
     "title": "Segnala contenuto",

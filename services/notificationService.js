@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { db } from '../firebaseConfig';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 // Configura come vengono gestite le notifiche in foreground
 Notifications.setNotificationHandler({
@@ -243,5 +243,25 @@ export async function markNotificationAsRead(notificationId) {
     );
   } catch (error) {
     console.error('Errore aggiornamento notifica:', error);
+  }
+}
+
+/**
+ * Segna tutte le notifiche di un utente come lette
+ */
+export async function markAllNotificationsAsRead(userId) {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('read', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((d) => batch.update(doc(db, 'notifications', d.id), { read: true }));
+    await batch.commit();
+  } catch (error) {
+    console.error('Errore aggiornamento notifiche:', error);
   }
 }
