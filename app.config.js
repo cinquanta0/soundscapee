@@ -43,6 +43,8 @@ module.exports = ({ config }) => ({
     permissions: [
       "android.permission.RECORD_AUDIO",
       "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
     ],
     config: {
       googleMaps: {
@@ -56,6 +58,7 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     "expo-router",
+    "react-native-track-player",
     [
       "expo-splash-screen",
       {
