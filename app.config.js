@@ -22,6 +22,7 @@ module.exports = ({ config }) => ({
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ["audio"],
       NSMicrophoneUsageDescription: "Soundscape usa il microfono per trasmettere voce live nella radio.",
+      NSCameraUsageDescription: "Soundscape usa la fotocamera per scattare foto e video da aggiungere ai tuoi post.",
     },
     config: {
       googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
