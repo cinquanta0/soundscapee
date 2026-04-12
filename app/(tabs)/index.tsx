@@ -559,7 +559,7 @@ const captureBackstage = async (tipo: 'foto' | 'video') => {
     mediaTypes: tipo === 'foto' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
     quality: 0.8,
     videoMaxDuration: 30,
-    allowsEditing: true,
+    allowsEditing: false,
   });
   _handleBackstageAsset(result, tipo);
 };
