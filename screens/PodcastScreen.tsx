@@ -182,145 +182,165 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
     await soundRef.current.setPositionAsync(newPos);
   };
 
+  const SH = Dimensions.get('window').height;
+  const coverSize = Math.min(SW * 0.48, SH * 0.22);
+
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <StatusBar hidden />
       <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
       <View style={pl.orb} />
 
-      {/* Header */}
-      <View style={pl.header}>
-        <TouchableOpacity onPress={onClose} style={pl.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-          <Text style={pl.closeTxt}>✕</Text>
-        </TouchableOpacity>
-        <Text style={pl.headerLabel}>podcast</Text>
-        <View style={{ width: 36 }} />
-      </View>
-
-      {/* Cover */}
-      <View style={pl.coverWrap}>
-        {podcast.coverUrl ? (
-          <Image source={{ uri: podcast.coverUrl }} style={pl.cover} resizeMode="cover" />
-        ) : (
-          <View style={[pl.cover, pl.coverFallback]}>
-            <Text style={{ fontSize: 48 }}>🎙</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Info */}
-      <View style={pl.info}>
-        <Text style={pl.podcastTitle} numberOfLines={2}>{podcast.title}</Text>
-        <Text style={pl.podcastHost}>@{podcast.username}</Text>
-        {podcast.description ? (
-          <Text style={pl.podcastDesc} numberOfLines={3}>{podcast.description}</Text>
-        ) : null}
-      </View>
-
-      {/* Progress bar */}
-      <View style={pl.seekSection}>
-        <TouchableOpacity
-          style={pl.seekTrack}
-          onPress={(e) => seekTo(e.nativeEvent.locationX / seekBarWidth)}
-          activeOpacity={1}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {/* Contenuto superiore scrollabile */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 8 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={[pl.seekFill, { width: `${progress * 100}%` }]} />
-          <View style={[pl.seekThumb, { left: `${progress * 100}%` }]} />
-        </TouchableOpacity>
-        <View style={pl.seekTimes}>
-          <Text style={pl.seekTime}>{fmtTime(position)}</Text>
-          <Text style={pl.seekTime}>{fmtTime(duration)}</Text>
-        </View>
-      </View>
+          {/* Header */}
+          <View style={pl.header}>
+            <TouchableOpacity onPress={onClose} style={pl.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+              <Text style={pl.closeTxt}>✕</Text>
+            </TouchableOpacity>
+            <Text style={pl.headerLabel}>podcast</Text>
+            <View style={{ width: 36 }} />
+          </View>
 
-      {/* Controls */}
-      <View style={pl.controls}>
-        <TouchableOpacity style={pl.skipBtn} onPress={() => skip(-15)}>
-          <Text style={pl.skipTxt}>-15s</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={pl.playBtn} onPress={togglePlay} disabled={loading || isBuffering}>
-          {(loading || isBuffering) ? (
-            <ActivityIndicator color="#050508" size="small" />
-          ) : (
-            <Text style={pl.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity style={pl.skipBtn} onPress={() => skip(15)}>
-          <Text style={pl.skipTxt}>+15s</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Speed selector */}
-      <View style={pl.speedRow}>
-        {SPEEDS.map((s) => (
-          <TouchableOpacity
-            key={s}
-            style={[pl.speedBtn, speed === s && pl.speedBtnActive]}
-            onPress={() => changeSpeed(s)}
-          >
-            <Text style={[pl.speedTxt, speed === s && pl.speedTxtActive]}>{s}×</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Like / Dislike / Commenti */}
-      <View style={pl.actionsRow}>
-        <TouchableOpacity style={pl.actionBtn} onPress={handleLike}>
-          <Text style={[pl.actionIcon, liked && pl.actionActive]}>👍</Text>
-          <Text style={[pl.actionCount, liked && pl.actionActive]}>{likesCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={pl.actionBtn} onPress={handleDislike}>
-          <Text style={[pl.actionIcon, disliked && pl.actionActiveRed]}>👎</Text>
-          <Text style={[pl.actionCount, disliked && pl.actionActiveRed]}>{dislikesCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={pl.actionBtn} onPress={() => setShowComments(v => !v)}>
-          <Text style={pl.actionIcon}>💬</Text>
-          <Text style={pl.actionCount}>{commentsCount}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Sezione commenti */}
-      {showComments && (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={pl.commentsSection}>
-          <ScrollView style={pl.commentsList} keyboardShouldPersistTaps="handled">
-            {comments.length === 0 ? (
-              <Text style={pl.noComments}>Nessun commento ancora</Text>
+          {/* Cover */}
+          <View style={pl.coverWrap}>
+            {podcast.coverUrl ? (
+              <Image source={{ uri: podcast.coverUrl }} style={[pl.cover, { width: coverSize, height: coverSize }]} resizeMode="cover" />
             ) : (
-              comments.map((c) => (
-                <View key={c.id} style={pl.commentRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={pl.commentUser}>@{c.username}</Text>
-                    <Text style={pl.commentText}>{c.text}</Text>
-                  </View>
-                  {c.userId === auth.currentUser?.uid && (
-                    <TouchableOpacity onPress={() => handleDeleteComment(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>✕</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))
+              <View style={[pl.cover, pl.coverFallback, { width: coverSize, height: coverSize }]}>
+                <Text style={{ fontSize: coverSize * 0.35 }}>🎙</Text>
+              </View>
             )}
-          </ScrollView>
-          <View style={pl.commentInput}>
-            <TextInput
-              style={pl.commentField}
-              placeholder="Scrivi un commento..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={commentText}
-              onChangeText={setCommentText}
-              multiline
-              maxLength={300}
-            />
+          </View>
+
+          {/* Info */}
+          <View style={pl.info}>
+            <Text style={pl.podcastTitle} numberOfLines={2}>{podcast.title}</Text>
+            <Text style={pl.podcastHost}>@{podcast.username}</Text>
+            {podcast.description ? (
+              <Text style={pl.podcastDesc} numberOfLines={2}>{podcast.description}</Text>
+            ) : null}
+          </View>
+
+          {/* Progress bar */}
+          <View style={pl.seekSection}>
             <TouchableOpacity
-              style={[pl.sendBtn, (!commentText.trim() || sendingComment) && { opacity: 0.4 }]}
-              onPress={handleSendComment}
-              disabled={!commentText.trim() || sendingComment}
+              style={pl.seekTrack}
+              onPress={(e) => seekTo(e.nativeEvent.locationX / seekBarWidth)}
+              activeOpacity={1}
             >
-              {sendingComment ? <ActivityIndicator color="#fff" size="small" /> : <Text style={pl.sendTxt}>↑</Text>}
+              <View style={[pl.seekFill, { width: `${progress * 100}%` }]} />
+              <View style={[pl.seekThumb, { left: `${progress * 100}%` }]} />
+            </TouchableOpacity>
+            <View style={pl.seekTimes}>
+              <Text style={pl.seekTime}>{fmtTime(position)}</Text>
+              <Text style={pl.seekTime}>{fmtTime(duration)}</Text>
+            </View>
+          </View>
+
+          {/* Controls */}
+          <View style={pl.controls}>
+            <TouchableOpacity style={pl.skipBtn} onPress={() => skip(-15)}>
+              <Text style={pl.skipTxt}>-15s</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pl.playBtn} onPress={togglePlay} disabled={loading || isBuffering}>
+              {(loading || isBuffering) ? (
+                <ActivityIndicator color="#050508" size="small" />
+              ) : (
+                <Text style={pl.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={pl.skipBtn} onPress={() => skip(15)}>
+              <Text style={pl.skipTxt}>+15s</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      )}
+
+          {/* Speed selector */}
+          <View style={pl.speedRow}>
+            {SPEEDS.map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[pl.speedBtn, speed === s && pl.speedBtnActive]}
+                onPress={() => changeSpeed(s)}
+              >
+                <Text style={[pl.speedTxt, speed === s && pl.speedTxtActive]}>{s}×</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Like / Dislike / Commenti */}
+          <View style={pl.actionsRow}>
+            <TouchableOpacity style={pl.actionBtn} onPress={handleLike}>
+              <Text style={[pl.actionIcon, liked && pl.actionActive]}>👍</Text>
+              <Text style={[pl.actionCount, liked && pl.actionActive]}>{likesCount}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pl.actionBtn} onPress={handleDislike}>
+              <Text style={[pl.actionIcon, disliked && pl.actionActiveRed]}>👎</Text>
+              <Text style={[pl.actionCount, disliked && pl.actionActiveRed]}>{dislikesCount}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={pl.actionBtn} onPress={() => setShowComments(v => !v)}>
+              <Text style={[pl.actionIcon, showComments && { opacity: 0.6 }]}>💬</Text>
+              <Text style={pl.actionCount}>{commentsCount}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Sezione commenti — fissa in fondo, sopra la tastiera */}
+        {showComments && (
+          <View style={pl.commentsSection}>
+            <ScrollView
+              style={pl.commentsList}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {comments.length === 0 ? (
+                <Text style={pl.noComments}>Nessun commento ancora</Text>
+              ) : (
+                comments.map((c) => (
+                  <View key={c.id} style={pl.commentRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={pl.commentUser}>@{c.username}</Text>
+                      <Text style={pl.commentText}>{c.text}</Text>
+                    </View>
+                    {c.userId === auth.currentUser?.uid && (
+                      <TouchableOpacity onPress={() => handleDeleteComment(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <View style={pl.commentInput}>
+              <TextInput
+                style={pl.commentField}
+                placeholder="Scrivi un commento..."
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={commentText}
+                onChangeText={setCommentText}
+                maxLength={300}
+              />
+              <TouchableOpacity
+                style={[pl.sendBtn, (!commentText.trim() || sendingComment) && { opacity: 0.4 }]}
+                onPress={handleSendComment}
+                disabled={!commentText.trim() || sendingComment}
+              >
+                {sendingComment ? <ActivityIndicator color="#fff" size="small" /> : <Text style={pl.sendTxt}>↑</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -817,10 +837,10 @@ const pl = StyleSheet.create({
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
   headerLabel: { color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1 },
-  coverWrap: { alignItems: 'center', marginVertical: 20 },
-  cover: { width: SW * 0.55, height: SW * 0.55, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,255,156,0.2)' },
+  coverWrap: { alignItems: 'center', marginVertical: 12 },
+  cover: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(0,255,156,0.2)' },
   coverFallback: { backgroundColor: '#0D0D1A', alignItems: 'center', justifyContent: 'center' },
-  info: { paddingHorizontal: 28, marginBottom: 20 },
+  info: { paddingHorizontal: 24, marginBottom: 12 },
   podcastTitle: { fontSize: 22, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 4, lineHeight: 28 },
   podcastHost: { fontSize: 12, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 8 },
   podcastDesc: { fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 18 },
@@ -846,8 +866,8 @@ const pl = StyleSheet.create({
   actionCount: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' },
   actionActive: { color: '#00FF9C' },
   actionActiveRed: { color: '#FF4444' },
-  commentsSection: { flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', marginTop: 4 },
-  commentsList: { maxHeight: 200, paddingHorizontal: 16, paddingTop: 8 },
+  commentsSection: { maxHeight: 280, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  commentsList: { flexGrow: 0, maxHeight: 180, paddingHorizontal: 16, paddingTop: 8 },
   noComments: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', paddingVertical: 16 },
   commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   commentUser: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 2 },
