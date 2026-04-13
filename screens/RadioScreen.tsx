@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Alert, StatusBar, Animated, ScrollView,
-  KeyboardAvoidingView, Platform, Dimensions,
+  KeyboardAvoidingView, Platform, Dimensions, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -18,6 +18,7 @@ import {
   grantSpeaker, revokeSpeaker, addCohost, removeCohost,
   listenToSuggestions, suggestTrack, approveSuggestion, rejectSuggestion, fetchUserSoundsForSuggestion,
   scheduleRadioRoom, startScheduledRoom, listenToScheduledRooms,
+  extendGap,
 } from '../services/radioService';
 import {
   fetchAgoraToken, joinAsHost, joinAsAudience, leaveAgoraChannel,
@@ -48,6 +49,12 @@ interface OfflineStation {
   genre: string;
   color: string;
   searchName: string; // nome usato per cercare su radio-browser.info
+}
+
+interface NowPlayingInfo {
+  djName: string;
+  showName?: string;
+  djImageUrl?: string;
 }
 
 const OFFLINE_STATIONS: OfflineStation[] = [
@@ -159,6 +166,130 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
   }
 
   return null;
+}
+
+// ─── Now Playing (Ora in Onda) ────────────────────────────────────────────────
+const NP_TTL = 15 * 60 * 1000; // 15 minuti
+const _npCache: Map<string, { data: NowPlayingInfo; ts: number }> = new Map();
+
+async function _fetchJson(url: string, ms = 5000): Promise<unknown> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Soundscape/1.0' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Estrae l'URL immagine cercando campi comuni in un oggetto JSON
+function extractImageUrl(item: Record<string, unknown>): string | undefined {
+  const imgField = item.image || item.thumbnail || item.img || item.foto || item.photo;
+  if (typeof imgField === 'string' && imgField.startsWith('http')) return imgField;
+  if (imgField && typeof imgField === 'object') {
+    const obj = imgField as Record<string, unknown>;
+    const url = obj.url || obj.src || obj.href;
+    if (typeof url === 'string' && url.startsWith('http')) return url;
+  }
+  return undefined;
+}
+
+// GEDI group: Radio DeeJay (deejay.it), m2o (m2o.it), Radio Capital (capital.it)
+async function fetchGediNowPlaying(domain: string): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson(`https://www.${domain}/api/items/in-onda/`) as Record<string, unknown>;
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : null);
+    const item = Array.isArray(list) && list.length > 0 ? list[0] as Record<string, unknown> : null;
+    if (!item) return null;
+    const djName = String(item.dj_name || item.dj || item.presenter || item.nome || item.speaker || item.title || '');
+    const showName = String(item.show_title || item.programme || item.programma || item.title || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+// RTL 102.5
+async function fetchRtlNowPlaying(): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson('https://www.rtl.it/live/json/palinsesto.json') as Record<string, unknown>;
+    const item = (data?.current || data?.on_air || (Array.isArray(data) ? data[0] : data)) as Record<string, unknown>;
+    if (!item) return null;
+    const djName = String(item.presenter || item.speaker || item.nome || item.dj || item.name || '');
+    const showName = String(item.show || item.programma || item.title || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+// Radio 105 (Mediaset)
+async function fetch105NowPlaying(): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson('https://www.105.net/api/on-air') as Record<string, unknown>;
+    const item = (data?.data || data?.current || data) as Record<string, unknown>;
+    if (!item || typeof item !== 'object') return null;
+    const djName = String(item.presenter || item.speaker || item.dj || item.nome || '');
+    const showName = String(item.show || item.title || item.programma || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+// Radio Italia
+async function fetchRadioItaliaNowPlaying(): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson('https://www.radioitalia.it/palinsesto/palinsesto.php') as Record<string, unknown>;
+    const item = (Array.isArray(data) ? data[0] : data?.current || data) as Record<string, unknown>;
+    if (!item || typeof item !== 'object') return null;
+    const djName = String(item.presenter || item.speaker || item.nome || item.dj || '');
+    const showName = String(item.title || item.programma || item.show || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+// RDS
+async function fetchRdsNowPlaying(): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson('https://www.rds.it/api/on-air') as Record<string, unknown>;
+    const item = (data?.current || data?.data || (Array.isArray(data) ? data[0] : data)) as Record<string, unknown>;
+    if (!item || typeof item !== 'object') return null;
+    const djName = String(item.presenter || item.speaker || item.nome || item.dj || '');
+    const showName = String(item.title || item.show || item.programma || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+// Virgin Radio Italy (Discovery)
+async function fetchVirginNowPlaying(): Promise<NowPlayingInfo | null> {
+  try {
+    const data = await _fetchJson('https://www.virginradio.it/api/on-air') as Record<string, unknown>;
+    const item = (data?.current || data?.data || (Array.isArray(data) ? data[0] : data)) as Record<string, unknown>;
+    if (!item || typeof item !== 'object') return null;
+    const djName = String(item.presenter || item.speaker || item.nome || item.dj || '');
+    const showName = String(item.title || item.show || item.programma || '');
+    return { djName, showName: showName !== djName ? showName : undefined, djImageUrl: extractImageUrl(item) };
+  } catch { return null; }
+}
+
+async function fetchNowPlaying(stationId: string): Promise<NowPlayingInfo | null> {
+  const cached = _npCache.get(stationId);
+  if (cached && Date.now() - cached.ts < NP_TTL) return cached.data;
+
+  let info: NowPlayingInfo | null = null;
+  switch (stationId) {
+    case 'deejay':      info = await fetchGediNowPlaying('deejay.it'); break;
+    case 'm2o':         info = await fetchGediNowPlaying('m2o.it'); break;
+    case 'capital':     info = await fetchGediNowPlaying('capital.it'); break;
+    case 'rtl':         info = await fetchRtlNowPlaying(); break;
+    case 'r105':        info = await fetch105NowPlaying(); break;
+    case 'radioitalia': info = await fetchRadioItaliaNowPlaying(); break;
+    case 'rds':         info = await fetchRdsNowPlaying(); break;
+    case 'virgin':      info = await fetchVirginNowPlaying(); break;
+  }
+
+  if (info?.djName) _npCache.set(stationId, { data: info, ts: Date.now() });
+  return info?.djName ? info : null;
 }
 
 // ─── Floating Reaction ────────────────────────────────────────────────────────
@@ -319,6 +450,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const [audioLoading, setAudioLoading] = useState(false);
   const [micActive, setMicActive_] = useState(false);
   const [agoraJoined, setAgoraJoined] = useState(false);
+  const [playlistEnded, setPlaylistEnded] = useState(false);
   const autoAdvancedRef = useRef(false);
   const unsubRef = useRef<(() => void) | null>(null);
   const chatUnsubRef = useRef<(() => void) | null>(null);
@@ -327,6 +459,8 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const chatListRef = useRef<FlatList<ChatMessage>>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentIndexRef = useRef(initialRoom.currentTrackIndex);
+  const playlistLengthRef = useRef(initialRoom.playlist.length);
+  const trackStartedAtRef = useRef(initialRoom.trackStartedAt.getTime());
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTrack = useCallback(async (r: RadioRoom) => {
@@ -367,7 +501,16 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       const offset = Math.min(elapsed, isFinite(durationMs) && durationMs > 1000 ? durationMs - 1000 : elapsed);
       if (offset > 0) await sound.setPositionAsync(offset);
       await sound.playAsync();
-      sound.setOnPlaybackStatusUpdate((s) => { if (s.isLoaded) setIsPlaying(s.isPlaying); });
+      sound.setOnPlaybackStatusUpdate((s) => {
+        if (!s.isLoaded) return;
+        setIsPlaying(s.isPlaying);
+        if (s.didJustFinish && currentIndexRef.current >= playlistLengthRef.current - 1) {
+          // Ultima traccia finita: ferma tutto
+          setIsPlaying(false);
+          setPlaylistEnded(true);
+          soundRef.current?.stopAsync().catch(() => {});
+        }
+      });
       soundRef.current = sound;
     } catch {}
     finally { setAudioLoading(false); }
@@ -377,9 +520,17 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     loadTrack(initialRoom);
     unsubRef.current = listenToRoom(room.id, (updated) => {
       setRoom(updated);
-      autoAdvancedRef.current = false;
+      playlistLengthRef.current = updated.playlist.length;
       if (updated.currentTrackIndex !== currentIndexRef.current) {
+        // Traccia cambiata: resetta flag e ricarica
         currentIndexRef.current = updated.currentTrackIndex;
+        trackStartedAtRef.current = updated.trackStartedAt.getTime();
+        autoAdvancedRef.current = false;
+        setPlaylistEnded(false);
+        loadTrack(updated);
+      } else if (updated.trackStartedAt.getTime() > trackStartedAtRef.current + 500) {
+        // Gap estesa dall'host: ricarica per aggiornare il timer locale
+        trackStartedAtRef.current = updated.trackStartedAt.getTime();
         loadTrack(updated);
       }
     });
@@ -428,24 +579,25 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   useEffect(() => {
     const track = room.playlist[room.currentTrackIndex];
     if (!track?.duration) return;
+    const isLast = room.currentTrackIndex >= room.playlist.length - 1;
     const elapsed = Date.now() - room.trackStartedAt.getTime();
     const remaining = track.duration * 1000 - elapsed;
-    if (remaining <= 0) {
-      if (!autoAdvancedRef.current && room.currentTrackIndex < room.playlist.length - 1) {
-        autoAdvancedRef.current = true;
-        const gap = track.gapAfter ?? 0;
-        skipToNextTrack(room.id, room.currentTrackIndex + 1, gap).catch(() => {});
-      }
-      return;
-    }
-    const t = setTimeout(async () => {
+
+    const handleEnd = async () => {
       if (autoAdvancedRef.current) return;
-      if (room.currentTrackIndex < room.playlist.length - 1) {
-        autoAdvancedRef.current = true;
+      autoAdvancedRef.current = true;
+      if (!isLast) {
         const gap = track.gapAfter ?? 0;
         await skipToNextTrack(room.id, room.currentTrackIndex + 1, gap).catch(() => {});
+      } else {
+        // Ultima traccia: ferma l'audio (backup — didJustFinish lo fa prima)
+        setPlaylistEnded(true);
+        soundRef.current?.stopAsync().catch(() => {});
       }
-    }, remaining);
+    };
+
+    if (remaining <= 0) { handleEnd(); return; }
+    const t = setTimeout(handleEnd, remaining);
     return () => clearTimeout(t);
   }, [room.currentTrackIndex, room.trackStartedAt]);
 
@@ -593,11 +745,28 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             </View>
           </View>
           <View style={hm.nowCard}>
-            <Text style={hm.nowLabel}>{isInGap ? t('radio.pause') : t('radio.nowOnAir')}</Text>
-            {isInGap ? (
+            <Text style={hm.nowLabel}>
+              {playlistEnded ? '✓ PLAYLIST TERMINATA' : isInGap ? t('radio.pause') : t('radio.nowOnAir')}
+            </Text>
+            {playlistEnded ? (
+              <Text style={hm.playlistEndedTxt}>Tutte le tracce sono state riprodotte.</Text>
+            ) : isInGap ? (
               <View>
                 <Text style={hm.gapCountdown}>⏸  {gapRemaining}s</Text>
                 {hasNext && <Text style={hm.gapNext}>{t('radio.nowPlaying').toLowerCase()}: {room.playlist[room.currentTrackIndex + 1]?.name.replace(/\.[^.]+$/, '')}</Text>}
+                {/* Bottoni estendi pausa */}
+                <View style={hm.extendGapRow}>
+                  <Text style={hm.extendGapLabel}>Aggiungi pausa:</Text>
+                  {[5, 15, 30].map(sec => (
+                    <TouchableOpacity
+                      key={sec}
+                      style={hm.extendGapBtn}
+                      onPress={() => extendGap(room.id, room.trackStartedAt, sec).catch(() => {})}
+                    >
+                      <Text style={hm.extendGapBtnTxt}>+{sec}s</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             ) : (
               <>
@@ -607,20 +776,8 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   {currentTrack?.duration ? `  ·  ${fmtSec(Math.min(trackElapsed / 1000, currentTrack.duration))} / ${fmtSec(currentTrack.duration)}` : `  ·  ${fmtSec(trackElapsed / 1000)}`}
                 </Text>
                 <WaveformAnim active={isPlaying && !isInGapAudio} color="#FF2D55" />
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'center', marginTop: 4 }}>
-                  <TouchableOpacity
-                    style={hm.hostPlayBtn}
-                    onPress={async () => {
-                      if (!soundRef.current) return;
-                      if (isPlaying) await soundRef.current.pauseAsync();
-                      else await soundRef.current.playAsync();
-                    }}
-                    disabled={audioLoading}
-                  >
-                    {audioLoading
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={hm.hostPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>}
-                  </TouchableOpacity>
+                {/* Solo mic — niente play/pause */}
+                <View style={{ alignItems: 'center', marginTop: 4 }}>
                   <TouchableOpacity
                     style={[hm.micBtn, micActive && hm.micBtnActive]}
                     onPress={handleMicToggle}
@@ -846,8 +1003,11 @@ const hm = StyleSheet.create({
   stopBtn: { paddingHorizontal: 20, paddingVertical: 13, borderRadius: 12, backgroundColor: 'rgba(255,45,85,0.25)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)', alignItems: 'center' },
   stopTxt: { color: '#FF2D55', fontSize: 14, fontWeight: '700' },
   queueTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, marginBottom: 10 },
-  hostPlayBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#FF2D55', alignItems: 'center', justifyContent: 'center', shadowColor: '#FF2D55', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  hostPlayIcon: { fontSize: 22, color: '#fff' },
+  playlistEndedTxt: { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginTop: 8, fontStyle: 'italic' },
+  extendGapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' },
+  extendGapLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', width: '100%', textAlign: 'center', marginBottom: 4 },
+  extendGapBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  extendGapBtnTxt: { fontSize: 13, color: '#fff', fontWeight: '600', fontFamily: 'monospace' },
   micBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)' },
   micBtnActive: { backgroundColor: 'rgba(255,45,85,0.25)', borderColor: '#FF2D55', shadowColor: '#FF2D55', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   micIcon: { fontSize: 22 },
@@ -908,6 +1068,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const seenReactionsRef = useRef<Set<string>>(new Set());
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentIndexRef = useRef(initialRoom.currentTrackIndex);
+  const listenerTrackStartedAtRef = useRef(initialRoom.trackStartedAt.getTime());
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gapTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
@@ -983,6 +1144,11 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       setRoom(updated);
       if (updated.currentTrackIndex !== currentIndexRef.current) {
         currentIndexRef.current = updated.currentTrackIndex;
+        listenerTrackStartedAtRef.current = updated.trackStartedAt.getTime();
+        loadTrack(updated);
+      } else if (updated.trackStartedAt.getTime() > listenerTrackStartedAtRef.current + 500) {
+        // Host ha esteso la gap: ricarica per aggiornare countdown
+        listenerTrackStartedAtRef.current = updated.trackStartedAt.getTime();
         loadTrack(updated);
       }
     });
@@ -1208,11 +1374,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
                 <WaveformAnim active={isPlaying && !isInGap} color="#FF2D55" />
               </>
             )}
-            {!isInGap && (
-              <TouchableOpacity style={lm.playBtn} onPress={togglePlay} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={lm.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>}
-              </TouchableOpacity>
-            )}
+            {/* Nessun play/pause manuale — la riproduzione è controllata dal server */}
           </View>
 
           {/* Reaction buttons */}
@@ -1706,7 +1868,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const [loading, setLoading] = useState(true);
   const [statusLabel, setStatusLabel] = useState('Ricerca stream...');
   const [error, setError] = useState(false);
+  const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
+  const [djImgError, setDjImgError] = useState(false);
 
+  // Fetch audio stream
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -1751,6 +1916,21 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     };
   }, []);
 
+  // Fetch "Ora in onda" — al mount e ogni 15 min
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const info = await fetchNowPlaying(station.id);
+      if (!cancelled) { setNowPlaying(info); setDjImgError(false); }
+    };
+    load();
+    const interval = setInterval(() => {
+      _npCache.delete(station.id);
+      load();
+    }, NP_TTL);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [station.id]);
+
   const togglePlay = async () => {
     if (!soundRef.current) return;
     if (isPlaying) await soundRef.current.pauseAsync();
@@ -1758,6 +1938,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+  const showDjImage = nowPlaying && nowPlaying.djImageUrl && !djImgError;
+  const showDjInitials = nowPlaying && nowPlaying.djName && (!nowPlaying.djImageUrl || djImgError);
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -1778,18 +1960,57 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
       {/* Body */}
       <View style={osp.body}>
-        {/* Cerchio con waveform */}
-        <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
-          <LinearGradient
-            colors={[station.color + '30', station.color + '10']}
-            style={StyleSheet.absoluteFill}
-            borderRadius={80}
-          />
-          <WaveformAnim active={isPlaying && !loading} color={station.color} />
-        </View>
 
-        <Text style={osp.stationName}>{station.name}</Text>
-        <Text style={osp.genre}>{station.genre}</Text>
+        {nowPlaying ? (
+          /* ── Con info "Ora in Onda" ── */
+          <>
+            {/* Foto DJ o iniziali */}
+            {showDjImage ? (
+              <View style={[osp.djPhotoWrap, { borderColor: station.color, shadowColor: station.color }]}>
+                <Image
+                  source={{ uri: nowPlaying!.djImageUrl }}
+                  style={osp.djPhoto}
+                  onError={() => setDjImgError(true)}
+                />
+              </View>
+            ) : showDjInitials ? (
+              <View style={[osp.djInitialsWrap, { backgroundColor: station.color + '25', borderColor: station.color }]}>
+                <Text style={[osp.djInitialsTxt, { color: station.color }]}>
+                  {nowPlaying!.djName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* ORA IN ONDA label */}
+            <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
+            <Text style={osp.djName} numberOfLines={2}>{nowPlaying.djName}</Text>
+            {nowPlaying.showName ? (
+              <Text style={osp.showName} numberOfLines={1}>{nowPlaying.showName}</Text>
+            ) : null}
+
+            {/* Nome stazione + waveform piccola */}
+            <View style={osp.stationRowNp}>
+              <Text style={[osp.stationDot, { color: station.color }]}>●</Text>
+              <Text style={osp.stationNameNp}>{station.name}</Text>
+              <Text style={osp.genreNp}> · {station.genre}</Text>
+            </View>
+            <WaveformAnim active={isPlaying && !loading} color={station.color} />
+          </>
+        ) : (
+          /* ── Senza info: cerchio waveform originale ── */
+          <>
+            <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
+              <LinearGradient
+                colors={[station.color + '30', station.color + '10']}
+                style={StyleSheet.absoluteFill}
+                borderRadius={80}
+              />
+              <WaveformAnim active={isPlaying && !loading} color={station.color} />
+            </View>
+            <Text style={osp.stationName}>{station.name}</Text>
+            <Text style={osp.genre}>{station.genre}</Text>
+          </>
+        )}
 
         {/* Badge stato */}
         <View style={[osp.statusBadge, { backgroundColor: station.color + '20', borderColor: station.color + '50' }]}>
@@ -1826,10 +2047,24 @@ const osp = StyleSheet.create({
   closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
   headerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
+  // Fallback: cerchio waveform (quando non ci sono info DJ)
   circle: { width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 32, overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
   stationName: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
   genre: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 36 },
+  // Stili "Ora in onda"
+  djPhotoWrap: { width: 152, height: 152, borderRadius: 76, borderWidth: 2.5, marginBottom: 24, overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  djPhoto: { width: '100%', height: '100%' },
+  djInitialsWrap: { width: 152, height: 152, borderRadius: 76, borderWidth: 2, marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
+  djInitialsTxt: { fontSize: 52, fontWeight: '800', fontStyle: 'italic' },
+  oraInOnda: { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 6, textTransform: 'uppercase' },
+  djName: { fontSize: 30, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
+  showName: { fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' },
+  stationRowNp: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  stationDot: { fontSize: 8, marginRight: 6 },
+  stationNameNp: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '700', fontFamily: 'monospace' },
+  genreNp: { fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' },
+  // Comuni
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 36, marginTop: 8 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusTxt: { fontSize: 11, fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1.5 },
   playBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },

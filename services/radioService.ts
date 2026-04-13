@@ -5,8 +5,9 @@ import {
   arrayUnion, arrayRemove, getDocs,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebaseConfig';
+import { db, storage, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
 
 export interface PlaylistTrack {
   url: string;
@@ -102,6 +103,13 @@ export async function createRadioRoom(params: {
     startedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   });
+
+  // Notifica follower direttamente via callable (più affidabile del trigger Firestore)
+  try {
+    const notify = httpsCallable(functions, 'notifyRadioLive');
+    notify({ roomId: docRef.id, hostId: user.uid, hostName: params.hostName, title: params.title, isScheduled: false }).catch(() => {});
+  } catch { /* silenzioso */ }
+
   return docRef.id;
 }
 
@@ -138,6 +146,21 @@ export async function skipToNextTrack(
   await updateDoc(doc(db, 'radio', roomId), {
     currentTrackIndex: nextIndex,
     trackStartedAt: Timestamp.fromDate(startAt),
+  });
+}
+
+/**
+ * Estende la pausa corrente aggiungendo secondi a trackStartedAt.
+ * Usata dall'host durante un gap per allungare l'intervallo.
+ */
+export async function extendGap(
+  roomId: string,
+  currentTrackStartedAt: Date,
+  extraSeconds: number,
+): Promise<void> {
+  const newStartAt = new Date(currentTrackStartedAt.getTime() + extraSeconds * 1000);
+  await updateDoc(doc(db, 'radio', roomId), {
+    trackStartedAt: Timestamp.fromDate(newStartAt),
   });
 }
 
@@ -469,6 +492,13 @@ export async function scheduleRadioRoom(params: {
     createdAt: serverTimestamp(),
     scheduledFor: Timestamp.fromDate(params.scheduledFor),
   });
+
+  // Notifica follower della radio programmata
+  try {
+    const notify = httpsCallable(functions, 'notifyRadioLive');
+    notify({ roomId: docRef.id, hostId: user.uid, hostName: params.hostName, title: params.title, isScheduled: true }).catch(() => {});
+  } catch { /* silenzioso */ }
+
   return docRef.id;
 }
 
