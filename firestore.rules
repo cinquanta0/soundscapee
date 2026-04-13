@@ -221,9 +221,26 @@ service cloud.firestore {
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.userId)
                     && validString(request.resource.data.title, 200);
-      allow update: if isOwner(resource.data.userId)
-                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']);
+      allow update: if (isOwner(resource.data.userId)
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']))
+                    || (isAuth()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['likesCount', 'dislikesCount', 'commentsCount']));
       allow delete: if isOwner(resource.data.userId);
+
+      match /likes/{userId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && request.auth.uid == userId;
+      }
+      match /dislikes/{userId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && request.auth.uid == userId;
+      }
+      match /comments/{commentId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous() && isOwner(request.resource.data.userId);
+        allow delete: if isOwner(resource.data.userId);
+      }
     }
 
     // ── RADIO ─────────────────────────────────────────────────────────────────

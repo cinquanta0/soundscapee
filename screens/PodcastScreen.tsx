@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Animated, Image, StatusBar,
-  Dimensions, Alert, Platform,
+  Dimensions, Alert, Platform, ScrollView, KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -11,7 +11,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
-import { getPodcasts, publishPodcast, updatePodcast, deletePodcast, searchSounds, Podcast, SoundResult } from '../services/podcastService';
+import {
+  getPodcasts, publishPodcast, updatePodcast, deletePodcast, searchSounds,
+  togglePodcastLike, togglePodcastDislike, getPodcastVotes,
+  listenPodcastComments, addPodcastComment, deletePodcastComment,
+  Podcast, PodcastComment, SoundResult,
+} from '../services/podcastService';
 
 const { width: SW } = Dimensions.get('window');
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -23,7 +28,7 @@ function fmtTime(secs: number) {
 }
 
 // ─── Player modal ─────────────────────────────────────────────────────────────
-function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => void }) {
+function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -32,6 +37,17 @@ function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => 
   const [speed, setSpeed] = useState(1);
   const seekBarWidth = SW - 80;
 
+  // Likes / dislikes / commenti
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
+  const [likesCount, setLikesCount] = useState(podcast.likesCount ?? 0);
+  const [dislikesCount, setDislikesCount] = useState(podcast.dislikesCount ?? 0);
+  const [commentsCount, setCommentsCount] = useState(podcast.commentsCount ?? 0);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<PodcastComment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [sendingComment, setSendingComment] = useState(false);
+
   const isBuffering = false;
   const progress = duration > 0 ? position / duration : 0;
 
@@ -39,6 +55,56 @@ function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => 
     loadAudio();
     return () => { soundRef.current?.unloadAsync(); };
   }, []);
+
+  useEffect(() => {
+    getPodcastVotes(podcast.id).then(({ liked, disliked }) => {
+      setLiked(liked);
+      setDisliked(disliked);
+    });
+  }, [podcast.id]);
+
+  useEffect(() => {
+    if (!showComments) return;
+    const unsub = listenPodcastComments(podcast.id, (c) => {
+      setComments(c);
+      setCommentsCount(c.length);
+    });
+    return unsub;
+  }, [showComments, podcast.id]);
+
+  const handleLike = async () => {
+    try {
+      const nowLiked = await togglePodcastLike(podcast.id);
+      setLiked(nowLiked);
+      if (nowLiked) { setLikesCount(n => n + 1); if (disliked) { setDisliked(false); setDislikesCount(n => n - 1); } }
+      else setLikesCount(n => n - 1);
+    } catch {}
+  };
+
+  const handleDislike = async () => {
+    try {
+      const nowDisliked = await togglePodcastDislike(podcast.id);
+      setDisliked(nowDisliked);
+      if (nowDisliked) { setDislikesCount(n => n + 1); if (liked) { setLiked(false); setLikesCount(n => n - 1); } }
+      else setDislikesCount(n => n - 1);
+    } catch {}
+  };
+
+  const handleSendComment = async () => {
+    if (!commentText.trim()) return;
+    setSendingComment(true);
+    try {
+      await addPodcastComment(podcast.id, commentText, currentUsername);
+      setCommentText('');
+    } catch {} finally { setSendingComment(false); }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    Alert.alert('Elimina commento', 'Sicuro?', [
+      { text: 'Annulla', style: 'cancel' },
+      { text: 'Elimina', style: 'destructive', onPress: () => deletePodcastComment(podcast.id, commentId).catch(() => {}) },
+    ]);
+  };
 
   const loadAudio = async () => {
     try {
@@ -196,6 +262,65 @@ function PodcastPlayer({ podcast, onClose }: { podcast: Podcast; onClose: () => 
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Like / Dislike / Commenti */}
+      <View style={pl.actionsRow}>
+        <TouchableOpacity style={pl.actionBtn} onPress={handleLike}>
+          <Text style={[pl.actionIcon, liked && pl.actionActive]}>👍</Text>
+          <Text style={[pl.actionCount, liked && pl.actionActive]}>{likesCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={pl.actionBtn} onPress={handleDislike}>
+          <Text style={[pl.actionIcon, disliked && pl.actionActiveRed]}>👎</Text>
+          <Text style={[pl.actionCount, disliked && pl.actionActiveRed]}>{dislikesCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={pl.actionBtn} onPress={() => setShowComments(v => !v)}>
+          <Text style={pl.actionIcon}>💬</Text>
+          <Text style={pl.actionCount}>{commentsCount}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sezione commenti */}
+      {showComments && (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={pl.commentsSection}>
+          <ScrollView style={pl.commentsList} keyboardShouldPersistTaps="handled">
+            {comments.length === 0 ? (
+              <Text style={pl.noComments}>Nessun commento ancora</Text>
+            ) : (
+              comments.map((c) => (
+                <View key={c.id} style={pl.commentRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={pl.commentUser}>@{c.username}</Text>
+                    <Text style={pl.commentText}>{c.text}</Text>
+                  </View>
+                  {c.userId === auth.currentUser?.uid && (
+                    <TouchableOpacity onPress={() => handleDeleteComment(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))
+            )}
+          </ScrollView>
+          <View style={pl.commentInput}>
+            <TextInput
+              style={pl.commentField}
+              placeholder="Scrivi un commento..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={300}
+            />
+            <TouchableOpacity
+              style={[pl.sendBtn, (!commentText.trim() || sendingComment) && { opacity: 0.4 }]}
+              onPress={handleSendComment}
+              disabled={!commentText.trim() || sendingComment}
+            >
+              {sendingComment ? <ActivityIndicator color="#fff" size="small" /> : <Text style={pl.sendTxt}>↑</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      )}
     </Modal>
   );
 }
@@ -583,10 +708,24 @@ export default function PodcastScreen() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Podcast | null>(null);
+  const [currentUsername, setCurrentUsername] = useState('utente');
   const [showPublish, setShowPublish] = useState(false);
   const [editing, setEditing] = useState<Podcast | null>(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Carica username corrente
+    const user = auth.currentUser;
+    if (user) {
+      import('../firebaseConfig').then(({ db }) => {
+        import('firebase/firestore').then(({ doc, getDoc }) => {
+          getDoc(doc(db, 'users', user.uid)).then((snap) => {
+            if (snap.exists()) setCurrentUsername(snap.data()?.username || user.email?.split('@')[0] || 'utente');
+          }).catch(() => {});
+        });
+      });
+    }
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -653,7 +792,7 @@ export default function PodcastScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-      {selected && <PodcastPlayer podcast={selected} onClose={() => setSelected(null)} />}
+      {selected && <PodcastPlayer podcast={selected} onClose={() => setSelected(null)} currentUsername={currentUsername} />}
       {showPublish && (
         <PublishModal
           onDone={() => { setShowPublish(false); load(); }}
@@ -701,6 +840,22 @@ const pl = StyleSheet.create({
   speedBtnActive: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },
   speedTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'monospace' },
   speedTxtActive: { color: '#00FF9C' },
+  actionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingVertical: 16 },
+  actionBtn: { alignItems: 'center', gap: 4 },
+  actionIcon: { fontSize: 24 },
+  actionCount: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' },
+  actionActive: { color: '#00FF9C' },
+  actionActiveRed: { color: '#FF4444' },
+  commentsSection: { flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', marginTop: 4 },
+  commentsList: { maxHeight: 200, paddingHorizontal: 16, paddingTop: 8 },
+  noComments: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', paddingVertical: 16 },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  commentUser: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 2 },
+  commentText: { fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 18 },
+  commentInput: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  commentField: { flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: '#fff', fontSize: 14, maxHeight: 80 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
+  sendTxt: { fontSize: 18, color: '#050508', fontWeight: '700' },
 });
 
 const pc = StyleSheet.create({

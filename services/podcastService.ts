@@ -1,6 +1,7 @@
 import {
   collection, addDoc, getDocs, query, orderBy,
   limit, serverTimestamp, doc, updateDoc, deleteDoc, where,
+  setDoc, getDoc, increment, onSnapshot, Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -17,6 +18,17 @@ export interface Podcast {
   audioUrl: string;
   coverUrl: string | null;
   duration: number; // secondi
+  createdAt: Date;
+  likesCount: number;
+  dislikesCount: number;
+  commentsCount: number;
+}
+
+export interface PodcastComment {
+  id: string;
+  userId: string;
+  username: string;
+  text: string;
   createdAt: Date;
 }
 
@@ -51,7 +63,104 @@ export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
     id: d.id,
     ...(d.data() as Omit<Podcast, 'id'>),
     createdAt: d.data().createdAt?.toDate() ?? new Date(),
+    likesCount: d.data().likesCount ?? 0,
+    dislikesCount: d.data().dislikesCount ?? 0,
+    commentsCount: d.data().commentsCount ?? 0,
   }));
+}
+
+// ─── Likes / Dislikes ─────────────────────────────────────────────────────────
+
+export async function getPodcastVotes(podcastId: string): Promise<{ liked: boolean; disliked: boolean }> {
+  const user = auth.currentUser;
+  if (!user) return { liked: false, disliked: false };
+  const [likeSnap, dislikeSnap] = await Promise.all([
+    getDoc(doc(db, 'podcast', podcastId, 'likes', user.uid)),
+    getDoc(doc(db, 'podcast', podcastId, 'dislikes', user.uid)),
+  ]);
+  return { liked: likeSnap.exists(), disliked: dislikeSnap.exists() };
+}
+
+export async function togglePodcastLike(podcastId: string): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  const likeRef = doc(db, 'podcast', podcastId, 'likes', user.uid);
+  const dislikeRef = doc(db, 'podcast', podcastId, 'dislikes', user.uid);
+  const podRef = doc(db, 'podcast', podcastId);
+  const likeSnap = await getDoc(likeRef);
+  if (likeSnap.exists()) {
+    await deleteDoc(likeRef);
+    await updateDoc(podRef, { likesCount: increment(-1) });
+    return false;
+  } else {
+    const dislikeSnap = await getDoc(dislikeRef);
+    if (dislikeSnap.exists()) {
+      await deleteDoc(dislikeRef);
+      await updateDoc(podRef, { dislikesCount: increment(-1) });
+    }
+    await setDoc(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
+    await updateDoc(podRef, { likesCount: increment(1) });
+    return true;
+  }
+}
+
+export async function togglePodcastDislike(podcastId: string): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  const dislikeRef = doc(db, 'podcast', podcastId, 'dislikes', user.uid);
+  const likeRef = doc(db, 'podcast', podcastId, 'likes', user.uid);
+  const podRef = doc(db, 'podcast', podcastId);
+  const dislikeSnap = await getDoc(dislikeRef);
+  if (dislikeSnap.exists()) {
+    await deleteDoc(dislikeRef);
+    await updateDoc(podRef, { dislikesCount: increment(-1) });
+    return false;
+  } else {
+    const likeSnap = await getDoc(likeRef);
+    if (likeSnap.exists()) {
+      await deleteDoc(likeRef);
+      await updateDoc(podRef, { likesCount: increment(-1) });
+    }
+    await setDoc(dislikeRef, { userId: user.uid, createdAt: serverTimestamp() });
+    await updateDoc(podRef, { dislikesCount: increment(1) });
+    return true;
+  }
+}
+
+// ─── Commenti ─────────────────────────────────────────────────────────────────
+
+export function listenPodcastComments(podcastId: string, cb: (comments: PodcastComment[]) => void): Unsubscribe {
+  const q = query(
+    collection(db, 'podcast', podcastId, 'comments'),
+    orderBy('createdAt', 'asc'),
+    limit(100),
+  );
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({
+      id: d.id,
+      userId: d.data().userId ?? '',
+      username: d.data().username ?? 'Utente',
+      text: d.data().text ?? '',
+      createdAt: d.data().createdAt?.toDate() ?? new Date(),
+    })));
+  });
+}
+
+export async function addPodcastComment(podcastId: string, text: string, username: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  await addDoc(collection(db, 'podcast', podcastId, 'comments'), {
+    userId: user.uid,
+    username,
+    text: text.trim(),
+    createdAt: serverTimestamp(),
+  });
+  await updateDoc(doc(db, 'podcast', podcastId), { commentsCount: increment(1) });
+}
+
+export async function deletePodcastComment(podcastId: string, commentId: string): Promise<void> {
+  await deleteDoc(doc(db, 'podcast', podcastId, 'comments', commentId));
+  await updateDoc(doc(db, 'podcast', podcastId), { commentsCount: increment(-1) });
 }
 
 export async function publishPodcast(params: {
