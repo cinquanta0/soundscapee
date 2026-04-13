@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { db } from '../firebaseConfig';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, writeBatch, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 
 // Configura come vengono gestite le notifiche in foreground
 Notifications.setNotificationHandler({
@@ -68,11 +68,11 @@ export async function registerForPushNotifications(userId) {
       return null;
     }
 
-    // Salva il token nel profilo utente
+    // Salva il token nell'array pushTokens (supporta multi-device)
     if (userId && token) {
       await setDoc(
         doc(db, 'users', userId),
-        { pushToken: token, updatedAt: new Date() },
+        { pushTokens: arrayUnion(token), updatedAt: new Date() },
         { merge: true }
       );
     }

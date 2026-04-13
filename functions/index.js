@@ -228,7 +228,12 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
   try {
     const userDoc = await db.collection('users').doc(userId).get();
     if (!userDoc.exists) return;
-    const { pushToken, fcmWebToken } = userDoc.data();
+    const userData = userDoc.data();
+    const { fcmWebToken } = userData;
+
+    // Supporta sia pushTokens (array, multi-device) che pushToken (legacy singolo)
+    const rawTokens = userData.pushTokens ?? (userData.pushToken ? [userData.pushToken] : []);
+    const mobileTokens = [...new Set(rawTokens)].filter(t => t?.startsWith('ExponentPushToken'));
 
     const promises = [];
 
@@ -244,21 +249,40 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
       })
     );
 
-    // 2. Expo Push (mobile)
-    if (pushToken && pushToken.startsWith('ExponentPushToken')) {
+    // 2. Expo Push (mobile) — invia a tutti i device dell'utente
+    for (const token of mobileTokens) {
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            to: pushToken,
+            to: token,
             sound: 'default',
             title,
             body,
             data,
             priority: 'high',
+            channelId: 'default',
           }),
-        }).catch((e) => console.error('Expo push error:', e))
+        })
+          .then(async (res) => {
+            const json = await res.json();
+            const result = json?.data;
+            if (result?.status === 'error') {
+              console.error(`[push] Expo error per ${userId} token ${token.slice(-8)}: ${result.message} (${result.details?.error})`);
+              // Token non valido: rimuovilo dall'array
+              if (result.details?.error === 'DeviceNotRegistered') {
+                await db.collection('users').doc(userId).update({
+                  pushTokens: admin.firestore.FieldValue.arrayRemove(token),
+                  pushToken: admin.firestore.FieldValue.delete(), // pulisce anche il legacy
+                });
+                console.log(`[push] token rimosso per ${userId}: ${token.slice(-8)}`);
+              }
+            } else {
+              console.log(`[push] Expo OK per ${userId} (${token.slice(-8)})`);
+            }
+          })
+          .catch((e) => console.error(`[push] fetch error per ${userId}:`, e))
       );
     }
 
@@ -573,23 +597,25 @@ exports.onRadioCreated = onDocumentCreated(
     if (!room || !room.isLive) return;
 
     const { hostId, hostName, title } = room;
-    if (!hostId) return;
+    if (!hostId) { console.log('[onRadioCreated] hostId mancante, skip'); return; }
 
     const db = admin.firestore();
-    console.log(`[onRadioCreated] Host: ${hostId} (${hostName}), title: "${title}"`);
+    console.log(`[onRadioCreated] TRIGGERED — Host: ${hostId} (${hostName}), title: "${title}", isLive: ${room.isLive}`);
 
-    // I follow sono nella collezione root `follows` con campo followingId
     const followersSnap = await db
       .collection('follows')
       .where('followingId', '==', hostId)
       .get();
 
-    console.log(`[onRadioCreated] Follower trovati: ${followersSnap.size}`);
-    if (followersSnap.empty) return;
+    console.log(`[onRadioCreated] Follower trovati nella collection 'follows': ${followersSnap.size}`);
+    if (followersSnap.empty) {
+      console.log(`[onRadioCreated] Nessun follower trovato per hostId=${hostId} — notifiche non inviate`);
+      return;
+    }
 
     const promises = followersSnap.docs.map((followerDoc) => {
       const followerId = followerDoc.data().followerId;
-      console.log(`[onRadioCreated] Invio notifica a: ${followerId}`);
+      console.log(`[onRadioCreated] Invio notifica a followerId: ${followerId}`);
       return sendNotificationToUser(db, followerId, {
         title: '📻 Radio Live!',
         body: `${hostName} è appena andato live: "${title}"`,
@@ -598,7 +624,7 @@ exports.onRadioCreated = onDocumentCreated(
     });
 
     await Promise.allSettled(promises);
-    console.log(`[onRadioCreated] Notifiche inviate a ${promises.length} follower di ${hostName}`);
+    console.log(`[onRadioCreated] Done — notifiche inviate a ${promises.length} follower di ${hostName}`);
   }
 );
 
@@ -678,6 +704,41 @@ exports.onScheduledRadioCreated = onDocumentCreated(
     console.log(`[onScheduledRadioCreated] Notifiche inviate a ${promises.length} follower di ${hostName}`);
   }
 );
+
+// ─── Notifica radio live — callable diretta dall'host ─────────────────────────
+exports.notifyRadioLive = onCall({ region: 'europe-west1' }, async (request) => {
+  const { roomId, hostId, hostName, title, isScheduled } = request.data ?? {};
+  if (!roomId || !hostId || !hostName) {
+    throw new HttpsError('invalid-argument', 'Parametri mancanti');
+  }
+
+  const db = admin.firestore();
+  const followersSnap = await db
+    .collection('follows')
+    .where('followingId', '==', hostId)
+    .get();
+
+  console.log(`[notifyRadioLive] hostId=${hostId} (${hostName}), follower=${followersSnap.size}, scheduled=${!!isScheduled}`);
+
+  if (followersSnap.empty) return { sent: 0 };
+
+  const notifTitle = isScheduled ? '📅 Radio programmata!' : '📻 Radio Live!';
+  const notifBody = isScheduled
+    ? `${hostName} ha programmato una radio: "${title}"`
+    : `${hostName} è appena andato live: "${title}"`;
+
+  const promises = followersSnap.docs.map((doc) =>
+    sendNotificationToUser(db, doc.data().followerId, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: isScheduled ? 'radio_scheduled' : 'radio_live', roomId, hostId },
+    })
+  );
+
+  await Promise.allSettled(promises);
+  console.log(`[notifyRadioLive] Inviate a ${promises.length} follower`);
+  return { sent: promises.length };
+});
 
 // ─── Agora Token ──────────────────────────────────────────────────────────────
 
