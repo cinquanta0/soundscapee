@@ -536,15 +536,16 @@ exports.onRadioCreated = onDocumentCreated(
 
     const db = admin.firestore();
 
-    // Recupera tutti i follower dell'host
+    // I follow sono nella collezione root `follows` con campo followingId
     const followersSnap = await db
-      .collection('users').doc(hostId)
-      .collection('followers').get();
+      .collection('follows')
+      .where('followingId', '==', hostId)
+      .get();
 
     if (followersSnap.empty) return;
 
     const promises = followersSnap.docs.map((followerDoc) =>
-      sendNotificationToUser(db, followerDoc.id, {
+      sendNotificationToUser(db, followerDoc.data().followerId, {
         title: '📻 Radio Live!',
         body: `${hostName} è appena andato live: "${title}"`,
         data: { type: 'radio_live', roomId: event.params.roomId, hostId },
@@ -571,13 +572,14 @@ exports.onRadioGoesLive = onDocumentUpdated(
 
     const db = admin.firestore();
     const followersSnap = await db
-      .collection('users').doc(hostId)
-      .collection('followers').get();
+      .collection('follows')
+      .where('followingId', '==', hostId)
+      .get();
 
     if (followersSnap.empty) return;
 
     const promises = followersSnap.docs.map((followerDoc) =>
-      sendNotificationToUser(db, followerDoc.id, {
+      sendNotificationToUser(db, followerDoc.data().followerId, {
         title: '📻 Radio Live!',
         body: `${hostName} è appena andato live: "${title}"`,
         data: { type: 'radio_live', roomId: event.params.roomId, hostId },
@@ -602,8 +604,9 @@ exports.onScheduledRadioCreated = onDocumentCreated(
 
     const db = admin.firestore();
     const followersSnap = await db
-      .collection('users').doc(hostId)
-      .collection('followers').get();
+      .collection('follows')
+      .where('followingId', '==', hostId)
+      .get();
 
     if (followersSnap.empty) return;
 
@@ -619,7 +622,7 @@ exports.onScheduledRadioCreated = onDocumentCreated(
     });
 
     const promises = followersSnap.docs.map((followerDoc) =>
-      sendNotificationToUser(db, followerDoc.id, {
+      sendNotificationToUser(db, followerDoc.data().followerId, {
         title: '📅 Radio programmata!',
         body: `${hostName} andrà live "${title}" il ${timeStr}`,
         data: { type: 'radio_scheduled', roomId: event.params.roomId, hostId },
