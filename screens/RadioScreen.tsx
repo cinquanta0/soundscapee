@@ -24,6 +24,7 @@ import {
   setMicActive, upgradeToSpeaker, downgradeToAudience, destroyAgoraEngine, refreshSpeakerphone,
 } from '../services/agoraService';
 import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SW = Dimensions.get('window').width;
 
@@ -60,7 +61,38 @@ const OFFLINE_STATIONS: OfflineStation[] = [
   { id: 'capital', name: 'Radio Capital', genre: 'Pop · Hits', color: '#F44336', searchName: 'Radio Capital' },
 ];
 
-// Fetch URL stream verificato da radio-browser.info (directory pubblica, aggiornata dalla community)
+// URL hardcoded di fallback (aggiornati aprile 2026) — usati quando radio-browser.info non è raggiungibile
+const FALLBACK_STREAM_URLS: Record<string, string> = {
+  'RTL 102.5':        'https://streamingv2.shoutcast.com/rtl-1025',
+  'Radio 105':        'https://icecast.unitedradio.it/Radio105.mp3',
+  'Radio DeeJay':     'https://icecast.unitedradio.it/Deejay.mp3',
+  'Radio Italia':     'https://icecast.unitedradio.it/RadioItalia.mp3',
+  'RDS':              'https://icecast.unitedradio.it/RDS.mp3',
+  'Virgin Radio Italy': 'https://icecast.unitedradio.it/VirginRadio.mp3',
+  'm2o':              'https://icecast.unitedradio.it/m2o.mp3',
+  'Radio Capital':    'https://icecast.unitedradio.it/Capital.mp3',
+};
+
+const RADIO_URL_CACHE_PREFIX = 'radio_url_cache_';
+const RADIO_URL_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 giorni
+
+async function getCachedUrl(searchName: string): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(RADIO_URL_CACHE_PREFIX + searchName);
+    if (!raw) return null;
+    const { url, ts } = JSON.parse(raw);
+    if (Date.now() - ts > RADIO_URL_CACHE_TTL) return null;
+    return url;
+  } catch { return null; }
+}
+
+async function setCachedUrl(searchName: string, url: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(RADIO_URL_CACHE_PREFIX + searchName, JSON.stringify({ url, ts: Date.now() }));
+  } catch {}
+}
+
+// Fetch URL stream da radio-browser.info con cache AsyncStorage e fallback hardcoded
 async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> {
   // Domini che supportano HTTPS anche se radio-browser li indicizza come HTTP
   const HTTP_TO_HTTPS_DOMAINS = [
@@ -82,15 +114,17 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
 
   const pickBest = (data: { url_resolved?: string; url?: string }[]): string | null => {
     const candidates = data.map(s => upgradeToHttps(s.url_resolved || s.url || ''));
-    // Preferisci HTTPS (Android blocca HTTP in release)
     const https = candidates.find(u => u.startsWith('https://'));
     return https || candidates[0] || null;
   };
 
+  // 1. Prova dalla cache locale
+  const cached = await getCachedUrl(searchName);
+  if (cached) return cached;
+
+  // 2. Prova a contattare radio-browser.info
   const queries = [
-    // Prima prova: nome esatto + Italia
     `name=${encodeURIComponent(searchName)}&countrycode=IT&hidebroken=true&order=votes&reverse=true&limit=10`,
-    // Seconda prova: solo nome, qualsiasi paese (alcune stazioni non hanno country code)
     `name=${encodeURIComponent(searchName)}&hidebroken=true&order=votes&reverse=true&limit=10`,
   ];
 
@@ -107,12 +141,23 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
         if (!res.ok) continue;
         const data: { url_resolved?: string; url?: string }[] = await res.json();
         const url = pickBest(data);
-        if (url) return url;
+        if (url) {
+          await setCachedUrl(searchName, url);
+          return url;
+        }
       } catch (e) {
         console.warn('radio-browser fetch error:', mirror, e);
       }
     }
   }
+
+  // 3. Fallback: URL hardcoded
+  const fallback = FALLBACK_STREAM_URLS[searchName];
+  if (fallback) {
+    console.log('radio-browser irraggiungibile, uso fallback per', searchName);
+    return fallback;
+  }
+
   return null;
 }
 
@@ -311,7 +356,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         await soundRef.current.unloadAsync().catch(() => {});
         soundRef.current = null;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
       refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync(
         { uri: track.url, headers: { 'Cache-Control': 'no-cache' } },
@@ -913,7 +958,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         await soundRef.current.unloadAsync().catch(() => {});
         soundRef.current = null;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
       refreshSpeakerphone();
       const elapsed = Math.max(0, now - startAt);
       const { sound } = await Audio.Sound.createAsync(
@@ -1672,7 +1717,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           staysActiveInBackground: true,
         });
 
-        if (mounted) setStatusLabel('Connessione...');
+        if (mounted) setStatusLabel(
+          FALLBACK_STREAM_URLS[station.searchName] ? 'Connessione...' : 'Ricerca stream...'
+        );
         const streamUrl = await fetchRadioBrowserUrl(station.searchName);
         if (!streamUrl) throw new Error('Nessun stream trovato');
 

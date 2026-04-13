@@ -556,6 +556,81 @@ exports.onRadioCreated = onDocumentCreated(
   }
 );
 
+// ── Trigger: radio programmata diventa live (update isLive false→true) ────────
+exports.onRadioGoesLive = onDocumentUpdated(
+  { document: 'radio/{roomId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+    // Scatta solo quando isLive passa da false a true
+    if (before.isLive || !after.isLive) return;
+
+    const { hostId, hostName, title } = after;
+    if (!hostId) return;
+
+    const db = admin.firestore();
+    const followersSnap = await db
+      .collection('users').doc(hostId)
+      .collection('followers').get();
+
+    if (followersSnap.empty) return;
+
+    const promises = followersSnap.docs.map((followerDoc) =>
+      sendNotificationToUser(db, followerDoc.id, {
+        title: '📻 Radio Live!',
+        body: `${hostName} è appena andato live: "${title}"`,
+        data: { type: 'radio_live', roomId: event.params.roomId, hostId },
+      })
+    );
+
+    await Promise.allSettled(promises);
+    console.log(`[onRadioGoesLive] Notifiche inviate a ${promises.length} follower di ${hostName}`);
+  }
+);
+
+// ── Trigger: nuova radio programmata creata ────────────────────────────────────
+exports.onScheduledRadioCreated = onDocumentCreated(
+  { document: 'radio/{roomId}', region: 'europe-west1' },
+  async (event) => {
+    const room = event.data?.data();
+    // Scatta solo per radio programmate (isLive=false con scheduledFor)
+    if (!room || room.isLive || !room.scheduledFor) return;
+
+    const { hostId, hostName, title, scheduledFor } = room;
+    if (!hostId) return;
+
+    const db = admin.firestore();
+    const followersSnap = await db
+      .collection('users').doc(hostId)
+      .collection('followers').get();
+
+    if (followersSnap.empty) return;
+
+    // Formatta l'orario in modo leggibile (Europe/Rome)
+    const scheduledDate = scheduledFor.toDate ? scheduledFor.toDate() : new Date(scheduledFor._seconds * 1000);
+    const timeStr = scheduledDate.toLocaleString('it-IT', {
+      timeZone: 'Europe/Rome',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const promises = followersSnap.docs.map((followerDoc) =>
+      sendNotificationToUser(db, followerDoc.id, {
+        title: '📅 Radio programmata!',
+        body: `${hostName} andrà live "${title}" il ${timeStr}`,
+        data: { type: 'radio_scheduled', roomId: event.params.roomId, hostId },
+      })
+    );
+
+    await Promise.allSettled(promises);
+    console.log(`[onScheduledRadioCreated] Notifiche inviate a ${promises.length} follower di ${hostName}`);
+  }
+);
+
 // ─── Agora Token ──────────────────────────────────────────────────────────────
 
 exports.getAgoraToken = onCall({ region: 'europe-west1' }, async (request) => {

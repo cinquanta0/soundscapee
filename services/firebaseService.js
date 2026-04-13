@@ -1507,3 +1507,22 @@ export const getFollowingList = async (userId) => {
     return [];
   }
 };
+
+/**
+ * Conta follower e following direttamente dalla collezione `follows`.
+ * Sempre accurato — non usa i counter fields che si desincronizzano.
+ */
+export const getFollowStats = async (userId) => {
+  try {
+    const [followersSnap, followingSnap] = await Promise.all([
+      getCountFromServer(query(collection(db, 'follows'), where('followingId', '==', userId))),
+      getCountFromServer(query(collection(db, 'follows'), where('followerId', '==', userId))),
+    ]);
+    return {
+      followers: followersSnap.data().count,
+      following: followingSnap.data().count,
+    };
+  } catch {
+    return { followers: 0, following: 0 };
+  }
+};

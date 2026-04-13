@@ -95,10 +95,9 @@ import {
   updateUserProfile,  // ⭐ AGGIUNGI QUESTO
   getActiveChallenges,           // ⭐ AGGIUNGI QUESTA
   submitSoundToChallenge,        // ⭐ AGGIUNGI QUESTA
-  getFollowersList,     // ⭐ AGGIUNGI QUESTA
-  getFollowingList,     // ⭐ AGGIUNGI QUESTA
-
-
+  getFollowersList,
+  getFollowingList,
+  getFollowStats,
 } from '../../services/firebaseService';
 
 import CommunitiesScreen from './communities';
@@ -287,6 +286,7 @@ export default function App() {
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
+  const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
   
   
   // Load user and sounds on mount
@@ -399,6 +399,7 @@ useEffect(() => {
       // Get user profile
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
+      getFollowStats(user.uid).then(setFollowStats);
 
       // Conta il totale reale dei suoni (non limitato a 20)
       getCountFromServer(collection(firestoreDb, 'sounds'))
@@ -1091,6 +1092,7 @@ const handleSaveProfile = async () => {
     // Ricarica profilo
     const newProfile = await getUserProfile(user.uid);
     setUserProfile(newProfile);
+    getFollowStats(user.uid).then(setFollowStats);
 
     setShowEditProfileModal(false);
     Alert.alert(t('profile.profileUpdated'), t('profile.profileUpdatedMsg'));
@@ -1160,9 +1162,9 @@ const handleFollowToggle = async () => {
   try {
     const res = await toggleFollow(userProfile.id); // id utente che stai vedendo!
     setIsFollowingUser(res);
-    // Puoi ricaricare anche i dati profilo per aggiornare counts
     const updated = await getUserProfile(userProfile.id);
     setUserProfile(updated);
+    getFollowStats(userProfile.id).then(setFollowStats);
   } catch (e) {
     Alert.alert(t('common.error'), t('profile.errors.cannotFollow'));
   } finally {
@@ -1179,13 +1181,15 @@ const handleFollowToggle = async () => {
 };
 
 const fetchAndShowFollowers = async () => {
-  const list = await getFollowersList(userProfile.id); // ti serve in firebaseService!
+  const list = await getFollowersList(userProfile.id);
   setFollowersList(list);
+  setFollowStats(prev => ({ ...prev, followers: list.length }));
   setShowFollowersModal(true);
 };
 const fetchAndShowFollowing = async () => {
-  const list = await getFollowingList(userProfile.id); // ti serve in firebaseService!
+  const list = await getFollowingList(userProfile.id);
   setFollowingList(list);
+  setFollowStats(prev => ({ ...prev, following: list.length }));
   setShowFollowingModal(true);
 }; 
 
@@ -1195,6 +1199,7 @@ const openUserProfile = async (userId) => {
   try {
     const profile = await getUserProfile(userId);
     setUserProfile(profile);
+    getFollowStats(userId).then(setFollowStats);
     setActiveTab('profile');
   } catch (error) {
     console.error('Error opening user profile:', error);
@@ -1536,19 +1541,14 @@ if (loading) {
     <Text style={styles.profileStatNumber}>{mySounds.length}</Text>
     <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
   </View>
-  {/* Amici cliccabile */}
-  <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFriends}>
-    <Text style={styles.profileStatNumber}>{userProfile?.friendsCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>{t('profile.friends')}</Text>
-  </TouchableOpacity>
   {/* Followers cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
-    <Text style={styles.profileStatNumber}>{userProfile?.followersCount || 0}</Text>
+    <Text style={styles.profileStatNumber}>{followStats.followers}</Text>
     <Text style={styles.profileStatLabel}>{t('profile.followers')}</Text>
   </TouchableOpacity>
   {/* Following cliccabile */}
   <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowing}>
-    <Text style={styles.profileStatNumber}>{userProfile?.followingCount || 0}</Text>
+    <Text style={styles.profileStatNumber}>{followStats.following}</Text>
     <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
   </TouchableOpacity>
   <View style={styles.profileStat}>
@@ -2599,52 +2599,6 @@ if (loading) {
   </TouchableWithoutFeedback>
 </Modal>
 
-
-    {/* Amici Modal */}
-<Modal
-  visible={showFriendsModal}
-  animationType="slide"
-  transparent={true}
-  onRequestClose={() => setShowFriendsModal(false)}
->
-  <TouchableWithoutFeedback onPress={() => setShowFriendsModal(false)}>
-    <View style={styles.modalOverlay}>
-      <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>{t('profile.friendsButton')}</Text>
-          <TouchableOpacity onPress={() => setShowFriendsModal(false)}>
-            <Text style={styles.modalClose}>✕</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={{ padding: 16 }}>
-          {friendsList.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyText}>{t('profile.noFriends')}</Text>
-            </View>
-          ) : (
-            friendsList.map(u => (
-              <TouchableOpacity
-                key={u.id}
-                onPress={() => { setShowFriendsModal(false); openUserProfile(u.id); }}
-                style={styles.userListItem}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{u.avatar}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.userName}>{u.username}</Text>
-                  <Text style={styles.soundLocation}>@{u.username}</Text>
-                </View>
-                <Text style={styles.navIcon}>→</Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
-      </View>
-    </View>
-  </TouchableWithoutFeedback>
-</Modal>
 
     {/* Followers Modal */}
 <Modal
