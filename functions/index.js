@@ -348,6 +348,47 @@ exports.convertWebmToM4a = onCall(
   }
 );
 
+// ── Trigger: like su podcast ─────────────────────────────────────────────────
+exports.onPodcastLiked = onDocumentCreated(
+  { document: 'podcast/{podcastId}/likes/{likerId}', region: 'europe-west1' },
+  async (event) => {
+    const { podcastId, likerId } = event.params;
+    const db = admin.firestore();
+    const podDoc = await db.collection('podcast').doc(podcastId).get();
+    if (!podDoc.exists) return;
+    const pod = podDoc.data();
+    if (pod.userId === likerId) return; // no self-notification
+    const likerDoc = await db.collection('users').doc(likerId).get();
+    const likerName = likerDoc.data()?.username || likerDoc.data()?.displayName || 'Qualcuno';
+    await sendNotificationToUser(db, pod.userId, {
+      title: '👍 Like al tuo podcast!',
+      body: `${likerName} ha messo like a "${pod.title}"`,
+      data: { type: 'podcast_like', podcastId, userId: likerId },
+    });
+  }
+);
+
+// ── Trigger: commento su podcast ──────────────────────────────────────────────
+exports.onPodcastCommentCreated = onDocumentCreated(
+  { document: 'podcast/{podcastId}/comments/{commentId}', region: 'europe-west1' },
+  async (event) => {
+    const { podcastId } = event.params;
+    const comment = event.data?.data();
+    if (!comment) return;
+    const db = admin.firestore();
+    const podDoc = await db.collection('podcast').doc(podcastId).get();
+    if (!podDoc.exists) return;
+    const pod = podDoc.data();
+    if (pod.userId === comment.userId) return; // no self-notification
+    const preview = comment.text?.length > 60 ? comment.text.substring(0, 60) + '…' : comment.text;
+    await sendNotificationToUser(db, pod.userId, {
+      title: '💬 Commento al tuo podcast!',
+      body: `${comment.username}: "${preview}"`,
+      data: { type: 'podcast_comment', podcastId, userId: comment.userId },
+    });
+  }
+);
+
 // ── Trigger: nuovo like ───────────────────────────────────────────────────────
 exports.onLikeCreated = onDocumentCreated(
   { document: 'sounds/{soundId}/likes/{likerId}', region: 'europe-west1' },
@@ -535,6 +576,7 @@ exports.onRadioCreated = onDocumentCreated(
     if (!hostId) return;
 
     const db = admin.firestore();
+    console.log(`[onRadioCreated] Host: ${hostId} (${hostName}), title: "${title}"`);
 
     // I follow sono nella collezione root `follows` con campo followingId
     const followersSnap = await db
@@ -542,15 +584,18 @@ exports.onRadioCreated = onDocumentCreated(
       .where('followingId', '==', hostId)
       .get();
 
+    console.log(`[onRadioCreated] Follower trovati: ${followersSnap.size}`);
     if (followersSnap.empty) return;
 
-    const promises = followersSnap.docs.map((followerDoc) =>
-      sendNotificationToUser(db, followerDoc.data().followerId, {
+    const promises = followersSnap.docs.map((followerDoc) => {
+      const followerId = followerDoc.data().followerId;
+      console.log(`[onRadioCreated] Invio notifica a: ${followerId}`);
+      return sendNotificationToUser(db, followerId, {
         title: '📻 Radio Live!',
         body: `${hostName} è appena andato live: "${title}"`,
         data: { type: 'radio_live', roomId: event.params.roomId, hostId },
-      })
-    );
+      });
+    });
 
     await Promise.allSettled(promises);
     console.log(`[onRadioCreated] Notifiche inviate a ${promises.length} follower di ${hostName}`);
