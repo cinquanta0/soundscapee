@@ -76,7 +76,7 @@ import {
 
 
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore';
 import { db as firestoreDb } from '../../firebaseConfig';
 import {
   subscribeToSoundsFeed,
@@ -1208,12 +1208,46 @@ const openUserProfile = async (userId) => {
 };
 
 // Gestisce la navigazione da tap notifica (system tray o modal)
+const openSoundById = async (soundId: string, action: 'play' | 'comment') => {
+  if (!soundId) return;
+  // Cerca prima nel feed già caricato
+  let sound = sounds.find((s: any) => s.id === soundId);
+  // Se non trovato, scarica da Firestore
+  if (!sound) {
+    try {
+      const snap = await getDoc(firestoreDoc(firestoreDb, 'sounds', soundId));
+      if (snap.exists()) sound = { id: snap.id, ...snap.data() };
+    } catch {}
+  }
+  if (!sound) return;
+  if (action === 'comment') {
+    openCommentsModal(sound.id);
+  } else {
+    handlePlay(sound);
+  }
+};
+
 const handleNotificationNavigation = async (data: any) => {
   if (!data?.type) return;
   switch (data.type) {
     case 'like':
+      setActiveTab('home');
+      if (data.soundId) setTimeout(() => openSoundById(data.soundId, 'play'), 400);
+      break;
     case 'comment':
+      setActiveTab('home');
+      if (data.soundId) setTimeout(() => openSoundById(data.soundId, 'comment'), 400);
+      break;
     case 'remix':
+      // Il remix è nella collection remixes — apri home (il suono originale potrebbe essere in feed)
+      setActiveTab('home');
+      break;
+    case 'podcast_like':
+    case 'podcast_comment':
+    case 'radio_live':
+    case 'radio_scheduled':
+      setActiveTab('explore');
+      break;
     case 'streak_reminder':
       setActiveTab('home');
       break;
@@ -1242,9 +1276,6 @@ const handleNotificationNavigation = async (data: any) => {
       if (uid) await openUserProfile(uid);
       break;
     }
-    case 'radio_live':
-      setActiveTab('explore');
-      break;
     default:
       setActiveTab('home');
   }
@@ -1626,20 +1657,22 @@ if (loading) {
         </TouchableOpacity>
       )}
 
-      <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-        <TouchableOpacity
-          style={[styles.profileButtonPrimary, { flex: 1 }]}
-          onPress={handleEditProfile}
-        >
-          <Text style={styles.profileButtonPrimaryText}>{t('profile.edit')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#334155' }]}
-          onPress={() => Alert.alert(t('common.info'), t('profile.featureComingSoon'))}
-        >
-          <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
-        </TouchableOpacity>
-      </View>
+      {userProfile?.id === auth.currentUser?.uid && (
+        <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+          <TouchableOpacity
+            style={[styles.profileButtonPrimary, { flex: 1 }]}
+            onPress={handleEditProfile}
+          >
+            <Text style={styles.profileButtonPrimaryText}>{t('profile.edit')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#334155' }]}
+            onPress={() => Alert.alert(t('common.info'), t('profile.featureComingSoon'))}
+          >
+            <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
 
     {/* My Recordings */}

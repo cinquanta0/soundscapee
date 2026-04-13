@@ -356,7 +356,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         await soundRef.current.unloadAsync().catch(() => {});
         soundRef.current = null;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false });
       refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync(
         { uri: track.url, headers: { 'Cache-Control': 'no-cache' } },
@@ -1715,6 +1715,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
+          shouldDuckAndroid: false,
         });
 
         if (mounted) setStatusLabel(

@@ -112,6 +112,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
+        shouldDuckAndroid: false,
       });
 
       const urlPath = decodeURIComponent(podcast.audioUrl.split('?')[0]);

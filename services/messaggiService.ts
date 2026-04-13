@@ -31,6 +31,7 @@ export interface Conversazione {
   lastSenderId: string;
   lastTimestamp: Date;
   unread: number;
+  lastMessageAscoltato: boolean;
 }
 
 // conversationId deterministico
@@ -75,6 +76,7 @@ export function listenConversazioni(
         lastSenderId: data.lastSenderId || '',
         lastTimestamp: data.updatedAt?.toDate() ?? new Date(),
         unread: data[`unread_${userId}`] || 0,
+        lastMessageAscoltato: data.lastMessageAscoltato ?? false,
       });
     }
     cb(convs);
@@ -167,6 +169,7 @@ export async function inviaMessaggio(params: {
     lastSenderId: user.uid,
     updatedAt: serverTimestamp(),
     [`unread_${params.receiverId}`]: increment(1),
+    lastMessageAscoltato: false,
   }, { merge: true });
 }
 
@@ -175,5 +178,8 @@ export async function segnaAscoltato(messageId: string, conversationId: string):
   if (!user) return;
   await updateDoc(doc(db, 'messaggi', messageId), { ascoltato: true });
   const convRef = doc(db, 'conversations', conversationId);
-  await updateDoc(convRef, { [`unread_${user.uid}`]: 0 });
+  await updateDoc(convRef, {
+    [`unread_${user.uid}`]: 0,
+    lastMessageAscoltato: true,
+  });
 }

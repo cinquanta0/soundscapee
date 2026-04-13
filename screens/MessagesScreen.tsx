@@ -49,7 +49,11 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
           <Text style={cr.preview}>
             {isMe ? '▶ ' : '🎤 '}{conv.lastDuration}s
           </Text>
-          {isMe && <Text style={[cr.check, { color: conv.unread === 0 ? '#00FF9C' : 'rgba(255,255,255,0.3)' }]}>✓✓</Text>}
+          {isMe && (
+            <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#00FF9C' : 'rgba(255,255,255,0.3)' }]}>
+              {conv.lastMessageAscoltato ? '✓✓' : '✓'}
+            </Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
