@@ -61,6 +61,8 @@ export async function joinAsHost(channelName: string, token: string | null): Pro
     publishMicrophoneTrack: false, // parte mutato
     autoSubscribeAudio: true,
   });
+  // Boost voce remota: 200% del default così si sente chiaramente sopra la musica
+  engine.adjustPlaybackSignalVolume(200);
 }
 
 export async function joinAsAudience(channelName: string, token: string | null): Promise<void> {
@@ -71,6 +73,8 @@ export async function joinAsAudience(channelName: string, token: string | null):
     publishMicrophoneTrack: false,
     autoSubscribeAudio: true,
   });
+  // Boost voce remota: 200% del default così si sente chiaramente sopra la musica
+  engine.adjustPlaybackSignalVolume(200);
 }
 
 export async function leaveAgoraChannel(): Promise<void> {

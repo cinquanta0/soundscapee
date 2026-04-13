@@ -683,7 +683,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     setMicActive(next);
     // Ducking: abbassa la musica quando il mic è attivo
     if (soundRef.current) {
-      soundRef.current.setVolumeAsync(next ? 0.15 : 1.0).catch(() => {});
+      soundRef.current.setVolumeAsync(next ? 0.07 : 1.0).catch(() => {});
     }
     try { await setHostMicLive(room.id, next); } catch {}
   };
@@ -1207,7 +1207,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
       refreshSpeakerphone();
       const elapsed = Math.max(0, now - startAt);
-      const targetVol = hostMicLiveRef.current ? 0.15 : 1.0;
+      const targetVol = hostMicLiveRef.current ? 0.07 : 1.0;
       const { sound } = await Audio.Sound.createAsync(
         { uri: track.url },
         { shouldPlay: true, positionMillis: elapsed > 500 ? elapsed : 0, volume: doFade ? 0 : targetVol },
@@ -1299,7 +1299,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   // Ducking lato listener: abbassa la musica quando l'host attiva il microfono
   useEffect(() => {
     hostMicLiveRef.current = room.hostMicLive ?? false;
-    soundRef.current?.setVolumeAsync(room.hostMicLive ? 0.15 : 1.0).catch(() => {});
+    soundRef.current?.setVolumeAsync(room.hostMicLive ? 0.07 : 1.0).catch(() => {});
   }, [room.hostMicLive]);
 
   // Promozione/revoca speaker — reagisce ai cambiamenti di activeSpeakers e cohosts
@@ -1353,7 +1353,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     const next = !speakerMicActive;
     setSpeakerMicActive(next);
     setMicActive(next);
-    soundRef.current?.setVolumeAsync(next ? 0.15 : 1.0).catch(() => {});
+    soundRef.current?.setVolumeAsync(next ? 0.07 : 1.0).catch(() => {});
   };
 
   const openSuggest = async () => {
