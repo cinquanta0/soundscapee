@@ -41,6 +41,7 @@ export interface RadioRoom {
   activeSpeakers?: string[];  // userIds currently speaking (picked + cohosts)
   cohosts?: string[];         // userIds promoted to permanent cohost
   scheduledFor?: Date;        // set when room is not yet live
+  hostLastSeen?: Date;        // heartbeat — updated every 30s dall'host
 }
 
 function mapRoom(id: string, data: Record<string, any>): RadioRoom {
@@ -62,6 +63,7 @@ function mapRoom(id: string, data: Record<string, any>): RadioRoom {
     activeSpeakers: data.activeSpeakers ?? [],
     cohosts: data.cohosts ?? [],
     scheduledFor: data.scheduledFor?.toDate?.() ?? undefined,
+    hostLastSeen: data.hostLastSeen?.toDate?.() ?? undefined,
   };
 }
 
@@ -162,6 +164,15 @@ export async function extendGap(
   await updateDoc(doc(db, 'radio', roomId), {
     trackStartedAt: Timestamp.fromDate(newStartAt),
   });
+}
+
+export async function reorderPlaylist(roomId: string, newPlaylist: PlaylistTrack[]): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), { playlist: newPlaylist });
+}
+
+/** Heartbeat dell'host — aggiorna hostLastSeen ogni ~30s */
+export async function hostHeartbeat(roomId: string): Promise<void> {
+  await updateDoc(doc(db, 'radio', roomId), { hostLastSeen: serverTimestamp() });
 }
 
 export async function endRadioRoom(roomId: string): Promise<void> {

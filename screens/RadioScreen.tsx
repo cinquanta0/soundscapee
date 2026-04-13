@@ -18,7 +18,7 @@ import {
   grantSpeaker, revokeSpeaker, addCohost, removeCohost,
   listenToSuggestions, suggestTrack, approveSuggestion, rejectSuggestion, fetchUserSoundsForSuggestion,
   scheduleRadioRoom, startScheduledRoom, listenToScheduledRooms,
-  extendGap,
+  extendGap, reorderPlaylist, hostHeartbeat,
 } from '../services/radioService';
 import {
   fetchAgoraToken, joinAsHost, joinAsAudience, leaveAgoraChannel,
@@ -292,6 +292,33 @@ async function fetchNowPlaying(stationId: string): Promise<NowPlayingInfo | null
   return info?.djName ? info : null;
 }
 
+// ─── Crossfade utility ───────────────────────────────────────────────────────
+/**
+ * Fades out oldSound e fades in newSound in `ms` millisecondi.
+ * Ritorna una funzione di cleanup (cancella il timer).
+ */
+function startCrossfade(
+  oldSound: Audio.Sound,
+  newSound: Audio.Sound,
+  ms = 2500,
+  targetVol = 1.0,
+): () => void {
+  const STEPS = 25;
+  const stepMs = Math.max(50, ms / STEPS);
+  let step = 0;
+  const id = setInterval(() => {
+    step++;
+    const t = Math.min(1, step / STEPS);
+    oldSound.setVolumeAsync(Math.max(0, (1 - t))).catch(() => {});
+    newSound.setVolumeAsync(Math.min(targetVol, t * targetVol)).catch(() => {});
+    if (step >= STEPS) {
+      clearInterval(id);
+      oldSound.stopAsync().catch(() => {}).finally(() => oldSound.unloadAsync().catch(() => {}));
+    }
+  }, stepMs);
+  return () => clearInterval(id);
+}
+
 // ─── Floating Reaction ────────────────────────────────────────────────────────
 interface FloatingItem { id: string; emoji: string; x: number; }
 
@@ -462,9 +489,12 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
   const playlistLengthRef = useRef(initialRoom.playlist.length);
   const trackStartedAtRef = useRef(initialRoom.trackStartedAt.getTime());
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const crossfadeCleanupRef = useRef<(() => void) | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadTrack = useCallback(async (r: RadioRoom) => {
+  const loadTrack = useCallback(async (r: RadioRoom, doFade = false) => {
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
+    if (crossfadeCleanupRef.current) { crossfadeCleanupRef.current(); crossfadeCleanupRef.current = null; }
     const track = r.playlist[r.currentTrackIndex];
     if (!track) { setAudioLoading(false); return; }
 
@@ -474,9 +504,14 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
     if (waitMs > 200) {
       setIsInGapAudio(true);
+      // In gap: ferma subito il suono corrente (niente crossfade durante le pause intenzionali)
+      if (soundRef.current) {
+        const s = soundRef.current; soundRef.current = null;
+        s.stopAsync().catch(() => {}).finally(() => s.unloadAsync().catch(() => {}));
+      }
       gapTimerRef.current = setTimeout(() => {
         setIsInGapAudio(false);
-        loadTrack({ ...r, trackStartedAt: new Date(startAt) });
+        loadTrack({ ...r, trackStartedAt: new Date(startAt) }, false);
       }, waitMs + 100);
       setAudioLoading(false);
       return;
@@ -484,28 +519,32 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
     setIsInGapAudio(false);
     setAudioLoading(true);
+    const oldSound = doFade ? soundRef.current : null;
+    if (!doFade && soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
+      await soundRef.current.unloadAsync().catch(() => {});
+    }
+    soundRef.current = null;
+
     try {
-      if (soundRef.current) {
-        await soundRef.current.stopAsync().catch(() => {});
-        await soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false });
       refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync(
         { uri: track.url, headers: { 'Cache-Control': 'no-cache' } },
-        { shouldPlay: false },
+        { shouldPlay: false, volume: doFade ? 0 : 1 },
       );
       const durationMs = status.isLoaded && status.durationMillis ? status.durationMillis : Infinity;
       const elapsed = Math.max(0, now - startAt);
       const offset = Math.min(elapsed, isFinite(durationMs) && durationMs > 1000 ? durationMs - 1000 : elapsed);
       if (offset > 0) await sound.setPositionAsync(offset);
       await sound.playAsync();
+      if (doFade && oldSound) {
+        crossfadeCleanupRef.current = startCrossfade(oldSound, sound, 2500);
+      }
       sound.setOnPlaybackStatusUpdate((s) => {
         if (!s.isLoaded) return;
         setIsPlaying(s.isPlaying);
         if (s.didJustFinish && currentIndexRef.current >= playlistLengthRef.current - 1) {
-          // Ultima traccia finita: ferma tutto
           setIsPlaying(false);
           setPlaylistEnded(true);
           soundRef.current?.stopAsync().catch(() => {});
@@ -522,18 +561,21 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       setRoom(updated);
       playlistLengthRef.current = updated.playlist.length;
       if (updated.currentTrackIndex !== currentIndexRef.current) {
-        // Traccia cambiata: resetta flag e ricarica
         currentIndexRef.current = updated.currentTrackIndex;
         trackStartedAtRef.current = updated.trackStartedAt.getTime();
         autoAdvancedRef.current = false;
         setPlaylistEnded(false);
-        loadTrack(updated);
+        // Crossfade solo se non c'è gap sulla traccia precedente
+        const hadNoGap = updated.trackStartedAt.getTime() <= Date.now() + 200;
+        loadTrack(updated, hadNoGap);
       } else if (updated.trackStartedAt.getTime() > trackStartedAtRef.current + 500) {
-        // Gap estesa dall'host: ricarica per aggiornare il timer locale
         trackStartedAtRef.current = updated.trackStartedAt.getTime();
-        loadTrack(updated);
+        loadTrack(updated, false);
       }
     });
+    // Heartbeat ogni 30s
+    hostHeartbeat(initialRoom.id).catch(() => {});
+    heartbeatRef.current = setInterval(() => hostHeartbeat(initialRoom.id).catch(() => {}), 30000);
     chatUnsubRef.current = listenToChat(room.id, (msgs) => {
       setChatMessages(msgs);
       setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 80);
@@ -550,6 +592,8 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
     return () => {
       if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      if (crossfadeCleanupRef.current) { crossfadeCleanupRef.current(); crossfadeCleanupRef.current = null; }
       if (soundRef.current) {
         const s = soundRef.current;
         soundRef.current = null;
@@ -559,7 +603,6 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       chatUnsubRef.current?.();
       handsUnsubRef.current?.();
       suggestionsUnsubRef.current?.();
-      // Agora cleanup
       setHostMicLive(initialRoom.id, false).catch(() => {});
       leaveAgoraChannel().catch(() => {});
       destroyAgoraEngine();
@@ -668,6 +711,14 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
 
   const handleRemoveCohost = async (userId: string) => {
     try { await removeCohost(room.id, userId); } catch {}
+  };
+
+  const handleMoveTrack = (fromIndex: number, direction: 'up' | 'down') => {
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex <= room.currentTrackIndex || toIndex >= room.playlist.length) return;
+    const newPlaylist = [...room.playlist];
+    [newPlaylist[fromIndex], newPlaylist[toIndex]] = [newPlaylist[toIndex], newPlaylist[fromIndex]];
+    reorderPlaylist(room.id, newPlaylist).catch(() => {});
   };
 
   const handleApproveSuggestion = async (s: Suggestion) => {
@@ -799,11 +850,36 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             </TouchableOpacity>
           </View>
           <Text style={hm.queueTitle}>{t('radio.queue')}</Text>
-          {room.playlist.map((track, i) => (
-            <QueueRow key={i} track={track} index={i} current={i === room.currentTrackIndex}
-              isGap={isInGap && i === room.currentTrackIndex}
-              gapCountdown={isInGap && i === room.currentTrackIndex ? gapRemaining : undefined} />
-          ))}
+          {room.playlist.map((track, i) => {
+            const canMove = i > room.currentTrackIndex;
+            return (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <QueueRow track={track} index={i} current={i === room.currentTrackIndex}
+                    isGap={isInGap && i === room.currentTrackIndex}
+                    gapCountdown={isInGap && i === room.currentTrackIndex ? gapRemaining : undefined} />
+                </View>
+                {canMove && (
+                  <View style={hm.reorderBtns}>
+                    <TouchableOpacity
+                      onPress={() => handleMoveTrack(i, 'up')}
+                      disabled={i === room.currentTrackIndex + 1}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text style={[hm.reorderArrow, i === room.currentTrackIndex + 1 && { opacity: 0.2 }]}>▲</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleMoveTrack(i, 'down')}
+                      disabled={i === room.playlist.length - 1}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text style={[hm.reorderArrow, i === room.playlist.length - 1 && { opacity: 0.2 }]}>▼</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </ScrollView>
       )}
 
@@ -1004,6 +1080,8 @@ const hm = StyleSheet.create({
   stopTxt: { color: '#FF2D55', fontSize: 14, fontWeight: '700' },
   queueTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, marginBottom: 10 },
   playlistEndedTxt: { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginTop: 8, fontStyle: 'italic' },
+  reorderBtns: { flexDirection: 'column', gap: 2, paddingRight: 4 },
+  reorderArrow: { fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: '700', textAlign: 'center' },
   extendGapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' },
   extendGapLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', width: '100%', textAlign: 'center', marginBottom: 4 },
   extendGapBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
@@ -1065,10 +1143,12 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const [showSuggest, setShowSuggest] = useState(false);
   const [userSounds, setUserSounds] = useState<UserSound[]>([]);
   const [loadingSounds, setLoadingSounds] = useState(false);
+  const [hostDisconnected, setHostDisconnected] = useState(false);
   const seenReactionsRef = useRef<Set<string>>(new Set());
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentIndexRef = useRef(initialRoom.currentTrackIndex);
   const listenerTrackStartedAtRef = useRef(initialRoom.trackStartedAt.getTime());
+  const crossfadeCleanupRef = useRef<(() => void) | null>(null);
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gapTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
@@ -1084,8 +1164,9 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     if (gapTickRef.current) clearInterval(gapTickRef.current);
   };
 
-  const loadTrack = useCallback(async (r: RadioRoom) => {
+  const loadTrack = useCallback(async (r: RadioRoom, doFade = false) => {
     clearGapTimers();
+    if (crossfadeCleanupRef.current) { crossfadeCleanupRef.current(); crossfadeCleanupRef.current = null; }
     const track = r.playlist[r.currentTrackIndex];
     if (!track) { setLoading(false); return; }
 
@@ -1094,16 +1175,19 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     const waitMs = startAt - now;
 
     if (waitMs > 200) {
-      // Siamo nella pausa: aspetta e poi carica
       setIsInGap(true);
       setGapCountdown(Math.ceil(waitMs / 1000));
+      if (soundRef.current) {
+        const s = soundRef.current; soundRef.current = null;
+        s.stopAsync().catch(() => {}).finally(() => s.unloadAsync().catch(() => {}));
+      }
       gapTickRef.current = setInterval(() => {
         setGapCountdown(prev => Math.max(0, prev - 1));
       }, 1000);
       gapTimerRef.current = setTimeout(() => {
         setIsInGap(false);
         setGapCountdown(0);
-        loadTrack({ ...r, trackStartedAt: new Date(startAt) });
+        loadTrack({ ...r, trackStartedAt: new Date(startAt) }, false);
       }, waitMs + 100);
       setLoading(false);
       return;
@@ -1112,23 +1196,28 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     setIsInGap(false);
     setGapCountdown(0);
     setLoading(true);
+    const oldSound = doFade ? soundRef.current : null;
+    if (!doFade && soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
+      await soundRef.current.unloadAsync().catch(() => {});
+    }
+    soundRef.current = null;
 
     try {
-      if (soundRef.current) {
-        await soundRef.current.stopAsync().catch(() => {});
-        await soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
       refreshSpeakerphone();
       const elapsed = Math.max(0, now - startAt);
+      const targetVol = hostMicLiveRef.current ? 0.15 : 1.0;
       const { sound } = await Audio.Sound.createAsync(
         { uri: track.url },
-        { shouldPlay: true, positionMillis: elapsed > 500 ? elapsed : 0 },
+        { shouldPlay: true, positionMillis: elapsed > 500 ? elapsed : 0, volume: doFade ? 0 : targetVol },
       );
+      if (doFade && oldSound) {
+        crossfadeCleanupRef.current = startCrossfade(oldSound, sound, 2500, targetVol);
+      } else if (!doFade && hostMicLiveRef.current) {
+        sound.setVolumeAsync(0.15).catch(() => {});
+      }
       sound.setOnPlaybackStatusUpdate((s) => { if (s.isLoaded) setIsPlaying(s.isPlaying); });
-      // Applica ducking se l'host sta già parlando quando carichiamo la traccia
-      if (hostMicLiveRef.current) sound.setVolumeAsync(0.15).catch(() => {});
       soundRef.current = sound;
     } catch {
       Alert.alert(t('common.error'), t('radio.errors.cannotLoad'));
@@ -1142,14 +1231,19 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     loadTrack(initialRoom);
     unsubRef.current = listenToRoom(initialRoom.id, (updated) => {
       setRoom(updated);
+      // Heartbeat check: se hostLastSeen è > 2 min fa, avvisa
+      if (updated.hostLastSeen) {
+        const staleSec = (Date.now() - updated.hostLastSeen.getTime()) / 1000;
+        setHostDisconnected(staleSec > 120);
+      }
       if (updated.currentTrackIndex !== currentIndexRef.current) {
         currentIndexRef.current = updated.currentTrackIndex;
         listenerTrackStartedAtRef.current = updated.trackStartedAt.getTime();
-        loadTrack(updated);
+        const hadNoGap = updated.trackStartedAt.getTime() <= Date.now() + 200;
+        loadTrack(updated, hadNoGap);
       } else if (updated.trackStartedAt.getTime() > listenerTrackStartedAtRef.current + 500) {
-        // Host ha esteso la gap: ricarica per aggiornare countdown
         listenerTrackStartedAtRef.current = updated.trackStartedAt.getTime();
-        loadTrack(updated);
+        loadTrack(updated, false);
       }
     });
     chatUnsubRef.current = listenToChat(initialRoom.id, (msgs) => {
@@ -1186,9 +1280,8 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
 
     return () => {
       clearGapTimers();
+      if (crossfadeCleanupRef.current) { crossfadeCleanupRef.current(); crossfadeCleanupRef.current = null; }
       leaveRadioRoom(initialRoom.id).catch(() => {});
-      // Ferma e scarica l'audio — stopAsync prima di unloadAsync garantisce
-      // che la riproduzione si fermi immediatamente anche su Android
       if (soundRef.current) {
         const s = soundRef.current;
         soundRef.current = null;
@@ -1327,6 +1420,11 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       {/* Tab: IN ONDA */}
       {activeTab === 'playing' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={lm.content} showsVerticalScrollIndicator={false}>
+          {hostDisconnected && (
+            <View style={lm.disconnectedBanner}>
+              <Text style={lm.disconnectedTxt}>⚠️ L'host potrebbe essersi disconnesso</Text>
+            </View>
+          )}
           <Text style={lm.stationName}>{room.title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Text style={lm.hostLine}>condotta da @{room.hostName}</Text>
@@ -1524,6 +1622,8 @@ const lm = StyleSheet.create({
   listenerTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'monospace', textAlign: 'center', marginBottom: 24 },
   queueTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, marginBottom: 10 },
   offAir: { textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, fontFamily: 'monospace', marginTop: 20 },
+  disconnectedBanner: { backgroundColor: 'rgba(255,165,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,165,0,0.3)', borderRadius: 10, padding: 10, marginBottom: 12 },
+  disconnectedTxt: { color: '#FFA500', fontSize: 12, fontFamily: 'monospace', textAlign: 'center' },
   // Tab bar
   tabBar: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10, flexDirection: 'row', justifyContent: 'center', gap: 5 },
