@@ -343,6 +343,26 @@ service cloud.firestore {
       allow delete: if isAuth() && isOwner(resource.data.followerId);
     }
 
+    // ── PLAYLISTS ─────────────────────────────────────────────────────────────
+    match /playlists/{playlistId} {
+      // Chiunque autenticato può leggere (playlist pubbliche per condivisione)
+      allow read: if isAuth();
+
+      // Creazione: solo utente autenticato, deve essere proprietario
+      allow create: if isNotAnonymous()
+                    && isOwner(request.resource.data.userId)
+                    && validString(request.resource.data.name, 200)
+                    && request.resource.data.podcastIds is list;
+
+      // Aggiornamento: solo proprietario, non può cambiare userId/createdAt
+      allow update: if isOwner(resource.data.userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['userId', 'createdAt']);
+
+      // Eliminazione: solo proprietario
+      allow delete: if isOwner(resource.data.userId);
+    }
+
     // ── REMIX QUOTA (usato dalla Cloud Function per rate limiting) ────────────
     match /remixQuota/{userId} {
       allow read: if isOwner(userId);

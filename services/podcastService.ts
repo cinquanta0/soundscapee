@@ -2,6 +2,7 @@ import {
   collection, addDoc, getDocs, query, orderBy,
   limit, serverTimestamp, doc, updateDoc, deleteDoc, where,
   setDoc, getDoc, increment, onSnapshot, Unsubscribe,
+  arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -22,6 +23,18 @@ export interface Podcast {
   likesCount: number;
   dislikesCount: number;
   commentsCount: number;
+  isITS: boolean;        // true = episodio del canale ITS
+  category?: string;     // es. "informatica", "marketing", ecc.
+}
+
+// ─── Playlist ─────────────────────────────────────────────────────────────────
+
+export interface Playlist {
+  id: string;
+  name: string;
+  userId: string;
+  podcastIds: string[];
+  createdAt: Date;
 }
 
 export interface PodcastComment {
@@ -66,6 +79,8 @@ export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
     likesCount: d.data().likesCount ?? 0,
     dislikesCount: d.data().dislikesCount ?? 0,
     commentsCount: d.data().commentsCount ?? 0,
+    isITS: d.data().isITS ?? false,
+    category: d.data().category,
   }));
 }
 
@@ -172,6 +187,8 @@ export async function publishPodcast(params: {
   duration: number;
   username: string;
   userAvatar: string;
+  isITS?: boolean;     // true = episodio ITS
+  category?: string;   // categoria opzionale
 }): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -224,6 +241,11 @@ export async function publishPodcast(params: {
     coverUrl,
     duration: params.duration,
     createdAt: serverTimestamp(),
+    likesCount: 0,
+    dislikesCount: 0,
+    commentsCount: 0,
+    isITS: params.isITS ?? false,
+    ...(params.category ? { category: params.category } : {}),
   });
   return docRef.id;
 }
@@ -266,6 +288,61 @@ export interface SoundResult {
   audioUrl: string;
   duration: number;
 }
+
+// ─── Playlist functions ───────────────────────────────────────────────────────
+
+/** Crea una nuova playlist vuota e restituisce il suo ID */
+export async function createPlaylist(name: string): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  const docRef = await addDoc(collection(db, 'playlists'), {
+    name: name.trim(),
+    userId: user.uid,
+    podcastIds: [],
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+/** Restituisce le playlist dell'utente corrente */
+export async function getUserPlaylists(): Promise<Playlist[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(
+    collection(db, 'playlists'),
+    where('userId', '==', user.uid),
+    orderBy('createdAt', 'desc'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    id: d.id,
+    name: d.data().name ?? '',
+    userId: d.data().userId ?? '',
+    podcastIds: d.data().podcastIds ?? [],
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+  }));
+}
+
+/** Aggiunge un episodio a una playlist */
+export async function addPodcastToPlaylist(playlistId: string, podcastId: string): Promise<void> {
+  await updateDoc(doc(db, 'playlists', playlistId), {
+    podcastIds: arrayUnion(podcastId),
+  });
+}
+
+/** Rimuove un episodio da una playlist */
+export async function removePodcastFromPlaylist(playlistId: string, podcastId: string): Promise<void> {
+  await updateDoc(doc(db, 'playlists', playlistId), {
+    podcastIds: arrayRemove(podcastId),
+  });
+}
+
+/** Elimina una playlist */
+export async function deletePlaylist(playlistId: string): Promise<void> {
+  await deleteDoc(doc(db, 'playlists', playlistId));
+}
+
+// ─── SoundScape sound search ──────────────────────────────────────────────────
 
 export async function searchSounds(queryText: string): Promise<SoundResult[]> {
   const q = query(collection(db, 'sounds'), orderBy('createdAt', 'desc'), limit(40));
