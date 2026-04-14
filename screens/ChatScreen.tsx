@@ -191,9 +191,10 @@ interface Props {
   otherUserName: string;
   otherUserAvatar: string;
   onBack: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, onBack }: Props) {
+export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, onBack, onViewProfile }: Props) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<Messaggio[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -297,13 +298,19 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         <TouchableOpacity onPress={onBack} style={cs.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={cs.backTxt}>‹</Text>
         </TouchableOpacity>
-        <View style={cs.headerAvatar}>
-          <Text style={cs.headerAvatarTxt}>{initial}</Text>
-        </View>
-        <View>
-          <Text style={cs.headerName}>{otherUserName}</Text>
-          <Text style={cs.headerSub}>{t('chat.voiceMessages')}</Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => onViewProfile?.(otherUserId)}
+          activeOpacity={onViewProfile ? 0.7 : 1}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}
+        >
+          <View style={cs.headerAvatar}>
+            <Text style={cs.headerAvatarTxt}>{initial}</Text>
+          </View>
+          <View>
+            <Text style={cs.headerName}>{otherUserName}</Text>
+            <Text style={cs.headerSub}>{t('chat.voiceMessages')}</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}

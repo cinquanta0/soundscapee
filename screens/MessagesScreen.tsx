@@ -135,9 +135,10 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
 // ─── Main screen ───────────────────────────────────────────────────────────────
 interface Props {
   initialChat?: { userId: string; userName: string; userAvatar: string } | null;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function MessagesScreen({ initialChat }: Props) {
+export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversazione[]>([]);
   const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(initialChat ?? null);
@@ -167,6 +168,7 @@ export default function MessagesScreen({ initialChat }: Props) {
         otherUserName={activeChat.userName}
         otherUserAvatar={activeChat.userAvatar}
         onBack={() => setActiveChat(null)}
+        onViewProfile={onViewProfile}
       />
     );
   }

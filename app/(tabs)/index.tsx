@@ -1755,6 +1755,7 @@ if (loading) {
             <MessagesScreen
               initialChat={pendingChat}
               key={pendingChat?.userId ?? 'messages'}
+              onViewProfile={openUserProfile}
             />
           )}
         </View>
