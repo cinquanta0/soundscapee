@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import PodcastScreen from '../../screens/PodcastScreen';
+import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
 import { Audio } from 'expo-av';
 import {
@@ -209,7 +209,7 @@ export default function ExploreScreen() {
         ))}
       </View>
 
-      {section === 'podcast' && <PodcastScreen />}
+      {section === 'podcast' && <PodcastHubScreen />}
       {section === 'radio' && <RadioScreen />}
 
       {section === 'suoni' && <>

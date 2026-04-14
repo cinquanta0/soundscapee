@@ -114,7 +114,6 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
 import StoriesRow from '../../components/StoriesRow';
 import BackstageViewer from '../../components/BackstageViewer';
 import * as ImagePicker from 'expo-image-picker';
-import { publishPodcast } from '../../services/podcastService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -202,13 +201,6 @@ export default function App() {
 
   // Scelta tipo pubblicazione
   const [showPublishTypeModal, setShowPublishTypeModal] = useState(false);
-  const [showPodcastModal, setShowPodcastModal] = useState(false);
-  const [podcastTitle, setPodcastTitle] = useState('');
-  const [podcastDesc, setPodcastDesc] = useState('');
-  const [podcastAudioUri, setPodcastAudioUri] = useState<string | null>(null);
-  const [podcastCoverUri, setPodcastCoverUri] = useState<string | null>(null);
-  const [podcastDuration, setPodcastDuration] = useState(0);
-  const [uploadingPodcast, setUploadingPodcast] = useState(false);
 
   // Backstage
   const [backstageUri, setBackstageUri] = useState<string | null>(null);
@@ -588,55 +580,6 @@ const pickBackstageFromGallery = async (tipo: 'foto' | 'video') => {
     allowsEditing: true,
   });
   _handleBackstageAsset(result, tipo);
-};
-
-// Seleziona audio per podcast
-const pickPodcastAudio = async () => {
-  try {
-    const DocumentPicker = require('expo-document-picker');
-    const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
-    if (!result.canceled && result.assets?.[0]) {
-      const asset = result.assets[0];
-      if (asset.size && asset.size > 200 * 1024 * 1024) { Alert.alert(t('permissions.fileTooLarge'), t('permissions.maxSize200')); return; }
-      setPodcastAudioUri(asset.uri);
-      // Stima durata
-      const { sound } = await Audio.Sound.createAsync({ uri: asset.uri });
-      const status = await sound.getStatusAsync();
-      if (status.isLoaded) setPodcastDuration(Math.floor((status.durationMillis || 0) / 1000));
-      await sound.unloadAsync();
-    }
-  } catch { Alert.alert(t('common.error'), t('podcast.errors.cannotSelect')); }
-};
-
-const pickPodcastCover = async () => {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return;
-  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
-  if (!result.canceled && result.assets[0]) setPodcastCoverUri(result.assets[0].uri);
-};
-
-const handlePublishPodcast = async () => {
-  if (!podcastTitle.trim()) { Alert.alert(t('podcast.titleRequired')); return; }
-  if (!podcastAudioUri) { Alert.alert(t('podcast.audioRequired')); return; }
-  setUploadingPodcast(true);
-  try {
-    await publishPodcast({
-      audioUri: podcastAudioUri,
-      coverUri: podcastCoverUri,
-      title: podcastTitle,
-      description: podcastDesc,
-      duration: podcastDuration,
-      username: userProfile?.username || 'utente',
-      userAvatar: userProfile?.avatar || '🎧',
-    });
-    setPodcastTitle(''); setPodcastDesc(''); setPodcastAudioUri(null); setPodcastCoverUri(null);
-    setShowPodcastModal(false);
-    Alert.alert(t('podcast.published'), t('podcast.publishedMsg'));
-  } catch (e) {
-    Alert.alert(t('common.error'), t('podcast.errors.cannotPublish'));
-  } finally {
-    setUploadingPodcast(false);
-  }
 };
 
 // Publish recording
@@ -1999,7 +1942,7 @@ if (loading) {
             </View>
             {[
               { icon: '🎤', label: t('upload.typeSound'), sub: t('upload.typeSoundDesc'), action: () => { setShowPublishTypeModal(false); startRecording(); } },
-              { icon: '🎙', label: t('upload.typePodcast'), sub: t('upload.typePodcastDesc'), action: () => { setShowPublishTypeModal(false); setShowPodcastModal(true); } },
+              { icon: '🎙', label: t('upload.typePodcast'), sub: t('upload.typePodcastDesc'), action: () => { setShowPublishTypeModal(false); setActiveTab('explore'); } },
               { icon: '📻', label: t('upload.typeRadio'), sub: t('upload.typeRadioDesc'), action: () => { setShowPublishTypeModal(false); setActiveTab('explore'); } },
             ].map(({ icon, label, sub, action }) => (
               <TouchableOpacity
@@ -2015,78 +1958,6 @@ if (loading) {
                 <Text style={{ color: '#00FF9C', fontSize: 18 }}>›</Text>
               </TouchableOpacity>
             ))}
-          </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Podcast Upload Modal */}
-      <Modal
-        visible={showPodcastModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowPodcastModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowPodcastModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '85%' }]} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('podcast.title')}</Text>
-              <TouchableOpacity onPress={() => setShowPodcastModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Audio */}
-              <TouchableOpacity
-                style={{ padding: 14, borderRadius: 12, backgroundColor: podcastAudioUri ? 'rgba(0,255,156,0.08)' : '#1e293b', borderWidth: 1, borderColor: podcastAudioUri ? 'rgba(0,255,156,0.3)' : '#334155', alignItems: 'center', marginBottom: 12 }}
-                onPress={pickPodcastAudio}
-                disabled={uploadingPodcast}
-              >
-                <Text style={{ color: podcastAudioUri ? '#00FF9C' : '#94a3b8', fontSize: 14, fontFamily: 'monospace' }}>
-                  {podcastAudioUri ? t('podcast.audioSelected', { duration: podcastDuration }) : t('podcast.selectAudio')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Cover */}
-              <TouchableOpacity
-                style={{ padding: 14, borderRadius: 12, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', alignItems: 'center', marginBottom: 12 }}
-                onPress={pickPodcastCover}
-                disabled={uploadingPodcast}
-              >
-                <Text style={{ color: podcastCoverUri ? '#00FF9C' : '#94a3b8', fontSize: 14, fontFamily: 'monospace' }}>
-                  {podcastCoverUri ? t('podcast.coverSelected') : t('podcast.selectCover')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Titolo */}
-              <TextInput
-                style={[styles.input]}
-                placeholder={t('podcast.titlePlaceholder')}
-                placeholderTextColor="#4A4D56"
-                value={podcastTitle}
-                onChangeText={setPodcastTitle}
-                editable={!uploadingPodcast}
-              />
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder={t('podcast.descriptionPlaceholder')}
-                placeholderTextColor="#94a3b8"
-                multiline
-                value={podcastDesc}
-                onChangeText={setPodcastDesc}
-                editable={!uploadingPodcast}
-              />
-
-              <View style={styles.recordModalButtons}>
-                <TouchableOpacity style={styles.recordModalButtonCancel} onPress={() => setShowPodcastModal(false)} disabled={uploadingPodcast}>
-                  <Text style={styles.recordModalButtonCancelText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.recordModalButtonPublish} onPress={handlePublishPodcast} disabled={uploadingPodcast}>
-                  {uploadingPodcast ? <ActivityIndicator color="#fff" /> : <Text style={styles.recordModalButtonPublishText}>{t('podcast.publish')}</Text>}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
           </View>
           </View>
         </TouchableWithoutFeedback>

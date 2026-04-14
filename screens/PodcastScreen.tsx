@@ -15,7 +15,8 @@ import {
   getPodcasts, publishPodcast, updatePodcast, deletePodcast, searchSounds,
   togglePodcastLike, togglePodcastDislike, getPodcastVotes,
   listenPodcastComments, addPodcastComment, deletePodcastComment,
-  Podcast, PodcastComment, SoundResult,
+  getUserPlaylists, addPodcastToPlaylist, createPlaylist,
+  Podcast, PodcastComment, SoundResult, Playlist,
 } from '../services/podcastService';
 
 const { width: SW } = Dimensions.get('window');
@@ -348,12 +349,13 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
 // ─── Podcast card ──────────────────────────────────────────────────────────────
 function PodcastCard({
-  item, onPress, onEdit, onDelete,
+  item, onPress, onEdit, onDelete, onAddToPlaylist,
 }: {
   item: Podcast;
   onPress: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onAddToPlaylist: () => void;
 }) {
   const mins = Math.floor(item.duration / 60);
   const isOwn = auth.currentUser?.uid === item.userId;
@@ -381,6 +383,9 @@ function PodcastCard({
         <Text style={pc.host}>@{item.username}</Text>
         {item.description ? <Text style={pc.desc} numberOfLines={2}>{item.description}</Text> : null}
         <Text style={pc.duration}>⏱ {mins > 0 ? `${mins} min` : `${item.duration}s`}</Text>
+        <TouchableOpacity style={pc.playlistBtn} onPress={onAddToPlaylist} activeOpacity={0.8}>
+          <Text style={pc.playlistBtnTxt}>+ Playlist</Text>
+        </TouchableOpacity>
       </View>
       {isOwn ? (
         <TouchableOpacity onPress={showMenu} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={pc.menuBtn}>
@@ -581,6 +586,8 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [isITS, setIsITS] = useState(false);
+  const [category, setCategory] = useState('');
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string | null>(null);
   const [audioDuration, setAudioDuration] = useState(0);
@@ -648,6 +655,8 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         duration: audioDuration,
         username: user.displayName ?? user.email ?? 'utente',
         userAvatar: user.photoURL ?? '',
+        isITS,
+        category: category.trim() || undefined,
       });
       onDone();
     } catch {
@@ -688,6 +697,25 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
             onChangeText={setDescription}
             multiline
           />
+
+          <View style={pm.itsRow}>
+            <TouchableOpacity
+              style={[pm.itsToggle, isITS && pm.itsToggleActive]}
+              onPress={() => setIsITS((v) => !v)}
+            >
+              <Text style={[pm.itsToggleText, isITS && pm.itsToggleTextActive]}>
+                {isITS ? 'ITS: ON' : 'ITS: OFF'}
+              </Text>
+            </TouchableOpacity>
+            <TextInput
+              style={[pm.input, pm.categoryInput]}
+              placeholder="Categoria (opzionale)"
+              placeholderTextColor="#4A4D56"
+              value={category}
+              onChangeText={setCategory}
+              maxLength={40}
+            />
+          </View>
 
           <TouchableOpacity style={pm.pickBtn} onPress={pickAudio}>
             <Text style={pm.pickBtnTxt}>
@@ -732,6 +760,12 @@ export default function PodcastScreen() {
   const [currentUsername, setCurrentUsername] = useState('utente');
   const [showPublish, setShowPublish] = useState(false);
   const [editing, setEditing] = useState<Podcast | null>(null);
+  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const [playlistTarget, setPlaylistTarget] = useState<Podcast | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
 
   useEffect(() => {
     load();
@@ -775,6 +809,57 @@ export default function PodcastScreen() {
     );
   };
 
+  const ensureNotAnonymous = () => {
+    if (auth.currentUser?.isAnonymous) {
+      Alert.alert('Funzione non disponibile', 'Le playlist non sono disponibili con account ospite.');
+      return false;
+    }
+    return true;
+  };
+
+  const openPlaylistModal = async (podcast: Podcast) => {
+    if (!ensureNotAnonymous()) return;
+    setPlaylistTarget(podcast);
+    setPlaylistModalVisible(true);
+    setLoadingPlaylists(true);
+    try {
+      const list = await getUserPlaylists();
+      setPlaylists(list);
+    } catch (error: any) {
+      Alert.alert('Errore', error?.message || 'Impossibile caricare le playlist.');
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const handleCreatePlaylist = async () => {
+    if (!ensureNotAnonymous()) return;
+    const name = newPlaylistName.trim();
+    if (!name) return;
+    setCreatingPlaylist(true);
+    try {
+      const newId = await createPlaylist(name);
+      const created = { id: newId, name, userId: auth.currentUser?.uid ?? '', podcastIds: [], createdAt: new Date() };
+      setPlaylists((prev) => [created, ...prev]);
+      setNewPlaylistName('');
+    } catch (error: any) {
+      Alert.alert('Errore', error?.message || 'Impossibile creare la playlist.');
+    } finally {
+      setCreatingPlaylist(false);
+    }
+  };
+
+  const handleAddToPlaylist = async (playlist: Playlist) => {
+    if (!playlistTarget) return;
+    try {
+      await addPodcastToPlaylist(playlist.id, playlistTarget.id);
+      Alert.alert('Fatto', `"${playlistTarget.title}" aggiunto a "${playlist.name}".`);
+      setPlaylistModalVisible(false);
+    } catch (error: any) {
+      Alert.alert('Errore', error?.message || 'Impossibile aggiungere il podcast alla playlist.');
+    }
+  };
+
   if (loading) return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator color="#00FF9C" />
@@ -807,6 +892,7 @@ export default function PodcastScreen() {
               onPress={() => setSelected(item)}
               onEdit={() => setEditing(item)}
               onDelete={() => handleDelete(item)}
+              onAddToPlaylist={() => openPlaylistModal(item)}
             />
           )}
           contentContainerStyle={{ padding: 16, gap: 12 }}
@@ -827,6 +913,67 @@ export default function PodcastScreen() {
           onClose={() => setEditing(null)}
         />
       )}
+      <Modal visible={playlistModalVisible} transparent animationType="slide" onRequestClose={() => setPlaylistModalVisible(false)}>
+        <View style={pm.overlay}>
+          <View style={pm.sheet}>
+            <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+            <View style={pm.handle} />
+            <Text style={pm.sheetTitle}>Aggiungi a playlist</Text>
+            {!!playlistTarget && (
+              <Text style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 12 }} numberOfLines={1}>
+                {playlistTarget.title}
+              </Text>
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              <TextInput
+                style={[pm.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Nuova playlist..."
+                placeholderTextColor="#4A4D56"
+                value={newPlaylistName}
+                onChangeText={setNewPlaylistName}
+                maxLength={80}
+              />
+              <TouchableOpacity
+                style={[pm.publishBtn, { flex: 0, paddingHorizontal: 16 }, (!newPlaylistName.trim() || creatingPlaylist) && { opacity: 0.4 }]}
+                onPress={handleCreatePlaylist}
+                disabled={!newPlaylistName.trim() || creatingPlaylist}
+              >
+                {creatingPlaylist ? <ActivityIndicator color="#050508" size="small" /> : <Text style={pm.publishTxt}>Crea</Text>}
+              </TouchableOpacity>
+            </View>
+
+            {loadingPlaylists ? (
+              <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
+            ) : (
+              <FlatList
+                data={playlists}
+                keyExtractor={(p) => p.id}
+                style={{ maxHeight: 280 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={pc.card} onPress={() => handleAddToPlaylist(item)} activeOpacity={0.8}>
+                    <View style={[pc.playPill, { marginLeft: 0 }]}>
+                      <Text style={pc.playPillTxt}>🎵</Text>
+                    </View>
+                    <View style={pc.info}>
+                      <Text style={pc.title} numberOfLines={1}>{item.name}</Text>
+                      <Text style={pc.duration}>{item.podcastIds.length} episodi</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+                ListEmptyComponent={<Text style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingVertical: 16 }}>Nessuna playlist</Text>}
+              />
+            )}
+
+            <View style={pm.actions}>
+              <TouchableOpacity style={pm.cancelBtn} onPress={() => setPlaylistModalVisible(false)}>
+                <Text style={pm.cancelTxt}>Chiudi</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -888,6 +1035,8 @@ const pc = StyleSheet.create({
   host: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 4 },
   desc: { fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 17 },
   duration: { fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', marginTop: 6 },
+  playlistBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,255,156,0.35)', backgroundColor: 'rgba(0,255,156,0.08)' },
+  playlistBtnTxt: { color: '#00FF9C', fontSize: 11, fontWeight: '700' },
   playPill: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   playPillTxt: { color: '#00FF9C', fontSize: 12 },
   menuBtn: { paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
@@ -910,6 +1059,12 @@ const pm = StyleSheet.create({
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 20, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 20 },
   input: { backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, color: '#fff', fontSize: 15, marginBottom: 12, borderWidth: 1, borderColor: '#334155' },
+  itsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  itsToggle: { paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1e293b' },
+  itsToggleActive: { borderColor: 'rgba(0,255,156,0.45)', backgroundColor: 'rgba(0,255,156,0.08)' },
+  itsToggleText: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace' },
+  itsToggleTextActive: { color: '#00FF9C' },
+  categoryInput: { flex: 1, marginBottom: 0 },
   pickBtn: { padding: 14, borderRadius: 12, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', alignItems: 'center', marginBottom: 4 },
   pickBtnTxt: { color: '#00FF9C', fontSize: 14, fontFamily: 'monospace' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 20 },

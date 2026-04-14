@@ -336,16 +336,16 @@ export async function getUserPlaylists(): Promise<Playlist[]> {
   const q = query(
     collection(db, 'playlists'),
     where('userId', '==', user.uid),
-    orderBy('createdAt', 'desc'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({
+  const list = snap.docs.map((d) => ({
     id: d.id,
     name: d.data().name ?? '',
     userId: d.data().userId ?? '',
     podcastIds: d.data().podcastIds ?? [],
     createdAt: d.data().createdAt?.toDate() ?? new Date(),
   }));
+  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 /** Aggiunge un episodio a una playlist */

@@ -7,21 +7,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PodcastCard from '../components/PodcastCard';
 import { getPodcasts, Podcast } from '../services/podcastService';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-interface Props {
-  onSelectPodcast: (id: string) => void;
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = 'tutti' | 'its';
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  onSelectPodcast: (id: string) => void;
+  initialTab?: Tab;
+  hideTabs?: boolean;
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function PodcastListScreen({ onSelectPodcast }: Props) {
+export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti', hideTabs = false }: Props) {
   const [all, setAll] = useState<Podcast[]>([]);
-  const [activeTab, setActiveTab] = useState<Tab>('tutti');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,9 @@ export default function PodcastListScreen({ onSelectPodcast }: Props) {
   // ── Filtered lists ─────────────────────────────────────────────────────────
   // I documenti vecchi (senza campo isITS) vengono trattati come isITS = false
 
-  const lista = activeTab === 'its'
+  const effectiveTab: Tab = hideTabs ? 'its' : activeTab;
+
+  const lista = effectiveTab === 'its'
     ? all.filter((p) => p.isITS === true)
     : all.filter((p) => !p.isITS);
 
@@ -61,27 +65,28 @@ export default function PodcastListScreen({ onSelectPodcast }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Tab bar */}
-      <View style={s.tabs}>
-        <TouchableOpacity
-          style={[s.tab, activeTab === 'tutti' && s.tabActive]}
-          onPress={() => setActiveTab('tutti')}
-          activeOpacity={0.75}
-        >
-          <Text style={[s.tabTxt, activeTab === 'tutti' && s.tabTxtActive]}>
-            Tutti
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.tab, activeTab === 'its' && s.tabActive]}
-          onPress={() => setActiveTab('its')}
-          activeOpacity={0.75}
-        >
-          <Text style={[s.tabTxt, activeTab === 'its' && s.tabTxtActive]}>
-            ITS
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {!hideTabs && (
+        <View style={s.tabs}>
+          <TouchableOpacity
+            style={[s.tab, activeTab === 'tutti' && s.tabActive]}
+            onPress={() => setActiveTab('tutti')}
+            activeOpacity={0.75}
+          >
+            <Text style={[s.tabTxt, activeTab === 'tutti' && s.tabTxtActive]}>
+              Tutti
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.tab, activeTab === 'its' && s.tabActive]}
+            onPress={() => setActiveTab('its')}
+            activeOpacity={0.75}
+          >
+            <Text style={[s.tabTxt, activeTab === 'its' && s.tabTxtActive]}>
+              ITS
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Loading iniziale */}
       {loading && (
