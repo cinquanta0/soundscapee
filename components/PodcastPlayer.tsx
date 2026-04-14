@@ -24,6 +24,10 @@ export interface PodcastPlayerItem {
 
 interface Props {
   podcast: PodcastPlayerItem;
+  /** Chiamato quando la traccia finisce — usato per la riproduzione sequenziale */
+  onFinish?: () => void;
+  /** Se true, avvia la riproduzione subito dopo il caricamento */
+  autoPlay?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -43,7 +47,7 @@ function extFromUrl(url: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function PodcastPlayer({ podcast }: Props) {
+export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: Props) {
   const [isPlaying, setIsPlaying]   = useState(false);
   const [position, setPosition]     = useState(0);     // secondi
   const [duration, setDuration]     = useState(podcast.duration ?? 0);
@@ -55,6 +59,10 @@ export default function PodcastPlayer({ podcast }: Props) {
   const soundRef      = useRef<Audio.Sound | null>(null);
   const isMountedRef  = useRef(true);
   const isLoadingRef  = useRef(false); // guard: impedisce caricamenti concorrenti
+  const onFinishRef   = useRef(onFinish); // ref per evitare re-render nei callback
+  const autoPlayRef   = useRef(autoPlay);
+  useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
+  useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
 
   // ── Smonta il suono corrente in modo sicuro ──────────────────────────────
   const stopAndUnload = useCallback(async () => {
@@ -141,10 +149,17 @@ export default function PodcastPlayer({ podcast }: Props) {
           setIsPlaying(false);
           if (status.durationMillis) setPosition(status.durationMillis / 1000);
           sound.stopAsync().catch(() => {});
+          // Notifica il parent (es. PlaylistDetailScreen per auto-advance)
+          onFinishRef.current?.();
         }
       });
 
       soundRef.current = sound;
+
+      // autoPlay: avvia subito dopo il caricamento
+      if (autoPlayRef.current) {
+        await sound.playAsync().catch(() => {});
+      }
 
     } catch {
       if (isMountedRef.current) {

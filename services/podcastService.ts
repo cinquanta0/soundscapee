@@ -289,6 +289,31 @@ export interface SoundResult {
   duration: number;
 }
 
+// ─── Single podcast ───────────────────────────────────────────────────────────
+
+export async function getPodcastById(id: string): Promise<Podcast | null> {
+  const snap = await getDoc(doc(db, 'podcast', id));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    id: snap.id,
+    userId: d.userId ?? '',
+    username: d.username ?? '',
+    userAvatar: d.userAvatar ?? '',
+    title: d.title ?? '',
+    description: d.description ?? '',
+    audioUrl: d.audioUrl ?? '',
+    coverUrl: d.coverUrl ?? null,
+    duration: d.duration ?? 0,
+    createdAt: d.createdAt?.toDate() ?? new Date(),
+    likesCount: d.likesCount ?? 0,
+    dislikesCount: d.dislikesCount ?? 0,
+    commentsCount: d.commentsCount ?? 0,
+    isITS: d.isITS ?? false,
+    category: d.category,
+  };
+}
+
 // ─── Playlist functions ───────────────────────────────────────────────────────
 
 /** Crea una nuova playlist vuota e restituisce il suo ID */
@@ -340,6 +365,24 @@ export async function removePodcastFromPlaylist(playlistId: string, podcastId: s
 /** Elimina una playlist */
 export async function deletePlaylist(playlistId: string): Promise<void> {
   await deleteDoc(doc(db, 'playlists', playlistId));
+}
+
+/** Ascolta in real-time una singola playlist (aggiornamenti live) */
+export function listenToPlaylist(
+  playlistId: string,
+  cb: (playlist: Playlist | null) => void,
+): Unsubscribe {
+  return onSnapshot(doc(db, 'playlists', playlistId), (snap) => {
+    if (!snap.exists()) { cb(null); return; }
+    const d = snap.data();
+    cb({
+      id: snap.id,
+      name: d.name ?? '',
+      userId: d.userId ?? '',
+      podcastIds: d.podcastIds ?? [],
+      createdAt: d.createdAt?.toDate() ?? new Date(),
+    });
+  });
 }
 
 // ─── SoundScape sound search ──────────────────────────────────────────────────
