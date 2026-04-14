@@ -452,6 +452,9 @@ function fmtSec(s: number): string {
   return `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 }
 
+/** Volume musica durante voce attiva (ducking) — usato sia da host che da listener */
+const DUCK_VOL = 0.10;
+
 function elapsedStr(ms: number): string {
   const s = Math.floor(ms / 1000);
   if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
@@ -530,13 +533,16 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false });
       refreshSpeakerphone();
       const { sound, status } = await Audio.Sound.createAsync(
-        { uri: track.url, headers: { 'Cache-Control': 'no-cache' } },
-        { shouldPlay: false, volume: doFade ? 0 : 1 },
+        { uri: track.url },
+        { shouldPlay: false, volume: 0 },
       );
+      // Ricalcola elapsed DOPO il caricamento per compensare la latenza di rete
       const durationMs = status.isLoaded && status.durationMillis ? status.durationMillis : Infinity;
-      const elapsed = Math.max(0, now - startAt);
+      const elapsed = Math.max(0, Date.now() - startAt);
       const offset = Math.min(elapsed, isFinite(durationMs) && durationMs > 1000 ? durationMs - 1000 : elapsed);
       if (offset > 0) await sound.setPositionAsync(offset);
+      const hostVol = doFade ? 0 : 1;
+      await sound.setVolumeAsync(hostVol).catch(() => {});
       await sound.playAsync();
       if (doFade && oldSound) {
         crossfadeCleanupRef.current = startCrossfade(oldSound, sound, 2500);
@@ -683,7 +689,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     setMicActive(next);
     // Ducking: abbassa la musica quando il mic è attivo
     if (soundRef.current) {
-      soundRef.current.setVolumeAsync(next ? 0.07 : 1.0).catch(() => {});
+      soundRef.current.setVolumeAsync(next ? DUCK_VOL : 1.0).catch(() => {});
     }
     try { await setHostMicLive(room.id, next); } catch {}
   };
@@ -1158,6 +1164,10 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   const chatListRef = useRef<FlatList<ChatMessage>>(null);
   const hostMicLiveRef = useRef(initialRoom.hostMicLive ?? false);
   const wasSpeakerRef = useRef(false);
+  const roomRef = useRef(initialRoom);          // sempre aggiornato per sync asincrono
+  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Aggiorna roomRef ad ogni render così le callback asincrone vedono sempre lo stato attuale
+  roomRef.current = room;
 
   const clearGapTimers = () => {
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current);
@@ -1204,18 +1214,24 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     soundRef.current = null;
 
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false });
       refreshSpeakerphone();
-      const elapsed = Math.max(0, now - startAt);
-      const targetVol = hostMicLiveRef.current ? 0.07 : 1.0;
+      const targetVol = hostMicLiveRef.current ? DUCK_VOL : 1.0;
+      // Carica silenziosamente prima, poi seek preciso DOPO il caricamento
       const { sound } = await Audio.Sound.createAsync(
         { uri: track.url },
-        { shouldPlay: true, positionMillis: elapsed > 500 ? elapsed : 0, volume: doFade ? 0 : targetVol },
+        { shouldPlay: false, volume: 0 },
       );
+      // Ricalcola elapsed DOPO il caricamento — compensa la latenza di rete
+      const freshElapsed = Math.max(0, Date.now() - startAt);
+      if (freshElapsed > 200) {
+        await sound.setPositionAsync(freshElapsed).catch(() => {});
+      }
+      await sound.playAsync();
       if (doFade && oldSound) {
         crossfadeCleanupRef.current = startCrossfade(oldSound, sound, 2500, targetVol);
-      } else if (!doFade && hostMicLiveRef.current) {
-        sound.setVolumeAsync(0.15).catch(() => {});
+      } else {
+        await sound.setVolumeAsync(targetVol).catch(() => {});
       }
       sound.setOnPlaybackStatusUpdate((s) => { if (s.isLoaded) setIsPlaying(s.isPlaying); });
       soundRef.current = sound;
@@ -1278,8 +1294,21 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
       } catch {}
     });
 
+    // Drift correction: ogni 30s controlla se il listener è fuori sync di più di 1.5s
+    syncIntervalRef.current = setInterval(async () => {
+      if (!soundRef.current || !roomRef.current) return;
+      const expected = Math.max(0, Date.now() - roomRef.current.trackStartedAt.getTime());
+      const status = await soundRef.current.getStatusAsync().catch(() => null);
+      if (!status?.isLoaded || !status.isPlaying) return;
+      const drift = Math.abs(status.positionMillis - expected);
+      if (drift > 1500) {
+        soundRef.current.setPositionAsync(Math.max(0, expected)).catch(() => {});
+      }
+    }, 30_000);
+
     return () => {
       clearGapTimers();
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
       if (crossfadeCleanupRef.current) { crossfadeCleanupRef.current(); crossfadeCleanupRef.current = null; }
       leaveRadioRoom(initialRoom.id).catch(() => {});
       if (soundRef.current) {
@@ -1299,7 +1328,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
   // Ducking lato listener: abbassa la musica quando l'host attiva il microfono
   useEffect(() => {
     hostMicLiveRef.current = room.hostMicLive ?? false;
-    soundRef.current?.setVolumeAsync(room.hostMicLive ? 0.07 : 1.0).catch(() => {});
+    soundRef.current?.setVolumeAsync(room.hostMicLive ? DUCK_VOL : 1.0).catch(() => {});
   }, [room.hostMicLive]);
 
   // Promozione/revoca speaker — reagisce ai cambiamenti di activeSpeakers e cohosts
@@ -1319,8 +1348,16 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
 
   const togglePlay = async () => {
     if (!soundRef.current) return;
-    if (isPlaying) await soundRef.current.pauseAsync();
-    else await soundRef.current.playAsync();
+    if (isPlaying) {
+      await soundRef.current.pauseAsync();
+    } else {
+      // Re-sync alla posizione attesa prima di riprendere
+      if (roomRef.current) {
+        const expected = Math.max(0, Date.now() - roomRef.current.trackStartedAt.getTime());
+        await soundRef.current.setPositionAsync(expected).catch(() => {});
+      }
+      await soundRef.current.playAsync();
+    }
   };
 
   const handleSendChat = async () => {
@@ -1353,7 +1390,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     const next = !speakerMicActive;
     setSpeakerMicActive(next);
     setMicActive(next);
-    soundRef.current?.setVolumeAsync(next ? 0.07 : 1.0).catch(() => {});
+    soundRef.current?.setVolumeAsync(next ? DUCK_VOL : 1.0).catch(() => {});
   };
 
   const openSuggest = async () => {
