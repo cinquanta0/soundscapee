@@ -18,6 +18,41 @@ const ALLOWED_STORAGE_HOSTS = [
   'storage.googleapis.com',
 ];
 const MAX_TRACK_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const SCHOOL_EMAIL_DOMAINS = (process.env.SCHOOL_EMAIL_DOMAINS || '')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function getUserDocRef(uid) {
+  return admin.firestore().collection('users').doc(uid);
+}
+
+function extractDomain(email = '') {
+  const idx = email.lastIndexOf('@');
+  return idx > -1 ? email.slice(idx + 1).toLowerCase() : '';
+}
+
+function isSchoolDomain(email = '') {
+  if (!SCHOOL_EMAIL_DOMAINS.length) return true;
+  const domain = extractDomain(email);
+  return SCHOOL_EMAIL_DOMAINS.includes(domain);
+}
+
+async function writeAuditLog(action, actorId, targetId, details = {}) {
+  await admin.firestore().collection('auditLogs').add({
+    action,
+    actorId,
+    targetId: targetId || '',
+    details,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function getSchoolRole(uid) {
+  const snap = await getUserDocRef(uid).get();
+  if (!snap.exists) return 'student';
+  return snap.data()?.schoolRole || 'student';
+}
 
 /**
  * Scarica un file da Firebase Storage (SSRF-safe).
@@ -801,5 +836,251 @@ exports.streakReminder = onSchedule(
     await Promise.allSettled(promises);
     console.log(`[streakReminder] Notifiche inviate: ${promises.length}`);
   }
+);
+
+// ── School security callables ─────────────────────────────────────────────────
+exports.upsertSchoolProfile = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  const email = request.auth?.token?.email || '';
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+
+  const role = await getSchoolRole(uid);
+  await getUserDocRef(uid).set({
+    email,
+    schoolRole: role,
+    emailVerified: !!request.auth?.token?.email_verified,
+    schoolDomainAllowed: isSchoolDomain(email),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return { role, emailVerified: !!request.auth?.token?.email_verified, schoolDomainAllowed: isSchoolDomain(email) };
+});
+
+exports.setSchoolRoleByAdmin = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const adminDoc = await getUserDocRef(uid).get();
+  if (!adminDoc.exists || adminDoc.data()?.isAdmin !== true) {
+    throw new HttpsError('permission-denied', 'Solo admin');
+  }
+  const targetUserId = request.data?.targetUserId;
+  const role = request.data?.role;
+  if (!targetUserId || !['teacher', 'student', 'admin'].includes(role)) {
+    throw new HttpsError('invalid-argument', 'Parametri non validi');
+  }
+  await getUserDocRef(targetUserId).set({
+    schoolRole: role,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return { ok: true };
+});
+
+exports.createClassSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  const email = request.auth?.token?.email || '';
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  if (!request.auth?.token?.email_verified) {
+    throw new HttpsError('permission-denied', 'Email non verificata');
+  }
+  if (!isSchoolDomain(email)) {
+    throw new HttpsError('permission-denied', 'Email scolastica richiesta');
+  }
+  const role = await getSchoolRole(uid);
+  if (role !== 'teacher' && role !== 'admin') {
+    throw new HttpsError('permission-denied', 'Ruolo docente richiesto');
+  }
+
+  const className = (request.data?.name || '').trim();
+  if (!className || className.length > 120) {
+    throw new HttpsError('invalid-argument', 'Nome classe non valido');
+  }
+  const codeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i += 1) code += codeChars[Math.floor(Math.random() * codeChars.length)];
+
+  const db = admin.firestore();
+  const userDoc = await getUserDocRef(uid).get();
+  const teacherName = userDoc.data()?.username || userDoc.data()?.displayName || 'Docente';
+  const classRef = await db.collection('classes').add({
+    name: className,
+    code,
+    teacherId: uid,
+    teacherName,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await db.collection('classes').doc(classRef.id).collection('members').doc(uid).set({
+    userId: uid,
+    role: 'teacher',
+    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await writeAuditLog('class_create', uid, classRef.id, { className });
+  return { classId: classRef.id, code };
+});
+
+exports.joinClassSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const code = (request.data?.code || '').trim().toUpperCase();
+  if (!code) throw new HttpsError('invalid-argument', 'Codice mancante');
+  const db = admin.firestore();
+  const snap = await db.collection('classes').where('code', '==', code).limit(1).get();
+  if (snap.empty) throw new HttpsError('not-found', 'Classe non trovata');
+  const classDoc = snap.docs[0];
+  const existing = await classDoc.ref.collection('members').doc(uid).get();
+  if (existing.exists) {
+    const status = existing.data()?.status || 'approved';
+    return { classId: classDoc.id, status };
+  }
+  await classDoc.ref.collection('members').doc(uid).set({
+    userId: uid,
+    role: 'student',
+    status: 'pending',
+    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await writeAuditLog('class_join_request', uid, classDoc.id, { status: 'pending' });
+  return { classId: classDoc.id, status: 'pending' };
+});
+
+exports.approveClassMemberSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const classId = request.data?.classId;
+  const studentId = request.data?.studentId;
+  if (!classId || !studentId) throw new HttpsError('invalid-argument', 'Parametri mancanti');
+  const db = admin.firestore();
+  const classSnap = await db.collection('classes').doc(classId).get();
+  if (!classSnap.exists) throw new HttpsError('not-found', 'Classe non trovata');
+  if (classSnap.data().teacherId !== uid) throw new HttpsError('permission-denied', 'Solo docente classe');
+  await db.collection('classes').doc(classId).collection('members').doc(studentId).set({
+    userId: studentId,
+    role: 'student',
+    status: 'approved',
+    approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await writeAuditLog('class_member_approve', uid, classId, { studentId });
+  return { ok: true };
+});
+
+exports.rejectClassMemberSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const classId = request.data?.classId;
+  const studentId = request.data?.studentId;
+  if (!classId || !studentId) throw new HttpsError('invalid-argument', 'Parametri mancanti');
+  const db = admin.firestore();
+  const classSnap = await db.collection('classes').doc(classId).get();
+  if (!classSnap.exists) throw new HttpsError('not-found', 'Classe non trovata');
+  if (classSnap.data().teacherId !== uid) throw new HttpsError('permission-denied', 'Solo docente classe');
+  await db.collection('classes').doc(classId).collection('members').doc(studentId).set({
+    userId: studentId,
+    role: 'student',
+    status: 'rejected',
+    rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await writeAuditLog('class_member_reject', uid, classId, { studentId });
+  return { ok: true };
+});
+
+exports.approveSubmissionSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const submissionId = request.data?.submissionId;
+  if (!submissionId) throw new HttpsError('invalid-argument', 'submissionId mancante');
+  const db = admin.firestore();
+  const ref = db.collection('lessonSubmissions').doc(submissionId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Consegna non trovata');
+  const data = snap.data();
+  if (data.teacherId !== uid) throw new HttpsError('permission-denied', 'Solo docente assegnata');
+  await ref.update({
+    status: 'approved',
+    teacherFeedback: '',
+    reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await db.collection('podcast').doc(data.podcastId).update({ submissionStatus: 'approved' });
+  await writeAuditLog('submission_approve', uid, submissionId, { classId: data.classId, podcastId: data.podcastId });
+  return { ok: true };
+});
+
+exports.rejectSubmissionSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const submissionId = request.data?.submissionId;
+  const feedback = (request.data?.feedback || '').trim();
+  if (!submissionId || !feedback) throw new HttpsError('invalid-argument', 'Parametri non validi');
+  const db = admin.firestore();
+  const ref = db.collection('lessonSubmissions').doc(submissionId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Consegna non trovata');
+  const data = snap.data();
+  if (data.teacherId !== uid) throw new HttpsError('permission-denied', 'Solo docente assegnata');
+  await ref.update({
+    status: 'rejected',
+    teacherFeedback: feedback,
+    reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await db.collection('podcast').doc(data.podcastId).update({
+    submissionStatus: 'rejected',
+    teacherFeedback: feedback,
+  });
+  await writeAuditLog('submission_reject', uid, submissionId, { classId: data.classId, podcastId: data.podcastId });
+  return { ok: true };
+});
+
+exports.gradeSubmissionSecure = onCall({ region: 'europe-west1' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+  const submissionId = request.data?.submissionId;
+  const grade = Number(request.data?.grade);
+  const gradeComment = (request.data?.gradeComment || '').trim();
+  if (!submissionId || Number.isNaN(grade) || grade < 0 || grade > 100) {
+    throw new HttpsError('invalid-argument', 'Parametri non validi');
+  }
+  const db = admin.firestore();
+  const ref = db.collection('lessonSubmissions').doc(submissionId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Consegna non trovata');
+  const data = snap.data();
+  if (data.teacherId !== uid) throw new HttpsError('permission-denied', 'Solo docente assegnata');
+  await ref.update({
+    grade: Math.round(grade),
+    gradeComment,
+    reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await db.collection('podcast').doc(data.podcastId).update({
+    grade: Math.round(grade),
+    gradeComment,
+  });
+  await writeAuditLog('submission_grade', uid, submissionId, { grade: Math.round(grade), classId: data.classId });
+  return { ok: true };
+});
+
+exports.notifyTeacherOnSubmission = onDocumentCreated(
+  { document: 'lessonSubmissions/{submissionId}', region: 'europe-west1' },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data?.teacherId || !data?.studentName) return;
+    await sendNotificationToUser(admin.firestore(), data.teacherId, {
+      title: 'Nuova consegna in attesa',
+      body: `${data.studentName} ha inviato un compito da revisionare.`,
+      data: { type: 'school_submission_pending', submissionId: event.params.submissionId, classId: data.classId || '' },
+    });
+  },
+);
+
+exports.notifyStudentOnSubmissionDecision = onDocumentUpdated(
+  { document: 'lessonSubmissions/{submissionId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after || before.status === after.status) return;
+    if (!after.studentId || !['approved', 'rejected'].includes(after.status)) return;
+    await sendNotificationToUser(admin.firestore(), after.studentId, {
+      title: after.status === 'approved' ? 'Compito approvato' : 'Compito da rivedere',
+      body: after.status === 'approved'
+        ? 'La tua consegna e stata approvata dal docente.'
+        : `Il docente ha lasciato un feedback: ${after.teacherFeedback || 'nessun dettaglio'}`,
+      data: { type: 'school_submission_reviewed', submissionId: event.params.submissionId, classId: after.classId || '' },
+    });
+  },
 );
 

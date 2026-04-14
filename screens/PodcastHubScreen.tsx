@@ -5,8 +5,9 @@ import PodcastListScreen from './PodcastListScreen';
 import PodcastDetailScreen from './PodcastDetailScreen';
 import PlaylistListScreen from './PlaylistListScreen';
 import PlaylistDetailScreen from './PlaylistDetailScreen';
+import ITSSchoolScreen from './ITSSchoolScreen';
 
-type PodcastView = 'feed' | 'its' | 'playlists' | 'podcastDetail' | 'playlistDetail';
+type PodcastView = 'feed' | 'its' | 'school' | 'playlists' | 'podcastDetail' | 'playlistDetail';
 
 export default function PodcastHubScreen() {
   const [view, setView] = useState<PodcastView>('feed');
@@ -54,6 +55,12 @@ export default function PodcastHubScreen() {
           <Text style={[styles.tabText, view === 'its' && styles.tabTextActive]}>ITS</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={[styles.tab, view === 'school' && styles.tabActive]}
+          onPress={() => setView('school')}
+        >
+          <Text style={[styles.tabText, view === 'school' && styles.tabTextActive]}>Scuola</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, view === 'playlists' && styles.tabActive]}
           onPress={() => setView('playlists')}
         >
@@ -73,6 +80,7 @@ export default function PodcastHubScreen() {
             }}
           />
         )}
+        {view === 'school' && <ITSSchoolScreen />}
         {view === 'playlists' && (
           <PlaylistListScreen
             onSelectPlaylist={(playlistId, name) => {

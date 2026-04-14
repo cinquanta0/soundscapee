@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { auth } from '../firebaseConfig';
+import { functions } from '../firebaseConfig';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -18,6 +19,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -62,12 +64,14 @@ export default function LoginScreen() {
 
       if (isSignUp) {
         const cred = await createUserWithEmailAndPassword(auth, emailTrimmed, password);
+        await httpsCallable(functions, 'upsertSchoolProfile')({});
         await sendEmailVerification(cred.user);
         setSuccessMsg('Account creato! Controlla la tua email e clicca il link di verifica.');
         setLoading(false);
         return;
       } else {
         await signInWithEmailAndPassword(auth, emailTrimmed, password);
+        await httpsCallable(functions, 'upsertSchoolProfile')({});
         router.replace('/(tabs)');
       }
     } catch (error: any) {
@@ -207,6 +211,10 @@ export default function LoginScreen() {
         <Text style={styles.infoText}>
           Accedendo accetti i nostri Termini di Servizio e Privacy Policy
         </Text>
+        <Text style={styles.schoolInfoText}>
+          Accesso Scuola: usa la tua email scolastica (verificata) per funzioni docente.
+          Gli studenti possono usare anche email personale con approvazione docente.
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -307,6 +315,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 24,
+    lineHeight: 18,
+  },
+  schoolInfoText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 10,
     lineHeight: 18,
   },
   forgotLink: {

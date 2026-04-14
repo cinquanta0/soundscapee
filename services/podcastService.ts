@@ -5,8 +5,9 @@ import {
   arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import * as FileSystem from 'expo-file-system/legacy';
-import { db, storage } from '../firebaseConfig';
+import { db, storage, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 
 export interface Podcast {
@@ -25,6 +26,14 @@ export interface Podcast {
   commentsCount: number;
   isITS: boolean;        // true = episodio del canale ITS
   category?: string;     // es. "informatica", "marketing", ecc.
+  schoolMode?: boolean;
+  classId?: string;
+  lessonId?: string;
+  authorRole?: 'teacher' | 'student';
+  submissionStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  submittedToTeacherId?: string;
+  teacherFeedback?: string;
+  dueDate?: Date | null;
 }
 
 // ─── Playlist ─────────────────────────────────────────────────────────────────
@@ -43,6 +52,59 @@ export interface PodcastComment {
   username: string;
   text: string;
   createdAt: Date;
+}
+
+export interface SchoolClass {
+  id: string;
+  name: string;
+  code: string;
+  teacherId: string;
+  teacherName: string;
+  createdAt: Date;
+}
+
+export interface PendingClassMember {
+  userId: string;
+  role: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface SchoolAccessStatus {
+  schoolRole: 'teacher' | 'student' | 'admin';
+  emailVerified: boolean;
+  schoolDomainAllowed: boolean;
+}
+
+export interface SubmissionBoardItem extends LessonSubmission {
+  lessonTitle?: string;
+}
+
+export interface SchoolLesson {
+  id: string;
+  classId: string;
+  teacherId: string;
+  teacherName: string;
+  title: string;
+  description: string;
+  podcastId: string;
+  dueDate: Date | null;
+  createdAt: Date;
+}
+
+export interface LessonSubmission {
+  id: string;
+  classId: string;
+  lessonId: string;
+  studentId: string;
+  studentName: string;
+  podcastId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  teacherFeedback?: string;
+  teacherId: string;
+  createdAt: Date;
+  reviewedAt?: Date | null;
+  grade?: number | null;
+  gradeComment?: string;
 }
 
 function mimeFromExt(ext: string): string {
@@ -69,6 +131,13 @@ function extFromUri(uri: string): string {
   return allowed.includes(ext) ? ext : 'mp3';
 }
 
+function normalizeDate(value: any): Date | null {
+  if (!value) return null;
+  if (value?.toDate) return value.toDate();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
   const q = query(collection(db, 'podcast'), orderBy('createdAt', 'desc'), limit(limitN));
   const snap = await getDocs(q);
@@ -82,6 +151,28 @@ export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
     isITS: d.data().isITS ?? false,
     category: d.data().category,
   }));
+}
+
+export async function getSchoolAccessStatus(): Promise<SchoolAccessStatus> {
+  const user = auth.currentUser;
+  if (!user) {
+    return { schoolRole: 'student', emailVerified: false, schoolDomainAllowed: false };
+  }
+  const userSnap = await getDoc(doc(db, 'users', user.uid));
+  const data = userSnap.exists() ? userSnap.data() : {};
+  return {
+    schoolRole: (data?.schoolRole ?? 'student') as 'teacher' | 'student' | 'admin',
+    emailVerified: !!(data?.emailVerified ?? user.emailVerified),
+    schoolDomainAllowed: !!data?.schoolDomainAllowed,
+  };
+}
+
+export async function setSchoolRoleByAdmin(targetUserId: string, role: 'teacher' | 'student' | 'admin'): Promise<void> {
+  const callable = httpsCallable<{ targetUserId: string; role: 'teacher' | 'student' | 'admin' }, { ok: boolean }>(
+    functions,
+    'setSchoolRoleByAdmin',
+  );
+  await callable({ targetUserId, role });
 }
 
 // ─── Likes / Dislikes ─────────────────────────────────────────────────────────
@@ -246,8 +337,348 @@ export async function publishPodcast(params: {
     commentsCount: 0,
     isITS: params.isITS ?? false,
     ...(params.category ? { category: params.category } : {}),
+    schoolMode: params.isITS ?? false,
   });
   return docRef.id;
+}
+
+export async function createClass(name: string, teacherName: string): Promise<string> {
+  const callable = httpsCallable<{ name: string }, { classId: string }>(functions, 'createClassSecure');
+  const result = await callable({ name: name.trim() || teacherName.trim() });
+  return result.data.classId;
+}
+
+export async function joinClassByCode(code: string): Promise<string> {
+  const callable = httpsCallable<{ code: string }, { classId: string; status: 'pending' | 'approved' | 'rejected' }>(functions, 'joinClassSecure');
+  const result = await callable({ code: code.trim().toUpperCase() });
+  return result.data.classId;
+}
+
+export async function getTeacherClasses(): Promise<SchoolClass[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+  const snap = await getDocs(q);
+  const list = snap.docs.map((d) => ({
+    id: d.id,
+    name: d.data().name ?? '',
+    code: d.data().code ?? '',
+    teacherId: d.data().teacherId ?? '',
+    teacherName: d.data().teacherName ?? 'Docente',
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+  }));
+  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function getStudentClasses(): Promise<SchoolClass[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const classesSnap = await getDocs(query(collection(db, 'classes'), limit(100)));
+  const classes = await Promise.all(
+    classesSnap.docs.map(async (c) => {
+      const memberSnap = await getDoc(doc(db, 'classes', c.id, 'members', user.uid));
+      if (!memberSnap.exists()) return null;
+      return memberSnap.data()?.status === 'approved' ? c : null;
+    }),
+  );
+  return classes
+    .filter((c): c is any => c !== null)
+    .map((c) => ({
+      id: c.id,
+      name: c.data().name ?? '',
+      code: c.data().code ?? '',
+      teacherId: c.data().teacherId ?? '',
+      teacherName: c.data().teacherName ?? 'Docente',
+      createdAt: c.data().createdAt?.toDate() ?? new Date(),
+    }))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function getPendingClassMembersForTeacher(classId: string): Promise<PendingClassMember[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const classSnap = await getDoc(doc(db, 'classes', classId));
+  if (!classSnap.exists() || classSnap.data().teacherId !== user.uid) return [];
+  const snap = await getDocs(query(collection(db, 'classes', classId, 'members'), where('status', '==', 'pending')));
+  return snap.docs.map((d) => ({
+    userId: d.id,
+    role: d.data().role ?? 'student',
+    status: d.data().status ?? 'pending',
+  }));
+}
+
+export async function approveClassMember(classId: string, studentId: string): Promise<void> {
+  const callable = httpsCallable<{ classId: string; studentId: string }, { ok: boolean }>(functions, 'approveClassMemberSecure');
+  await callable({ classId, studentId });
+}
+
+export async function rejectClassMember(classId: string, studentId: string): Promise<void> {
+  const callable = httpsCallable<{ classId: string; studentId: string }, { ok: boolean }>(functions, 'rejectClassMemberSecure');
+  await callable({ classId, studentId });
+}
+
+export async function createLessonPodcast(params: {
+  classId: string;
+  title: string;
+  description: string;
+  dueDate?: Date | null;
+  audioUri?: string;
+  audioUrl?: string;
+  coverUri?: string | null;
+}): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  const classSnap = await getDoc(doc(db, 'classes', params.classId));
+  if (!classSnap.exists()) throw new Error('Classe non trovata');
+  if (classSnap.data().teacherId !== user.uid) throw new Error('Solo la docente puo creare lezioni');
+  const podcastId = await publishPodcast({
+    audioUri: params.audioUri,
+    audioUrl: params.audioUrl,
+    coverUri: params.coverUri ?? null,
+    title: params.title,
+    description: params.description,
+    duration: 0,
+    username: user.displayName ?? classSnap.data().teacherName ?? 'Docente',
+    userAvatar: user.photoURL ?? '',
+    isITS: true,
+    category: 'lesson',
+  });
+  const lessonRef = await addDoc(collection(db, 'lessons'), {
+    classId: params.classId,
+    teacherId: user.uid,
+    teacherName: classSnap.data().teacherName ?? user.displayName ?? 'Docente',
+    title: params.title.trim(),
+    description: params.description.trim(),
+    podcastId,
+    dueDate: params.dueDate ?? null,
+    createdAt: serverTimestamp(),
+  });
+  await updateDoc(doc(db, 'podcast', podcastId), {
+    schoolMode: true,
+    classId: params.classId,
+    lessonId: lessonRef.id,
+    authorRole: 'teacher',
+    submissionStatus: 'none',
+    dueDate: params.dueDate ?? null,
+  });
+  return lessonRef.id;
+}
+
+export async function getClassLessons(classId: string): Promise<SchoolLesson[]> {
+  const q = query(collection(db, 'lessons'), where('classId', '==', classId));
+  const snap = await getDocs(q);
+  const list = snap.docs.map((d) => ({
+    id: d.id,
+    classId: d.data().classId ?? '',
+    teacherId: d.data().teacherId ?? '',
+    teacherName: d.data().teacherName ?? 'Docente',
+    title: d.data().title ?? '',
+    description: d.data().description ?? '',
+    podcastId: d.data().podcastId ?? '',
+    dueDate: normalizeDate(d.data().dueDate),
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+  }));
+  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function submitLessonAssignment(params: {
+  classId: string;
+  lessonId: string;
+  title: string;
+  description: string;
+  audioUri?: string;
+  audioUrl?: string;
+  coverUri?: string | null;
+}): Promise<string> {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) throw new Error('Devi essere autenticato');
+  const lessonSnap = await getDoc(doc(db, 'lessons', params.lessonId));
+  if (!lessonSnap.exists()) throw new Error('Lezione non trovata');
+  const teacherId = lessonSnap.data().teacherId;
+  const duplicateQuery = query(
+    collection(db, 'lessonSubmissions'),
+    where('studentId', '==', user.uid),
+    where('status', '==', 'pending'),
+  );
+  const dup = await getDocs(duplicateQuery);
+  const hasPendingForLesson = dup.docs.some((d) => d.data().lessonId === params.lessonId);
+  if (hasPendingForLesson) throw new Error('Hai gia una consegna in revisione per questa lezione');
+
+  const podcastId = await publishPodcast({
+    audioUri: params.audioUri,
+    audioUrl: params.audioUrl,
+    coverUri: params.coverUri ?? null,
+    title: params.title,
+    description: params.description,
+    duration: 0,
+    username: user.displayName ?? user.email ?? 'Studente',
+    userAvatar: user.photoURL ?? '',
+    isITS: true,
+    category: 'submission',
+  });
+
+  const submissionRef = await addDoc(collection(db, 'lessonSubmissions'), {
+    classId: params.classId,
+    lessonId: params.lessonId,
+    studentId: user.uid,
+    studentName: user.displayName ?? user.email ?? 'Studente',
+    teacherId,
+    podcastId,
+    status: 'pending',
+    teacherFeedback: '',
+    createdAt: serverTimestamp(),
+    reviewedAt: null,
+  });
+  await updateDoc(doc(db, 'podcast', podcastId), {
+    schoolMode: true,
+    classId: params.classId,
+    lessonId: params.lessonId,
+    authorRole: 'student',
+    submissionStatus: 'pending',
+    submittedToTeacherId: teacherId,
+  });
+  return submissionRef.id;
+}
+
+export async function getPendingSubmissionsForTeacher(classId: string): Promise<LessonSubmission[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(
+    collection(db, 'lessonSubmissions'),
+    where('teacherId', '==', user.uid),
+    where('status', '==', 'pending'),
+  );
+  const snap = await getDocs(q);
+  const list = snap.docs
+    .filter((d) => d.data().classId === classId)
+    .map((d) => ({
+    id: d.id,
+    classId: d.data().classId ?? '',
+    lessonId: d.data().lessonId ?? '',
+    studentId: d.data().studentId ?? '',
+    studentName: d.data().studentName ?? 'Studente',
+    teacherId: d.data().teacherId ?? '',
+    podcastId: d.data().podcastId ?? '',
+    status: d.data().status ?? 'pending',
+    teacherFeedback: d.data().teacherFeedback ?? '',
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+    reviewedAt: normalizeDate(d.data().reviewedAt),
+    grade: d.data().grade ?? null,
+    gradeComment: d.data().gradeComment ?? '',
+  }));
+  return list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+}
+
+export async function getStudentSubmissions(classId: string): Promise<LessonSubmission[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(
+    collection(db, 'podcast'),
+    where('userId', '==', user.uid),
+  );
+  const snap = await getDocs(q);
+  const list = snap.docs
+    .filter((d) => d.data().classId === classId && d.data().authorRole === 'student' && !!d.data().lessonId)
+    .map((d) => ({
+    id: d.id,
+    classId: d.data().classId ?? '',
+    lessonId: d.data().lessonId ?? '',
+      studentId: d.data().userId ?? '',
+      studentName: d.data().username ?? 'Studente',
+      teacherId: d.data().submittedToTeacherId ?? '',
+      podcastId: d.id,
+      status: d.data().submissionStatus ?? 'pending',
+    teacherFeedback: d.data().teacherFeedback ?? '',
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+      reviewedAt: null,
+      grade: d.data().grade ?? null,
+      gradeComment: d.data().gradeComment ?? '',
+  }));
+  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function approveSubmission(submissionId: string): Promise<void> {
+  const callable = httpsCallable<{ submissionId: string }, { ok: boolean }>(functions, 'approveSubmissionSecure');
+  await callable({ submissionId });
+}
+
+export async function rejectSubmission(submissionId: string, feedback: string): Promise<void> {
+  const msg = feedback.trim();
+  if (!msg) throw new Error('Il feedback e obbligatorio');
+  const callable = httpsCallable<{ submissionId: string; feedback: string }, { ok: boolean }>(functions, 'rejectSubmissionSecure');
+  await callable({ submissionId, feedback: msg });
+}
+
+export async function gradeSubmission(submissionId: string, grade: number, gradeComment: string): Promise<void> {
+  const safeGrade = Math.max(0, Math.min(100, Math.round(grade)));
+  const callable = httpsCallable<{ submissionId: string; grade: number; gradeComment: string }, { ok: boolean }>(
+    functions,
+    'gradeSubmissionSecure',
+  );
+  await callable({ submissionId, grade: safeGrade, gradeComment: (gradeComment || '').trim() });
+}
+
+export async function getClassSubmissionsForTeacher(classId: string): Promise<SubmissionBoardItem[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const q = query(collection(db, 'lessonSubmissions'), where('teacherId', '==', user.uid));
+  const snap = await getDocs(q);
+  const list = snap.docs
+    .filter((d) => d.data().classId === classId)
+    .map((d) => ({
+      id: d.id,
+      classId: d.data().classId ?? '',
+      lessonId: d.data().lessonId ?? '',
+      studentId: d.data().studentId ?? '',
+      studentName: d.data().studentName ?? 'Studente',
+      teacherId: d.data().teacherId ?? '',
+      podcastId: d.data().podcastId ?? '',
+      status: d.data().status ?? 'pending',
+      teacherFeedback: d.data().teacherFeedback ?? '',
+      createdAt: d.data().createdAt?.toDate() ?? new Date(),
+      reviewedAt: normalizeDate(d.data().reviewedAt),
+      grade: d.data().grade ?? null,
+      gradeComment: d.data().gradeComment ?? '',
+    }));
+  const lessonIds = Array.from(new Set(list.map((x) => x.lessonId).filter(Boolean)));
+  const lessonTitleMap = new Map<string, string>();
+  await Promise.all(lessonIds.map(async (lessonId) => {
+    const lessonSnap = await getDoc(doc(db, 'lessons', lessonId));
+    lessonTitleMap.set(lessonId, lessonSnap.exists() ? (lessonSnap.data().title ?? '') : '');
+  }));
+  return list
+    .map((x) => ({ ...x, lessonTitle: lessonTitleMap.get(x.lessonId) ?? '' }))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function getApprovedClassFeed(classId: string): Promise<Podcast[]> {
+  const q = query(
+    collection(db, 'podcast'),
+    where('schoolMode', '==', true),
+    where('classId', '==', classId),
+    where('submissionStatus', '==', 'approved'),
+    orderBy('createdAt', 'desc'),
+    limit(50),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Podcast, 'id'>),
+    createdAt: d.data().createdAt?.toDate() ?? new Date(),
+    likesCount: d.data().likesCount ?? 0,
+    dislikesCount: d.data().dislikesCount ?? 0,
+    commentsCount: d.data().commentsCount ?? 0,
+    isITS: d.data().isITS ?? false,
+    category: d.data().category,
+    schoolMode: d.data().schoolMode ?? false,
+    classId: d.data().classId,
+    lessonId: d.data().lessonId,
+    authorRole: d.data().authorRole,
+    submissionStatus: d.data().submissionStatus ?? 'none',
+    submittedToTeacherId: d.data().submittedToTeacherId,
+    teacherFeedback: d.data().teacherFeedback,
+    dueDate: normalizeDate(d.data().dueDate),
+  }));
 }
 
 export async function updatePodcast(
