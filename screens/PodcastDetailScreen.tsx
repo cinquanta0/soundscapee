@@ -5,6 +5,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import PodcastPlayer from '../components/PodcastPlayer';
 import {
   getPodcastById, getUserPlaylists, addPodcastToPlaylist, createPlaylist,
@@ -21,6 +22,7 @@ interface Props {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
+  const { t } = useTranslation();
   const [podcast, setPodcast]         = useState<Podcast | null>(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
@@ -39,10 +41,10 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
   useEffect(() => {
     getPodcastById(podcastId)
       .then((p) => {
-        if (!p) setError('Podcast non trovato.');
+        if (!p) setError(t('podcast.podcastDetail.notFound'));
         else setPodcast(p);
       })
-      .catch(() => setError('Impossibile caricare il podcast.'))
+      .catch(() => setError(t('podcast.podcastDetail.cannotLoad')))
       .finally(() => setLoading(false));
   }, [podcastId]);
 
@@ -54,7 +56,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
     try {
       setPlaylists(await getUserPlaylists());
     } catch {
-      Alert.alert('Errore', 'Impossibile caricare le playlist.');
+      Alert.alert(t('common.error'), t('playlist.errors.cannotLoadPlaylists'));
     } finally {
       setLoadingPlaylists(false);
     }
@@ -68,9 +70,9 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
     try {
       await addPodcastToPlaylist(playlistId, podcast.id);
       setShowModal(false);
-      Alert.alert('✓ Aggiunto', `"${podcast.title}" aggiunto a "${playlistName}".`);
+      Alert.alert(t('playlist.added'), t('playlist.addedMsg', { title: podcast.title, name: playlistName }));
     } catch {
-      Alert.alert('Errore', 'Impossibile aggiungere alla playlist.');
+      Alert.alert(t('common.error'), t('playlist.errors.cannotAdd'));
     } finally {
       setAdding(null);
     }
@@ -88,9 +90,9 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
       setNewName('');
       setShowNewPlaylist(false);
       setShowModal(false);
-      Alert.alert('✓ Fatto', `Playlist "${name}" creata e episodio aggiunto.`);
+      Alert.alert(t('playlist.added'), t('playlist.addedMsg', { title: podcast?.title ?? '', name }));
     } catch {
-      Alert.alert('Errore', 'Impossibile creare la playlist.');
+      Alert.alert(t('common.error'), t('playlist.errors.cannotCreate'));
     } finally {
       setCreating(false);
     }
@@ -113,9 +115,9 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
         <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
         <View style={s.centered}>
           <Text style={s.errorIcon}>⚠️</Text>
-          <Text style={s.errorTxt}>{error ?? 'Podcast non trovato.'}</Text>
+          <Text style={s.errorTxt}>{error ?? t('podcast.podcastDetail.notFound')}</Text>
           <TouchableOpacity style={s.backBtnFull} onPress={onBack}>
-            <Text style={s.backBtnTxt}>← Indietro</Text>
+            <Text style={s.backBtnTxt}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -131,7 +133,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
         <TouchableOpacity onPress={onBack} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={s.backArrow}>‹</Text>
         </TouchableOpacity>
-        <Text style={s.headerLabel}>podcast</Text>
+        <Text style={s.headerLabel}>{t('podcast.header')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -143,17 +145,17 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
         {/* Descrizione */}
         {!!podcast.description && (
           <View style={s.descSection}>
-            <Text style={s.descLabel}>Descrizione</Text>
+            <Text style={s.descLabel}>{t('podcast.descriptionPlaceholder').replace('...', '')}</Text>
             <Text style={s.descTxt}>{podcast.description}</Text>
           </View>
         )}
 
-        {/* Meta: autore, categoria, badge ITS */}
+        {/* Meta: autore, categoria, badge Scuola */}
         <View style={s.metaRow}>
           <Text style={s.metaAuthor}>@{podcast.username}</Text>
           {podcast.isITS && (
             <View style={s.itsBadge}>
-              <Text style={s.itsBadgeTxt}>ITS</Text>
+              <Text style={s.itsBadgeTxt}>{t('podcast.schoolBadge')}</Text>
             </View>
           )}
           {podcast.category ? (
@@ -165,7 +167,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
 
         {/* Bottone Aggiungi a playlist */}
         <TouchableOpacity style={s.addBtn} onPress={openPlaylistModal} activeOpacity={0.8}>
-          <Text style={s.addBtnTxt}>＋ Aggiungi a playlist</Text>
+          <Text style={s.addBtnTxt}>{t('playlist.addBtn')}</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -179,7 +181,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
           <View style={s.modalBox}>
             {/* Handle */}
             <View style={s.modalHandle} />
-            <Text style={s.modalTitle}>Aggiungi a playlist</Text>
+            <Text style={s.modalTitle}>{t('podcast.podcastDetail.addToPlaylistTitle')}</Text>
 
             {loadingPlaylists ? (
               <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
@@ -209,7 +211,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                     ItemSeparatorComponent={() => <View style={s.separator} />}
                   />
                 ) : (
-                  <Text style={s.noPlaylistsTxt}>Nessuna playlist ancora.</Text>
+                  <Text style={s.noPlaylistsTxt}>{t('podcast.podcastDetail.noPlaylists')}</Text>
                 )}
 
                 {/* Crea nuova playlist inline */}
@@ -217,7 +219,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                   <View style={s.newPlaylistRow}>
                     <TextInput
                       style={s.newPlaylistInput}
-                      placeholder="Nome nuova playlist..."
+                      placeholder={t('playlist.namePlaceholder')}
                       placeholderTextColor="rgba(255,255,255,0.3)"
                       value={newName}
                       onChangeText={setNewName}
@@ -242,7 +244,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                     style={s.createNewBtn}
                     onPress={() => setShowNewPlaylist(true)}
                   >
-                    <Text style={s.createNewTxt}>+ Crea nuova playlist</Text>
+                    <Text style={s.createNewTxt}>{t('playlist.newPlaylist')}</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -253,7 +255,7 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
               style={s.modalCloseBtn}
               onPress={() => { setShowModal(false); setShowNewPlaylist(false); setNewName(''); }}
             >
-              <Text style={s.modalCloseTxt}>Annulla</Text>
+              <Text style={s.modalCloseTxt}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

@@ -5,6 +5,7 @@ import {
   Platform, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import {
   getUserPlaylists, createPlaylist, deletePlaylist, Playlist,
 } from '../services/podcastService';
@@ -18,6 +19,7 @@ interface Props {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
+  const { t } = useTranslation();
   const [playlists, setPlaylists]     = useState<Playlist[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
@@ -35,7 +37,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
     try {
       setPlaylists(await getUserPlaylists());
     } catch {
-      setError('Impossibile caricare le playlist.');
+      setError(t('playlist.errors.cannotLoad'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -56,7 +58,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
       setShowCreate(false);
       await load();
     } catch {
-      Alert.alert('Errore', 'Impossibile creare la playlist.');
+      Alert.alert(t('common.error'), t('playlist.errors.cannotCreate'));
     } finally {
       setCreating(false);
     }
@@ -66,17 +68,17 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
 
   const handleDelete = (p: Playlist) => {
     Alert.alert(
-      'Elimina playlist',
-      `Eliminare "${p.name}"? Gli episodi non verranno eliminati.`,
+      t('playlist.delete'),
+      t('playlist.deleteConfirmMsg', { name: p.name }),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Elimina', style: 'destructive', onPress: async () => {
+          text: t('common.delete'), style: 'destructive', onPress: async () => {
             try {
               await deletePlaylist(p.id);
               setPlaylists((prev) => prev.filter((x) => x.id !== p.id));
             } catch {
-              Alert.alert('Errore', 'Impossibile eliminare la playlist.');
+              Alert.alert(t('common.error'), t('playlist.errors.cannotDelete'));
             }
           },
         },
@@ -92,9 +94,9 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
 
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>Le mie playlist</Text>
+        <Text style={s.headerTitle}>{t('playlist.title')}</Text>
         <TouchableOpacity style={s.newBtn} onPress={() => setShowCreate(true)}>
-          <Text style={s.newBtnTxt}>+ Nuova</Text>
+          <Text style={s.newBtnTxt}>{t('playlist.create')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -111,7 +113,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
           <Text style={s.errorIcon}>⚠️</Text>
           <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={() => load()}>
-            <Text style={s.retryTxt}>Riprova</Text>
+            <Text style={s.retryTxt}>{t('common.ok')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -134,7 +136,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
           ListEmptyComponent={
             <View style={s.centered}>
               <Text style={s.emptyIcon}>🎵</Text>
-              <Text style={s.emptyTxt}>Nessuna playlist ancora.{'\n'}Creane una!</Text>
+              <Text style={s.emptyTxt}>{t('playlist.empty')}{'\n'}{t('playlist.emptyHint')}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -149,8 +151,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
               <View style={s.rowInfo}>
                 <Text style={s.rowName} numberOfLines={1}>{item.name}</Text>
                 <Text style={s.rowCount}>
-                  {item.podcastIds.length}{' '}
-                  {item.podcastIds.length === 1 ? 'episodio' : 'episodi'}
+                  {item.podcastIds.length} ep.
                 </Text>
               </View>
               <TouchableOpacity
@@ -172,10 +173,10 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={s.modalBox}>
-            <Text style={s.modalTitle}>Nuova playlist</Text>
+            <Text style={s.modalTitle}>{t('playlist.newPlaylistTitle')}</Text>
             <TextInput
               style={s.modalInput}
-              placeholder="Nome playlist..."
+              placeholder={t('playlist.namePlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={newName}
               onChangeText={setNewName}
@@ -189,7 +190,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
                 style={s.modalCancelBtn}
                 onPress={() => { setShowCreate(false); setNewName(''); }}
               >
-                <Text style={s.modalCancelTxt}>Annulla</Text>
+                <Text style={s.modalCancelTxt}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.modalConfirmBtn, (!newName.trim() || creating) && { opacity: 0.4 }]}
@@ -198,7 +199,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
               >
                 {creating
                   ? <ActivityIndicator color="#050508" size="small" />
-                  : <Text style={s.modalConfirmTxt}>Crea</Text>
+                  : <Text style={s.modalConfirmTxt}>{t('common.create')}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -244,8 +245,8 @@ const s = StyleSheet.create({
   // Row
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#0D0D1A', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(0,255,156,0.1)',
+    backgroundColor: '#1e293b', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: '#334155',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3, shadowRadius: 4, elevation: 3,
   },

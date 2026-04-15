@@ -1,8 +1,9 @@
 import {
   collection, addDoc, getDocs, query, where, orderBy,
   limit, serverTimestamp, doc, updateDoc, onSnapshot,
-  setDoc, getDoc, Timestamp, Unsubscribe, increment,
+  setDoc, getDoc, deleteDoc, Timestamp, Unsubscribe, increment,
 } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -19,6 +20,9 @@ export interface Messaggio {
   ascoltato: boolean;
   soundRef?: string; // ID del suono se condiviso dal feed
   soundTitle?: string;
+  statusReply?: boolean;
+  statusReplyLabel?: string;
+  statusId?: string;
 }
 
 export interface Conversazione {
@@ -112,6 +116,9 @@ export async function inviaMessaggio(params: {
   duration: number;
   soundRef?: string;
   soundTitle?: string;
+  statusReply?: boolean;
+  statusReplyLabel?: string;
+  statusId?: string;
 }): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -151,6 +158,11 @@ export async function inviaMessaggio(params: {
     timestamp: serverTimestamp(),
     ascoltato: false,
     ...(params.soundRef ? { soundRef: params.soundRef, soundTitle: params.soundTitle } : {}),
+    ...(params.statusReply ? {
+      statusReply: true,
+      statusReplyLabel: params.statusReplyLabel || 'Ti ha risposto al tuo stato',
+      ...(params.statusId ? { statusId: params.statusId } : {}),
+    } : {}),
   });
 
   // Aggiorna/crea conversation
@@ -171,6 +183,43 @@ export async function inviaMessaggio(params: {
     [`unread_${params.receiverId}`]: increment(1),
     lastMessageAscoltato: false,
   }, { merge: true });
+}
+
+export async function eliminaMessaggio(messageId: string, conversationId: string, audioUrl: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+
+  // Verifica ownership: il documento deve appartenere al mittente corrente
+  const msgRef = doc(db, 'messaggi', messageId);
+  const msgSnap = await getDoc(msgRef);
+  if (!msgSnap.exists() || msgSnap.data().senderId !== user.uid) {
+    throw new Error('Non autorizzato');
+  }
+
+  // Cancella il file da Firebase Storage (best-effort, non blocca se fallisce)
+  try {
+    // L'URL è del tipo: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token=...
+    const match = audioUrl.match(/\/o\/([^?]+)/);
+    if (match) {
+      const storagePath = decodeURIComponent(match[1]);
+      const storageRef = ref(storage, storagePath);
+      await deleteObject(storageRef);
+    }
+  } catch { /* file già eliminato o non trovato — ok */ }
+
+  // Cancella il documento Firestore
+  await deleteDoc(msgRef);
+
+  // Aggiorna la conversation (decrementa unread del ricevente se non ascoltato)
+  try {
+    const data = msgSnap.data();
+    if (!data.ascoltato) {
+      const convRef = doc(db, 'conversations', conversationId);
+      await updateDoc(convRef, {
+        [`unread_${data.receiverId}`]: increment(-1),
+      });
+    }
+  } catch { /* non critico */ }
 }
 
 export async function segnaAscoltato(messageId: string, conversationId: string): Promise<void> {

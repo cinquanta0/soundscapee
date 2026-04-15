@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ function extFromUrl(url: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: Props) {
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying]   = useState(false);
   const [position, setPosition]     = useState(0);     // secondi
   const [duration, setDuration]     = useState(podcast.duration ?? 0);
@@ -163,7 +165,7 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
 
     } catch {
       if (isMountedRef.current) {
-        setError('Impossibile caricare l\'audio. Controlla la connessione e riprova.');
+        setError(t('podcast.cannotLoad'));
       }
     } finally {
       if (isMountedRef.current) setLoading(false);
@@ -242,7 +244,7 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
           <Text style={s.errorIcon}>⚠️</Text>
           <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={() => loadAudio(podcast)}>
-            <Text style={s.retryTxt}>Riprova</Text>
+            <Text style={s.retryTxt}>{t('common.ok')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

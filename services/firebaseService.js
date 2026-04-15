@@ -91,11 +91,14 @@ export const createOrUpdateUserProfile = async (userId, userData) => {
   try {
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
+    const fallbackUsername = (userData.username || userData.email?.split('@')[0] || `user_${userId.slice(0, 6)}`).toLowerCase();
+    const fallbackDisplayName = userData.displayName || userData.username || userData.email?.split('@')[0] || `user_${userId.slice(0, 6)}`;
     
     if (!userDoc.exists()) {
       // Crea nuovo utente
       await setDoc(userRef, {
-        username: userData.username || `user_${userId.slice(0, 6)}`,
+        username: fallbackUsername,
+        displayName: fallbackDisplayName,
         email: userData.email || '',
         avatar: userData.avatar || '🎧',
         bio: userData.bio || 'Nuovo utente SoundScape 🎵',
@@ -108,10 +111,17 @@ export const createOrUpdateUserProfile = async (userId, userData) => {
         lastActive: serverTimestamp()
       });
     } else {
-      // Aggiorna last active
-      await updateDoc(userRef, {
-        lastActive: serverTimestamp()
-      });
+      // Aggiorna last active e completa eventuali campi mancanti (self-heal profilo)
+      const existing = userDoc.data() || {};
+      const patch = {
+        lastActive: serverTimestamp(),
+      };
+      if (!existing.username) patch.username = fallbackUsername;
+      if (!existing.displayName) patch.displayName = fallbackDisplayName;
+      if (!existing.avatar) patch.avatar = userData.avatar || '🎧';
+      if (!existing.email && userData.email) patch.email = userData.email;
+      if (!existing.bio) patch.bio = userData.bio || 'Nuovo utente SoundScape 🎵';
+      await updateDoc(userRef, patch);
     }
     
     return userRef.id;
@@ -475,6 +485,25 @@ export async function addComment(soundId, text) {
 /**
  * Ottieni commenti di un sound
  */
+/**
+ * Elimina un commento (solo il proprietario)
+ */
+export async function deleteComment(soundId, commentId) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+
+  const commentRef = doc(db, 'sounds', soundId, 'comments', commentId);
+  const snap = await getDoc(commentRef);
+  if (!snap.exists() || snap.data().userId !== user.uid) {
+    throw new Error('Non autorizzato');
+  }
+
+  await deleteDoc(commentRef);
+  await updateDoc(doc(db, 'sounds', soundId), {
+    comments: increment(-1),
+  });
+}
+
 export const getComments = async (soundId, limitCount = 50) => {
   try {
     const q = query(

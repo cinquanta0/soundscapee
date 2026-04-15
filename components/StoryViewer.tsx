@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View, Text, Modal, TouchableOpacity, Animated,
-  Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback,
+  Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -10,9 +11,11 @@ const { width: SW, height: SH } = Dimensions.get('window');
 const SCREEN_DURATION = 5000; // ms per schermata
 
 export interface StoryScreen {
+  id?: string;
   emoji: string;
   title: string;
   body: string;
+  imageUrl?: string;
   audioUrl?: string;
   audioDuration?: number;
 }
@@ -20,6 +23,7 @@ export interface StoryScreen {
 export interface StoryGroup {
   id: string;
   label: string;
+  userId?: string;
   icon?: string;
   color?: string;
   screens: StoryScreen[];
@@ -31,9 +35,26 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onViewed?: (groupId: string) => void;
+  currentUserId?: string;
+  onDeleteStato?: (statoId: string) => Promise<void> | void;
+  onReplyStatoVoice?: (params: { statoId: string; ownerUserId: string; audioUri: string; duration: number }) => Promise<void> | void;
+  getViewersForStato?: (statoId: string) => Promise<Array<{ id: string; name: string; avatar: string }>>;
+  onStatoOpened?: (statoId: string) => Promise<void> | void;
 }
 
-export default function StoryViewer({ groups, startGroupIndex = 0, visible, onClose, onViewed }: Props) {
+export default function StoryViewer({
+  groups,
+  startGroupIndex = 0,
+  visible,
+  onClose,
+  onViewed,
+  currentUserId,
+  onDeleteStato,
+  onReplyStatoVoice,
+  getViewersForStato,
+  onStatoOpened,
+}: Props) {
+  const { t } = useTranslation();
   const [groupIdx, setGroupIdx] = useState(startGroupIndex);
   const [screenIdx, setScreenIdx] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -42,10 +63,19 @@ export default function StoryViewer({ groups, startGroupIndex = 0, visible, onCl
   const soundRef = useRef<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [sendingReply, setSendingReply] = useState(false);
+  const [isRecordingReply, setIsRecordingReply] = useState(false);
+  const [replySeconds, setReplySeconds] = useState(0);
+  const [showViewers, setShowViewers] = useState(false);
+  const [viewers, setViewers] = useState<Array<{ id: string; name: string; avatar: string }>>([]);
   const pressStartRef = useRef<number>(0);
   const wasHoldRef = useRef(false);
+  const replyRecordingRef = useRef<Audio.Recording | null>(null);
+  const replyTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const group = groups[groupIdx];
+  const isOwnGroup = !!(group?.userId && currentUserId && group.userId === currentUserId);
+  const isTutorial = group?.id?.startsWith('tutorial');
   const totalScreens = group?.screens.length ?? 1;
 
   const goForward = useCallback(() => {
@@ -194,13 +224,111 @@ export default function StoryViewer({ groups, startGroupIndex = 0, visible, onCl
     };
   }, [visible, groupIdx, screenIdx]);
 
+  useEffect(() => {
+    if (!visible || isTutorial || isOwnGroup || !screen?.id) return;
+    onStatoOpened?.(screen.id);
+  }, [visible, screen?.id, isTutorial, isOwnGroup, onStatoOpened]);
+
   // Reset when opened
   useEffect(() => {
     if (visible) {
       setGroupIdx(startGroupIndex);
       setScreenIdx(0);
+      setShowViewers(false);
     }
   }, [visible, startGroupIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (replyTimerRef.current) clearInterval(replyTimerRef.current);
+      replyRecordingRef.current?.stopAndUnloadAsync().catch(() => {});
+      replyRecordingRef.current = null;
+    };
+  }, []);
+
+  const startVoiceReply = useCallback(async () => {
+    try {
+      // Evita che l'audio della storia finisca nella registrazione.
+      setPaused(true);
+      animRef.current?.stop();
+      await soundRef.current?.pauseAsync().catch(() => {});
+
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) return;
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync({
+        isMeteringEnabled: false,
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 64000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.MEDIUM,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 64000,
+        },
+        web: { mimeType: 'audio/webm', bitsPerSecond: 64000 },
+      });
+      replyRecordingRef.current = recording;
+      setReplySeconds(0);
+      setIsRecordingReply(true);
+      replyTimerRef.current = setInterval(() => setReplySeconds((s) => s + 1), 1000);
+    } catch {}
+  }, []);
+
+  const stopVoiceReply = useCallback(async () => {
+    if (!replyRecordingRef.current) return;
+    if (replyTimerRef.current) {
+      clearInterval(replyTimerRef.current);
+      replyTimerRef.current = null;
+    }
+    try {
+      await replyRecordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = replyRecordingRef.current.getURI();
+      const duration = replySeconds;
+      replyRecordingRef.current = null;
+      setIsRecordingReply(false);
+      if (!uri || !screen.id || !group?.userId) return;
+      setSendingReply(true);
+      await onReplyStatoVoice?.({ statoId: screen.id, ownerUserId: group.userId, audioUri: uri, duration });
+    } catch {
+      setIsRecordingReply(false);
+    } finally {
+      setSendingReply(false);
+      setReplySeconds(0);
+      setPaused(false);
+      const currentValue = (progressAnim as any)._value ?? 0;
+      if (currentValue < 1) {
+        const remaining = Math.max(300, (1 - currentValue) * SCREEN_DURATION);
+        animRef.current = Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: remaining,
+          useNativeDriver: false,
+        });
+        animRef.current.start(({ finished }) => {
+          if (finished) goForward();
+        });
+      }
+      await soundRef.current?.playAsync().catch(() => {});
+    }
+  }, [replySeconds, screen?.id, group?.userId, onReplyStatoVoice, progressAnim, goForward]);
+
+  const toggleViewers = useCallback(async () => {
+    if (!screen.id || !isOwnGroup || !getViewersForStato) return;
+    if (!showViewers) {
+      const data = await getViewersForStato(screen.id);
+      setViewers(data);
+    }
+    setShowViewers((v) => !v);
+  }, [screen?.id, isOwnGroup, getViewersForStato, showViewers]);
 
   if (!group) return null;
   const screen = group.screens[screenIdx];
@@ -238,11 +366,18 @@ export default function StoryViewer({ groups, startGroupIndex = 0, visible, onCl
 
       {/* Header */}
       <View style={styles.storyHeader}>
-        <View style={styles.storyAuthorRow}>
-          <View style={styles.storyAvatarSmall}>
-            <Text style={styles.storyAvatarEmoji}>{group.icon || '❓'}</Text>
+        <View style={styles.headerLeftCol}>
+          <View style={styles.storyAuthorRow}>
+            <View style={styles.storyAvatarSmall}>
+              <Text style={styles.storyAvatarEmoji}>{group.icon || '❓'}</Text>
+            </View>
+            <Text style={styles.storyAuthorName}>{group.label}</Text>
           </View>
-          <Text style={styles.storyAuthorName}>{group.label}</Text>
+          {isOwnGroup && !isTutorial && (
+            <TouchableOpacity style={styles.viewedWidget} onPress={toggleViewers}>
+              <Text style={styles.viewedWidgetText}>{t('stories.viewedBy', { count: screen.seenBy?.length || 0 })}</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Text style={styles.closeBtnText}>✕</Text>
@@ -277,12 +412,15 @@ export default function StoryViewer({ groups, startGroupIndex = 0, visible, onCl
       {/* Content */}
       <View style={styles.content} pointerEvents="none">
         <Text style={styles.screenEmoji}>{screen.emoji}</Text>
+        {screen.imageUrl ? (
+          <Image source={{ uri: screen.imageUrl }} style={styles.storyImage} />
+        ) : null}
         <Text style={styles.screenTitle}>{screen.title}</Text>
         {screen.body ? <Text style={styles.screenBody}>{screen.body}</Text> : null}
         {screen.audioUrl && (
           <View style={styles.audioIndicator}>
             <Text style={styles.audioWave}>
-              {audioPlaying ? '▶ 🎵  ▌▌▌▌▌▌▌▌' : '🎵 caricamento...'}
+              {audioPlaying ? '▶ 🎵  ▌▌▌▌▌▌▌▌' : t('stories.audioLoading')}
             </Text>
             {screen.audioDuration && (
               <Text style={styles.audioDuration}>{screen.audioDuration}s</Text>
@@ -290,6 +428,45 @@ export default function StoryViewer({ groups, startGroupIndex = 0, visible, onCl
           </View>
         )}
       </View>
+
+      {!isTutorial && (
+        <View style={styles.actionsBar}>
+          {isOwnGroup && screen.id ? (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => onDeleteStato?.(screen.id!)}
+            >
+              <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.replyToggle}
+                onPress={isRecordingReply ? stopVoiceReply : startVoiceReply}
+                disabled={sendingReply}
+              >
+                <Text style={styles.replyToggleText}>
+                  {sendingReply ? t('stories.replySending') : isRecordingReply ? t('stories.replyStop', { seconds: replySeconds }) : t('stories.replyVoice')}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+
+      {isOwnGroup && !isTutorial && showViewers && (
+        <View style={styles.viewersOverlay}>
+          <View style={styles.viewersPanelTop}>
+            {viewers.length === 0 ? (
+              <Text style={styles.viewersEmpty}>{t('stories.noViews')}</Text>
+            ) : (
+              viewers.slice(0, 8).map((u) => (
+                <Text key={u.id} style={styles.viewerItem}>{u.avatar} {u.name}</Text>
+              ))
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Group dots (se ci sono più group) */}
       {groups.length > 1 && (
@@ -342,11 +519,15 @@ const styles = StyleSheet.create({
   },
   storyHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
     zIndex: 10,
+  },
+  headerLeftCol: {
+    flex: 1,
+    gap: 8,
   },
   storyAuthorRow: {
     flexDirection: 'row',
@@ -385,12 +566,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  viewedWidget: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,255,156,0.2)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  viewedWidgetText: {
+    color: '#00FF9C',
+    fontFamily: 'monospace',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   tapZones: {
     position: 'absolute',
-    top: 0,
+    top: 100,
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 130,
     flexDirection: 'row',
     zIndex: 5,
   },
@@ -490,5 +686,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'monospace',
     marginTop: 4,
+  },
+  storyImage: {
+    width: Math.min(SW - 64, 320),
+    height: Math.min(SH * 0.3, 260),
+    borderRadius: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  actionsBar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 82,
+    zIndex: 15,
+  },
+  replyToggle: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.35)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  replyToggleText: {
+    color: '#00FF9C',
+    fontFamily: 'monospace',
+    fontSize: 12,
+  },
+  deleteBtn: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,77,77,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,77,77,0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  deleteBtnText: {
+    color: '#ff6b6b',
+    fontFamily: 'monospace',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  viewersOverlay: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 96,
+    zIndex: 18,
+  },
+  viewersPanelTop: {
+    maxWidth: 280,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  viewersEmpty: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  viewerItem: {
+    color: '#fff',
+    fontSize: 12,
+    paddingVertical: 2,
   },
 });

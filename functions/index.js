@@ -22,6 +22,14 @@ const SCHOOL_EMAIL_DOMAINS = (process.env.SCHOOL_EMAIL_DOMAINS || '')
   .split(',')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
+const SCHOOL_BOOTSTRAP_ADMINS = (process.env.SCHOOL_BOOTSTRAP_ADMINS || 'rosangelacalasso60@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+const SCHOOL_TEST_VERIFIED_UIDS = (process.env.SCHOOL_TEST_VERIFIED_UIDS || 'VmvV8LOPsdZkYhVnIpDyRWcT1Uy2,VnvWlWBUadXoVqcLCqzN42AuGhX2')
+  .split(',')
+  .map((u) => u.trim())
+  .filter(Boolean);
 
 function getUserDocRef(uid) {
   return admin.firestore().collection('users').doc(uid);
@@ -838,21 +846,115 @@ exports.streakReminder = onSchedule(
   }
 );
 
+// ── Scheduled: sincronizza profili users da Firebase Auth ─────────────────────
+// Serve per riparare utenti autenticati ma con doc Firestore mancante/incompleto,
+// senza richiedere logout/login.
+exports.syncAuthUsersToProfiles = onSchedule(
+  { schedule: 'every 10 minutes', region: 'europe-west1' },
+  async () => {
+    const db = admin.firestore();
+    let nextPageToken = undefined;
+    let scanned = 0;
+    let updated = 0;
+    let created = 0;
+
+    do {
+      const page = await admin.auth().listUsers(1000, nextPageToken);
+      nextPageToken = page.pageToken;
+
+      for (const user of page.users) {
+        scanned += 1;
+        const uid = user.uid;
+        const emailNorm = String(user.email || '').toLowerCase();
+        const userRef = db.collection('users').doc(uid);
+        const userSnap = await userRef.get();
+        const existing = userSnap.exists ? (userSnap.data() || {}) : {};
+
+        const fallbackBaseName = (emailNorm.split('@')[0] || `user_${uid.slice(0, 6)}`).trim() || `user_${uid.slice(0, 6)}`;
+        const fallbackUsername = String(existing.username || fallbackBaseName)
+          .toLowerCase()
+          .replace(/\s+/g, '_')
+          .slice(0, 50);
+        const fallbackDisplayName = String(existing.displayName || existing.username || fallbackBaseName).slice(0, 100);
+
+        const isBootstrapAdmin = SCHOOL_BOOTSTRAP_ADMINS.includes(emailNorm);
+        const effectiveRole = isBootstrapAdmin ? 'admin' : (existing.schoolRole || 'student');
+        const forcedVerifiedForTesting = SCHOOL_TEST_VERIFIED_UIDS.includes(uid);
+        const emailVerified = forcedVerifiedForTesting || !!user.emailVerified;
+
+        await userRef.set({
+          email: user.email || existing.email || '',
+          username: fallbackUsername || `user_${uid.slice(0, 6)}`,
+          displayName: fallbackDisplayName || fallbackBaseName,
+          avatar: existing.avatar || '🎧',
+          bio: existing.bio || 'Nuovo utente SoundScape 🎵',
+          recordingsCount: Number.isFinite(existing.recordingsCount) ? existing.recordingsCount : 0,
+          followersCount: Number.isFinite(existing.followersCount) ? existing.followersCount : 0,
+          followingCount: Number.isFinite(existing.followingCount) ? existing.followingCount : 0,
+          friendsCount: Number.isFinite(existing.friendsCount) ? existing.friendsCount : 0,
+          isPremium: typeof existing.isPremium === 'boolean' ? existing.isPremium : false,
+          ...(userSnap.exists ? {} : { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
+          schoolRole: effectiveRole,
+          ...(isBootstrapAdmin ? { isAdmin: true } : {}),
+          emailVerified,
+          schoolDomainAllowed: forcedVerifiedForTesting ? true : isSchoolDomain(user.email || ''),
+          lastActive: existing.lastActive || admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        if (userSnap.exists) updated += 1;
+        else created += 1;
+      }
+    } while (nextPageToken);
+
+    console.log(`[syncAuthUsersToProfiles] scanned=${scanned} updated=${updated} created=${created}`);
+  },
+);
+
 // ── School security callables ─────────────────────────────────────────────────
 exports.upsertSchoolProfile = onCall({ region: 'europe-west1' }, async (request) => {
   const uid = request.auth?.uid;
   const email = request.auth?.token?.email || '';
+  const emailNorm = String(email || '').toLowerCase();
   if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
 
+  const userRef = getUserDocRef(uid);
+  const userSnap = await userRef.get();
+  const existing = userSnap.exists ? (userSnap.data() || {}) : {};
+  const fallbackBaseName = (emailNorm.split('@')[0] || `user_${uid.slice(0, 6)}`).trim() || `user_${uid.slice(0, 6)}`;
+  const fallbackUsername = String(existing.username || fallbackBaseName).toLowerCase().replace(/\s+/g, '_').slice(0, 50);
+  const fallbackDisplayName = String(existing.displayName || existing.username || fallbackBaseName).slice(0, 100);
+
   const role = await getSchoolRole(uid);
-  await getUserDocRef(uid).set({
+  const isBootstrapAdmin = SCHOOL_BOOTSTRAP_ADMINS.includes(emailNorm);
+  const effectiveRole = isBootstrapAdmin ? 'admin' : role;
+  const forcedVerifiedForTesting = SCHOOL_TEST_VERIFIED_UIDS.includes(uid);
+  const emailVerified = forcedVerifiedForTesting || !!request.auth?.token?.email_verified;
+  await userRef.set({
     email,
-    schoolRole: role,
-    emailVerified: !!request.auth?.token?.email_verified,
-    schoolDomainAllowed: isSchoolDomain(email),
+    username: fallbackUsername || `user_${uid.slice(0, 6)}`,
+    displayName: fallbackDisplayName || fallbackBaseName,
+    avatar: existing.avatar || '🎧',
+    bio: existing.bio || 'Nuovo utente SoundScape 🎵',
+    recordingsCount: Number.isFinite(existing.recordingsCount) ? existing.recordingsCount : 0,
+    followersCount: Number.isFinite(existing.followersCount) ? existing.followersCount : 0,
+    followingCount: Number.isFinite(existing.followingCount) ? existing.followingCount : 0,
+    friendsCount: Number.isFinite(existing.friendsCount) ? existing.friendsCount : 0,
+    isPremium: typeof existing.isPremium === 'boolean' ? existing.isPremium : false,
+    ...(userSnap.exists ? {} : { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
+    schoolRole: effectiveRole,
+    ...(isBootstrapAdmin ? { isAdmin: true } : {}),
+    emailVerified,
+    schoolDomainAllowed: forcedVerifiedForTesting ? true : isSchoolDomain(email),
+    lastActive: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
-  return { role, emailVerified: !!request.auth?.token?.email_verified, schoolDomainAllowed: isSchoolDomain(email) };
+  return {
+    role: effectiveRole,
+    isAdmin: isBootstrapAdmin,
+    emailVerified,
+    schoolDomainAllowed: forcedVerifiedForTesting ? true : isSchoolDomain(email),
+  };
 });
 
 exports.setSchoolRoleByAdmin = onCall({ region: 'europe-west1' }, async (request) => {
@@ -877,11 +979,12 @@ exports.setSchoolRoleByAdmin = onCall({ region: 'europe-west1' }, async (request
 exports.createClassSecure = onCall({ region: 'europe-west1' }, async (request) => {
   const uid = request.auth?.uid;
   const email = request.auth?.token?.email || '';
+  const forcedVerifiedForTesting = SCHOOL_TEST_VERIFIED_UIDS.includes(uid || '');
   if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
-  if (!request.auth?.token?.email_verified) {
+  if (!forcedVerifiedForTesting && !request.auth?.token?.email_verified) {
     throw new HttpsError('permission-denied', 'Email non verificata');
   }
-  if (!isSchoolDomain(email)) {
+  if (!forcedVerifiedForTesting && !isSchoolDomain(email)) {
     throw new HttpsError('permission-denied', 'Email scolastica richiesta');
   }
   const role = await getSchoolRole(uid);

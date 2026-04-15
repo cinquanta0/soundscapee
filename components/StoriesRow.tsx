@@ -4,12 +4,14 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Easing, Modal, TextInput,
   KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard,
-  ActivityIndicator,
+  ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImagePicker from 'expo-image-picker';
 import { auth, storage } from '../firebaseConfig';
-import { getRecentStati, createStato, StatiGroup } from '../services/statiService';
+import { getRecentStati, createStato, StatiGroup, deleteStato, getStatoViewers, markStatoViewed } from '../services/statiService';
+import { inviaMessaggio } from '../services/messaggiService';
 import StoryViewer, { StoryGroup } from './StoryViewer';
 
 const MAX_RECORDING_SECONDS = 15;
@@ -150,6 +152,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const [statoBody, setStatoBody] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [titleError, setTitleError] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   // Registrazione audio
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -197,6 +200,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
     setStatoBody('');
     setTitleError('');
     setRecordedUri(null);
+    setSelectedImageUri(null);
     setRecordingSeconds(0);
     setIsRecording(false);
     setCreateVisible(true);
@@ -264,6 +268,38 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
     return { url: audioUrl, duration: recordingSeconds };
   };
 
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setTitleError(t('stories.galleryPermissionDenied'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
+
+  const uploadImage = async (uri: string, uid: string): Promise<string> => {
+    const fileName = `stati/${uid}/${Date.now()}_photo.jpg`;
+    const token = await auth.currentUser!.getIdToken();
+    const bucket = storage.app.options.storageBucket as string;
+    const encodedPath = encodeURIComponent(fileName);
+    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
+    const result = await FileSystem.uploadAsync(uploadUrl, uri, {
+      httpMethod: 'POST',
+      headers: { 'Content-Type': 'image/jpeg', Authorization: `Bearer ${token}` },
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    });
+    if (result.status < 200 || result.status >= 300) throw new Error(`Upload image failed: ${result.status}`);
+    const data = JSON.parse(result.body);
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${data.downloadTokens}`;
+  };
+
   const handlePublishStato = async () => {
     if (!statoTitle.trim()) {
       setTitleError(t('stories.titleRequired'));
@@ -273,8 +309,13 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
     setPublishing(true);
     try {
       const uid = auth.currentUser?.uid;
+      let imageUrl: string | undefined;
       let audioUrl: string | undefined;
       let audioDuration: number | undefined;
+
+      if (selectedImageUri && uid) {
+        imageUrl = await uploadImage(selectedImageUri, uid);
+      }
 
       if (recordedUri && uid) {
         const uploaded = await uploadAudio(recordedUri, uid);
@@ -288,6 +329,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
         body: statoBody.trim(),
         username: userProfile?.username || auth.currentUser?.email?.split('@')[0] || 'utente',
         avatar: userProfile?.avatar || '🎧',
+        imageUrl,
         audioUrl,
         audioDuration,
       });
@@ -360,6 +402,37 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
         visible={viewerVisible}
         onClose={() => setViewerVisible(false)}
         onViewed={handleViewed}
+        currentUserId={currentUid}
+        onDeleteStato={async (statoId) => {
+          try {
+            await deleteStato(statoId);
+            await loadUserStati();
+            setViewerVisible(false);
+          } catch {
+            Alert.alert(t('common.error'), t('stories.errors.cannotDelete'));
+          }
+        }}
+        onReplyStatoVoice={async ({ statoId, ownerUserId, audioUri, duration }) => {
+          try {
+            if (!ownerUserId || ownerUserId === currentUid) return;
+            const owner = userStati.find((g) => g.userId === ownerUserId);
+            await inviaMessaggio({
+              receiverId: ownerUserId,
+              receiverName: owner?.label || 'Utente',
+              receiverAvatar: owner?.icon || '🎵',
+              audioUri,
+              duration,
+              statusReply: true,
+              statusReplyLabel: t('stories.replySentTitle'),
+              statusId: statoId,
+            });
+            Alert.alert(t('stories.replySentTitle'), t('stories.replySentMsg'));
+          } catch {
+            Alert.alert(t('common.error'), t('stories.errors.cannotReply'));
+          }
+        }}
+        getViewersForStato={getStatoViewers}
+        onStatoOpened={markStatoViewed}
       />
 
       {/* Modal creazione stato */}
@@ -406,9 +479,25 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 )}
                 {recordedUri && (
                   <View style={styles.clipReady}>
-                    <Text style={styles.clipReadyText}>🎵 Clip pronta ({recordingSeconds}s)</Text>
+                    <Text style={styles.clipReadyText}>{t('stories.clipReady', { seconds: recordingSeconds })}</Text>
                     <TouchableOpacity onPress={discardRecording}>
-                      <Text style={styles.clipDiscard}>✕ elimina</Text>
+                      <Text style={styles.clipDiscard}>{t('stories.removeClip')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Foto opzionale */}
+                <Text style={styles.fieldLabel}>{t('stories.photoLabel')}</Text>
+                {!selectedImageUri ? (
+                  <TouchableOpacity style={styles.recordBtn} onPress={pickImage}>
+                    <Text style={styles.recordBtnIcon}>🖼️</Text>
+                    <Text style={styles.recordBtnText}>{t('stories.choosePhoto')}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.photoPreviewWrap}>
+                    <Image source={{ uri: selectedImageUri }} style={styles.photoPreview} />
+                    <TouchableOpacity onPress={() => setSelectedImageUri(null)}>
+                      <Text style={styles.clipDiscard}>{t('stories.removePhoto')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -441,8 +530,9 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 <View style={styles.preview}>
                   <Text style={styles.previewEmoji}>{selectedEmoji}</Text>
                   <View>
-                    <Text style={styles.previewTitle}>{statoTitle || 'Titolo...'}</Text>
+                    <Text style={styles.previewTitle}>{statoTitle || t('stories.titlePreviewPlaceholder')}</Text>
                     {statoBody ? <Text style={styles.previewBody}>{statoBody}</Text> : null}
+                    {selectedImageUri ? <Text style={styles.previewBody}>{t('stories.photoAttached')}</Text> : null}
                   </View>
                 </View>
 
@@ -766,5 +856,19 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     fontFamily: 'monospace',
     fontSize: 12,
+  },
+  photoPreviewWrap: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    padding: 10,
+    marginBottom: 14,
+    gap: 8,
+  },
+  photoPreview: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
   },
 });

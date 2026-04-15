@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import PodcastScreen from './PodcastScreen';
-import PodcastListScreen from './PodcastListScreen';
 import PodcastDetailScreen from './PodcastDetailScreen';
 import PlaylistListScreen from './PlaylistListScreen';
 import PlaylistDetailScreen from './PlaylistDetailScreen';
 import ITSSchoolScreen from './ITSSchoolScreen';
 
-type PodcastView = 'feed' | 'its' | 'school' | 'playlists' | 'podcastDetail' | 'playlistDetail';
+type PodcastView = 'feed' | 'school' | 'playlists' | 'podcastDetail' | 'playlistDetail';
 
 export default function PodcastHubScreen() {
+  const { t } = useTranslation();
   const [view, setView] = useState<PodcastView>('feed');
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<{ id: string; name: string } | null>(null);
@@ -20,7 +21,7 @@ export default function PodcastHubScreen() {
         podcastId={selectedPodcastId}
         onBack={() => {
           setSelectedPodcastId(null);
-          setView('its');
+          setView('feed');
         }}
       />
     );
@@ -46,40 +47,24 @@ export default function PodcastHubScreen() {
           style={[styles.tab, view === 'feed' && styles.tabActive]}
           onPress={() => setView('feed')}
         >
-          <Text style={[styles.tabText, view === 'feed' && styles.tabTextActive]}>Feed</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, view === 'its' && styles.tabActive]}
-          onPress={() => setView('its')}
-        >
-          <Text style={[styles.tabText, view === 'its' && styles.tabTextActive]}>ITS</Text>
+          <Text style={[styles.tabText, view === 'feed' && styles.tabTextActive]}>{t('podcast.tabFeed')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, view === 'school' && styles.tabActive]}
           onPress={() => setView('school')}
         >
-          <Text style={[styles.tabText, view === 'school' && styles.tabTextActive]}>Scuola</Text>
+          <Text style={[styles.tabText, view === 'school' && styles.tabTextActive]}>{t('podcast.tabSchool')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, view === 'playlists' && styles.tabActive]}
           onPress={() => setView('playlists')}
         >
-          <Text style={[styles.tabText, view === 'playlists' && styles.tabTextActive]}>Playlist</Text>
+          <Text style={[styles.tabText, view === 'playlists' && styles.tabTextActive]}>{t('podcast.tabPlaylists')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
         {view === 'feed' && <PodcastScreen />}
-        {view === 'its' && (
-          <PodcastListScreen
-            initialTab="its"
-            hideTabs
-            onSelectPodcast={(podcastId) => {
-              setSelectedPodcastId(podcastId);
-              setView('podcastDetail');
-            }}
-          />
-        )}
         {view === 'school' && <ITSSchoolScreen />}
         {view === 'playlists' && (
           <PlaylistListScreen

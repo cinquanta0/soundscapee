@@ -1,17 +1,20 @@
 import {
   collection, query, where, orderBy, getDocs,
-  addDoc, updateDoc, arrayUnion, serverTimestamp, doc, Timestamp,
+  addDoc, updateDoc, arrayUnion, serverTimestamp, doc, Timestamp, deleteDoc, getDoc,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 
 export interface StatoScreen {
+  id?: string;
   emoji: string;
   title: string;
   body: string;
+  imageUrl?: string;
   audioUrl?: string;
   audioDuration?: number; // secondi
+  seenBy?: string[];
 }
 
 export interface StatiGroup {
@@ -54,11 +57,14 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
       };
     }
     byUser[uid].screens.push({
+      id: d.id,
       emoji: data.emoji || '🎵',
       title: data.title || '',
       body: data.body || '',
+      imageUrl: data.imageUrl || undefined,
       audioUrl: data.audioUrl || undefined,
       audioDuration: data.audioDuration || undefined,
+      seenBy: Array.isArray(data.visti) ? data.visti : [],
     });
   }
 
@@ -74,6 +80,7 @@ export async function createStato(params: {
   body: string;
   username: string;
   avatar: string;
+  imageUrl?: string;
   audioUrl?: string;
   audioDuration?: number;
 }): Promise<void> {
@@ -87,6 +94,7 @@ export async function createStato(params: {
     emoji: params.emoji,
     title: params.title,
     body: params.body,
+    imageUrl: params.imageUrl || null,
     audioUrl: params.audioUrl || null,
     audioDuration: params.audioDuration || null,
     tipo: 'utente',
@@ -104,4 +112,40 @@ export async function markStatoViewed(statoId: string): Promise<void> {
   await updateDoc(doc(db, 'stati', statoId), {
     visti: arrayUnion(user.uid),
   });
+}
+
+export async function deleteStato(statoId: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  // Verifica ownership prima di eliminare
+  const snap = await getDoc(doc(db, 'stati', statoId));
+  if (!snap.exists() || snap.data().userId !== user.uid) {
+    throw new Error('Non autorizzato');
+  }
+  await deleteDoc(doc(db, 'stati', statoId));
+}
+
+export async function getStatoViewers(statoId: string): Promise<Array<{ id: string; name: string; avatar: string }>> {
+  const statoSnap = await getDoc(doc(db, 'stati', statoId));
+  if (!statoSnap.exists()) return [];
+  const seenBy = Array.isArray(statoSnap.data()?.visti) ? statoSnap.data().visti : [];
+  if (!seenBy.length) return [];
+
+  const profiles = await Promise.all(
+    seenBy.map(async (uid: string) => {
+      try {
+        const uSnap = await getDoc(doc(db, 'users', uid));
+        const data = uSnap.exists() ? uSnap.data() : {};
+        return {
+          id: uid,
+          name: data?.displayName || data?.username || 'Utente',
+          avatar: data?.avatar || '🎵',
+        };
+      } catch {
+        return { id: uid, name: 'Utente', avatar: '🎵' };
+      }
+    }),
+  );
+
+  return profiles;
 }

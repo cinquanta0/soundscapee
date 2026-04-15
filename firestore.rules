@@ -26,11 +26,19 @@ service cloud.firestore {
     }
     function isSchoolVerified() {
       return isAuth()
-        && request.auth.token.email_verified == true
+        && (
+          request.auth.token.email_verified == true
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('emailVerified', false) == true
+        )
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('schoolDomainAllowed', false) == true;
     }
     function validString(val, maxLen) {
       return val is string && val.size() > 0 && val.size() <= maxLen;
+    }
+    function hasApprovedClassMembership(classId) {
+      return classId is string
+        && exists(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid)).data.get('status', 'pending') == 'approved';
     }
 
     // ── Rate limiting: controlla soundsQuota/{uid} prima di creare un suono ──
@@ -46,11 +54,12 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && validString(request.resource.data.get('displayName', 'x'), 100);
 
-      // Proprietario: può modificare tutto tranne isAdmin
+      // Proprietario: può modificare tutto tranne isAdmin, schoolRole, emailVerified, schoolDomainAllowed
+      // I campi scuola sono gestiti solo da Cloud Functions (Admin SDK)
       allow update: if isOwner(userId)
                     && validString(request.resource.data.get('displayName', 'x'), 100)
                     && !request.resource.data.diff(resource.data).affectedKeys()
-                         .hasAny(['isAdmin']);
+                         .hasAny(['isAdmin', 'schoolRole', 'emailVerified', 'schoolDomainAllowed']);
 
       // Chiunque autenticato può modificare followersCount, followingCount, friendsCount (±1)
       // usato da follow/unfollow, accept/remove friend
@@ -111,11 +120,12 @@ service cloud.firestore {
                          .hasOnly(['commentsCount'])
                     && request.resource.data.commentsCount == resource.data.get('commentsCount', 0) + 1;
 
-      // Utenti non-anonimi possono incrementare comments (+1) — mobile
+      // Utenti non-anonimi possono incrementare/decrementare comments (±1) — mobile
       allow update: if isNotAnonymous()
                     && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['comments'])
-                    && request.resource.data.comments == resource.data.get('comments', 0) + 1;
+                    && (request.resource.data.comments == resource.data.get('comments', 0) + 1
+                        || request.resource.data.comments == resource.data.get('comments', 0) - 1);
 
       // Qualsiasi utente autenticato può incrementare listensCount (+1) — web
       allow update: if isAuth()
@@ -230,6 +240,8 @@ service cloud.firestore {
 
     // ── PODCAST ───────────────────────────────────────────────────────────────
     match /podcast/{episodeId} {
+      // Keep feed queries stable across legacy/new podcast schemas.
+      // Class-specific visibility is still enforced in the dedicated class feeds.
       allow read: if isAuth();
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.userId)
@@ -326,6 +338,23 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['visti']);
       allow delete: if isOwner(resource.data.userId);
+
+      match /reactions/{userId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+                              && request.auth.uid == userId
+                              && request.resource.data.userId == request.auth.uid
+                              && validString(request.resource.data.emoji, 8);
+        allow delete: if isAuth() && request.auth.uid == userId;
+      }
+
+      match /replies/{replyId} {
+        allow read: if isAuth();
+        allow create: if isNotAnonymous()
+                      && request.resource.data.userId == request.auth.uid
+                      && validString(request.resource.data.text, 500);
+        allow update, delete: if false;
+      }
     }
 
     // ── FRIEND REQUESTS ───────────────────────────────────────────────────────
@@ -382,7 +411,6 @@ service cloud.firestore {
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.teacherId)
                     && isSchoolTeacher()
-                    && isSchoolVerified()
                     && validString(request.resource.data.name, 120)
                     && validString(request.resource.data.code, 12);
       allow update: if isOwner(resource.data.teacherId)
@@ -418,7 +446,6 @@ service cloud.firestore {
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.teacherId)
                     && isSchoolTeacher()
-                    && isSchoolVerified()
                     && validString(request.resource.data.title, 200)
                     && validString(request.resource.data.classId, 80);
       allow update: if isOwner(resource.data.teacherId)
@@ -491,7 +518,8 @@ service cloud.firestore {
       allow update: if isAuth() &&
                     resource.data.receiverId == request.auth.uid &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ascoltato']);
-      allow delete: if false;
+      // Solo il mittente può eliminare il proprio messaggio
+      allow delete: if isAuth() && resource.data.senderId == request.auth.uid;
     }
   }
 }

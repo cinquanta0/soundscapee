@@ -32,7 +32,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { auth } from '../firebaseConfig';
 import {
   Messaggio, listenMessaggi, inviaMessaggio,
-  segnaAscoltato, genWaveform, convId,
+  segnaAscoltato, eliminaMessaggio, genWaveform, convId,
 } from '../services/messaggiService';
 
 const { width: SW } = Dimensions.get('window');
@@ -62,11 +62,13 @@ function WaveformBars({ waveform, isPlaying, isMine }: { waveform: number[]; isP
 function MessageBubble({
   msg,
   onPlay,
+  onDelete,
   playingId,
   playingPosition,
 }: {
   msg: Messaggio;
   onPlay: (msg: Messaggio) => void;
+  onDelete: (msg: Messaggio) => void;
   playingId: string | null;
   playingPosition: number;
 }) {
@@ -88,10 +90,17 @@ function MessageBubble({
       <TouchableOpacity
         style={[bs.bubble, isMine ? bs.bubbleMine : bs.bubbleTheirs]}
         onPress={() => onPlay(msg)}
+        onLongPress={() => isMine && onDelete(msg)}
+        delayLongPress={500}
         activeOpacity={0.85}
       >
         {msg.soundTitle && (
           <Text style={bs.soundRef}>🎵 {msg.soundTitle}</Text>
+        )}
+        {msg.statusReply && (
+          <View style={[bs.statusReplyTag, isMine ? bs.statusReplyTagMine : bs.statusReplyTagTheirs]}>
+            <Text style={bs.statusReplyTxt}>💬 {msg.statusReplyLabel || 'Risposta allo stato'}</Text>
+          </View>
         )}
         <View style={bs.audioRow}>
           <View style={[bs.playCircle, isMine ? bs.playCircleMine : bs.playCircleTheirs]}>
@@ -269,6 +278,29 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     } catch { setPlayingId(null); }
   }, [playingId, conversationId]);
 
+  const handleDelete = (msg: Messaggio) => {
+    Alert.alert(t('chat.deleteMessage'), t('chat.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'), style: 'destructive', onPress: async () => {
+          // Se il messaggio è in riproduzione, fermalo prima
+          if (playingId === msg.id) {
+            await soundRef.current?.unloadAsync();
+            soundRef.current = null;
+            loadedIdRef.current = null;
+            setPlayingId(null);
+            setPlayingPosition(0);
+          }
+          try {
+            await eliminaMessaggio(msg.id, conversationId, msg.audioUrl);
+          } catch {
+            Alert.alert(t('common.error'), t('chat.errors.cannotDelete'));
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSend = async (uri: string, duration: number) => {
     setSending(true);
     try {
@@ -319,7 +351,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         data={messages}
         keyExtractor={(m) => m.id}
         renderItem={({ item }) => (
-          <MessageBubble msg={item} onPlay={handlePlay} playingId={playingId} playingPosition={playingPosition} />
+          <MessageBubble msg={item} onPlay={handlePlay} onDelete={handleDelete} playingId={playingId} playingPosition={playingPosition} />
         )}
         contentContainerStyle={cs.list}
         showsVerticalScrollIndicator={false}
@@ -356,6 +388,26 @@ const bs = StyleSheet.create({
   bubbleMine: { backgroundColor: '#0D1F14', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)', borderTopRightRadius: 4 },
   bubbleTheirs: { backgroundColor: '#150D2A', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', borderTopLeftRadius: 4 },
   soundRef: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', marginBottom: 6 },
+  statusReplyTag: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 6,
+    borderWidth: 1,
+  },
+  statusReplyTagMine: {
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderColor: 'rgba(0,255,156,0.35)',
+  },
+  statusReplyTagTheirs: {
+    backgroundColor: 'rgba(168,85,247,0.12)',
+    borderColor: 'rgba(168,85,247,0.35)',
+  },
+  statusReplyTxt: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
   audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   playCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   playCircleMine: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },

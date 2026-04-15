@@ -98,6 +98,7 @@ import {
   getFollowersList,
   getFollowingList,
   getFollowStats,
+  deleteComment,
 } from '../../services/firebaseService';
 
 import CommunitiesScreen from './communities';
@@ -392,6 +393,10 @@ useEffect(() => {
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
       getFollowStats(user.uid).then(setFollowStats);
+
+      // Garantisce il salvataggio del push token anche per nuovi utenti
+      // (il doc è ora certamente creato dal createOrUpdateUserProfile sopra)
+      registerForPushNotifications(user.uid).catch(() => {});
 
       // Conta il totale reale dei suoni (non limitato a 20)
       getCountFromServer(collection(firestoreDb, 'sounds'))
@@ -847,6 +852,25 @@ const handlePlay = async (item) => {
     } finally {
       setSendingComment(false);
     }
+  };
+
+  // Delete comment
+  const handleDeleteComment = (comment) => {
+    Alert.alert(t('comments.deleteComment'), t('comments.deleteCommentConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteComment(selectedSoundForComments, comment.id);
+            await loadComments(selectedSoundForComments);
+          } catch {
+            Alert.alert(t('common.error'), t('comments.errors.cannotDelete'));
+          }
+        },
+      },
+    ]);
   };
 
   // Open comments modal
@@ -2276,9 +2300,9 @@ if (loading) {
   comments.map(comment => (
     <View key={comment.id} style={styles.commentItem}>
       <View style={styles.commentHeader}>
-        <TouchableOpacity 
-          onPress={() => openUserProfile(comment.userId)} 
-          style={{ flexDirection: "row", alignItems: "center" }}
+        <TouchableOpacity
+          onPress={() => openUserProfile(comment.userId)}
+          style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
         >
           <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} />
           <View style={{ flex: 1, marginLeft: 8 }}>
@@ -2286,6 +2310,11 @@ if (loading) {
             <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
           </View>
         </TouchableOpacity>
+        {comment.userId === auth.currentUser?.uid && (
+          <TouchableOpacity onPress={() => handleDeleteComment(comment)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 16, paddingLeft: 8 }}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
       <Text style={styles.commentText}>{comment.text}</Text>
     </View>

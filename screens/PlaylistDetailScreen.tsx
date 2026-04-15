@@ -4,6 +4,7 @@ import {
   Alert, StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import PodcastCard from '../components/PodcastCard';
 import PodcastPlayer from '../components/PodcastPlayer';
 import {
@@ -22,6 +23,7 @@ interface Props {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PlaylistDetailScreen({ playlistId, playlistName, onBack }: Props) {
+  const { t } = useTranslation();
   const [playlist, setPlaylist]       = useState<Playlist | null>(null);
   const [episodes, setEpisodes]       = useState<Podcast[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -32,7 +34,7 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
 
   useEffect(() => {
     const unsub = listenToPlaylist(playlistId, async (pl) => {
-      if (!pl) { setError('Playlist non trovata.'); setLoadingList(false); return; }
+      if (!pl) { setError(t('playlist.notFound')); setLoadingList(false); return; }
       setPlaylist(pl);
       setError(null);
 
@@ -41,7 +43,7 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
         const loaded = await Promise.all(pl.podcastIds.map((id) => getPodcastById(id)));
         setEpisodes(loaded.filter((p): p is Podcast => p !== null));
       } catch {
-        setError('Impossibile caricare gli episodi.');
+        setError(t('playlist.errors.cannotLoadEpisodes'));
       } finally {
         setLoadingList(false);
       }
@@ -53,12 +55,12 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
 
   const handleRemove = (podcast: Podcast, index: number) => {
     Alert.alert(
-      'Rimuovi episodio',
-      `Rimuovere "${podcast.title}" dalla playlist?`,
+      t('playlist.removeEpisode'),
+      t('playlist.removeEpisodeConfirm', { title: podcast.title }),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Rimuovi', style: 'destructive', onPress: async () => {
+          text: t('common.remove'), style: 'destructive', onPress: async () => {
             try {
               await removePodcastFromPlaylist(playlistId, podcast.id);
               // Aggiusta currentIndex se l'episodio rimosso è prima o uguale al corrente
@@ -67,7 +69,7 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
                 else if (index === currentIndex) setCurrentIndex(null);
               }
             } catch {
-              Alert.alert('Errore', 'Impossibile rimuovere l\'episodio.');
+              Alert.alert(t('common.error'), t('playlist.errors.cannotRemove'));
             }
           },
         },
@@ -131,7 +133,7 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
           ListEmptyComponent={
             <View style={s.centered}>
               <Text style={s.emptyIcon}>🎙</Text>
-              <Text style={s.emptyTxt}>Nessun episodio in questa playlist.{'\n'}Aggiungine uno dalla schermata del podcast.</Text>
+              <Text style={s.emptyTxt}>{t('playlist.noEpisodes')}</Text>
             </View>
           }
           renderItem={({ item, index }) => (
@@ -228,7 +230,7 @@ const s = StyleSheet.create({
   // Player bottom sheet
   playerWrap: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#0D0D1A',
+    backgroundColor: '#0f172a',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: 'rgba(0,255,156,0.2)',
     paddingBottom: 16,

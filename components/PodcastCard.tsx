@@ -51,14 +51,14 @@ export default function PodcastCard({ podcast, onPress }: Props) {
 
       {/* Testo */}
       <View style={s.info}>
-        {/* Riga titolo + badge ITS */}
+        {/* Riga titolo + badge Scuola */}
         <View style={s.titleRow}>
           <Text style={s.title} numberOfLines={2} ellipsizeMode="tail">
             {podcast.title}
           </Text>
           {podcast.isITS && (
             <View style={s.itsBadge}>
-              <Text style={s.itsBadgeTxt}>ITS</Text>
+              <Text style={s.itsBadgeTxt}>SCUOLA</Text>
             </View>
           )}
         </View>
@@ -89,10 +89,10 @@ export default function PodcastCard({ podcast, onPress }: Props) {
 const s = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#0D0D1A',
+    backgroundColor: '#1e293b',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.1)',
+    borderColor: '#334155',
     padding: 12,
     gap: 12,
     alignItems: 'center',
@@ -112,11 +112,11 @@ const s = StyleSheet.create({
     borderRadius: 10,
   },
   coverFallback: {
-    backgroundColor: '#1A0A2E',
+    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.15)',
+    borderColor: '#334155',
   },
   coverIcon: {
     fontSize: 26,
@@ -153,7 +153,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── ITS badge ──
+  // ── Scuola badge ──
   itsBadge: {
     backgroundColor: 'rgba(0,255,156,0.15)',
     borderWidth: 1,

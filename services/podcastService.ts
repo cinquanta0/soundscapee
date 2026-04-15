@@ -95,6 +95,7 @@ export interface LessonSubmission {
   id: string;
   classId: string;
   lessonId: string;
+  lessonTitle?: string;
   studentId: string;
   studentName: string;
   podcastId: string;
@@ -139,18 +140,26 @@ function normalizeDate(value: any): Date | null {
 }
 
 export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
-  const q = query(collection(db, 'podcast'), orderBy('createdAt', 'desc'), limit(limitN));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<Podcast, 'id'>),
-    createdAt: d.data().createdAt?.toDate() ?? new Date(),
-    likesCount: d.data().likesCount ?? 0,
-    dislikesCount: d.data().dislikesCount ?? 0,
-    commentsCount: d.data().commentsCount ?? 0,
-    isITS: d.data().isITS ?? false,
-    category: d.data().category,
-  }));
+  const maxFetch = Math.max(limitN * 3, 60);
+  const snap = await getDocs(query(collection(db, 'podcast'), orderBy('createdAt', 'desc'), limit(maxFetch)));
+  return snap.docs
+    .filter((d) => {
+      const data = d.data();
+      const isClassBoundSchoolContent = data.schoolMode === true && (!!data.classId || !!data.lessonId);
+      return !isClassBoundSchoolContent;
+    })
+    .map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Podcast, 'id'>),
+      createdAt: d.data().createdAt?.toDate() ?? new Date(),
+      likesCount: d.data().likesCount ?? 0,
+      dislikesCount: d.data().dislikesCount ?? 0,
+      commentsCount: d.data().commentsCount ?? 0,
+      isITS: d.data().isITS ?? false,
+      category: d.data().category,
+    }))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limitN);
 }
 
 export async function getSchoolAccessStatus(): Promise<SchoolAccessStatus> {
@@ -280,6 +289,7 @@ export async function publishPodcast(params: {
   userAvatar: string;
   isITS?: boolean;     // true = episodio ITS
   category?: string;   // categoria opzionale
+  schoolMode?: boolean;
 }): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -337,7 +347,7 @@ export async function publishPodcast(params: {
     commentsCount: 0,
     isITS: params.isITS ?? false,
     ...(params.category ? { category: params.category } : {}),
-    schoolMode: params.isITS ?? false,
+    schoolMode: params.schoolMode ?? false,
   });
   return docRef.id;
 }
@@ -442,6 +452,7 @@ export async function createLessonPodcast(params: {
     userAvatar: user.photoURL ?? '',
     isITS: true,
     category: 'lesson',
+    schoolMode: true,
   });
   const lessonRef = await addDoc(collection(db, 'lessons'), {
     classId: params.classId,
@@ -478,7 +489,49 @@ export async function getClassLessons(classId: string): Promise<SchoolLesson[]> 
     dueDate: normalizeDate(d.data().dueDate),
     createdAt: d.data().createdAt?.toDate() ?? new Date(),
   }));
-  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  if (list.length > 0) {
+    return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  const classSnap = await getDoc(doc(db, 'classes', classId));
+  const classTeacherId = classSnap.exists() ? (classSnap.data().teacherId ?? '') : '';
+
+  // Backward-compatible fallback: some legacy ITS lessons were stored only in `podcast`.
+  const legacySnap = await getDocs(query(collection(db, 'podcast'), where('classId', '==', classId), limit(120)));
+  const legacyList = legacySnap.docs
+    .filter((d) => {
+      const data = d.data();
+      if (data.schoolMode !== true) return false;
+      if (data.authorRole === 'student') return false;
+
+      // Accept multiple legacy shapes:
+      // - explicit teacher authorRole
+      // - category lesson / submissionStatus none
+      // - teacher-owned class podcast with no explicit authorRole
+      return (
+        data.authorRole === 'teacher'
+        || data.category === 'lesson'
+        || data.submissionStatus === 'none'
+        || (!data.authorRole && !!classTeacherId && data.userId === classTeacherId)
+        || (!!data.lessonId && data.authorRole !== 'student')
+      );
+    })
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: data.lessonId || d.id,
+        classId: data.classId ?? classId,
+        teacherId: data.userId ?? '',
+        teacherName: data.username ?? 'Docente',
+        title: data.title ?? '',
+        description: data.description ?? '',
+        podcastId: d.id,
+        dueDate: normalizeDate(data.dueDate),
+        createdAt: data.createdAt?.toDate() ?? new Date(),
+      } as SchoolLesson;
+    });
+
+  return legacyList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function submitLessonAssignment(params: {
@@ -515,6 +568,7 @@ export async function submitLessonAssignment(params: {
     userAvatar: user.photoURL ?? '',
     isITS: true,
     category: 'submission',
+    schoolMode: true,
   });
 
   const submissionRef = await addDoc(collection(db, 'lessonSubmissions'), {
@@ -583,6 +637,7 @@ export async function getStudentSubmissions(classId: string): Promise<LessonSubm
     id: d.id,
     classId: d.data().classId ?? '',
     lessonId: d.data().lessonId ?? '',
+      lessonTitle: '',
       studentId: d.data().userId ?? '',
       studentName: d.data().username ?? 'Studente',
       teacherId: d.data().submittedToTeacherId ?? '',
@@ -594,7 +649,21 @@ export async function getStudentSubmissions(classId: string): Promise<LessonSubm
       grade: d.data().grade ?? null,
       gradeComment: d.data().gradeComment ?? '',
   }));
-  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const lessonIds = Array.from(new Set(list.map((x) => x.lessonId).filter(Boolean)));
+  const lessonTitleMap = new Map<string, string>();
+  await Promise.all(lessonIds.map(async (lessonId) => {
+    const lessonSnap = await getDoc(doc(db, 'lessons', lessonId));
+    if (lessonSnap.exists()) {
+      lessonTitleMap.set(lessonId, lessonSnap.data().title ?? '');
+      return;
+    }
+    // Legacy fallback: if lesson doc is missing, use linked podcast title.
+    const podcastSnap = await getDoc(doc(db, 'podcast', lessonId));
+    lessonTitleMap.set(lessonId, podcastSnap.exists() ? (podcastSnap.data().title ?? '') : '');
+  }));
+  return list
+    .map((x) => ({ ...x, lessonTitle: lessonTitleMap.get(x.lessonId) ?? '' }))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function approveSubmission(submissionId: string): Promise<void> {
@@ -644,7 +713,13 @@ export async function getClassSubmissionsForTeacher(classId: string): Promise<Su
   const lessonTitleMap = new Map<string, string>();
   await Promise.all(lessonIds.map(async (lessonId) => {
     const lessonSnap = await getDoc(doc(db, 'lessons', lessonId));
-    lessonTitleMap.set(lessonId, lessonSnap.exists() ? (lessonSnap.data().title ?? '') : '');
+    if (lessonSnap.exists()) {
+      lessonTitleMap.set(lessonId, lessonSnap.data().title ?? '');
+      return;
+    }
+    // Legacy fallback for migrated/old classes.
+    const podcastSnap = await getDoc(doc(db, 'podcast', lessonId));
+    lessonTitleMap.set(lessonId, podcastSnap.exists() ? (podcastSnap.data().title ?? '') : '');
   }));
   return list
     .map((x) => ({ ...x, lessonTitle: lessonTitleMap.get(x.lessonId) ?? '' }))
@@ -654,31 +729,31 @@ export async function getClassSubmissionsForTeacher(classId: string): Promise<Su
 export async function getApprovedClassFeed(classId: string): Promise<Podcast[]> {
   const q = query(
     collection(db, 'podcast'),
-    where('schoolMode', '==', true),
     where('classId', '==', classId),
-    where('submissionStatus', '==', 'approved'),
-    orderBy('createdAt', 'desc'),
-    limit(50),
+    limit(120),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<Podcast, 'id'>),
-    createdAt: d.data().createdAt?.toDate() ?? new Date(),
-    likesCount: d.data().likesCount ?? 0,
-    dislikesCount: d.data().dislikesCount ?? 0,
-    commentsCount: d.data().commentsCount ?? 0,
-    isITS: d.data().isITS ?? false,
-    category: d.data().category,
-    schoolMode: d.data().schoolMode ?? false,
-    classId: d.data().classId,
-    lessonId: d.data().lessonId,
-    authorRole: d.data().authorRole,
-    submissionStatus: d.data().submissionStatus ?? 'none',
-    submittedToTeacherId: d.data().submittedToTeacherId,
-    teacherFeedback: d.data().teacherFeedback,
-    dueDate: normalizeDate(d.data().dueDate),
-  }));
+  const list = snap.docs
+    .filter((d) => d.data().schoolMode === true && d.data().submissionStatus === 'approved')
+    .map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Podcast, 'id'>),
+      createdAt: d.data().createdAt?.toDate() ?? new Date(),
+      likesCount: d.data().likesCount ?? 0,
+      dislikesCount: d.data().dislikesCount ?? 0,
+      commentsCount: d.data().commentsCount ?? 0,
+      isITS: d.data().isITS ?? false,
+      category: d.data().category,
+      schoolMode: d.data().schoolMode ?? false,
+      classId: d.data().classId,
+      lessonId: d.data().lessonId,
+      authorRole: d.data().authorRole,
+      submissionStatus: d.data().submissionStatus ?? 'none',
+      submittedToTeacherId: d.data().submittedToTeacherId,
+      teacherFeedback: d.data().teacherFeedback,
+      dueDate: normalizeDate(d.data().dueDate),
+    }));
+  return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 50);
 }
 
 export async function updatePodcast(

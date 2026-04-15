@@ -30,6 +30,7 @@ function fmtTime(secs: number) {
 
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
+  const { t } = useTranslation();
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -210,7 +211,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
             <TouchableOpacity onPress={onClose} style={pl.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
               <Text style={pl.closeTxt}>✕</Text>
             </TouchableOpacity>
-            <Text style={pl.headerLabel}>podcast</Text>
+            <Text style={pl.headerLabel}>{t('podcast.header')}</Text>
             <View style={{ width: 36 }} />
           </View>
 
@@ -306,7 +307,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
               showsVerticalScrollIndicator={false}
             >
               {comments.length === 0 ? (
-                <Text style={pl.noComments}>Nessun commento ancora</Text>
+                <Text style={pl.noComments}>{t('podcast.noComments')}</Text>
               ) : (
                 comments.map((c) => (
                   <View key={c.id} style={pl.commentRow}>
@@ -326,7 +327,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
             <View style={pl.commentInput}>
               <TextInput
                 style={pl.commentField}
-                placeholder="Scrivi un commento..."
+                placeholder={t('podcast.writeComment')}
                 placeholderTextColor="rgba(255,255,255,0.3)"
                 value={commentText}
                 onChangeText={setCommentText}
@@ -384,7 +385,7 @@ function PodcastCard({
         {item.description ? <Text style={pc.desc} numberOfLines={2}>{item.description}</Text> : null}
         <Text style={pc.duration}>⏱ {mins > 0 ? `${mins} min` : `${item.duration}s`}</Text>
         <TouchableOpacity style={pc.playlistBtn} onPress={onAddToPlaylist} activeOpacity={0.8}>
-          <Text style={pc.playlistBtnTxt}>+ Playlist</Text>
+          <Text style={pc.playlistBtnTxt}>{t('podcast.addToPlaylist')}</Text>
         </TouchableOpacity>
       </View>
       {isOwn ? (
@@ -704,7 +705,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
               onPress={() => setIsITS((v) => !v)}
             >
               <Text style={[pm.itsToggleText, isITS && pm.itsToggleTextActive]}>
-                {isITS ? 'ITS: ON' : 'ITS: OFF'}
+                {isITS ? 'Scuola: ON' : 'Scuola: OFF'}
               </Text>
             </TouchableOpacity>
             <TextInput

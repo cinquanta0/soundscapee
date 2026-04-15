@@ -37,7 +37,7 @@ export default function LoginScreen() {
     const emailTrimmed = email.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
-      Alert.alert('Errore', 'Inserisci un indirizzo email valido');
+      Alert.alert(t('auth.errors.invalidEmail'));
       return;
     }
 
@@ -52,35 +52,36 @@ export default function LoginScreen() {
       }
 
       if (!password) {
-        Alert.alert('Errore', 'Inserisci la password');
+        Alert.alert(t('common.error'), t('auth.errors.emptyPassword'));
         setLoading(false);
         return;
       }
       if (isSignUp && password.length < 8) {
-        Alert.alert('Errore', 'La password deve essere di almeno 8 caratteri');
+        Alert.alert(t('common.error'), t('auth.errors.passwordTooShort'));
         setLoading(false);
         return;
       }
 
       if (isSignUp) {
         const cred = await createUserWithEmailAndPassword(auth, emailTrimmed, password);
-        await httpsCallable(functions, 'upsertSchoolProfile')({});
+        await httpsCallable(functions, 'upsertSchoolProfile')({}).catch(() => {});
         await sendEmailVerification(cred.user);
-        setSuccessMsg('Account creato! Controlla la tua email e clicca il link di verifica.');
+        setSuccessMsg(t('auth.success.accountCreated'));
         setLoading(false);
         return;
       } else {
         await signInWithEmailAndPassword(auth, emailTrimmed, password);
-        await httpsCallable(functions, 'upsertSchoolProfile')({});
+        httpsCallable(functions, 'upsertSchoolProfile')({}).catch(() => {});
         router.replace('/(tabs)');
       }
     } catch (error: any) {
       const code = error?.code || '';
-      if (code === 'auth/email-already-in-use') Alert.alert('Errore', 'Email già registrata. Prova ad accedere.');
-      else if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') Alert.alert('Errore', 'Email o password errati.');
-      else if (code === 'auth/wrong-password') Alert.alert('Errore', 'Password errata.');
-      else if (code === 'auth/too-many-requests') Alert.alert('Errore', 'Troppi tentativi. Riprova tra qualche minuto.');
-      else Alert.alert('Errore', error.message);
+      const em = t('common.error');
+      if (code === 'auth/email-already-in-use') Alert.alert(em, 'Email già registrata. Prova ad accedere.');
+      else if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') Alert.alert(em, 'Email o password errati.');
+      else if (code === 'auth/wrong-password') Alert.alert(em, 'Password errata.');
+      else if (code === 'auth/too-many-requests') Alert.alert(em, 'Troppi tentativi. Riprova tra qualche minuto.');
+      else Alert.alert(em, error.message);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Anonymous error:', error);
-      Alert.alert('Errore', error.message);
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }
@@ -102,13 +103,13 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
-      
+
       <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>🎧</Text>
           <Text style={styles.title}>SoundScape</Text>
-          <Text style={styles.subtitle}>Cattura i suoni del tuo mondo</Text>
+          <Text style={styles.subtitle}>{t('auth.subtitle')}</Text>
         </View>
 
         {/* Form */}
@@ -157,7 +158,7 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.primaryButtonText}>
-                {isForgot ? 'Invia email di recupero' : isSignUp ? '📝 Registrati' : '🔑 Accedi'}
+                {isForgot ? t('common.send') : isSignUp ? t('auth.signUp') : t('auth.signIn')}
               </Text>
             )}
           </TouchableOpacity>
@@ -167,13 +168,13 @@ export default function LoginScreen() {
               onPress={() => { setIsForgot(true); setSuccessMsg(''); }}
               disabled={loading}
             >
-              <Text style={styles.forgotLink}>Password dimenticata?</Text>
+              <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
           )}
 
           {isForgot ? (
             <TouchableOpacity onPress={() => { setIsForgot(false); setSuccessMsg(''); }} disabled={loading}>
-              <Text style={styles.switchText}>← Torna al login</Text>
+              <Text style={styles.switchText}>{t('auth.alreadyHaveAccount')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -181,7 +182,7 @@ export default function LoginScreen() {
               disabled={loading}
             >
               <Text style={styles.switchText}>
-                {isSignUp ? 'Hai già un account? Accedi' : 'Non hai un account? Registrati'}
+                {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.noAccount')}
               </Text>
             </TouchableOpacity>
           )}
@@ -202,19 +203,13 @@ export default function LoginScreen() {
               onPress={handleAnonymous}
               disabled={loading}
             >
-              <Text style={styles.anonymousButtonText}>👤 Continua come ospite</Text>
+              <Text style={styles.anonymousButtonText}>{t('auth.continueAsGuest')}</Text>
             </TouchableOpacity>
           </>
         )}
 
         {/* Info */}
-        <Text style={styles.infoText}>
-          Accedendo accetti i nostri Termini di Servizio e Privacy Policy
-        </Text>
-        <Text style={styles.schoolInfoText}>
-          Accesso Scuola: usa la tua email scolastica (verificata) per funzioni docente.
-          Gli studenti possono usare anche email personale con approvazione docente.
-        </Text>
+        <Text style={styles.infoText}>{t('auth.termsInfo')}</Text>
       </View>
     </SafeAreaView>
   );
@@ -315,13 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 24,
-    lineHeight: 18,
-  },
-  schoolInfoText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 10,
     lineHeight: 18,
   },
   forgotLink: {

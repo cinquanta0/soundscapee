@@ -4,12 +4,13 @@ import {
   TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import PodcastCard from '../components/PodcastCard';
 import { getPodcasts, Podcast } from '../services/podcastService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'tutti' | 'its';
+type Tab = 'tutti' | 'scuola';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface Props {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti', hideTabs = false }: Props) {
+  const { t } = useTranslation();
   const [all, setAll] = useState<Podcast[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
       const data = await getPodcasts(100);
       setAll(data);
     } catch {
-      setError('Impossibile caricare i podcast. Controlla la connessione.');
+      setError(t('podcast.cannotLoad'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -50,9 +52,9 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
   // ── Filtered lists ─────────────────────────────────────────────────────────
   // I documenti vecchi (senza campo isITS) vengono trattati come isITS = false
 
-  const effectiveTab: Tab = hideTabs ? 'its' : activeTab;
+  const effectiveTab: Tab = hideTabs ? 'scuola' : activeTab;
 
-  const lista = effectiveTab === 'its'
+  const lista = effectiveTab === 'scuola'
     ? all.filter((p) => p.isITS === true)
     : all.filter((p) => !p.isITS);
 
@@ -73,16 +75,16 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
             activeOpacity={0.75}
           >
             <Text style={[s.tabTxt, activeTab === 'tutti' && s.tabTxtActive]}>
-              Tutti
+              {t('podcast.tabAll')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.tab, activeTab === 'its' && s.tabActive]}
-            onPress={() => setActiveTab('its')}
+            style={[s.tab, activeTab === 'scuola' && s.tabActive]}
+            onPress={() => setActiveTab('scuola')}
             activeOpacity={0.75}
           >
-            <Text style={[s.tabTxt, activeTab === 'its' && s.tabTxtActive]}>
-              ITS
+            <Text style={[s.tabTxt, activeTab === 'scuola' && s.tabTxtActive]}>
+              {t('podcast.tabSchool')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -101,7 +103,7 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
           <Text style={s.errorIcon}>⚠️</Text>
           <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={() => load()}>
-            <Text style={s.retryTxt}>Riprova</Text>
+            <Text style={s.retryTxt}>{t('common.ok')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -130,7 +132,7 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
           ListEmptyComponent={
             <View style={s.centered}>
               <Text style={s.emptyIcon}>🎙</Text>
-              <Text style={s.emptyTxt}>Nessun podcast disponibile</Text>
+              <Text style={s.emptyTxt}>{t('podcast.empty')}</Text>
             </View>
           }
         />

@@ -9,6 +9,15 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { db } from '../firebaseConfig';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, writeBatch, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 
+async function mergeUserDocIfExists(userId, payload) {
+  if (!userId) return false;
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) return false;
+  await setDoc(userRef, payload, { merge: true });
+  return true;
+}
+
 // Configura come vengono gestite le notifiche in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -52,7 +61,7 @@ export async function registerForPushNotifications(userId) {
     if (finalStatus !== 'granted') {
       console.log('❌ Permesso notifiche negato');
       if (userId) {
-        await setDoc(doc(db, 'users', userId), { pushTokenError: 'permissions_denied' }, { merge: true }).catch(() => {});
+        await mergeUserDocIfExists(userId, { pushTokenError: 'permissions_denied' }).catch(() => {});
       }
       return null;
     }
@@ -63,18 +72,14 @@ export async function registerForPushNotifications(userId) {
     } catch (e) {
       console.log('⚠️ Impossibile ottenere push token:', e.message);
       if (userId) {
-        await setDoc(doc(db, 'users', userId), { pushTokenError: e.message }, { merge: true }).catch(() => {});
+        await mergeUserDocIfExists(userId, { pushTokenError: e.message }).catch(() => {});
       }
       return null;
     }
 
     // Salva il token nell'array pushTokens (supporta multi-device)
     if (userId && token) {
-      await setDoc(
-        doc(db, 'users', userId),
-        { pushTokens: arrayUnion(token), updatedAt: new Date() },
-        { merge: true }
-      );
+      await mergeUserDocIfExists(userId, { pushTokens: arrayUnion(token), updatedAt: new Date() });
     }
   } else {
     console.log('⚠️ Devi usare un dispositivo fisico per le notifiche push');
