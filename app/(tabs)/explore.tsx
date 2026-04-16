@@ -8,9 +8,11 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
+import BattleScreen from '../../screens/BattleScreen';
 import { Audio } from 'expo-av';
 import {
   collection,
@@ -23,6 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { db } from '../../firebaseConfig';
 import { incrementListens } from '../../services/firebaseService';
+import { Battle, listenToActiveBattles, finalizeBattle } from '../../services/battleService';
 
 const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
 
@@ -67,7 +70,7 @@ async function searchSounds(searchText: string, mood: string, sortBy: string) {
   return results;
 }
 
-type Section = 'suoni' | 'podcast' | 'radio';
+type Section = 'suoni' | 'podcast' | 'radio' | 'battles';
 
 export default function ExploreScreen() {
   const { t } = useTranslation();
@@ -79,6 +82,8 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [battles, setBattles] = useState<Battle[]>([]);
+  const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,6 +97,21 @@ export default function ExploreScreen() {
       }
     };
   }, [selectedMood, sortBy]);
+
+  useEffect(() => {
+    if (section !== 'battles') return;
+    const unsub = listenToActiveBattles(async (bs) => {
+      // Chiudi battaglie scadute
+      const now = new Date();
+      for (const b of bs) {
+        if (b.votingEndsAt && b.votingEndsAt < now) {
+          await finalizeBattle(b.id).catch(() => {});
+        }
+      }
+      setBattles(bs.filter(b => !b.votingEndsAt || b.votingEndsAt > now));
+    });
+    return unsub;
+  }, [section]);
 
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -196,6 +216,7 @@ export default function ExploreScreen() {
           { id: 'suoni', label: '🎵 Suoni' },
           { id: 'podcast', label: '🎙 Podcast' },
           { id: 'radio', label: '📻 Radio' },
+          { id: 'battles', label: '⚔️ Battles' },
         ] as { id: Section; label: string }[]).map((tab) => (
           <TouchableOpacity
             key={tab.id}
@@ -211,6 +232,69 @@ export default function ExploreScreen() {
 
       {section === 'podcast' && <PodcastHubScreen />}
       {section === 'radio' && <RadioScreen />}
+
+      {section === 'battles' && (
+        <FlatList
+          data={battles}
+          keyExtractor={b => b.id}
+          contentContainerStyle={{ padding: 16, gap: 12 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
+              <Text style={{ fontSize: 48 }}>⚔️</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Nessuna battaglia in corso</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center' }}>Sfida un utente dal suo profilo{'\n'}per iniziare una battaglia</Text>
+            </View>
+          }
+          renderItem={({ item: b }) => {
+            const total = b.challengerVotes + b.opponentVotes;
+            const challPct = total > 0 ? Math.round((b.challengerVotes / total) * 100) : 50;
+            const timeLeft = b.votingEndsAt ? Math.max(0, b.votingEndsAt.getTime() - Date.now()) : 0;
+            const hLeft = Math.floor(timeLeft / 3600000);
+            const mLeft = Math.floor((timeLeft % 3600000) / 60000);
+            return (
+              <TouchableOpacity
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', gap: 12 }}
+                onPress={() => setActiveBattleId(b.id)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' }}>
+                    <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }}>🎯 {b.theme}</Text>
+                  </View>
+                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>⏱ {hLeft}h {mLeft}m</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
+                    <Text style={{ fontSize: 28 }}>{b.challengerAvatar}</Text>
+                    <Text style={{ color: '#f97316', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>{b.challengerName}</Text>
+                    <Text style={{ color: '#f97316', fontSize: 16, fontWeight: '900' }}>{b.challengerVotes}</Text>
+                  </View>
+                  <Text style={{ color: 'rgba(255,255,255,0.2)', fontSize: 18, fontWeight: '900', paddingHorizontal: 8 }}>VS</Text>
+                  <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
+                    <Text style={{ fontSize: 28 }}>{b.opponentAvatar}</Text>
+                    <Text style={{ color: '#a855f7', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>{b.opponentName}</Text>
+                    <Text style={{ color: '#a855f7', fontSize: 16, fontWeight: '900' }}>{b.opponentVotes}</Text>
+                  </View>
+                </View>
+                {total > 0 && (
+                  <View style={{ height: 6, backgroundColor: '#a855f7', borderRadius: 3, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${challPct}%`, backgroundColor: '#f97316' }} />
+                  </View>
+                )}
+                <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' }}>
+                  {total} voti · Tocca per ascoltare e votare
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+
+      {activeBattleId && (
+        <Modal visible animationType="slide" onRequestClose={() => setActiveBattleId(null)}>
+          <BattleScreen battleId={activeBattleId} onClose={() => setActiveBattleId(null)} />
+        </Modal>
+      )}
 
       {section === 'suoni' && <>
       {/* Search bar */}

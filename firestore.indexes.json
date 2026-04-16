@@ -117,6 +117,23 @@
       ]
     },
     {
+      "collectionGroup": "battles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "opponentId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "battles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "votingEndsAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "collabSessions",
       "queryScope": "COLLECTION",
       "fields": [

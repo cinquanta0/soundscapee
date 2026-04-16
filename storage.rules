@@ -59,6 +59,15 @@ service firebase.storage {
       allow delete: if request.auth != null;
     }
 
+    // ==================== SOUND BATTLES ====================
+    match /battles/{battleId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow delete: if false;
+    }
+
     // ==================== COLLAB SESSION AUDIO ====================
     match /collabs/{sessionId}/{fileName} {
       allow read: if request.auth != null;

@@ -109,7 +109,9 @@ import ExploreScreen from './explore';
 import RemixScreen from '../../screens/RemixScreen';
 import RemixProfileSection from '../../components/RemixProfileSection';
 import CollabSessionScreen from '../../screens/CollabSessionScreen';
+import BattleScreen from '../../screens/BattleScreen';
 import { createCollabSession, listenToIncomingCollab, CollabSession } from '../../services/collabService';
+import { createBattle, listenToIncomingBattle, Battle } from '../../services/battleService';
 import MessagesScreen from '../../screens/MessagesScreen';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
@@ -251,6 +253,8 @@ export default function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [activeCollabSessionId, setActiveCollabSessionId] = useState<string | null>(null);
   const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
+  const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
+  const [incomingBattle, setIncomingBattle] = useState<Battle | null>(null);
   const [mySounds, setMySounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -310,6 +314,12 @@ export default function App() {
   // Listener inviti collab in arrivo
   useEffect(() => {
     const unsub = listenToIncomingCollab((session) => setIncomingCollab(session));
+    return () => unsub();
+  }, []);
+
+  // Listener sfide battle in arrivo
+  useEffect(() => {
+    const unsub = listenToIncomingBattle((b) => setIncomingBattle(b));
     return () => unsub();
   }, []);
 
@@ -1645,6 +1655,30 @@ if (loading) {
           >
             <Text style={[styles.profileButtonPrimaryText, { color: '#a855f7' }]}>🎙 Collab Session</Text>
           </TouchableOpacity>
+
+          {/* Bottone Battle */}
+          <TouchableOpacity
+            style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginTop: 8 }]}
+            onPress={() => {
+              const THEMES = ['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'];
+              Alert.alert('⚔️ Sfida a Sound Battle', 'Scegli un tema — 30 secondi a testa, poi il pubblico vota!',
+                THEMES.map(theme => ({
+                  text: theme,
+                  onPress: async () => {
+                    const id = await createBattle(
+                      userProfile.id,
+                      userProfile.username || userProfile.displayName,
+                      userProfile.photoURL || '🎙',
+                      theme,
+                    ).catch(() => null);
+                    if (id) setActiveBattleId(id);
+                  },
+                })).concat([{ text: 'Annulla', style: 'cancel' }] as any)
+              );
+            }}
+          >
+            <Text style={[styles.profileButtonPrimaryText, { color: '#f97316' }]}>⚔️ Sound Battle</Text>
+          </TouchableOpacity>
         </View>
       )}
       
@@ -2682,6 +2716,13 @@ if (loading) {
         </Modal>
       )}
 
+      {/* Battle Screen */}
+      {activeBattleId && (
+        <Modal visible animationType="slide" onRequestClose={() => setActiveBattleId(null)}>
+          <BattleScreen battleId={activeBattleId} onClose={() => setActiveBattleId(null)} />
+        </Modal>
+      )}
+
       {/* Banner invito collab in arrivo */}
       {incomingCollab && !activeCollabSessionId && (
         <Modal visible transparent animationType="fade">
@@ -2704,6 +2745,38 @@ if (loading) {
                   onPress={() => { setActiveCollabSessionId(incomingCollab.id); setIncomingCollab(null); }}
                 >
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🎙 Entra</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Banner sfida battle in arrivo */}
+      {incomingBattle && !activeBattleId && (
+        <Modal visible transparent animationType="fade">
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
+              <Text style={{ fontSize: 40 }}>⚔️</Text>
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
+                {incomingBattle.challengerName} ti ha lanciato una Sound Battle
+              </Text>
+              <View style={{ backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' }}>
+                <Text style={{ color: '#f97316', fontWeight: '700' }}>🎯 {incomingBattle.theme}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <TouchableOpacity
+                  style={{ flex: 1, backgroundColor: 'rgba(255,59,48,0.12)', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' }}
+                  onPress={() => setIncomingBattle(null)}
+                >
+                  <Text style={{ color: '#FF3B30', fontWeight: '700' }}>Dopo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 2, backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                  onPress={() => { setActiveBattleId(incomingBattle.id); setIncomingBattle(null); }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>⚔️ Accetta sfida</Text>
                 </TouchableOpacity>
               </View>
             </View>

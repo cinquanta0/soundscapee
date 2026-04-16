@@ -1346,6 +1346,21 @@ exports.processCollab = onCall(
   },
 );
 
+// ── Notifica: sfida battle ricevuta ───────────────────────────────────────────
+exports.onBattleCreated = onDocumentCreated(
+  { document: 'battles/{battleId}', region: 'europe-west1' },
+  async (event) => {
+    const battle = event.data?.data();
+    if (!battle || battle.status !== 'pending') return;
+    const db = admin.firestore();
+    await sendNotificationToUser(db, battle.opponentId, {
+      title: `⚔️ ${battle.challengerName} ti sfida!`,
+      body: `Sound Battle — tema: ${battle.theme}. Hai 30 secondi per rispondere!`,
+      data: { type: 'battle_invite', battleId: event.params.battleId },
+    });
+  },
+);
+
 // ── Notifica: invito collab ricevuto ──────────────────────────────────────────
 exports.onCollabInvite = onDocumentCreated(
   { document: 'collabSessions/{sessionId}', region: 'europe-west1' },

@@ -250,6 +250,23 @@ service cloud.firestore {
       }
     }
 
+    // ── SOUND BATTLES ────────────────────────────────────────────────────────
+    match /battles/{battleId} {
+      allow read: if isAuth();
+      allow create: if isNotAnonymous();
+      allow update: if isAuth()
+                    && (request.auth.uid == resource.data.challengerId
+                        || request.auth.uid == resource.data.opponentId);
+      allow delete: if isAuth() && request.auth.uid == resource.data.challengerId;
+
+      match /votes/{userId} {
+        allow read: if isAuth();
+        allow create: if isAuth() && request.auth.uid == userId
+                      && request.auth.uid != get(/databases/$(database)/documents/battles/$(battleId)).data.challengerId
+                      && request.auth.uid != get(/databases/$(database)/documents/battles/$(battleId)).data.opponentId;
+      }
+    }
+
     // ── COLLAB SESSIONS ───────────────────────────────────────────────────────
     match /collabSessions/{sessionId} {
       allow read: if isAuth()
