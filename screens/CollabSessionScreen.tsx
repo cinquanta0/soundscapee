@@ -89,6 +89,10 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 
   // In turns mode, is it my turn to record?
   const isMyTurn = session?.mode === 'sync' || (isHost ? session?.currentTurn === 0 : session?.currentTurn === 1);
+  // Chi può premere il bottone record:
+  // sync → solo l'host avvia (il guest parte automaticamente via listener)
+  // turns → chi è di turno
+  const canPressRecord = session?.mode === 'sync' ? isHost : isMyTurn;
   const myTrackUploaded = isHost ? !!session?.hostTrackUrl : !!session?.guestTrackUrl;
   const otherTrackUploaded = isHost ? !!session?.guestTrackUrl : !!session?.hostTrackUrl;
   const bothUploaded = !!session?.hostTrackUrl && !!session?.guestTrackUrl;
@@ -116,12 +120,16 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
     unsubRef.current = listenToSession(sessionId, (s) => {
       setSession(s);
 
-      // Segnale di inizio registrazione sincronizzato (modalità sync)
-      // Usa recordingRef.current come guard (non stale)
+      // Segnale di inizio registrazione sincronizzato
+      // In sync mode: entrambi i telefoni registrano
+      // In turns mode: solo chi è di turno (evita che l'altro telefono registri)
       if (s.status === 'recording' && s.recordingStartedAt && !recordingRef.current) {
-        const elapsed = Date.now() - s.recordingStartedAt.getTime();
-        const remaining = MAX_RECORD_SECS * 1000 - elapsed;
-        if (remaining > 500) startLocalRecording(Math.floor(elapsed / 1000));
+        const isTurnPlayer = s.mode !== 'turns' || (s.hostId === myUid ? s.currentTurn === 0 : s.currentTurn === 1);
+        if (isTurnPlayer) {
+          const elapsed = Date.now() - s.recordingStartedAt.getTime();
+          const remaining = MAX_RECORD_SECS * 1000 - elapsed;
+          if (remaining > 500) startLocalRecording(Math.floor(elapsed / 1000));
+        }
       }
 
       // Segnale di stop — usa isRecordingRef.current (non stale)
@@ -399,17 +407,21 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
           </TouchableOpacity>
         )}
 
-        {/* Bottone record — host avvia, tutti fermano */}
+        {/* Bottone record
+            Sync mode: solo l'host avvia (poi tutti registrano via listener)
+            Turns mode: chiunque sia di turno può premere */}
         {session.status === 'accepted' && (
           <TouchableOpacity
-            style={[s.recBtn, (!isHost && !isRecording) && s.recBtnDisabled]}
+            style={[s.recBtn, (!canPressRecord && !isRecording) && s.recBtnDisabled]}
             onPress={isRecording ? handleStopRecording : handleStartRecording}
-            disabled={(!isHost && !isRecording) || isUploading || !agoraJoined}
+            disabled={(!canPressRecord && !isRecording) || isUploading || !agoraJoined}
           >
             <View style={[s.recBtnInner, isRecording && s.recBtnInnerActive]}>
               <Text style={s.recBtnIcon}>{isRecording ? '⏹' : '⏺'}</Text>
             </View>
-            <Text style={s.recBtnLabel}>{isRecording ? 'Stop' : (isHost ? 'Registra' : 'In attesa…')}</Text>
+            <Text style={s.recBtnLabel}>
+              {isRecording ? 'Stop' : (canPressRecord ? 'Registra' : (session.mode === 'turns' ? `Turno di ${otherName}` : 'In attesa…'))}
+            </Text>
           </TouchableOpacity>
         )}
 
