@@ -255,6 +255,7 @@ export default function App() {
   const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [incomingBattle, setIncomingBattle] = useState<Battle | null>(null);
+  const [showBattleThemePicker, setShowBattleThemePicker] = useState(false);
   const [mySounds, setMySounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -1659,23 +1660,7 @@ if (loading) {
           {/* Bottone Battle */}
           <TouchableOpacity
             style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginTop: 8 }]}
-            onPress={() => {
-              const THEMES = ['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'];
-              Alert.alert('⚔️ Sfida a Sound Battle', 'Scegli un tema — 30 secondi a testa, poi il pubblico vota!',
-                THEMES.map(theme => ({
-                  text: theme,
-                  onPress: async () => {
-                    const id = await createBattle(
-                      userProfile.id,
-                      userProfile.username || userProfile.displayName,
-                      userProfile.photoURL || '🎙',
-                      theme,
-                    ).catch(() => null);
-                    if (id) setActiveBattleId(id);
-                  },
-                })).concat([{ text: 'Annulla', style: 'cancel' }] as any)
-              );
-            }}
+            onPress={() => setShowBattleThemePicker(true)}
           >
             <Text style={[styles.profileButtonPrimaryText, { color: '#f97316' }]}>⚔️ Sound Battle</Text>
           </TouchableOpacity>
@@ -2715,6 +2700,40 @@ if (loading) {
           />
         </Modal>
       )}
+
+      {/* Battle Theme Picker */}
+      <Modal visible={showBattleThemePicker} transparent animationType="slide" onRequestClose={() => setShowBattleThemePicker(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
+            {['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'].map(theme => (
+              <TouchableOpacity
+                key={theme}
+                style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.25)' }}
+                onPress={async () => {
+                  setShowBattleThemePicker(false);
+                  const id = await createBattle(
+                    userProfile.id,
+                    userProfile.username || userProfile.displayName,
+                    userProfile.photoURL || '🎙',
+                    theme,
+                  ).catch(() => null);
+                  if (id) setActiveBattleId(id);
+                }}
+              >
+                <Text style={{ color: '#f97316', fontWeight: '600', fontSize: 15 }}>{theme}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={{ paddingVertical: 14, alignItems: 'center' }}
+              onPress={() => setShowBattleThemePicker(false)}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>Annulla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Battle Screen */}
       {activeBattleId && (
