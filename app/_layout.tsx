@@ -45,19 +45,25 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [otaDiag, setOtaDiag] = useState('...');
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    if (__DEV__) return;
+    if (__DEV__) { setOtaDiag('DEV'); return; }
     (async () => {
       try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
+        const u = await Updates.checkForUpdateAsync();
+        if (u.isAvailable) {
+          setOtaDiag('DL');
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
+        } else {
+          setOtaDiag('OK');
         }
-      } catch {}
+      } catch (e: any) {
+        setOtaDiag('ERR:' + (e?.message ?? e));
+      }
     })();
   }, []);
 
@@ -117,6 +123,7 @@ export default function RootLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
+        <Text style={{ color: '#64748b', fontSize: 10, marginTop: 8, fontFamily: 'monospace' }}>{otaDiag}</Text>
       </View>
     );
   }
