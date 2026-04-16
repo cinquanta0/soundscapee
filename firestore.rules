@@ -61,6 +61,12 @@ service cloud.firestore {
                     && !request.resource.data.diff(resource.data).affectedKeys()
                          .hasAny(['isAdmin', 'schoolRole', 'emailVerified', 'schoolDomainAllowed']);
 
+      // Chiunque autenticato può incrementare battleWins (±1) — assegnato da finalizeBattle
+      allow update: if isAuth()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['battleWins'])
+                    && request.resource.data.get('battleWins', 0) == resource.data.get('battleWins', 0) + 1;
+
       // Chiunque autenticato può modificare followersCount, followingCount, friendsCount (±1)
       // usato da follow/unfollow, accept/remove friend
       allow update: if isAuth() && !isOwner(userId)
@@ -261,7 +267,8 @@ service cloud.firestore {
 
       match /votes/{userId} {
         allow read: if isAuth();
-        allow create: if isAuth() && request.auth.uid == userId
+        // setDoc usa uid come doc ID → un solo voto per utente, non partecipanti
+        allow create, update: if isAuth() && request.auth.uid == userId
                       && request.auth.uid != get(/databases/$(database)/documents/battles/$(battleId)).data.challengerId
                       && request.auth.uid != get(/databases/$(database)/documents/battles/$(battleId)).data.opponentId;
       }

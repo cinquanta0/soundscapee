@@ -1,5 +1,5 @@
 import {
-  collection, doc, addDoc, updateDoc, onSnapshot,
+  collection, doc, addDoc, setDoc, updateDoc, onSnapshot,
   serverTimestamp, query, where, orderBy, limit, getDocs,
   increment, getDoc,
 } from 'firebase/firestore';
@@ -202,8 +202,8 @@ export async function voteBattle(battleId: string, votedForId: string): Promise<
   const d = snap.data()!;
   const isChallenger = votedForId === d.challengerId;
 
-  // Salva voto nella subcollection
-  await addDoc(collection(db, 'battles', battleId, 'votes'), {
+  // Salva voto usando uid come ID doc → previene voti multipli
+  await setDoc(doc(db, 'battles', battleId, 'votes', uid), {
     userId: uid,
     votedForId,
     createdAt: serverTimestamp(),
