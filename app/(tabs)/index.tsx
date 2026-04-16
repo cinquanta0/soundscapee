@@ -1289,6 +1289,9 @@ if (loading) {
             <Text style={styles.liveIndicator}>{t('home.live')}</Text>
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
+            <View style={{ backgroundColor: 'rgba(0,255,156,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' }}>
+              <Text style={{ color: '#00ff9c', fontSize: 9, fontWeight: '800' }}>OTA ✓</Text>
+            </View>
           </View>
         </View>
         <View style={styles.headerButtons}>
