@@ -94,9 +94,11 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     const unsub = listenToBattle(battleId, async (b) => {
       setBattle(b);
       // Auto-start rec quando è il mio turno
-      if ((b.status === 'challenger_rec' && isChallenger) ||
-          (b.status === 'opponent_rec' && !isChallenger && b.challengerId !== uid)) {
-        if (!recRef.current && !isRecording) startRecording();
+      // Calcolo isChallenger da b direttamente (evita stale closure)
+      const iAmChallenger = b.challengerId === uid;
+      if ((b.status === 'challenger_rec' && iAmChallenger) ||
+          (b.status === 'opponent_rec' && !iAmChallenger)) {
+        if (!recRef.current) startRecording();
       }
       // Chiudi battaglia scaduta
       if (b.status === 'voting' && b.votingEndsAt && b.votingEndsAt < new Date() && b.winnerId === undefined) {
