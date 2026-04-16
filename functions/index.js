@@ -534,18 +534,26 @@ exports.onMessageCreated = onDocumentCreated(
     const msg = event.data?.data();
     if (!msg) return;
 
-    const { senderId, receiverId, duration } = msg;
+    const { senderId, receiverId, duration, statusReply, statusId } = msg;
     if (!receiverId || senderId === receiverId) return;
 
     const db = admin.firestore();
     const senderDoc = await db.collection('users').doc(senderId).get();
     const senderName = senderDoc.data()?.username || senderDoc.data()?.displayName || 'Qualcuno';
 
-    await sendNotificationToUser(db, receiverId, {
-      title: '🎤 Nuovo messaggio vocale!',
-      body: `${senderName} ti ha inviato un messaggio${duration ? ` di ${duration}s` : ''}`,
-      data: { type: 'message', senderId },
-    });
+    if (statusReply) {
+      await sendNotificationToUser(db, receiverId, {
+        title: '💬 Ha risposto al tuo stato!',
+        body: `${senderName} ha risposto al tuo stato${duration ? ` (${duration}s)` : ''}`,
+        data: { type: 'status_reply', senderId, ...(statusId ? { statusId } : {}) },
+      });
+    } else {
+      await sendNotificationToUser(db, receiverId, {
+        title: '🎤 Nuovo messaggio vocale!',
+        body: `${senderName} ti ha inviato un messaggio${duration ? ` di ${duration}s` : ''}`,
+        data: { type: 'message', senderId },
+      });
+    }
   }
 );
 
