@@ -1195,3 +1195,75 @@ exports.notifyStudentOnSubmissionDecision = onDocumentUpdated(
   },
 );
 
+
+// ── Trigger: nuovo messaggio vocale in community ──────────────────────────────
+exports.onCommunityMessageCreated = onDocumentCreated(
+  { document: 'communities/{communityId}/chat/{messageId}', region: 'europe-west1' },
+  async (event) => {
+    const msg = event.data?.data();
+    if (!msg) return;
+    const { communityId } = event.params;
+    const { senderId, senderName, audioDuration } = msg;
+
+    const db = admin.firestore();
+    // Prendi tutti i membri della community
+    const membersSnap = await db.collection('communities').doc(communityId).collection('members').get();
+    const communityDoc = await db.collection('communities').doc(communityId).get();
+    const communityName = communityDoc.data()?.name || 'Community';
+
+    // Notifica a tutti i membri tranne chi ha inviato
+    await Promise.all(
+      membersSnap.docs
+        .filter((m) => m.id !== senderId)
+        .map((m) =>
+          sendNotificationToUser(db, m.id, {
+            title: `🎤 ${communityName}`,
+            body: `${senderName} ha inviato un vocale${audioDuration ? ` di ${Math.round(audioDuration)}s` : ''}`,
+            data: { type: 'community_message', communityId },
+          }).catch(() => {}),
+        ),
+    );
+  },
+);
+
+// ── Trigger: richiesta di iscrizione community approvata ─────────────────────
+exports.onCommunityJoinRequestCreated = onDocumentCreated(
+  { document: 'communities/{communityId}/joinRequests/{userId}', region: 'europe-west1' },
+  async (event) => {
+    const req = event.data?.data();
+    if (!req) return;
+    const { communityId } = event.params;
+
+    const db = admin.firestore();
+    const communityDoc = await db.collection('communities').doc(communityId).get();
+    const communityName = communityDoc.data()?.name || 'Community';
+    const createdBy = communityDoc.data()?.createdBy;
+    if (!createdBy) return;
+
+    await sendNotificationToUser(db, createdBy, {
+      title: `👤 Nuova richiesta — ${communityName}`,
+      body: `${req.userName || 'Qualcuno'} vuole unirsi alla tua community`,
+      data: { type: 'community_join_request', communityId },
+    });
+  },
+);
+
+// ── Trigger: richiesta di iscrizione approvata — notifica il richiedente ──────
+exports.onCommunityMemberAdded = onDocumentCreated(
+  { document: 'communities/{communityId}/members/{userId}', region: 'europe-west1' },
+  async (event) => {
+    const member = event.data?.data();
+    if (!member || member.role === 'admin') return; // non notificare il creatore
+    const { communityId, userId } = event.params;
+
+    const db = admin.firestore();
+    const communityDoc = await db.collection('communities').doc(communityId).get();
+    const communityName = communityDoc.data()?.name || 'Community';
+
+    await sendNotificationToUser(db, userId, {
+      title: `✅ Sei stato approvato!`,
+      body: `Sei ora membro di "${communityName}"`,
+      data: { type: 'community_approved', communityId },
+    });
+  },
+);

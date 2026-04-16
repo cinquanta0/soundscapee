@@ -10,20 +10,27 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { getCommunities, toggleCommunityMembership, createCommunity } from '../../services/firebaseService';
+import { auth } from '../../firebaseConfig';
+import { getCommunities, createCommunity } from '../../services/firebaseService';
+import { joinCommunity, leaveCommunity, requestToJoin, cancelJoinRequest, getMyJoinRequest, getMyRole } from '../../services/communityService';
+import CommunityDetailScreen from '../../screens/CommunityDetailScreen';
 
 export default function CommunitiesScreen() {
   const { t } = useTranslation();
-  const [communities, setCommunities] = useState([]);
+  const [communities, setCommunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<any | null>(null);
+  const [membershipState, setMembershipState] = useState<Record<string, 'member' | 'pending' | null>>({});
   const [newCommunity, setNewCommunity] = useState({
     name: '',
     description: '',
     category: 'General',
+    isPublic: true,
   });
 
   useEffect(() => {
@@ -34,20 +41,47 @@ export default function CommunitiesScreen() {
     try {
       const data = await getCommunities();
       setCommunities(data);
-    } catch (error) {
+      // Controlla stato iscrizione per ogni community
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const states: Record<string, 'member' | 'pending' | null> = {};
+      await Promise.all(data.map(async (c: any) => {
+        const role = await getMyRole(c.id).catch(() => null);
+        if (role) { states[c.id] = 'member'; return; }
+        const hasPending = await getMyJoinRequest(c.id).catch(() => false);
+        states[c.id] = hasPending ? 'pending' : null;
+      }));
+      setMembershipState(states);
+    } catch {
       Alert.alert(t('common.error'), t('communities.errors.cannotLoad'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleJoin = async (communityId) => {
+  const handleJoinAction = async (community: any) => {
+    const state = membershipState[community.id];
     try {
-      const joined = await toggleCommunityMembership(communityId);
-      Alert.alert(joined ? t('communities.joined') : t('communities.left'));
+      if (state === 'member') {
+        await leaveCommunity(community.id);
+        setMembershipState((prev) => ({ ...prev, [community.id]: null }));
+        Alert.alert('👋 Uscito dalla community');
+      } else if (state === 'pending') {
+        await cancelJoinRequest(community.id);
+        setMembershipState((prev) => ({ ...prev, [community.id]: null }));
+        Alert.alert('Richiesta annullata');
+      } else if (community.isPublic !== false) {
+        await joinCommunity(community.id);
+        setMembershipState((prev) => ({ ...prev, [community.id]: 'member' }));
+        Alert.alert('✅ Iscritto!');
+      } else {
+        await requestToJoin(community.id);
+        setMembershipState((prev) => ({ ...prev, [community.id]: 'pending' }));
+        Alert.alert('⏳ Richiesta inviata', "L'admin deve approvarla");
+      }
       loadCommunities();
-    } catch (error) {
-      Alert.alert('Errore', error.message);
+    } catch (e: any) {
+      Alert.alert('Errore', e.message);
     }
   };
 
@@ -56,17 +90,26 @@ export default function CommunitiesScreen() {
       Alert.alert(t('common.error'), t('communities.errors.nameRequired'));
       return;
     }
-
     try {
       await createCommunity(newCommunity);
       Alert.alert('✅ Community creata!');
       setShowCreateModal(false);
-      setNewCommunity({ name: '', description: '', category: 'General' });
+      setNewCommunity({ name: '', description: '', category: 'General', isPublic: true });
       loadCommunities();
-    } catch (error) {
-      Alert.alert('Errore', error.message);
+    } catch (e: any) {
+      Alert.alert('Errore', e.message);
     }
   };
+
+  // Dettaglio community aperto
+  if (selectedCommunity) {
+    return (
+      <CommunityDetailScreen
+        community={selectedCommunity}
+        onClose={() => { setSelectedCommunity(null); loadCommunities(); }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -80,14 +123,11 @@ export default function CommunitiesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('communities.title')}</Text>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => setShowCreateModal(true)}
-        >
+        <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
           <Text style={styles.createButtonText}>{t('communities.create')}</Text>
         </TouchableOpacity>
       </View>
@@ -97,36 +137,36 @@ export default function CommunitiesScreen() {
         data={communities}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.communityCard}
-            onPress={() => Alert.alert('Community', t('communities.selected', { name: item.name }))}
-          >
-            <View style={styles.communityHeader}>
-              <Text style={styles.communityAvatar}>{item.avatar}</Text>
-              <View style={styles.communityInfo}>
-                <Text style={styles.communityName}>{item.name}</Text>
-                <Text style={styles.communityStats}>
-                  {t('communities.membersAndSounds', { members: item.membersCount, sounds: item.soundsCount })}
-                </Text>
+        renderItem={({ item }) => {
+          const state = membershipState[item.id];
+          const joinLabel = state === 'member' ? 'Iscritto ✓' : state === 'pending' ? '⏳ In attesa' : item.isPublic !== false ? t('communities.join') : '🔒 Richiedi';
+          const joinStyle = state === 'member' ? styles.joinButtonMember : state === 'pending' ? styles.joinButtonPending : styles.joinButton;
+          return (
+            <TouchableOpacity style={styles.communityCard} onPress={() => setSelectedCommunity(item)}>
+              <View style={styles.communityHeader}>
+                <Text style={styles.communityAvatar}>{item.avatar}</Text>
+                <View style={styles.communityInfo}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.communityName}>{item.name}</Text>
+                    {item.isPublic === false && <Text style={styles.privateBadge}>🔒</Text>}
+                  </View>
+                  <Text style={styles.communityStats}>
+                    {t('communities.membersAndSounds', { members: item.membersCount, sounds: item.soundsCount })}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.communityDescription} numberOfLines={2}>
-              {item.description}
-            </Text>
-            <View style={styles.communityFooter}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{item.category}</Text>
+              <Text style={styles.communityDescription} numberOfLines={2}>{item.description}</Text>
+              <View style={styles.communityFooter}>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{item.category}</Text>
+                </View>
+                <TouchableOpacity style={joinStyle} onPress={(e) => { e.stopPropagation?.(); handleJoinAction(item); }}>
+                  <Text style={styles.joinButtonText}>{joinLabel}</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.joinButton}
-                onPress={() => handleJoin(item.id)}
-              >
-                <Text style={styles.joinButtonText}>{t('communities.join')}</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>👥</Text>
@@ -149,7 +189,6 @@ export default function CommunitiesScreen() {
               value={newCommunity.name}
               onChangeText={(name) => setNewCommunity({ ...newCommunity, name })}
             />
-
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder={t('communities.descriptionPlaceholder')}
@@ -159,11 +198,22 @@ export default function CommunitiesScreen() {
               onChangeText={(description) => setNewCommunity({ ...newCommunity, description })}
             />
 
+            {/* Toggle Pubblica / Privata */}
+            <View style={styles.toggleRow}>
+              <View>
+                <Text style={styles.toggleLabel}>{newCommunity.isPublic ? '🌍 Pubblica' : '🔒 Privata'}</Text>
+                <Text style={styles.toggleSub}>{newCommunity.isPublic ? 'Chiunque può entrare' : 'Iscrizione con approvazione'}</Text>
+              </View>
+              <Switch
+                value={!newCommunity.isPublic}
+                onValueChange={(val) => setNewCommunity({ ...newCommunity, isPublic: !val })}
+                trackColor={{ false: '#334155', true: '#06b6d4' }}
+                thumbColor="#fff"
+              />
+            </View>
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalButtonCancel}
-                onPress={() => setShowCreateModal(false)}
-              >
+              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setShowCreateModal(false)}>
                 <Text style={styles.modalButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalButtonCreate} onPress={handleCreate}>
@@ -272,10 +322,48 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
+  joinButtonMember: {
+    backgroundColor: 'rgba(52,199,89,0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(52,199,89,0.4)',
+  },
+  joinButtonPending: {
+    backgroundColor: 'rgba(255,159,10,0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,159,10,0.4)',
+  },
   joinButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 13,
+  },
+  privateBadge: {
+    fontSize: 12,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#334155',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  toggleLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  toggleSub: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',

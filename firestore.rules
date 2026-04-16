@@ -195,7 +195,6 @@ service cloud.firestore {
       allow create: if isNotAnonymous();
       allow update: if isAdmin()
                     || isOwner(resource.data.createdBy)
-                    // Chiunque autenticato può aggiornare solo membersCount (join/leave)
                     || (isAuth()
                         && request.resource.data.diff(resource.data).affectedKeys()
                              .hasOnly(['membersCount']));
@@ -203,8 +202,44 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if isAuth();
-        allow write: if isOwner(userId);
+        // Scrittura: il diretto interessato, oppure admin/moderatore della community
+        allow write: if isOwner(userId)
+                     || (isAuth() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                         && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator']);
       }
+
+      match /joinRequests/{userId} {
+        allow read: if isAuth() && (
+          isOwner(userId)
+          || (exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+              && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator'])
+        );
+        allow create: if isOwner(userId) && isNotAnonymous();
+        allow delete: if isOwner(userId)
+                      || (isAuth() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                          && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator']);
+      }
+
+      match /chat/{messageId} {
+        allow read: if isAuth()
+                    && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+        allow create: if isNotAnonymous()
+                      && isOwner(request.resource.data.senderId)
+                      && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+        allow update: if isAuth()
+                      && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                      && (
+                        // Reazioni: solo il campo reactions
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+                        // Pin: solo admin/moderatore
+                        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPinned'])
+                            && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator'])
+                      );
+        allow delete: if isOwner(resource.data.senderId)
+                      || (isAuth() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
+                          && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator']);
+      }
+
       match /posts/{postId} {
         allow read: if isAuth();
         allow create: if isNotAnonymous()
