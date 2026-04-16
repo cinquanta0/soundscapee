@@ -75,6 +75,10 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewSoundRef = useRef<Audio.Sound | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  // Refs per evitare stale closure nei callback Firestore
+  const recSecondsRef = useRef(0);
+  const isRecordingRef = useRef(false);
+  const sessionRef = useRef<CollabSession | null>(null);
   const myUid = auth.currentUser?.uid ?? '';
 
   const isHost = session?.hostId === myUid;
@@ -87,6 +91,9 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const myTrackUploaded = isHost ? !!session?.hostTrackUrl : !!session?.guestTrackUrl;
   const otherTrackUploaded = isHost ? !!session?.guestTrackUrl : !!session?.hostTrackUrl;
   const bothUploaded = !!session?.hostTrackUrl && !!session?.guestTrackUrl;
+
+  // Mantieni i ref sincronizzati
+  useEffect(() => { sessionRef.current = session; }, [session]);
 
   // ── Setup Agora ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -109,16 +116,16 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       setSession(s);
 
       // Segnale di inizio registrazione sincronizzato (modalità sync)
-      if (s.status === 'recording' && s.recordingStartedAt && !isRecording && !recordingRef.current) {
-        // Piccolo delay per compensare latenza Firestore
+      // Usa recordingRef.current come guard (non stale)
+      if (s.status === 'recording' && s.recordingStartedAt && !recordingRef.current) {
         const elapsed = Date.now() - s.recordingStartedAt.getTime();
         const remaining = MAX_RECORD_SECS * 1000 - elapsed;
         if (remaining > 500) startLocalRecording(Math.floor(elapsed / 1000));
       }
 
-      // Segnale di stop
-      if (s.recordingStoppedAt && isRecording) {
-        stopLocalRecording(s);
+      // Segnale di stop — usa isRecordingRef.current (non stale)
+      if (s.recordingStoppedAt && isRecordingRef.current) {
+        stopLocalRecordingRef.current(s, false);
       }
 
       // Mix pronto
@@ -130,7 +137,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
     return () => {
       unsubRef.current?.();
       clearTimers();
-      stopLocalRecording(null, true);
+      stopLocalRecordingRef.current(null, true);
     };
   }, [sessionId]);
 
@@ -140,6 +147,37 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   };
 
   // ── Registrazione locale ──────────────────────────────────────────────────────
+  const stopLocalRecording = useCallback(async (s: CollabSession | null, discard = false): Promise<void> => {
+    clearTimers();
+    setMicActive(false);
+    setMicOn(false);
+    isRecordingRef.current = false;
+    if (!recordingRef.current) return;
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    setIsRecording(false);
+    try {
+      await rec.stopAndUnloadAsync();
+      if (discard) return;
+      const uri = rec.getURI();
+      const dur = recSecondsRef.current; // usa ref, non stato stale
+      if (!uri) return;
+      setIsUploading(true);
+      // Determina ruolo dai ref aggiornati
+      const currentSession = sessionRef.current;
+      const amHost = currentSession?.hostId === myUid || (s?.hostId === myUid);
+      await uploadMyTrack(sessionId, uri, dur, amHost);
+      setIsUploading(false);
+    } catch {
+      setIsUploading(false);
+      Alert.alert('Errore upload', 'Riprova tra poco');
+    }
+  }, [sessionId, myUid]);
+
+  // Ref sempre aggiornata a stopLocalRecording — usata da setTimeout e listener
+  const stopLocalRecordingRef = useRef(stopLocalRecording);
+  useEffect(() => { stopLocalRecordingRef.current = stopLocalRecording; }, [stopLocalRecording]);
+
   const startLocalRecording = useCallback(async (elapsedSecs = 0) => {
     if (recordingRef.current) return;
     try {
@@ -150,40 +188,23 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       refreshSpeakerphone();
       const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
       recordingRef.current = recording;
+      recSecondsRef.current = elapsedSecs;
+      isRecordingRef.current = true;
       setIsRecording(true);
       setRecSeconds(elapsedSecs);
-      recTimerRef.current = setInterval(() => setRecSeconds((s) => s + 1), 1000);
-      // Auto-stop al limite
+      recTimerRef.current = setInterval(() => {
+        recSecondsRef.current += 1;
+        setRecSeconds(recSecondsRef.current);
+      }, 1000);
+      // Auto-stop: usa stopLocalRecordingRef per avere sempre la versione aggiornata
       const remaining = (MAX_RECORD_SECS - elapsedSecs) * 1000;
       maxTimerRef.current = setTimeout(() => {
-        if (session) signalStopRecording(sessionId).catch(() => {});
+        signalStopRecording(sessionId).catch(() => {});
       }, remaining);
     } catch {
       Alert.alert('Errore', 'Impossibile avviare la registrazione');
     }
-  }, [session, sessionId]);
-
-  const stopLocalRecording = useCallback(async (s: CollabSession | null, discard = false): Promise<void> => {
-    clearTimers();
-    setMicActive(false);
-    setMicOn(false);
-    if (!recordingRef.current) return;
-    const rec = recordingRef.current;
-    recordingRef.current = null;
-    setIsRecording(false);
-    try {
-      await rec.stopAndUnloadAsync();
-      if (discard) return;
-      const uri = rec.getURI();
-      const dur = recSeconds;
-      if (!uri) return;
-      setIsUploading(true);
-      await uploadMyTrack(sessionId, uri, dur, session?.hostId === myUid || (s?.hostId === myUid) || false);
-      setIsUploading(false);
-    } catch {
-      setIsUploading(false);
-    }
-  }, [recSeconds, sessionId, myUid, session]);
+  }, [sessionId]);
 
   // ── Azioni host ───────────────────────────────────────────────────────────────
   const handleStartRecording = async () => {
