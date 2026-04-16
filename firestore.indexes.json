@@ -117,6 +117,15 @@
       ]
     },
     {
+      "collectionGroup": "collabSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "guestId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "podcast",
       "queryScope": "COLLECTION",
       "fields": [
