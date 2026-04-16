@@ -250,6 +250,19 @@ service cloud.firestore {
       }
     }
 
+    // ── COLLAB SESSIONS ───────────────────────────────────────────────────────
+    match /collabSessions/{sessionId} {
+      allow read: if isAuth()
+                  && (request.auth.uid == resource.data.hostId
+                      || request.auth.uid == resource.data.guestId);
+      allow create: if isNotAnonymous();
+      allow update: if isAuth()
+                    && (request.auth.uid == resource.data.hostId
+                        || request.auth.uid == resource.data.guestId);
+      allow delete: if isAuth()
+                    && request.auth.uid == resource.data.hostId;
+    }
+
     // ── CHALLENGES ────────────────────────────────────────────────────────────
     match /challenges/{challengeId} {
       allow read: if isAuth();

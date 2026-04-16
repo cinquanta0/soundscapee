@@ -1267,3 +1267,97 @@ exports.onCommunityMemberAdded = onDocumentCreated(
     });
   },
 );
+
+// ── Cloud Function: processCollab ─────────────────────────────────────────────
+// Mixa le due tracce audio di una sessione collab e salva il risultato.
+exports.processCollab = onCall(
+  { timeoutSeconds: 180, memory: '1GiB', region: 'europe-west1' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'Non autenticato');
+
+    const { sessionId } = request.data;
+    if (!sessionId || typeof sessionId !== 'string') throw new HttpsError('invalid-argument', 'sessionId non valido');
+
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+
+    const sessionDoc = await db.collection('collabSessions').doc(sessionId).get();
+    if (!sessionDoc.exists) throw new HttpsError('not-found', 'Sessione non trovata');
+    const session = sessionDoc.data();
+
+    if (session.hostId !== uid) throw new HttpsError('permission-denied', 'Solo l\'host può mixare');
+    if (!session.hostTrackUrl || !session.guestTrackUrl) throw new HttpsError('failed-precondition', 'Tracce mancanti');
+
+    const tmpDir = os.tmpdir();
+    const hostPath = path.join(tmpDir, `collab_host_${sessionId}.m4a`);
+    const guestPath = path.join(tmpDir, `collab_guest_${sessionId}.m4a`);
+    const outPath = path.join(tmpDir, `collab_result_${sessionId}.m4a`);
+
+    // Scarica le due tracce
+    const downloadFile = async (url, dest) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Download fallito: ${url}`);
+      const buffer = await res.buffer();
+      if (buffer.length > MAX_TRACK_SIZE_BYTES) throw new HttpsError('invalid-argument', 'File troppo grande');
+      fs.writeFileSync(dest, buffer);
+    };
+
+    await Promise.all([
+      downloadFile(session.hostTrackUrl, hostPath),
+      downloadFile(session.guestTrackUrl, guestPath),
+    ]);
+
+    // Mix con FFmpeg: amix a volume uguale
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .input(hostPath)
+        .input(guestPath)
+        .complexFilter('[0:a]volume=1.0[a0];[1:a]volume=1.0[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[out]')
+        .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k'])
+        .output(outPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    // Upload risultato
+    const destPath = `collabs/${sessionId}/result.m4a`;
+    await bucket.upload(outPath, { destination: destPath, metadata: { contentType: 'audio/mp4' } });
+    const [file] = await bucket.file(destPath).getSignedUrl({ action: 'read', expires: '03-01-2500' });
+
+    // Durata del mix
+    const resultDuration = await new Promise((resolve) => {
+      ffmpeg.ffprobe(outPath, (err, meta) => {
+        resolve(err ? 0 : Math.round(meta.format.duration || 0));
+      });
+    });
+
+    // Cleanup tmp
+    [hostPath, guestPath, outPath].forEach((f) => { try { fs.unlinkSync(f); } catch {} });
+
+    await db.collection('collabSessions').doc(sessionId).update({
+      status: 'done',
+      resultUrl: file,
+      resultDuration,
+    });
+
+    return { resultUrl: file, resultDuration };
+  },
+);
+
+// ── Notifica: invito collab ricevuto ──────────────────────────────────────────
+exports.onCollabInvite = onDocumentCreated(
+  { document: 'collabSessions/{sessionId}', region: 'europe-west1' },
+  async (event) => {
+    const session = event.data?.data();
+    if (!session || session.status !== 'pending') return;
+    const db = admin.firestore();
+    const modeTxt = session.mode === 'sync' ? 'sessione sync' : 'sessione a turni';
+    await sendNotificationToUser(db, session.guestId, {
+      title: `🎙 Invito Collab da ${session.hostName}!`,
+      body: `${session.hostName} ti invita a una ${modeTxt}`,
+      data: { type: 'collab_invite', sessionId: event.params.sessionId },
+    });
+  },
+);

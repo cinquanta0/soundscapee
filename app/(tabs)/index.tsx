@@ -108,6 +108,8 @@ import ChallengesScreen from './ChallengesScreen';
 import ExploreScreen from './explore';
 import RemixScreen from '../../screens/RemixScreen';
 import RemixProfileSection from '../../components/RemixProfileSection';
+import CollabSessionScreen from '../../screens/CollabSessionScreen';
+import { createCollabSession, listenToIncomingCollab, CollabSession } from '../../services/collabService';
 import MessagesScreen from '../../screens/MessagesScreen';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
@@ -247,6 +249,8 @@ export default function App() {
   const [sounds, setSounds] = useState([]);
   const [totalSoundsCount, setTotalSoundsCount] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [activeCollabSessionId, setActiveCollabSessionId] = useState<string | null>(null);
+  const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
   const [mySounds, setMySounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -303,6 +307,12 @@ export default function App() {
   }, []);
 
   
+  // Listener inviti collab in arrivo
+  useEffect(() => {
+    const unsub = listenToIncomingCollab((session) => setIncomingCollab(session));
+    return () => unsub();
+  }, []);
+
   // Setup notifiche push
 useEffect(() => {
   const setupNotifications = async () => {
@@ -1608,6 +1618,25 @@ if (loading) {
               <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>{t('profile.friendsButton')}</Text>
             </TouchableOpacity>
           )}
+          {/* Bottone Collab — sempre visibile su profili altrui */}
+          <TouchableOpacity
+            style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginTop: 8 }]}
+            onPress={() => {
+              Alert.alert('🎙 Collab Session', 'Scegli la modalità di registrazione', [
+                { text: '🎙 Sync — insieme', onPress: async () => {
+                  const id = await createCollabSession(userProfile.id, userProfile.username || userProfile.displayName, userProfile.photoURL || '🎵', 'sync').catch(() => null);
+                  if (id) setActiveCollabSessionId(id);
+                }},
+                { text: '🔄 Turni — uno alla volta', onPress: async () => {
+                  const id = await createCollabSession(userProfile.id, userProfile.username || userProfile.displayName, userProfile.photoURL || '🎵', 'turns').catch(() => null);
+                  if (id) setActiveCollabSessionId(id);
+                }},
+                { text: 'Annulla', style: 'cancel' },
+              ]);
+            }}
+          >
+            <Text style={[styles.profileButtonPrimaryText, { color: '#a855f7' }]}>🎙 Collab Session</Text>
+          </TouchableOpacity>
         </View>
       )}
       
@@ -2634,6 +2663,45 @@ if (loading) {
   </TouchableWithoutFeedback>
 </Modal>
 
+
+      {/* Collab Session Screen */}
+      {activeCollabSessionId && (
+        <Modal visible animationType="slide" onRequestClose={() => setActiveCollabSessionId(null)}>
+          <CollabSessionScreen
+            sessionId={activeCollabSessionId}
+            onClose={() => setActiveCollabSessionId(null)}
+          />
+        </Modal>
+      )}
+
+      {/* Banner invito collab in arrivo */}
+      {incomingCollab && !activeCollabSessionId && (
+        <Modal visible transparent animationType="fade">
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
+              <Text style={{ fontSize: 36 }}>{incomingCollab.hostAvatar}</Text>
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
+                {incomingCollab.hostName} ti invita a una {incomingCollab.mode === 'sync' ? 'sessione sync' : 'sessione a turni'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <TouchableOpacity
+                  style={{ flex: 1, backgroundColor: 'rgba(255,59,48,0.15)', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' }}
+                  onPress={() => { setIncomingCollab(null); }}
+                >
+                  <Text style={{ color: '#FF3B30', fontWeight: '700' }}>Dopo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 2, backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                  onPress={() => { setActiveCollabSessionId(incomingCollab.id); setIncomingCollab(null); }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🎙 Entra</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
     </SafeAreaView>
   );
