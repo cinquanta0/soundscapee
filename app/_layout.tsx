@@ -79,8 +79,8 @@ export default function RootLayout() {
         if (!snap.exists()) return;
         const data = snap.data();
         
-        // Controllo manutenzione
-        if (data.maintenance && Platform.OS === 'android') {
+        // Controllo manutenzione (entrambe le piattaforme)
+        if (data.maintenance === true) {
           setMaintenance(true);
           return;
         }

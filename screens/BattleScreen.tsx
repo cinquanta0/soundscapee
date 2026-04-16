@@ -310,10 +310,30 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di uscire'); return; }
           onClose();
         }}>
-          <Text style={s.closeTxt}>✕</Text>
+          <Text style={s.closeTxt}>←</Text>
         </TouchableOpacity>
         <View style={s.themePillSmall}><Text style={s.themePillSmallTxt}>🎯 {battle.theme}</Text></View>
-        <View style={{ width: 36 }} />
+        {/* X rosso — solo challenger, solo stati pre-voting */}
+        {isChallenger && ['accepted', 'challenger_rec', 'opponent_rec'].includes(battle.status) ? (
+          <TouchableOpacity
+            style={s.cancelBtn}
+            onPress={() => {
+              if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di annullare'); return; }
+              Alert.alert(
+                'Annulla battaglia',
+                'Sei sicuro? La battaglia verrà rimossa definitivamente.',
+                [
+                  { text: 'No', style: 'cancel' },
+                  { text: 'Annulla battaglia', style: 'destructive', onPress: () => { cancelBattle(battleId); onClose(); } },
+                ],
+              );
+            }}
+          >
+            <Text style={s.cancelTxt}>✕</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       {/* VS */}
@@ -507,6 +527,8 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 52 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 15 },
+  cancelBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.4)', alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { color: '#FF3B30', fontSize: 15, fontWeight: '700' },
   vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 24 },
   vsText: { color: 'rgba(255,255,255,0.3)', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
   playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 12, borderWidth: 1, marginHorizontal: 4 },

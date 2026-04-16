@@ -573,6 +573,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── APP CONFIG (versione minima, maintenance mode) ─────────────────────────
+    match /appConfig/{docId} {
+      allow read: if isAuth();   // chiunque loggato può leggere (maintenance, minBuild)
+      allow write: if isAdmin(); // solo admin può scrivere
+    }
+
     // ── REMIX QUOTA (usato dalla Cloud Function per rate limiting) ────────────
     match /remixQuota/{userId} {
       allow read: if isOwner(userId);
