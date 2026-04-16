@@ -35,18 +35,6 @@ function ForceUpdateScreen() {
   );
 }
 
-function MaintenanceScreen() {
-  return (
-    <View style={fu.container}>
-      <Text style={fu.emoji}>🔧</Text>
-      <Text style={fu.title}>Soundscape in Manutenzione</Text>
-      <Text style={fu.body}>
-        Stiamo effettuando alcuni aggiornamenti.{'\n'}
-        Torneremo presto online!
-      </Text>
-    </View>
-  );
-}
 
 const fu = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', padding: 32 },
@@ -62,7 +50,6 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
-  const [maintenance, setMaintenance] = useState(false);
   const router = useRouter();
   const segments = useSegments();
 
@@ -71,22 +58,13 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  // Controlla se la build è ancora supportata e se è in manutenzione
+  // Controlla se la build è ancora supportata
   useEffect(() => {
     (async () => {
       try {
         const snap = await getDoc(doc(db, 'appConfig', 'general'));
         if (!snap.exists()) return;
-        const data = snap.data();
-        
-        // Controllo manutenzione (entrambe le piattaforme)
-        if (data.maintenance === true) {
-          setMaintenance(true);
-          return;
-        }
-        
-        // Controllo versione minima
-        const minBuild = data.minBuildVersion;
+        const minBuild = snap.data().minBuildVersion;
         if (!minBuild) return;
         const currentBuild = parseInt(Constants.nativeBuildVersion ?? '0', 10);
         if (currentBuild < minBuild) setForceUpdate(true);
@@ -124,8 +102,6 @@ export default function RootLayout() {
       router.replace('/login');
     }
   }, [user, loading, segments]);
-
-  if (maintenance) return <MaintenanceScreen />;
 
   if (forceUpdate) return <ForceUpdateScreen />;
 
