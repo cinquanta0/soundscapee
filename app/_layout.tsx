@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -9,11 +9,6 @@ import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacit
 import { auth, db, functions } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
-
-const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
-if (SENTRY_DSN) {
-  Sentry.init({ dsn: SENTRY_DSN, enabled: !__DEV__ });
-}
 
 const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.cucucucucuione.soundscapemobile';
 const STORE_URL_IOS = 'https://apps.apple.com/app/soundscape/id0'; // aggiorna con l'ID reale
@@ -53,9 +48,23 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
+  // Controlla e applica aggiornamenti OTA automaticamente
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {}
+    })();
+  }, []);
+
   // Initialise i18n as early as possible
   useEffect(() => {
-    initI18n().then(() => setI18nReady(true));
+    initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
   }, []);
 
   // Controlla se la build è ancora supportata

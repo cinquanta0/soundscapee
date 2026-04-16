@@ -1297,7 +1297,7 @@ if (loading) {
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>
-            <Text style={styles.liveIndicator}>{t('home.live')}</Text>
+            <Text style={styles.liveIndicator}>{t('home.live')} ✦</Text>
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
