@@ -1437,6 +1437,14 @@ if (loading) {
 
                 {/* Sound Content */}
                 <View style={styles.soundContent}>
+                  {post.isCollab && post.collaboratorName && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(168,85,247,0.35)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ fontSize: 11 }}>🎙</Text>
+                        <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }}>Collab ft. {post.collaboratorName}</Text>
+                      </View>
+                    </View>
+                  )}
                   <Text style={styles.soundTitle}>{post.title}</Text>
                   {post.description && (
                     <Text style={styles.soundDescription}>{post.description}</Text>
