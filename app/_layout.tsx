@@ -70,20 +70,6 @@ export default function RootLayout() {
     })();
   }, []);
 
-  // Controlla e applica aggiornamenti OTA automaticamente
-  useEffect(() => {
-    if (__DEV__) return;
-    (async () => {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch {}
-    })();
-  }, []);
-
   // Initialise i18n as early as possible
   useEffect(() => {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
