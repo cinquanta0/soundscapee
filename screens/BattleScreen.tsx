@@ -28,7 +28,7 @@ function TimerBar({ seconds, total, color }: { seconds: number; total: number; c
   const pct = Math.max(0, Math.min(1, seconds / total));
   return (
     <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', width: '100%' }}>
-      <Animated.View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: color, borderRadius: 3 }} />
+      <View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: color, borderRadius: 3 }} />
     </View>
   );
 }
@@ -79,7 +79,13 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
+  // Refs per evitare stale closure
+  const recSecsRef = useRef(0);
+  const battleRef = useRef<Battle | null>(null);
   const uid = auth.currentUser?.uid ?? '';
+
+  // Mantieni battleRef aggiornato
+  useEffect(() => { battleRef.current = battle; }, [battle]);
 
   const isChallenger = battle?.challengerId === uid;
   const isParticipant = battle?.challengerId === uid || battle?.opponentId === uid;
@@ -88,26 +94,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     (!isChallenger && battle.status === 'opponent_rec')
   ) : false;
   const myTrackDone = battle ? (isChallenger ? !!battle.challengerTrackUrl : !!battle.opponentTrackUrl) : false;
-
-  // ── Listener ─────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const unsub = listenToBattle(battleId, async (b) => {
-      setBattle(b);
-      // Auto-start rec quando è il mio turno
-      // Calcolo isChallenger da b direttamente (evita stale closure)
-      const iAmChallenger = b.challengerId === uid;
-      if ((b.status === 'challenger_rec' && iAmChallenger) ||
-          (b.status === 'opponent_rec' && !iAmChallenger)) {
-        if (!recRef.current) startRecording();
-      }
-      // Chiudi battaglia scaduta
-      if (b.status === 'voting' && b.votingEndsAt && b.votingEndsAt < new Date() && b.winnerId === undefined) {
-        await finalizeBattle(battleId).catch(() => {});
-      }
-    });
-    getMyVote(battleId).then(setMyVote);
-    return () => { unsub(); clearTimers(); stopRecording(true); };
-  }, [battleId]);
+  const otherTrackDone = battle ? (isChallenger ? !!battle.opponentTrackUrl : !!battle.challengerTrackUrl) : false;
 
   const clearTimers = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -115,22 +102,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   };
 
   // ── Registrazione ─────────────────────────────────────────────────────────────
-  const startRecording = useCallback(async () => {
-    if (recRef.current) return;
-    try {
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
-      const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
-      recRef.current = recording;
-      setIsRecording(true);
-      setRecSecs(0);
-      timerRef.current = setInterval(() => setRecSecs(s => s + 1), 1000);
-      maxTimerRef.current = setTimeout(() => stopRecording(false), REC_SECS * 1000);
-    } catch {
-      Alert.alert('Errore', 'Impossibile avviare la registrazione');
-    }
-  }, []);
-
+  // stopRecording non ha deps su recSecs/isChallenger — legge dai ref
   const stopRecording = useCallback(async (discard = false) => {
     clearTimers();
     if (!recRef.current) return;
@@ -142,13 +114,65 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       if (discard) return;
       const uri = rec.getURI();
       if (!uri) return;
+      const dur = recSecsRef.current;
+      const b = battleRef.current;
+      const iAmChallenger = b?.challengerId === uid;
       setIsUploading(true);
-      await uploadBattleTrack(battleId, uri, recSecs, isChallenger);
+      await uploadBattleTrack(battleId, uri, dur, iAmChallenger);
       setIsUploading(false);
     } catch {
       setIsUploading(false);
+      Alert.alert('Errore upload', 'Riprova tra poco');
     }
-  }, [recSecs, battleId, isChallenger]);
+  }, [battleId, uid]);
+
+  // Ref aggiornata a stopRecording più recente — usata dal setTimeout
+  const stopRecordingRef = useRef(stopRecording);
+  useEffect(() => { stopRecordingRef.current = stopRecording; }, [stopRecording]);
+
+  const startRecording = useCallback(async () => {
+    if (recRef.current) return;
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
+      const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
+      recRef.current = recording;
+      recSecsRef.current = 0;
+      setRecSecs(0);
+      setIsRecording(true);
+      timerRef.current = setInterval(() => {
+        recSecsRef.current += 1;
+        setRecSecs(recSecsRef.current);
+      }, 1000);
+      // Auto-stop: chiama sempre la versione aggiornata tramite ref
+      maxTimerRef.current = setTimeout(() => stopRecordingRef.current(false), REC_SECS * 1000);
+    } catch {
+      Alert.alert('Errore', 'Impossibile avviare la registrazione');
+    }
+  }, []);
+
+  // ── Listener ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const unsub = listenToBattle(battleId, async (b) => {
+      setBattle(b);
+      // Auto-start rec quando è il mio turno — calcola ruolo da b direttamente
+      const iAmChallenger = b.challengerId === uid;
+      if ((b.status === 'challenger_rec' && iAmChallenger) ||
+          (b.status === 'opponent_rec' && !iAmChallenger)) {
+        if (!recRef.current) startRecording();
+      }
+      // Chiudi battaglia scaduta
+      if (b.status === 'voting' && b.votingEndsAt && b.votingEndsAt < new Date() && b.winnerId === undefined) {
+        await finalizeBattle(battleId).catch(() => {});
+      }
+    });
+    getMyVote(battleId).then(setMyVote);
+    return () => {
+      unsub();
+      clearTimers();
+      stopRecordingRef.current(true);
+    };
+  }, [battleId]);
 
   // ── Preview ──────────────────────────────────────────────────────────────────
   const handlePreview = async (who: 'challenger' | 'opponent') => {
@@ -162,17 +186,21 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       return;
     }
     if (previewRef.current) { await previewRef.current.unloadAsync(); previewRef.current = null; }
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, shouldDuckAndroid: false });
-    const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
-    sound.setOnPlaybackStatusUpdate(st => { if (st.isLoaded && st.didJustFinish) { setPreviewPlaying(null); } });
-    previewRef.current = sound;
-    setPreviewPlaying(who);
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, shouldDuckAndroid: false });
+      const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
+      sound.setOnPlaybackStatusUpdate(st => { if (st.isLoaded && st.didJustFinish) { setPreviewPlaying(null); } });
+      previewRef.current = sound;
+      setPreviewPlaying(who);
+    } catch {
+      Alert.alert('Errore', 'Impossibile riprodurre la traccia');
+    }
   };
 
   // ── Voto ─────────────────────────────────────────────────────────────────────
   const handleVote = async (votedForId: string) => {
     if (myVote) return;
-    if (isParticipant) { Alert.alert('Non puoi votare', 'I partecipanti non possono votare nella propria battaglia'); return; }
+    if (isParticipant) { Alert.alert('Non puoi votare', 'I partecipanti non possono votare'); return; }
     try {
       await voteBattle(battleId, votedForId);
       setMyVote(votedForId);
@@ -184,7 +212,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   // ────────────────────────────────────────────────────────────────────────────
   if (!battle) {
     return (
-      <View style={s.overlay}>
+      <View style={[s.overlay, { alignItems: 'center', justifyContent: 'center' }]}>
         <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
         <ActivityIndicator color="#f97316" size="large" />
       </View>
@@ -317,7 +345,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         {/* Registrazione in corso */}
         {isRecording && (
           <View style={{ alignItems: 'center', gap: 12, width: '100%' }}>
-            <Text style={{ color: '#f97316', fontSize: 28, fontWeight: '900' }}>{fmtSec(REC_SECS - recSecs)}</Text>
+            <Text style={{ color: '#f97316', fontSize: 36, fontWeight: '900' }}>{fmtSec(REC_SECS - recSecs)}</Text>
             <TimerBar seconds={recSecs} total={REC_SECS} color="#f97316" />
             <TouchableOpacity style={s.stopBtn} onPress={() => stopRecording(false)}>
               <Text style={s.stopBtnTxt}>⏹ Finito!</Text>
@@ -333,28 +361,44 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           </View>
         )}
 
-        {/* Attesa turno */}
-        {!isRecording && !isUploading && isParticipant && !myTrackDone && !isMyTurn && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <ActivityIndicator color="#a855f7" />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-              {battle.status === 'accepted' ? `In attesa che ${isChallenger ? 'la sfida inizi' : battle.challengerName + ' registri'}` : `Aspetta ${isChallenger ? battle.opponentName : battle.challengerName}…`}
-            </Text>
-          </View>
-        )}
-
         {/* Challenger: avvia battaglia */}
-        {isChallenger && battle.status === 'accepted' && !isRecording && (
+        {isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
           <TouchableOpacity style={s.startBtn} onPress={() => startChallengerRec(battleId)}>
             <Text style={s.startBtnTxt}>⚔️ Inizia la battaglia!</Text>
           </TouchableOpacity>
         )}
 
-        {/* Traccia pronta, in attesa dell'altro */}
-        {isParticipant && myTrackDone && !battle.opponentTrackUrl === !isChallenger && (
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' }}>
-            ✓ Traccia caricata! In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…
-          </Text>
+        {/* Opponent: aspetta challenger */}
+        {!isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <ActivityIndicator color="#a855f7" />
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+              Aspetta che {battle.challengerName} inizi…
+            </Text>
+          </View>
+        )}
+
+        {/* Partecipante: attesa turno avversario */}
+        {isParticipant && !isRecording && !isUploading && !myTrackDone &&
+          ((isChallenger && battle.status === 'opponent_rec') ||
+           (!isChallenger && battle.status === 'challenger_rec')) && (
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <ActivityIndicator color="#a855f7" />
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+              {isChallenger ? battle.opponentName : battle.challengerName} sta registrando…
+            </Text>
+          </View>
+        )}
+
+        {/* Traccia caricata, in attesa dell'avversario */}
+        {isParticipant && myTrackDone && !otherTrackDone && !votingOpen && !isDone && (
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <ActivityIndicator color="#4ade80" />
+            <Text style={{ color: '#4ade80', fontSize: 13, fontWeight: '600' }}>✓ Traccia caricata!</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+              In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…
+            </Text>
+          </View>
         )}
 
         {/* Preview tracce (in voting/done) */}
@@ -382,11 +426,17 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <View style={{ gap: 10, width: '100%' }}>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center' }}>{timeLeftLabel()}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity style={[s.voteBtn, { borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.15)' }]} onPress={() => handleVote(battle.challengerId)}>
-                <Text style={{ color: '#f97316', fontWeight: '800', fontSize: 15 }}>🔥 {battle.challengerName}</Text>
+              <TouchableOpacity
+                style={[s.voteBtn, { borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.15)' }]}
+                onPress={() => handleVote(battle.challengerId)}
+              >
+                <Text style={{ color: '#f97316', fontWeight: '800', fontSize: 14 }}>🔥 {battle.challengerName}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.voteBtn, { borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.15)' }]} onPress={() => handleVote(battle.opponentId)}>
-                <Text style={{ color: '#a855f7', fontWeight: '800', fontSize: 15 }}>⚡ {battle.opponentName}</Text>
+              <TouchableOpacity
+                style={[s.voteBtn, { borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.15)' }]}
+                onPress={() => handleVote(battle.opponentId)}
+              >
+                <Text style={{ color: '#a855f7', fontWeight: '800', fontSize: 14 }}>⚡ {battle.opponentName}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -400,10 +450,18 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           </View>
         )}
 
+        {/* Partecipante: voto in corso */}
+        {votingOpen && isParticipant && (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' }}>🗳 Votazione aperta al pubblico</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>{timeLeftLabel()}</Text>
+          </View>
+        )}
+
         {/* Fine battaglia */}
         {isDone && (
           <View style={{ alignItems: 'center', gap: 8 }}>
-            <Text style={{ color: '#fbbf24', fontSize: 20, fontWeight: '900' }}>
+            <Text style={{ color: '#fbbf24', fontSize: 22, fontWeight: '900' }}>
               🏆 {battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName} ha vinto!
             </Text>
             <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{totalVotes} voti totali</Text>
@@ -432,7 +490,7 @@ const s = StyleSheet.create({
   rejectTxt: { color: '#FF3B30', fontWeight: '700', fontSize: 14 },
   acceptBtn: { paddingHorizontal: 26, paddingVertical: 13, borderRadius: 12, backgroundColor: '#f97316' },
   acceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 52 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 15 },
   vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 24 },

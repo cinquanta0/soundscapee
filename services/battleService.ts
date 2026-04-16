@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, setDoc, updateDoc, onSnapshot,
-  serverTimestamp, query, where, orderBy, limit, getDocs,
+  serverTimestamp, query, where, orderBy, limit,
   increment, getDoc,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -218,14 +218,9 @@ export async function voteBattle(battleId: string, votedForId: string): Promise<
 export async function getMyVote(battleId: string): Promise<string | null> {
   const uid = auth.currentUser?.uid;
   if (!uid) return null;
-  const q = query(
-    collection(db, 'battles', battleId, 'votes'),
-    where('userId', '==', uid),
-    limit(1),
-  );
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return snap.docs[0].data().votedForId;
+  const snap = await getDoc(doc(db, 'battles', battleId, 'votes', uid));
+  if (!snap.exists()) return null;
+  return snap.data().votedForId;
 }
 
 // ─── Chiudi battaglia (calcola vincitore) ──────────────────────────────────────
