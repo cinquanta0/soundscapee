@@ -22,10 +22,12 @@ import {
   voteForChallengeSound,
   incrementListens,
   createChallenge, // 🆕 AGGIUNGI QUESTO
+  deleteChallenge,
 } from '../../services/firebaseService';
 
 export default function ChallengesScreen() {
   const { t } = useTranslation();
+  const uid = auth.currentUser?.uid ?? '';
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
@@ -62,6 +64,43 @@ export default function ChallengesScreen() {
       Alert.alert(t('common.error'), t('challenges.errors.cannotLoad'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteSelectedChallenge = async () => {
+    if (!selectedChallenge) return;
+    if (!uid) return;
+
+    if (selectedChallenge.createdBy !== uid) return; // solo creatore
+
+    try {
+      await deleteChallenge(selectedChallenge.id);
+      setShowChallengeModal(false);
+      setSelectedChallenge(null);
+      setChallengeSounds([]);
+      await loadChallenges();
+      Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
+    } catch (error: any) {
+      console.error('Error deleting challenge:', error);
+      Alert.alert(t('common.error'), error?.message || 'Impossibile rimuovere la sfida');
+    }
+  };
+
+  const handleDeleteChallengeById = async (challengeId: string) => {
+    if (!uid) return;
+    const challenge = challenges.find((c: any) => c.id === challengeId);
+    if (challenge && challenge.createdBy !== uid) return;
+
+    try {
+      await deleteChallenge(challengeId);
+      setShowChallengeModal(false);
+      setSelectedChallenge(null);
+      setChallengeSounds([]);
+      await loadChallenges();
+      Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
+    } catch (error: any) {
+      console.error('Error deleting challenge:', error);
+      Alert.alert(t('common.error'), error?.message || 'Impossibile rimuovere la sfida');
     }
   };
 
@@ -257,6 +296,26 @@ export default function ChallengesScreen() {
                 <View style={styles.challengeButton}>
                   <Text style={styles.challengeButtonText}>{t('challenges.participate')}</Text>
                 </View>
+
+                {challenge.createdBy === uid && (
+                  <TouchableOpacity
+                    style={styles.removeChallengeButton}
+                    onPress={(e: any) => {
+                      // Evita che il tap apra il modal
+                      e.stopPropagation?.();
+                      Alert.alert(
+                        'Rimuovi sfida',
+                        'Vuoi rimuovere questa sfida? Così potrai rifarla e tutti potranno votare di nuovo.',
+                        [
+                          { text: 'Annulla', style: 'cancel' },
+                          { text: 'Rimuovi', style: 'destructive', onPress: () => handleDeleteChallengeById(challenge.id) },
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.removeChallengeButtonText}>Rimuovi sfida</Text>
+                  </TouchableOpacity>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           ))
@@ -397,6 +456,24 @@ export default function ChallengesScreen() {
                   >
                     <Text style={styles.modalClose}>✕</Text>
                   </TouchableOpacity>
+
+                  {selectedChallenge?.createdBy === uid && (
+                    <TouchableOpacity
+                      style={styles.modalRemoveButton}
+                      onPress={() => {
+                        Alert.alert(
+                          'Rimuovi sfida',
+                          'Vuoi rimuovere questa sfida? Così potrai rifarla e tutti potranno votare di nuovo.',
+                          [
+                            { text: 'Annulla', style: 'cancel' },
+                            { text: 'Rimuovi', style: 'destructive', onPress: handleDeleteSelectedChallenge },
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={styles.modalRemoveButtonText}>Rimuovi</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {loadingSounds ? (
@@ -584,6 +661,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0891b2',
   },
+  removeChallengeButton: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255,59,48,0.15)',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.35)',
+  },
+  removeChallengeButtonText: {
+    color: '#FF3B30',
+    fontWeight: '800',
+    fontSize: 14,
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -756,6 +847,20 @@ const styles = StyleSheet.create({
   modalClose: {
     fontSize: 28,
     color: '#94a3b8',
+  },
+  modalRemoveButton: {
+    backgroundColor: 'rgba(255,59,48,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginLeft: 10,
+  },
+  modalRemoveButtonText: {
+    color: '#FF3B30',
+    fontWeight: '900',
+    fontSize: 12,
   },
   loadingModal: {
     flex: 1,

@@ -1,9 +1,17 @@
 import {
-  collection, doc, addDoc, setDoc, updateDoc, onSnapshot,
-  serverTimestamp, query, where, orderBy, limit,
-  increment, getDoc,
+    addDoc,
+    collection, doc,
+    getDoc, getDocs,
+    increment,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc, updateDoc,
+    where,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, db, storage } from '../firebaseConfig';
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
@@ -130,8 +138,8 @@ export function listenToActiveBattles(
 ): () => void {
   const q = query(
     collection(db, 'battles'),
-    where('status', '==', 'voting'),
-    orderBy('votingEndsAt', 'asc'),
+    where('status', 'in', ['accepted', 'challenger_rec', 'opponent_rec', 'voting']),
+    orderBy('createdAt', 'desc'),
     limit(20),
   );
   return onSnapshot(q, (snap) => {
@@ -203,16 +211,26 @@ export async function voteBattle(battleId: string, votedForId: string): Promise<
   const isChallenger = votedForId === d.challengerId;
 
   // Salva voto usando uid come ID doc → previene voti multipli
-  await setDoc(doc(db, 'battles', battleId, 'votes', uid), {
-    userId: uid,
-    votedForId,
-    createdAt: serverTimestamp(),
-  });
+  try {
+    await setDoc(doc(db, 'battles', battleId, 'votes', uid), {
+      userId: uid,
+      votedForId,
+      createdAt: serverTimestamp(),
+    });
+  } catch (e: any) {
+    const code = e?.code ? ` (${e.code})` : '';
+    throw new Error(`voteBattle: denied writing votes subdoc${code}`);
+  }
 
   // Incrementa counter
-  await updateDoc(doc(db, 'battles', battleId), {
-    [isChallenger ? 'challengerVotes' : 'opponentVotes']: increment(1),
-  });
+  try {
+    await updateDoc(doc(db, 'battles', battleId), {
+      [isChallenger ? 'challengerVotes' : 'opponentVotes']: increment(1),
+    });
+  } catch (e: any) {
+    const code = e?.code ? ` (${e.code})` : '';
+    throw new Error(`voteBattle: denied updating battle counters${code}`);
+  }
 }
 
 export async function getMyVote(battleId: string): Promise<string | null> {
@@ -221,6 +239,40 @@ export async function getMyVote(battleId: string): Promise<string | null> {
   const snap = await getDoc(doc(db, 'battles', battleId, 'votes', uid));
   if (!snap.exists()) return null;
   return snap.data().votedForId;
+}
+
+// Se in passato per regole Firebase le scritture dei contatori fallivano,
+// può succedere che il doc vote esista ma `challengerVotes/opponentVotes` siano indietro.
+// Questa funzione ricalcola i contatori partendo da tutti i vote subdoc e incrementa solo i mancanti.
+export async function reconcileBattleCounters(battleId: string): Promise<void> {
+  const battleSnap = await getDoc(doc(db, 'battles', battleId));
+  if (!battleSnap.exists()) return;
+  const b = battleSnap.data()!;
+
+  // Legge i voti effettivi dalla subcollection `votes`
+  const votesSnap = await getDocs(collection(db, 'battles', battleId, 'votes'));
+  let expectedChallenger = 0;
+  let expectedOpponent = 0;
+  votesSnap.forEach((v) => {
+    const d = v.data();
+    if (d?.votedForId === b.challengerId) expectedChallenger += 1;
+    else if (d?.votedForId === b.opponentId) expectedOpponent += 1;
+  });
+
+  const currentChallenger = b.challengerVotes ?? 0;
+  const currentOpponent = b.opponentVotes ?? 0;
+
+  const missingChallenger = expectedChallenger - currentChallenger;
+  const missingOpponent = expectedOpponent - currentOpponent;
+
+  // Le regole attuali consentono incrementi (+1), non decrementi o set arbitrari.
+  const maxSteps = 20;
+  for (let i = 0; i < missingChallenger && i < maxSteps; i++) {
+    await updateDoc(doc(db, 'battles', battleId), { challengerVotes: increment(1) });
+  }
+  for (let i = 0; i < missingOpponent && i < maxSteps; i++) {
+    await updateDoc(doc(db, 'battles', battleId), { opponentVotes: increment(1) });
+  }
 }
 
 // ─── Chiudi battaglia (calcola vincitore) ──────────────────────────────────────

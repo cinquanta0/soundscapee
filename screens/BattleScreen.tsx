@@ -9,6 +9,7 @@ import { auth } from '../firebaseConfig';
 import {
   Battle, listenToBattle, acceptBattle, rejectBattle, cancelBattle,
   startChallengerRec, uploadBattleTrack, voteBattle, getMyVote, finalizeBattle,
+  reconcileBattleCounters,
 } from '../services/battleService';
 
 const REC_SECS = 30;
@@ -166,9 +167,22 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         await finalizeBattle(battleId).catch(() => {});
       }
     });
-    getMyVote(battleId).then(setMyVote);
+    let cancelled = false;
+    setMyVote(null);
+    getMyVote(battleId)
+      .then(async (v) => {
+        if (cancelled) return;
+        setMyVote(v);
+        // Se esiste la mia vote subdoc, ma i contatori potrebbero essere rimasti indietro
+        // a causa di permessi Firebase precedenti, prova a riconciliare.
+        if (v) {
+          await reconcileBattleCounters(battleId).catch(() => {});
+        }
+      })
+      .catch(() => {});
     return () => {
       unsub();
+      cancelled = true;
       clearTimers();
       stopRecordingRef.current(true);
     };

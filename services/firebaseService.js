@@ -1305,6 +1305,20 @@ export async function createChallenge(challengeData) {
 }
 
 /**
+ * Elimina una challenge attiva.
+ * Nota: le regole Firestore devono permettere la delete al creatore (o admin).
+ */
+export async function deleteChallenge(challengeId) {
+  try {
+    const challengeRef = doc(db, 'challenges', challengeId);
+    await deleteDoc(challengeRef);
+  } catch (error) {
+    console.error('❌ Error deleting challenge:', error);
+    throw error;
+  }
+}
+
+/**
  * Ottieni tutte le challenge attive
  */
 export async function getActiveChallenges() {

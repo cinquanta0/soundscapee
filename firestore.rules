@@ -260,9 +260,22 @@ service cloud.firestore {
     match /battles/{battleId} {
       allow read: if isAuth();
       allow create: if isNotAnonymous();
+      // Partecipanti: gestiscono lo stato della battaglia
       allow update: if isAuth()
                     && (request.auth.uid == resource.data.challengerId
                         || request.auth.uid == resource.data.opponentId);
+      // Spettatori non-partecipanti: possono solo incrementare challengerVotes o opponentVotes (+1)
+      allow update: if isAuth()
+                    && request.auth.uid != resource.data.challengerId
+                    && request.auth.uid != resource.data.opponentId
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['challengerVotes', 'opponentVotes'])
+                    && (
+                      (request.resource.data.get('challengerVotes', 0) == resource.data.get('challengerVotes', 0) + 1
+                       && request.resource.data.get('opponentVotes', 0) == resource.data.get('opponentVotes', 0))
+                      || (request.resource.data.get('opponentVotes', 0) == resource.data.get('opponentVotes', 0) + 1
+                          && request.resource.data.get('challengerVotes', 0) == resource.data.get('challengerVotes', 0))
+                    );
       allow delete: if isAuth() && request.auth.uid == resource.data.challengerId;
 
       match /votes/{userId} {
@@ -290,7 +303,8 @@ service cloud.firestore {
     // ── CHALLENGES ────────────────────────────────────────────────────────────
     match /challenges/{challengeId} {
       allow read: if isAuth();
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || request.auth.uid == resource.data.createdBy;
 
       match /participants/{userId} {
         allow read: if isAuth();

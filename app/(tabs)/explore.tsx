@@ -1,31 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { Audio } from 'expo-av';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  Alert,
-  Modal,
+    collection,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    where,
+} from 'firebase/firestore';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { auth, db } from '../../firebaseConfig';
+import BattleScreen from '../../screens/BattleScreen';
 import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
-import BattleScreen from '../../screens/BattleScreen';
-import { Audio } from 'expo-av';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-} from 'firebase/firestore';
-import { useTranslation } from 'react-i18next';
-import { db } from '../../firebaseConfig';
+import { Battle, cancelBattle, finalizeBattle, listenToActiveBattles } from '../../services/battleService';
 import { incrementListens } from '../../services/firebaseService';
-import { Battle, listenToActiveBattles, finalizeBattle } from '../../services/battleService';
 
 const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
 
@@ -84,9 +85,18 @@ export default function ExploreScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const [battles, setBattles] = useState<Battle[]>([]);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
+  const [cancelingBattleId, setCancelingBattleId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUserId(user?.uid ?? null);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     loadSounds();
@@ -100,7 +110,9 @@ export default function ExploreScreen() {
 
   useEffect(() => {
     if (section !== 'battles') return;
+    console.log('🎯 Battles section selected, listening to active battles...');
     const unsub = listenToActiveBattles(async (bs) => {
+      console.log('🎯 Received battles:', bs.length);
       // Chiudi battaglie scadute
       const now = new Date();
       for (const b of bs) {
@@ -130,6 +142,35 @@ export default function ExploreScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelBattle = async (battleId: string) => {
+    if (!auth.currentUser) {
+      Alert.alert('Errore', 'Devi essere loggato per annullare una battaglia.');
+      return;
+    }
+
+    Alert.alert(
+      'Annulla battaglia',
+      'Sei sicuro di voler annullare questa battaglia? Solo il creatore può farlo.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sì',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setCancelingBattleId(battleId);
+              await cancelBattle(battleId);
+            } catch {
+              Alert.alert('Errore', 'Impossibile annullare la battaglia.');
+            } finally {
+              setCancelingBattleId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handlePlayPause = async (soundData: any) => {
@@ -252,6 +293,13 @@ export default function ExploreScreen() {
             const timeLeft = b.votingEndsAt ? Math.max(0, b.votingEndsAt.getTime() - Date.now()) : 0;
             const hLeft = Math.floor(timeLeft / 3600000);
             const mLeft = Math.floor((timeLeft % 3600000) / 60000);
+            const statusLabel = b.status === 'accepted'
+              ? 'In attesa dell’avversario'
+              : b.status === 'challenger_rec'
+                ? `${b.challengerName} sta registrando`
+                : b.status === 'opponent_rec'
+                  ? `${b.opponentName} sta registrando`
+                  : 'Votazione aperta';
             return (
               <TouchableOpacity
                 style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', gap: 12 }}
@@ -262,6 +310,20 @@ export default function ExploreScreen() {
                     <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }}>🎯 {b.theme}</Text>
                   </View>
                   <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>⏱ {hLeft}h {mLeft}m</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, flex: 1 }}>{statusLabel}</Text>
+                  {currentUserId === b.challengerId && (
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)', backgroundColor: 'rgba(248,113,113,0.12)' }}
+                      onPress={() => handleCancelBattle(b.id)}
+                      disabled={cancelingBattleId === b.id}
+                    >
+                      <Text style={{ color: '#fb7185', fontSize: 11, fontWeight: '700' }}>
+                        {cancelingBattleId === b.id ? 'Annullando…' : 'Annulla'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
