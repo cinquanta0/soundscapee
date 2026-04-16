@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import * as Updates from 'expo-updates';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -47,20 +46,6 @@ export default function RootLayout() {
   const [forceUpdate, setForceUpdate] = useState(false);
   const router = useRouter();
   const segments = useSegments();
-
-  // Controlla e applica aggiornamenti OTA automaticamente
-  useEffect(() => {
-    if (__DEV__) return;
-    (async () => {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch {}
-    })();
-  }, []);
 
   // Initialise i18n as early as possible
   useEffect(() => {
