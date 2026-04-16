@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -44,8 +45,44 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [otaMsg, setOtaMsg] = useState('');
   const router = useRouter();
   const segments = useSegments();
+
+  // Diagnostico OTA — da rimuovere dopo il test
+  useEffect(() => {
+    if (__DEV__) { setOtaMsg('DEV mode'); return; }
+    (async () => {
+      try {
+        setOtaMsg('checking...');
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          setOtaMsg('downloading...');
+          await Updates.fetchUpdateAsync();
+          setOtaMsg('reloading...');
+          await Updates.reloadAsync();
+        } else {
+          setOtaMsg('up-to-date ✓');
+        }
+      } catch (e: any) {
+        setOtaMsg('ERR: ' + (e?.message ?? String(e)));
+      }
+    })();
+  }, []);
+
+  // Controlla e applica aggiornamenti OTA automaticamente
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {}
+    })();
+  }, []);
 
   // Initialise i18n as early as possible
   useEffect(() => {
@@ -103,6 +140,7 @@ export default function RootLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
+        {otaMsg ? <Text style={{ color: '#06b6d4', fontSize: 11, marginTop: 12, fontFamily: 'monospace' }}>OTA: {otaMsg}</Text> : null}
       </View>
     );
   }
