@@ -36,6 +36,21 @@ workflows:
           ls -la ios/
           echo "=== Podfile exists? ==="
           test -f ios/Podfile && echo "YES - Podfile found" || echo "NO - Podfile MISSING"
+      - name: Patch Expo.plist — forza expo-updates channel preview
+        script: |
+          set -e
+          PLIST="ios/soundscapemobile/Expo.plist"
+          echo "=== Expo.plist PRIMA del patch ==="
+          cat "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled true" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.0" "$PLIST"
+          # Rimuovi e ricrea EXUpdatesRequestHeaders con il channel corretto
+          /usr/libexec/PlistBuddy -c "Delete :EXUpdatesRequestHeaders" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders dict" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders:expo-channel-name string preview" "$PLIST"
+          echo "=== Expo.plist DOPO il patch ==="
+          cat "$PLIST"
       - name: CocoaPods install
         script: |
           set -e
