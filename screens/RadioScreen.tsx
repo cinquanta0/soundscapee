@@ -452,8 +452,9 @@ function fmtSec(s: number): string {
   return `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 }
 
-/** Volume musica durante voce attiva (ducking) — usato sia da host che da listener */
-const DUCK_VOL = 0.10;
+/** Volume musica durante voce attiva (ducking) — usato sia da host che da listener.
+ *  Radio feel: voce domina, musica appena percepibile in sottofondo (~12%). */
+const DUCK_VOL = 0.12;
 
 function elapsedStr(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -565,6 +566,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     loadTrack(initialRoom);
     unsubRef.current = listenToRoom(room.id, (updated) => {
       setRoom(updated);
+      const prevLength = playlistLengthRef.current;
       playlistLengthRef.current = updated.playlist.length;
       if (updated.currentTrackIndex !== currentIndexRef.current) {
         currentIndexRef.current = updated.currentTrackIndex;
@@ -574,6 +576,11 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
         // Crossfade solo se non c'è gap sulla traccia precedente
         const hadNoGap = updated.trackStartedAt.getTime() <= Date.now() + 200;
         loadTrack(updated, hadNoGap);
+      } else if (updated.playlist.length > prevLength && currentIndexRef.current >= prevLength - 1) {
+        // Nuove tracce aggiunte (suggerimento approvato) mentre eravamo all'ultima traccia
+        setPlaylistEnded(false);
+        autoAdvancedRef.current = false;
+        skipToNextTrack(initialRoom.id, currentIndexRef.current + 1, 0).catch(() => {});
       } else if (updated.trackStartedAt.getTime() > trackStartedAtRef.current + 500) {
         trackStartedAtRef.current = updated.trackStartedAt.getTime();
         loadTrack(updated, false);
@@ -645,8 +652,12 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
       }
     };
 
+    // Con gap=0 anticipa di 1800ms per compensare latenza Firestore + caricamento audio (crossfade seamless)
+    // Con gap>0 triggera al momento esatto: il gap è già il buffer naturale
+    const buffer = (track.gapAfter ?? 0) === 0 ? 1800 : 0;
+    const triggerMs = Math.max(0, remaining - buffer);
     if (remaining <= 0) { handleEnd(); return; }
-    const t = setTimeout(handleEnd, remaining);
+    const t = setTimeout(handleEnd, triggerMs);
     return () => clearTimeout(t);
   }, [room.currentTrackIndex, room.trackStartedAt]);
 
@@ -687,8 +698,8 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
     const next = !micActive;
     setMicActive_(next);
     setMicActive(next);
-    // Host: muto completo quando mic attivo — evita che il mic riprenda la musica dallo speaker
-    // I listener continuano a sentire la loro copia locale della musica
+    // Host: muto sul proprio device quando mic attivo (evita che il mic riprenda la musica)
+    // I listener sentono comunque la musica al volume ducking
     if (soundRef.current) {
       soundRef.current.setVolumeAsync(next ? 0 : 1.0).catch(() => {});
     }
@@ -834,18 +845,18 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   {currentTrack?.duration ? `  ·  ${fmtSec(Math.min(trackElapsed / 1000, currentTrack.duration))} / ${fmtSec(currentTrack.duration)}` : `  ·  ${fmtSec(trackElapsed / 1000)}`}
                 </Text>
                 <WaveformAnim active={isPlaying && !isInGapAudio} color="#FF2D55" />
-                {/* Solo mic — niente play/pause */}
-                <View style={{ alignItems: 'center', marginTop: 4 }}>
-                  <TouchableOpacity
-                    style={[hm.micBtn, micActive && hm.micBtnActive]}
-                    onPress={handleMicToggle}
-                    disabled={!agoraJoined}
-                  >
-                    <Text style={hm.micIcon}>{micActive ? '🎙' : '🔇'}</Text>
-                  </TouchableOpacity>
-                </View>
               </>
             )}
+            {/* Mic sempre visibile — anche dopo fine playlist o durante gap */}
+            <View style={{ alignItems: 'center', marginTop: 8 }}>
+              <TouchableOpacity
+                style={[hm.micBtn, micActive && hm.micBtnActive]}
+                onPress={handleMicToggle}
+                disabled={!agoraJoined}
+              >
+                <Text style={hm.micIcon}>{micActive ? '🎙' : '🔇'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={hm.controls}>
             <TouchableOpacity style={[hm.skipBtn, (!hasNext || skipping) && hm.skipBtnDisabled]} onPress={handleSkip} disabled={!hasNext || skipping}>
@@ -1391,7 +1402,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
     const next = !speakerMicActive;
     setSpeakerMicActive(next);
     setMicActive(next);
-    // Muto completo per il speaker: evita che il suo mic riprenda la musica dallo speaker
+    // Speaker: muto sul proprio device quando mic attivo (evita che il mic riprenda la musica)
     soundRef.current?.setVolumeAsync(next ? 0 : 1.0).catch(() => {});
   };
 
