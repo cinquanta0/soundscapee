@@ -6,6 +6,10 @@ module.exports = ({ config }) => ({
   orientation: "portrait",
   updates: {
     url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
+    requestHeaders: {
+      "expo-channel-name": "preview",
+    },
+    enabled: true,
   },
   runtimeVersion: {
     policy: "appVersion",
