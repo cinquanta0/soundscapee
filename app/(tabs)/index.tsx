@@ -1294,7 +1294,6 @@ if (loading) {
           <View style={styles.headerTitle}>
             <Text style={styles.logo}>🎧</Text>
             <Text style={styles.title}>SoundScape</Text>
-            <Text style={{ color: '#06b6d4', fontSize: 9, marginLeft: 4 }}>●</Text>
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>

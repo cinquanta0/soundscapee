@@ -5,7 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { auth, db, functions } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
@@ -45,28 +45,19 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
-  const [otaMsg, setOtaMsg] = useState('');
   const router = useRouter();
   const segments = useSegments();
 
-  // Diagnostico OTA — da rimuovere dopo il test
   useEffect(() => {
-    if (__DEV__) { setOtaMsg('DEV mode'); return; }
+    if (__DEV__) return;
     (async () => {
       try {
-        setOtaMsg('checking...');
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
-          setOtaMsg('downloading...');
           await Updates.fetchUpdateAsync();
-          setOtaMsg('reloading...');
           await Updates.reloadAsync();
-        } else {
-          setOtaMsg('up-to-date ✓');
         }
-      } catch (e: any) {
-        setOtaMsg('ERR: ' + (e?.message ?? String(e)));
-      }
+      } catch {}
     })();
   }, []);
 
@@ -126,7 +117,6 @@ export default function RootLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
-        {otaMsg ? <Text style={{ color: '#06b6d4', fontSize: 11, marginTop: 12, fontFamily: 'monospace' }}>OTA: {otaMsg}</Text> : null}
       </View>
     );
   }
