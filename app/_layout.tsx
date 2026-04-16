@@ -51,9 +51,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (__DEV__) { setOtaDiag('DEV'); return; }
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 8000)
+    );
     (async () => {
       try {
-        const u = await Updates.checkForUpdateAsync();
+        const u = await Promise.race([Updates.checkForUpdateAsync(), timeout]);
         if (u.isAvailable) {
           setOtaDiag('DL');
           await Updates.fetchUpdateAsync();
