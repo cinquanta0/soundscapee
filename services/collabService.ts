@@ -207,7 +207,13 @@ export async function advanceTurn(sessionId: string): Promise<void> {
 export async function processCollab(sessionId: string): Promise<void> {
   await updateDoc(doc(db, 'collabSessions', sessionId), { status: 'mixing' });
   const fn = httpsCallable(functions, 'processCollab');
-  await fn({ sessionId });
+  try {
+    await fn({ sessionId });
+  } catch (err) {
+    // Ripristina status per permettere retry e fermare lo spinner
+    await updateDoc(doc(db, 'collabSessions', sessionId), { status: 'uploading' }).catch(() => {});
+    throw err;
+  }
 }
 
 // ─── Pubblica il risultato come suono ────────────────────────────────────────

@@ -79,6 +79,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const recSecondsRef = useRef(0);
   const isRecordingRef = useRef(false);
   const sessionRef = useRef<CollabSession | null>(null);
+  const isStartingRef = useRef(false); // guard contro doppio avvio
   const myUid = auth.currentUser?.uid ?? '';
 
   const isHost = session?.hostId === myUid;
@@ -179,15 +180,20 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   useEffect(() => { stopLocalRecordingRef.current = stopLocalRecording; }, [stopLocalRecording]);
 
   const startLocalRecording = useCallback(async (elapsedSecs = 0) => {
-    if (recordingRef.current) return;
+    if (recordingRef.current || isStartingRef.current) return;
+    isStartingRef.current = true;
     try {
-      await Audio.requestPermissionsAsync();
+      const perm = await Audio.requestPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permesso microfono negato', "Vai in Impostazioni e consenti l'accesso al microfono");
+        return;
+      }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
-      setMicActive(true);
-      setMicOn(true);
-      refreshSpeakerphone();
       const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
       recordingRef.current = recording;
+      // Agora non critico — non deve bloccare la registrazione se fallisce
+      try { setMicActive(true); refreshSpeakerphone(); } catch {}
+      setMicOn(true);
       recSecondsRef.current = elapsedSecs;
       isRecordingRef.current = true;
       setIsRecording(true);
@@ -196,13 +202,14 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         recSecondsRef.current += 1;
         setRecSeconds(recSecondsRef.current);
       }, 1000);
-      // Auto-stop: usa stopLocalRecordingRef per avere sempre la versione aggiornata
       const remaining = (MAX_RECORD_SECS - elapsedSecs) * 1000;
       maxTimerRef.current = setTimeout(() => {
         signalStopRecording(sessionId).catch(() => {});
       }, remaining);
     } catch {
       Alert.alert('Errore', 'Impossibile avviare la registrazione');
+    } finally {
+      isStartingRef.current = false;
     }
   }, [sessionId]);
 

@@ -1294,55 +1294,70 @@ exports.processCollab = onCall(
     const guestPath = path.join(tmpDir, `collab_guest_${sessionId}.m4a`);
     const outPath = path.join(tmpDir, `collab_result_${sessionId}.m4a`);
 
-    // Scarica le due tracce
-    const downloadFile = async (url, dest) => {
+    // Scarica le due tracce (SSRF-safe: usa solo host Firebase Storage)
+    const downloadCollabFile = async (url, dest) => {
+      let parsedUrl;
+      try { parsedUrl = new URL(url); } catch { throw new Error('URL non valido'); }
+      if (!ALLOWED_STORAGE_HOSTS.includes(parsedUrl.hostname)) throw new Error(`Host non consentito: ${parsedUrl.hostname}`);
+      if (parsedUrl.protocol !== 'https:') throw new Error('Solo HTTPS consentito');
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Download fallito: ${url}`);
+      if (!res.ok) throw new Error(`Download fallito (${res.status}): ${url}`);
       const buffer = await res.buffer();
-      if (buffer.length > MAX_TRACK_SIZE_BYTES) throw new HttpsError('invalid-argument', 'File troppo grande');
+      if (buffer.length > MAX_TRACK_SIZE_BYTES) throw new Error('File troppo grande (max 50 MB)');
       fs.writeFileSync(dest, buffer);
     };
 
-    await Promise.all([
-      downloadFile(session.hostTrackUrl, hostPath),
-      downloadFile(session.guestTrackUrl, guestPath),
-    ]);
+    try {
+      await Promise.all([
+        downloadCollabFile(session.hostTrackUrl, hostPath),
+        downloadCollabFile(session.guestTrackUrl, guestPath),
+      ]);
 
-    // Mix con FFmpeg: amix a volume uguale
-    await new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(hostPath)
-        .input(guestPath)
-        .complexFilter('[0:a]volume=1.0[a0];[1:a]volume=1.0[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[out]')
-        .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k'])
-        .output(outPath)
-        .on('end', resolve)
-        .on('error', reject)
-        .run();
-    });
-
-    // Upload risultato
-    const destPath = `collabs/${sessionId}/result.m4a`;
-    await bucket.upload(outPath, { destination: destPath, metadata: { contentType: 'audio/mp4' } });
-    const [file] = await bucket.file(destPath).getSignedUrl({ action: 'read', expires: '03-01-2500' });
-
-    // Durata del mix
-    const resultDuration = await new Promise((resolve) => {
-      ffmpeg.ffprobe(outPath, (err, meta) => {
-        resolve(err ? 0 : Math.round(meta.format.duration || 0));
+      // Mix con FFmpeg: amix a volume uguale
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(hostPath)
+          .input(guestPath)
+          .complexFilter('[0:a]volume=1.0[a0];[1:a]volume=1.0[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[out]')
+          .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k'])
+          .output(outPath)
+          .on('end', resolve)
+          .on('error', (err) => reject(new Error(`FFmpeg: ${err.message}`)))
+          .run();
       });
-    });
 
-    // Cleanup tmp
-    [hostPath, guestPath, outPath].forEach((f) => { try { fs.unlinkSync(f); } catch {} });
+      // Durata del mix (prima di upload, outPath esiste ancora)
+      const resultDuration = await new Promise((resolve) => {
+        ffmpeg.ffprobe(outPath, (err, meta) => {
+          resolve(err ? 0 : Math.round(meta.format.duration || 0));
+        });
+      });
 
-    await db.collection('collabSessions').doc(sessionId).update({
-      status: 'done',
-      resultUrl: file,
-      resultDuration,
-    });
+      // Upload risultato con download token (non richiede IAM signing)
+      const destPath = `collabs/${sessionId}/result.m4a`;
+      const downloadToken = uuidv4();
+      await bucket.upload(outPath, {
+        destination: destPath,
+        metadata: { contentType: 'audio/mp4', metadata: { firebaseStorageDownloadTokens: downloadToken } },
+      });
+      const encodedPath = encodeURIComponent(destPath);
+      const resultUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${downloadToken}`;
 
-    return { resultUrl: file, resultDuration };
+      await db.collection('collabSessions').doc(sessionId).update({
+        status: 'done',
+        resultUrl,
+        resultDuration,
+      });
+
+      return { resultUrl, resultDuration };
+    } catch (error) {
+      // Ripristina status a 'uploading' così il client non rimane bloccato sullo spinner
+      await db.collection('collabSessions').doc(sessionId).update({ status: 'uploading' }).catch(() => {});
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Errore mixing: ${error.message}`);
+    } finally {
+      [hostPath, guestPath, outPath].forEach((f) => { try { fs.unlinkSync(f); } catch {} });
+    }
   },
 );
 
