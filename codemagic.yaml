@@ -97,8 +97,8 @@ workflows:
     artifacts:
       - $CM_BUILD_DIR/soundscape.ipa
 
-  android-debug:
-    name: Android Debug APK
+  android-release:
+    name: Android Release APK (unsigned)
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
@@ -129,11 +129,24 @@ workflows:
         script: |
           set -e
           npx expo prebuild --platform android --clean --non-interactive --no-install
-      - name: Build debug APK
+      - name: Generate keystore
+        script: |
+          set -e
+          keytool -genkeypair -v \
+            -keystore android/app/soundscape.keystore \
+            -alias soundscape \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass soundscape123 -keypass soundscape123 \
+            -dname "CN=Soundscape, OU=Dev, O=Soundscape, L=IT, S=IT, C=IT"
+      - name: Build release APK
         script: |
           set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=soundscape.keystore \
+            -Pandroid.injected.signing.store.password=soundscape123 \
+            -Pandroid.injected.signing.key.alias=soundscape \
+            -Pandroid.injected.signing.key.password=soundscape123
     artifacts:
-      - android/app/build/outputs/apk/debug/app-debug.apk
+      - android/app/build/outputs/apk/release/app-release.apk
