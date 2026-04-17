@@ -145,15 +145,16 @@ workflows:
       - name: Patch AndroidManifest — expo-updates channel preview
         script: |
           set -e
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          TMP=$(mktemp)
-          grep -v 'expo\.modules\.updates\.EXPO_CHANNEL_NAME' "$MANIFEST" > "$TMP" && mv "$TMP" "$MANIFEST"
-          TMP=$(mktemp)
-          sed 's|expo\.modules\.updates\.EXPO_RUNTIME_VERSION" android:value="[^"]*"|expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="1.0.0"|' "$MANIFEST" > "$TMP" && mv "$TMP" "$MANIFEST"
-          TMP=$(mktemp)
-          sed 's|</application>|    <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/></application>|' "$MANIFEST" > "$TMP" && mv "$TMP" "$MANIFEST"
-          echo "=== DOPO ==="
-          grep "EXPO_CHANNEL\|EXPO_RUNTIME" "$MANIFEST"
+          node -e "
+            const fs = require('fs');
+            const p = 'android/app/src/main/AndroidManifest.xml';
+            let c = fs.readFileSync(p, 'utf8');
+            c = c.replace(/<meta-data android:name=\"expo\.modules\.updates\.EXPO_CHANNEL_NAME\"[^\/]*\/>/g, '');
+            c = c.replace(/EXPO_RUNTIME_VERSION\" android:value=\"[^\"]*\"/, 'EXPO_RUNTIME_VERSION\" android:value=\"1.0.0\"');
+            c = c.replace('</application>', '    <meta-data android:name=\"expo.modules.updates.EXPO_CHANNEL_NAME\" android:value=\"preview\"/>\n  </application>');
+            fs.writeFileSync(p, c);
+            console.log('Patch OK');
+          "
       - name: Generate keystore
         script: |
           set -e
