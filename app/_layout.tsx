@@ -55,7 +55,7 @@ export default function RootLayout() {
     (async () => {
       try {
         const r = await Updates.checkForUpdateAsync();
-        setUpdateDiag(`[v4] avail:${r.isAvailable} emb:${Updates.isEmbeddedLaunch} ch:${Updates.channel ?? '?'} rv:${Updates.runtimeVersion ?? '?'}`);
+        setUpdateDiag(r.isAvailable ? `OTA-SCARICANDO` : `✅ OTA-OK v6`);
         if (r.isAvailable) {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
