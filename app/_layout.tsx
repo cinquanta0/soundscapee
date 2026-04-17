@@ -50,24 +50,21 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
-  const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
-
   useEffect(() => {
     if (__DEV__) { setUpdateDiag('DEV'); return; }
-    Updates.checkForUpdateAsync()
-      .then(r => setUpdateDiag(`avail:${r.isAvailable} ch:${Updates.channel ?? '?'} rv:${Updates.runtimeVersion ?? '?'}`))
-      .catch(e => setUpdateDiag(`ERR:${e?.message ?? e}`));
+    (async () => {
+      try {
+        const r = await Updates.checkForUpdateAsync();
+        setUpdateDiag(`avail:${r.isAvailable} ch:${Updates.channel ?? '?'} rv:${Updates.runtimeVersion ?? '?'}`);
+        if (r.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e: any) {
+        setUpdateDiag(`ERR:${e?.message ?? e}`);
+      }
+    })();
   }, []);
-
-  useEffect(() => {
-    if (__DEV__ || !isUpdateAvailable) return;
-    Updates.fetchUpdateAsync().catch(() => {});
-  }, [isUpdateAvailable]);
-
-  useEffect(() => {
-    if (__DEV__ || !isUpdatePending) return;
-    Updates.reloadAsync().catch(() => {});
-  }, [isUpdatePending]);
 
   // Initialise i18n as early as possible
   useEffect(() => {
