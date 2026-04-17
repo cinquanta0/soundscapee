@@ -50,6 +50,14 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
+  const { isUpdatePending } = Updates.useUpdates();
+
+  useEffect(() => {
+    if (__DEV__ || !isUpdatePending) return;
+    setUpdateDiag('OTA-RIAVVIO');
+    Updates.reloadAsync().catch(() => {});
+  }, [isUpdatePending]);
+
   useEffect(() => {
     if (__DEV__) { setUpdateDiag('DEV'); return; }
     (async () => {
