@@ -8,9 +8,6 @@ module.exports = ({ config }) => ({
     url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
     checkAutomatically: "ON_LOAD",
     enabled: true,
-    requestHeaders: {
-      "expo-channel-name": "preview",
-    },
   },
   runtimeVersion: "1.0.0",
   icon: "./assets/images/icon.png",
@@ -62,6 +59,7 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     "expo-router",
+    "expo-updates",
     [
       "expo-splash-screen",
       {
