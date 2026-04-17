@@ -50,26 +50,21 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
-  const { isUpdatePending } = Updates.useUpdates();
-
-  useEffect(() => {
-    if (__DEV__ || !isUpdatePending) return;
-    setUpdateDiag('OTA-RIAVVIO');
-    Updates.reloadAsync().catch(() => {});
-  }, [isUpdatePending]);
-
   useEffect(() => {
     if (__DEV__) { setUpdateDiag('DEV'); return; }
     (async () => {
       try {
-        const r = await Updates.checkForUpdateAsync();
-        setUpdateDiag(r.isAvailable ? `OTA-SCARICANDO` : `✅ OTA-OK v6`);
-        if (r.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
+        const res = await fetch('https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2', {
+          headers: {
+            'expo-channel-name': Updates.channel ?? 'preview',
+            'expo-runtime-version': Updates.runtimeVersion ?? '1.0.0',
+            'expo-platform': 'ios',
+            'expo-protocol-version': '1',
+          },
+        });
+        setUpdateDiag(`HTTP:${res.status} ch:${Updates.channel} rv:${Updates.runtimeVersion}`);
       } catch (e: any) {
-        setUpdateDiag(`ERR:${e?.message ?? e}`);
+        setUpdateDiag(`FERR:${e?.message ?? e}`);
       }
     })();
   }, []);
