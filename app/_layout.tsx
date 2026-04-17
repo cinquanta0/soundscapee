@@ -49,18 +49,17 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
+  const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
+
   useEffect(() => {
-    if (__DEV__) return;
-    (async () => {
-      try {
-        const u = await Updates.checkForUpdateAsync();
-        if (u.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch {}
-    })();
-  }, []);
+    if (__DEV__ || !isUpdateAvailable) return;
+    Updates.fetchUpdateAsync().catch(() => {});
+  }, [isUpdateAvailable]);
+
+  useEffect(() => {
+    if (__DEV__ || !isUpdatePending) return;
+    Updates.reloadAsync().catch(() => {});
+  }, [isUpdatePending]);
 
   // Initialise i18n as early as possible
   useEffect(() => {
