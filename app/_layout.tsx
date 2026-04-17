@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import * as Updates from 'expo-updates';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -45,29 +44,9 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
-  const [updateDiag, setUpdateDiag] = useState('checking...');
 
   const router = useRouter();
   const segments = useSegments();
-
-  useEffect(() => {
-    if (__DEV__) { setUpdateDiag('DEV'); return; }
-    (async () => {
-      try {
-        const res = await fetch('https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2', {
-          headers: {
-            'expo-channel-name': Updates.channel ?? 'preview',
-            'expo-runtime-version': Updates.runtimeVersion ?? '1.0.0',
-            'expo-platform': 'ios',
-            'expo-protocol-version': '1',
-          },
-        });
-        setUpdateDiag(`HTTP:${res.status} ch:${Updates.channel} rv:${Updates.runtimeVersion}`);
-      } catch (e: any) {
-        setUpdateDiag(`FERR:${e?.message ?? e}`);
-      }
-    })();
-  }, []);
 
   // Initialise i18n as early as possible
   useEffect(() => {
@@ -125,9 +104,6 @@ export default function RootLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
-        <Text style={{ color: '#64748b', fontSize: 9, marginTop: 8, fontFamily: 'monospace' }}>
-          {updateDiag}
-        </Text>
       </View>
     );
   }
@@ -138,11 +114,6 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-      {!__DEV__ && (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.7)', padding: 4 }}>
-          <Text style={{ color: '#64748b', fontSize: 8, fontFamily: 'monospace', textAlign: 'center' }}>{updateDiag}</Text>
-        </View>
-      )}
     </>
   );
 }
