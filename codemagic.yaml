@@ -96,3 +96,44 @@ workflows:
           cd "$CM_BUILD_DIR" && zip -r soundscape.ipa Payload/
     artifacts:
       - $CM_BUILD_DIR/soundscape.ipa
+
+  android-debug:
+    name: Android Debug APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: 20
+      java: 17
+      groups:
+        - soundscape
+    scripts:
+      - name: Install dependencies
+        script: |
+          set -e
+          npm install
+      - name: Create .env file
+        script: |
+          set -e
+          cat > .env << EOF
+          EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=$EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+          EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=$EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+          EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=$EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+          EXPO_PUBLIC_AGORA_APP_ID=$EXPO_PUBLIC_AGORA_APP_ID
+          EOF
+      - name: Expo Prebuild Android
+        script: |
+          set -e
+          npx expo prebuild --platform android --clean --non-interactive --no-install
+      - name: Build debug APK
+        script: |
+          set -e
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+    artifacts:
+      - android/app/build/outputs/apk/debug/app-debug.apk
