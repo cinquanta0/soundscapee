@@ -39,15 +39,26 @@ workflows:
       - name: Patch Expo.plist — forza expo-updates channel preview
         script: |
           set -e
-          PLIST="ios/soundscapemobile/Expo.plist"
-          echo "=== Expo.plist PRIMA del patch ==="
+          echo "=== Cerco Expo.plist ==="
+          find ios -name "Expo.plist" 2>/dev/null || echo "Expo.plist non trovato"
+          find ios -name "*.plist" | head -20
+          PLIST=$(find ios -name "Expo.plist" | head -1)
+          if [ -z "$PLIST" ]; then
+            echo "Expo.plist non trovato, skip patch"
+            exit 0
+          fi
+          echo "=== Expo.plist trovato: $PLIST ==="
+          echo "=== PRIMA del patch ==="
           cat "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled true" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.0" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :EXUpdatesURL string https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled true" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool true" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.0" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :EXUpdatesRuntimeVersion string 1.0.0" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
-          echo "=== Expo.plist DOPO il patch ==="
+          echo "=== DOPO il patch ==="
           cat "$PLIST"
       - name: CocoaPods install
         script: |
