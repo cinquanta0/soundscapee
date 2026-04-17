@@ -117,6 +117,9 @@ export default function RootLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
+        <Text style={{ color: '#64748b', fontSize: 9, marginTop: 8, fontFamily: 'monospace' }}>
+          {`avail:${isUpdateAvailable} pend:${isUpdatePending}`}
+        </Text>
       </View>
     );
   }
