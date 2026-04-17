@@ -133,9 +133,16 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+      {!__DEV__ && (
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.7)', padding: 4 }}>
+          <Text style={{ color: '#64748b', fontSize: 8, fontFamily: 'monospace', textAlign: 'center' }}>{updateDiag}</Text>
+        </View>
+      )}
+    </>
   );
 }
