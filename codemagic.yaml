@@ -145,26 +145,11 @@ workflows:
       - name: Patch AndroidManifest — expo-updates channel preview
         script: |
           set -e
-          MANIFEST=$(find android -name "AndroidManifest.xml" | grep "main" | head -1)
-          echo "=== AndroidManifest: $MANIFEST ==="
-          python3 - <<'PYEOF'
-import re, sys
-path = "android/app/src/main/AndroidManifest.xml"
-with open(path) as f:
-    c = f.read()
-# Rimuovi EXPO_CHANNEL_NAME esistente
-c = re.sub(r'\s*<meta-data android:name="expo\.modules\.updates\.EXPO_CHANNEL_NAME"[^/]*/>', '', c)
-# Sostituisci runtime version con valore esplicito
-c = re.sub(
-    r'(<meta-data android:name="expo\.modules\.updates\.EXPO_RUNTIME_VERSION" android:value=")[^"]*(")',
-    r'\g<1>1.0.0\g<2>', c)
-# Aggiungi channel name prima di </application>
-c = c.replace('</application>', '    <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/>\n  </application>', 1)
-with open(path, 'w') as f:
-    f.write(c)
-print("Patch OK")
-PYEOF
-          echo "=== DOPO patch ==="
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i '' '/expo\.modules\.updates\.EXPO_CHANNEL_NAME/d' "$MANIFEST"
+          sed -i '' 's|expo\.modules\.updates\.EXPO_RUNTIME_VERSION" android:value="[^"]*"|expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="1.0.0"|' "$MANIFEST"
+          sed -i '' 's|</application>|    <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/></application>|' "$MANIFEST"
+          echo "=== DOPO ==="
           grep "EXPO_CHANNEL\|EXPO_RUNTIME" "$MANIFEST"
       - name: Generate keystore
         script: |
