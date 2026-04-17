@@ -766,18 +766,39 @@ const handlePlay = async (item) => {
 
     // Scarica localmente per bypassare il 412 di Firebase Storage su Android.
     // Controlla anche la dimensione: un download precedente interrotto lascia un file corrotto.
+    const downloadAudio = async () => {
+      if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
+      const dlResult = await FileSystem.downloadAsync(item.audioUrl, localUri);
+      if (dlResult.status !== 200) {
+        await FileSystem.deleteAsync(localUri, { idempotent: true });
+        throw new Error(`Download audio fallito (HTTP ${dlResult.status})`);
+      }
+    };
+
     const fileInfo = await FileSystem.getInfoAsync(localUri);
     const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
-    if (needsDownload) {
-      if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
-      await FileSystem.downloadAsync(item.audioUrl, localUri);
+    if (needsDownload) await downloadAudio();
+
+    let sound: Audio.Sound;
+    try {
+      const result = await Audio.Sound.createAsync(
+        { uri: localUri },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate
+      );
+      sound = result.sound;
+    } catch {
+      // Cache stale o corrotta — re-download e riprova una volta
+      await downloadAudio();
+      const result = await Audio.Sound.createAsync(
+        { uri: localUri },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate
+      );
+      sound = result.sound;
     }
 
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: localUri },
-      { shouldPlay: true },
-      onPlaybackStatusUpdate
-    );
+    const newSound = sound;
 
     soundObjRef.current = newSound;
     setSound(newSound);
