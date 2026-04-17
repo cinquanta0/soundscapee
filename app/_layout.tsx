@@ -51,13 +51,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (__DEV__) return;
-    // Reagisce al check nativo ON_LOAD invece di fare richieste HTTP da JS
-    const sub = Updates.addListener(async (event) => {
-      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
-        try { await Updates.reloadAsync(); } catch {}
-      }
-    });
-    return () => sub.remove();
+    (async () => {
+      try {
+        const u = await Updates.checkForUpdateAsync();
+        if (u.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {}
+    })();
   }, []);
 
   // Initialise i18n as early as possible
