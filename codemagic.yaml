@@ -142,6 +142,16 @@ workflows:
           sed -i 's|</application>|        <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/>\n        <meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="1.0.0"/>\n    </application>|' "$MANIFEST"
           echo "=== DOPO patch ==="
           cat "$MANIFEST"
+      - name: Patch AndroidManifest — expo-updates channel preview
+        script: |
+          set -e
+          MANIFEST=$(find android -name "AndroidManifest.xml" | grep "main" | head -1)
+          echo "=== AndroidManifest: $MANIFEST ==="
+          sed -i '/<meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME"/d' "$MANIFEST"
+          sed -i '/<meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION"/d' "$MANIFEST"
+          sed -i 's|</application>|        <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/>\n        <meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="1.0.0"/>\n    </application>|' "$MANIFEST"
+          echo "=== DOPO patch ==="
+          grep -A2 "EXPO_CHANNEL\|EXPO_RUNTIME" "$MANIFEST" || echo "chiavi non trovate"
       - name: Generate keystore
         script: |
           set -e
