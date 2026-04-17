@@ -132,26 +132,13 @@ workflows:
       - name: Patch AndroidManifest — expo-updates channel preview
         script: |
           set -e
-          MANIFEST=$(find android -name "AndroidManifest.xml" | grep "main" | head -1)
-          echo "=== AndroidManifest: $MANIFEST ==="
-          cat "$MANIFEST"
-          # Rimuovi eventuali EXPO_CHANNEL_NAME già presenti per evitare duplicati
-          sed -i '/<meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME"/d' "$MANIFEST"
-          sed -i '/<meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION"/d' "$MANIFEST"
-          # Inserisci channel e runtime version prima di </application>
-          sed -i 's|</application>|        <meta-data android:name="expo.modules.updates.EXPO_CHANNEL_NAME" android:value="preview"/>\n        <meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="1.0.0"/>\n    </application>|' "$MANIFEST"
-          echo "=== DOPO patch ==="
-          cat "$MANIFEST"
-      - name: Patch AndroidManifest — expo-updates channel preview
-        script: |
-          set -e
           node -e "
             const fs = require('fs');
             const p = 'android/app/src/main/AndroidManifest.xml';
             let c = fs.readFileSync(p, 'utf8');
             c = c.replace(/<meta-data android:name=\"expo\.modules\.updates\.EXPO_CHANNEL_NAME\"[^\/]*\/>/g, '');
             c = c.replace(/EXPO_RUNTIME_VERSION\" android:value=\"[^\"]*\"/, 'EXPO_RUNTIME_VERSION\" android:value=\"1.0.0\"');
-            c = c.replace('</application>', '    <meta-data android:name=\"expo.modules.updates.EXPO_CHANNEL_NAME\" android:value=\"preview\"/>\n  </application>');
+            c = c.replace('<\/application>', '    <meta-data android:name=\"expo.modules.updates.EXPO_CHANNEL_NAME\" android:value=\"preview\"\/>\n  <\/application>');
             fs.writeFileSync(p, c);
             console.log('Patch OK');
           "
