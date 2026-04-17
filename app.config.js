@@ -6,10 +6,10 @@ module.exports = ({ config }) => ({
   orientation: "portrait",
   updates: {
     url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
+    checkAutomatically: "ON_LOAD",
+    enabled: true,
   },
-  runtimeVersion: {
-    policy: "appVersion",
-  },
+  runtimeVersion: "1.0.0",
   icon: "./assets/images/icon.png",
   scheme: "soundscapemobile",
   userInterfaceStyle: "automatic",

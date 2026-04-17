@@ -247,7 +247,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const handleMix = async () => {
     if (!bothUploaded) { Alert.alert('Aspetta', "Entrambe le tracce devono essere caricate"); return; }
     try { await processCollab(sessionId); }
-    catch { Alert.alert('Errore', 'Impossibile mixare le tracce'); }
+    catch (e: any) { Alert.alert('Errore mix', e?.message || 'Impossibile mixare le tracce'); }
   };
 
   const handlePublish = async () => {
@@ -400,7 +400,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       <View style={s.controls}>
 
         {/* Mic toggle — sempre visibile durante sessione */}
-        {session.status === 'accepted' && (
+        {(session.status === 'accepted' || session.status === 'recording') && (
           <TouchableOpacity style={[s.micBtn, micOn && s.micBtnOn]} onPress={handleToggleMic} disabled={!agoraJoined}>
             <Text style={s.micIcon}>{micOn ? '🎙' : '🔇'}</Text>
             <Text style={s.micLabel}>{micOn ? 'Mic on' : 'Mic off'}</Text>
@@ -410,7 +410,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         {/* Bottone record
             Sync mode: solo l'host avvia (poi tutti registrano via listener)
             Turns mode: chiunque sia di turno può premere */}
-        {session.status === 'accepted' && (
+        {(session.status === 'accepted' || session.status === 'recording') && !myTrackUploaded && (
           <TouchableOpacity
             style={[s.recBtn, (!canPressRecord && !isRecording) && s.recBtnDisabled]}
             onPress={isRecording ? handleStopRecording : handleStartRecording}

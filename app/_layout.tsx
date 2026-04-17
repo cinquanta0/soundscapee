@@ -45,11 +45,19 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [updateDiag, setUpdateDiag] = useState('checking...');
 
   const router = useRouter();
   const segments = useSegments();
 
   const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
+
+  useEffect(() => {
+    if (__DEV__) { setUpdateDiag('DEV'); return; }
+    Updates.checkForUpdateAsync()
+      .then(r => setUpdateDiag(`avail:${r.isAvailable} ch:${Updates.channel ?? '?'} rv:${Updates.runtimeVersion ?? '?'}`))
+      .catch(e => setUpdateDiag(`ERR:${e?.message ?? e}`));
+  }, []);
 
   useEffect(() => {
     if (__DEV__ || !isUpdateAvailable) return;
@@ -118,7 +126,7 @@ export default function RootLayout() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#06b6d4" />
         <Text style={{ color: '#64748b', fontSize: 9, marginTop: 8, fontFamily: 'monospace' }}>
-          {`avail:${isUpdateAvailable} pend:${isUpdatePending}`}
+          {updateDiag}
         </Text>
       </View>
     );
