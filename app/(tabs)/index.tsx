@@ -982,32 +982,35 @@ const loadNotifications = async () => {
 };
 
   const handleCheckUpdates = async () => {
-    const currentId = Updates.updateId ?? "embedded (nessun OTA)";
-    const channel = Updates.channel ?? "non impostato";
+    const isEmbedded = Updates.isEmbeddedLaunch;
+    const currentId = Updates.updateId ?? "nessuno";
+    const channel = Updates.channel ?? "NON IMPOSTATO";
     const runtimeVersion = Updates.runtimeVersion ?? "?";
-    try {
-      const update = await Updates.checkForUpdateAsync();
-      if (update.isAvailable) {
-        Alert.alert(
-          "Aggiornamento trovato!",
-          `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}\n\nScarico e riavvio...`,
-          [{ text: "OK", onPress: async () => {
-            await Updates.fetchUpdateAsync();
-            await Updates.reloadAsync();
-          }}]
-        );
-      } else {
-        Alert.alert(
-          "Nessun aggiornamento",
-          `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}`
-        );
-      }
-    } catch (e) {
-      Alert.alert(
-        "Errore OTA",
-        `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}\n\nErrore: ${String(e)}`
-      );
-    }
+
+    // Mostra subito lo stato attuale PRIMA di cercare aggiornamenti
+    Alert.alert(
+      isEmbedded ? "⚠️ Bundle EMBEDDED" : "✅ Bundle OTA attivo",
+      `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate ID: ${currentId}\n\nPremi OK per cercare aggiornamenti`,
+      [{ text: "OK", onPress: async () => {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            Alert.alert(
+              "Aggiornamento trovato!",
+              "Scarico e riavvio...",
+              [{ text: "Riavvia", onPress: async () => {
+                await Updates.fetchUpdateAsync();
+                await Updates.reloadAsync();
+              }}]
+            );
+          } else {
+            Alert.alert("Nessun aggiornamento disponibile", `Sei già aggiornato.\nCanale: ${channel}`);
+          }
+        } catch (e) {
+          Alert.alert("Errore OTA", String(e));
+        }
+      }}]
+    );
   };
   
   const handleLogout = async () => {
