@@ -1327,7 +1327,7 @@ if (loading) {
         <View>
           <View style={styles.headerTitle}>
             <Text style={styles.logo}>🎧</Text>
-            <Text style={styles.title}>SoundScape ✨</Text>
+            <Text style={styles.title}>SoundScape</Text>
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>
