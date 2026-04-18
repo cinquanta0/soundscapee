@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import * as Updates from 'expo-updates';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -52,17 +51,6 @@ export default function RootLayout() {
   // Initialise i18n as early as possible
   useEffect(() => {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
-  }, []);
-
-  // OTA updates — ascolta evento nativo, non chiama checkForUpdateAsync (va in timeout)
-  useEffect(() => {
-    const sub = Updates.addListener(async (event) => {
-      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
-        await Updates.fetchUpdateAsync();
-        await Updates.reloadAsync();
-      }
-    });
-    return () => sub.remove();
   }, []);
 
   // Controlla se la build è ancora supportata

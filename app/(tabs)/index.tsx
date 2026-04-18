@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as Updates from 'expo-updates';
 import {
   StyleSheet,
   Text,
@@ -1323,9 +1322,6 @@ if (loading) {
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
-          <Text style={{ color: '#facc15', fontSize: 9, marginTop: 2 }}>
-            rv:{Updates.runtimeVersion ?? '?'} ch:{Updates.channel ?? '?'}
-          </Text>
         </View>
         <View style={styles.headerButtons}>
   {/* Bottone notifiche */}
