@@ -2216,7 +2216,7 @@ if (loading) {
                   onPress={handleCheckUpdates}
                 >
                   <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
-                    Cerca Aggiornamenti (OTA)
+                    Cerca Aggiornamenti (OTA OK!)
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
