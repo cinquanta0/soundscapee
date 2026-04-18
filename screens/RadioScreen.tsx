@@ -49,6 +49,7 @@ interface OfflineStation {
   genre: string;
   color: string;
   searchName: string; // nome usato per cercare su radio-browser.info
+  logoUrl: string;   // logo stazione per le card preview
 }
 
 interface NowPlayingInfo {
@@ -58,14 +59,14 @@ interface NowPlayingInfo {
 }
 
 const OFFLINE_STATIONS: OfflineStation[] = [
-  { id: 'rtl', name: 'RTL 102.5', genre: 'Pop · Hit', color: '#E91E63', searchName: 'RTL 102.5' },
-  { id: 'r105', name: 'Radio 105', genre: 'Rock · Pop', color: '#FF5722', searchName: 'Radio 105' },
-  { id: 'deejay', name: 'Radio DeeJay', genre: 'Dance · Electronic', color: '#FF9800', searchName: 'Radio DeeJay' },
-  { id: 'radioitalia', name: 'Radio Italia', genre: 'Musica Italiana', color: '#4CAF50', searchName: 'Radio Italia' },
-  { id: 'rds', name: 'RDS', genre: 'Pop · News', color: '#2196F3', searchName: 'RDS' },
-  { id: 'virgin', name: 'Virgin Radio', genre: 'Rock · Alternative', color: '#9C27B0', searchName: 'Virgin Radio Italy' },
-  { id: 'm2o', name: 'm2o', genre: 'Dance · House', color: '#00BCD4', searchName: 'm2o' },
-  { id: 'capital', name: 'Radio Capital', genre: 'Pop · Hits', color: '#F44336', searchName: 'Radio Capital' },
+  { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
+  { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://www.google.com/s2/favicons?domain=105.net&sz=128' },
+  { id: 'deejay',     name: 'Radio DeeJay', genre: 'Dance · Electronic',  color: '#FF9800', searchName: 'Radio DeeJay',        logoUrl: 'https://www.google.com/s2/favicons?domain=deejay.it&sz=128' },
+  { id: 'radioitalia',name: 'Radio Italia', genre: 'Musica Italiana',     color: '#4CAF50', searchName: 'Radio Italia',        logoUrl: 'https://www.google.com/s2/favicons?domain=radioitalia.it&sz=128' },
+  { id: 'rds',        name: 'RDS',          genre: 'Pop · News',          color: '#2196F3', searchName: 'RDS',                 logoUrl: 'https://www.google.com/s2/favicons?domain=rds.it&sz=128' },
+  { id: 'virgin',     name: 'Virgin Radio', genre: 'Rock · Alternative',  color: '#9C27B0', searchName: 'Virgin Radio Italy',  logoUrl: 'https://www.google.com/s2/favicons?domain=virginradio.it&sz=128' },
+  { id: 'm2o',        name: 'm2o',          genre: 'Dance · House',       color: '#00BCD4', searchName: 'm2o',                 logoUrl: 'https://www.google.com/s2/favicons?domain=m2o.it&sz=128' },
+  { id: 'capital',    name: 'Radio Capital',genre: 'Pop · Hits',          color: '#F44336', searchName: 'Radio Capital',       logoUrl: 'https://www.google.com/s2/favicons?domain=capital.it&sz=128' },
 ];
 
 // URL hardcoded di fallback (aggiornati aprile 2026) — usati quando radio-browser.info non è raggiungibile
@@ -2295,13 +2296,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+  const scheduleSlots = getScheduleSlots(station.id);
+  const currentSlotIdx = getCurrentSlotIndex(scheduleSlots);
   // Per "ORA IN ONDA": priorità foto API live → foto statica dello slot corrente → iniziali
   const staticSlotPhoto = scheduleSlots[currentSlotIdx]?.djPhotoUrl;
   const resolvedDjPhoto = (nowPlaying?.djImageUrl && !djImgError) ? nowPlaying.djImageUrl : staticSlotPhoto;
   const showDjImage = !!(nowPlaying && resolvedDjPhoto);
   const showDjInitials = !!(nowPlaying && nowPlaying.djName && !resolvedDjPhoto);
-  const scheduleSlots = getScheduleSlots(station.id);
-  const currentSlotIdx = getCurrentSlotIndex(scheduleSlots);
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -2523,18 +2524,31 @@ const osp = StyleSheet.create({
 
 // ─── Station card (card orizzontale) ─────────────────────────────────────────
 function OfflineStationCard({ station, onPress }: { station: OfflineStation; onPress: () => void }) {
+  const [logoErr, setLogoErr] = useState(false);
   return (
-    <TouchableOpacity style={[osc.card, { borderColor: station.color + '40' }]} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[osc.card, { borderColor: station.color + '50' }]} onPress={onPress} activeOpacity={0.8}>
+      {/* Sfondo con gradiente colorato */}
       <LinearGradient
-        colors={[station.color + '28', station.color + '0A']}
-        style={StyleSheet.absoluteFill}
-        borderRadius={14}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        colors={[station.color + '55', station.color + '15', '#0D0D1A']}
+        style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
       />
-      <Text style={[osc.initial, { color: station.color }]}>{station.name.charAt(0)}</Text>
+      {/* Logo stazione */}
+      <View style={[osc.logoWrap, { borderColor: station.color + '60', backgroundColor: station.color + '20' }]}>
+        {!logoErr ? (
+          <Image
+            source={{ uri: station.logoUrl }}
+            style={osc.logo}
+            resizeMode="contain"
+            onError={() => setLogoErr(true)}
+          />
+        ) : (
+          <Text style={[osc.initial, { color: station.color }]}>{station.name.charAt(0)}</Text>
+        )}
+      </View>
       <Text style={osc.name} numberOfLines={1}>{station.name}</Text>
       <Text style={osc.genre} numberOfLines={1}>{station.genre}</Text>
-      <View style={[osc.playPill, { backgroundColor: station.color + '25', borderColor: station.color + '55' }]}>
+      <View style={[osc.playPill, { backgroundColor: station.color + '30', borderColor: station.color + '70' }]}>
         <Text style={[osc.playPillTxt, { color: station.color }]}>▶ Live</Text>
       </View>
     </TouchableOpacity>
@@ -2542,12 +2556,14 @@ function OfflineStationCard({ station, onPress }: { station: OfflineStation; onP
 }
 
 const osc = StyleSheet.create({
-  card: { width: 120, borderRadius: 14, borderWidth: 1, padding: 14, marginRight: 10, overflow: 'hidden', backgroundColor: '#0D0D1A' },
-  initial: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', marginBottom: 6 },
-  name: { fontSize: 12, fontWeight: '700', color: '#fff', marginBottom: 3 },
-  genre: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 10, lineHeight: 13 },
-  playPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, alignSelf: 'flex-start' },
-  playPillTxt: { fontSize: 10, fontWeight: '700', fontFamily: 'monospace' },
+  card: { width: 120, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 12, paddingBottom: 14, paddingTop: 14, marginRight: 10, overflow: 'hidden', backgroundColor: '#0D0D1A', alignItems: 'center' },
+  logoWrap: { width: 62, height: 62, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
+  logo: { width: 46, height: 46 },
+  initial: { fontSize: 26, fontWeight: '800', fontStyle: 'italic' },
+  name: { fontSize: 11, fontWeight: '700', color: '#fff', marginBottom: 3, textAlign: 'center' },
+  genre: { fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 10, lineHeight: 12, textAlign: 'center' },
+  playPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, alignSelf: 'center' },
+  playPillTxt: { fontSize: 9, fontWeight: '700', fontFamily: 'monospace' },
 });
 
 // ─── Room card ────────────────────────────────────────────────────────────────
