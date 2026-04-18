@@ -56,7 +56,7 @@ workflows:
             /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool true" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.0" "$PLIST" 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :EXUpdatesRuntimeVersion string 1.0.0" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Delete :EXUpdatesRequestHeaders" "$PLIST" 2>/dev/null
+          /usr/libexec/PlistBuddy -c "Delete :EXUpdatesRequestHeaders" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders dict" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders:expo-channel-name string preview" "$PLIST"
           echo "=== DOPO il patch ==="
