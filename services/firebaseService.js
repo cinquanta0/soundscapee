@@ -274,17 +274,27 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
       limit(limitCount)
     );
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const sounds = snapshot.docs.map(doc => {
-        const data = doc.data();
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const sounds = await Promise.all(snapshot.docs.map(async docSnap => {
+        const data = docSnap.data();
+        let username = data.username;
+        let userAvatar = data.userAvatar;
+        if ((!username || !userAvatar) && data.userId) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', data.userId));
+            const ud = userDoc.data();
+            username = username || ud?.username || ud?.displayName || 'Anonimo';
+            userAvatar = userAvatar || ud?.avatar || '🎧';
+          } catch {}
+        }
         return {
-          id: doc.id,
+          id: docSnap.id,
           ...data,
-          // Convert Firestore Timestamp to Date
+          username,
+          userAvatar,
           createdAt: data.createdAt?.toDate() || new Date()
         };
-      });
-      
+      }));
       callback(sounds);
     }, (error) => {
       console.error('❌ [FEED] Error in sounds subscription:', error);
@@ -877,7 +887,7 @@ export const getCommunities = async (limitCount = 20) => {
     const [publicSnap, privateSnap] = await Promise.all([
       getDocs(query(collection(db, 'communities'), where('isPublic', '==', true), limit(limitCount))),
       uid
-        ? getDocs(query(collection(db, 'communities'), where('isPublic', '==', false), where('createdBy', '==', uid)))
+        ? getDocs(query(collection(db, 'communities'), where('isPublic', '==', false), where('creatorId', '==', uid)))
         : Promise.resolve({ docs: [] }),
     ]);
 
