@@ -200,16 +200,17 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isNotAnonymous();
       allow update: if isAdmin()
-                    || isOwner(resource.data.createdBy)
+                    || isOwner(resource.data.creatorId)
                     || (isAuth()
                         && request.resource.data.diff(resource.data).affectedKeys()
                              .hasOnly(['membersCount']));
-      allow delete: if isAdmin() || isOwner(resource.data.createdBy);
+      allow delete: if isAdmin() || isOwner(resource.data.creatorId);
 
       match /members/{userId} {
         allow read: if isAuth();
-        // Scrittura: il diretto interessato, oppure admin/moderatore della community
+        // Scrittura: il diretto interessato, il creatore della community, oppure admin/moderatore
         allow write: if isOwner(userId)
+                     || (isAuth() && get(/databases/$(database)/documents/communities/$(communityId)).data.creatorId == request.auth.uid)
                      || (isAuth() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
                          && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator']);
       }
@@ -217,11 +218,13 @@ service cloud.firestore {
       match /joinRequests/{userId} {
         allow read: if isAuth() && (
           isOwner(userId)
+          || get(/databases/$(database)/documents/communities/$(communityId)).data.creatorId == request.auth.uid
           || (exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
               && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator'])
         );
         allow create: if isOwner(userId) && isNotAnonymous();
         allow delete: if isOwner(userId)
+                      || (isAuth() && get(/databases/$(database)/documents/communities/$(communityId)).data.creatorId == request.auth.uid)
                       || (isAuth() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid))
                           && get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)).data.role in ['admin', 'moderator']);
       }

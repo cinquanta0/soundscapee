@@ -152,11 +152,12 @@ export async function kickMember(communityId: string, userId: string): Promise<v
 
 export async function joinCommunity(communityId: string): Promise<void> {
   const uid = currentUid();
-  const user = auth.currentUser!;
+  const userSnap = await getDoc(doc(db, 'users', uid));
+  const userData = userSnap.exists() ? userSnap.data() : null;
   await setDoc(doc(db, 'communities', communityId, 'members', uid), {
     userId: uid,
-    userName: user.displayName || 'Utente',
-    userAvatar: user.photoURL || '🎵',
+    userName: userData?.username || userData?.displayName || 'Utente',
+    userAvatar: userData?.avatar || userData?.photoURL || '🎵',
     role: 'member',
     joinedAt: serverTimestamp(),
   });
@@ -174,11 +175,12 @@ export async function leaveCommunity(communityId: string): Promise<void> {
 
 export async function requestToJoin(communityId: string): Promise<void> {
   const uid = currentUid();
-  const user = auth.currentUser!;
+  const userSnap = await getDoc(doc(db, 'users', uid));
+  const userData = userSnap.exists() ? userSnap.data() : null;
   await setDoc(doc(db, 'communities', communityId, 'joinRequests', uid), {
     userId: uid,
-    userName: user.displayName || 'Utente',
-    userAvatar: user.photoURL || '🎵',
+    userName: userData?.username || userData?.displayName || 'Utente',
+    userAvatar: userData?.avatar || userData?.photoURL || '🎵',
     requestedAt: serverTimestamp(),
     status: 'pending',
   });

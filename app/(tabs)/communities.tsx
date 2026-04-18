@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { auth } from '../../firebaseConfig';
+import { auth, db } from '../../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 import { getCommunities, createCommunity, deleteCommunity } from '../../services/firebaseService';
 import { joinCommunity, leaveCommunity, requestToJoin, cancelJoinRequest, getMyJoinRequest, getMyRole } from '../../services/communityService';
 import CommunityDetailScreen from '../../screens/CommunityDetailScreen';
@@ -26,6 +27,7 @@ export default function CommunitiesScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<any | null>(null);
   const [membershipState, setMembershipState] = useState<Record<string, 'member' | 'pending' | null>>({});
+  const [viewingProfile, setViewingProfile] = useState<any | null>(null);
   const [newCommunity, setNewCommunity] = useState({
     name: '',
     description: '',
@@ -124,14 +126,51 @@ export default function CommunitiesScreen() {
     }
   };
 
+  const handleViewProfile = async (userId: string) => {
+    try {
+      const snap = await getDoc(doc(db, 'users', userId));
+      if (snap.exists()) setViewingProfile({ id: userId, ...snap.data() });
+    } catch {}
+  };
+
   // Dettaglio community aperto
   if (selectedCommunity) {
     return (
-      <CommunityDetailScreen
-        community={selectedCommunity}
-        onClose={() => { setSelectedCommunity(null); loadCommunities(); }}
-        onCommunityDeleted={() => { setSelectedCommunity(null); loadCommunities(); }}
-      />
+      <>
+        <CommunityDetailScreen
+          community={selectedCommunity}
+          onClose={() => { setSelectedCommunity(null); loadCommunities(); }}
+          onCommunityDeleted={() => { setSelectedCommunity(null); loadCommunities(); }}
+          onViewProfile={handleViewProfile}
+        />
+        {/* Modal profilo utente */}
+        <Modal visible={!!viewingProfile} transparent animationType="fade" onRequestClose={() => setViewingProfile(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+            <View style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 24, width: '100%', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 56 }}>{viewingProfile?.avatar || '🎵'}</Text>
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>{viewingProfile?.username || 'Utente'}</Text>
+              {viewingProfile?.bio ? <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>{viewingProfile.bio}</Text> : null}
+              <View style={{ flexDirection: 'row', gap: 24, marginTop: 8 }}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.followersCount ?? 0}</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Follower</Text>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.followingCount ?? 0}</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Following</Text>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.soundsCount ?? 0}</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Suoni</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setViewingProfile(null)} style={{ marginTop: 16, paddingHorizontal: 32, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 }}>
+                <Text style={{ color: '#fff' }}>Chiudi</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </>
     );
   }
 

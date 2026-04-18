@@ -167,9 +167,10 @@ interface Props {
   community: Community;
   onClose: () => void;
   onCommunityDeleted?: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function CommunityDetailScreen({ community, onClose, onCommunityDeleted }: Props) {
+export default function CommunityDetailScreen({ community, onClose, onCommunityDeleted, onViewProfile }: Props) {
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'requests'>('chat');
   const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [members, setMembers] = useState<CommunityMember[]>([]);
@@ -349,8 +350,13 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
             <View style={[s.roleBadge, selectedMember.role === 'admin' && s.roleBadgeAdmin, selectedMember.role === 'moderator' && s.roleBadgeMod, { alignSelf: 'center', marginBottom: 16 }]}>
               <Text style={s.roleTxt}>{selectedMember.role === 'admin' ? '👑 Admin' : selectedMember.role === 'moderator' ? '🛡 Mod' : '🎵 Membro'}</Text>
             </View>
+            {selectedMember.userId !== myUid && onViewProfile && (
+              <TouchableOpacity style={s.adminActionsBtn} onPress={() => { setSelectedMember(null); onViewProfile(selectedMember.userId); }}>
+                <Text style={s.adminActionsTxt}>👤 Vai al profilo</Text>
+              </TouchableOpacity>
+            )}
             {isAdmin && selectedMember.userId !== myUid && (
-              <TouchableOpacity style={s.adminActionsBtn} onPress={() => { setSelectedMember(null); handleAdminActions(selectedMember); }}>
+              <TouchableOpacity style={[s.adminActionsBtn, { marginTop: 8 }]} onPress={() => { setSelectedMember(null); handleAdminActions(selectedMember); }}>
                 <Text style={s.adminActionsTxt}>⚙️ Azioni admin</Text>
               </TouchableOpacity>
             )}
