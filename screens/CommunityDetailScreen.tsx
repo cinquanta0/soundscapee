@@ -265,7 +265,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
     try { await pinMessage(community.id, msg.id, !msg.isPinned); } catch {}
   };
 
-  const handleDelete = (msg: CommunityMessage) => {
+  const handleDeleteMessage = (msg: CommunityMessage) => {
     Alert.alert('Elimina messaggio', 'Vuoi eliminare questo messaggio?', [
       { text: 'Annulla', style: 'cancel' },
       { text: 'Elimina', style: 'destructive', onPress: async () => {
@@ -304,7 +304,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
     Alert.alert(member.userName, 'Azioni admin', options);
   };
 
-  const handleDelete = () => {
+  const handleDeleteCommunity = () => {
     Alert.alert('Elimina community', `Vuoi eliminare "${community.name}"? Questa azione è irreversibile.`, [
       { text: 'Annulla', style: 'cancel' },
       { text: 'Elimina', style: 'destructive', onPress: async () => {
@@ -380,7 +380,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
             </TouchableOpacity>
           )}
           {myRole === 'admin' && community.creatorId === myUid && (
-            <TouchableOpacity style={s.leaveBtn} onPress={handleDelete}>
+            <TouchableOpacity style={s.leaveBtn} onPress={handleDeleteCommunity}>
               <Text style={[s.leaveTxt, { color: '#ef4444' }]}>🗑</Text>
             </TouchableOpacity>
           )}
@@ -426,7 +426,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
                   isAdmin={isAdmin}
                   onReact={(emoji) => handleReact(item.id, emoji)}
                   onPin={() => handlePin(item)}
-                  onDelete={() => handleDelete(item)}
+                  onDelete={() => handleDeleteMessage(item)}
                 />
               )}
               contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
