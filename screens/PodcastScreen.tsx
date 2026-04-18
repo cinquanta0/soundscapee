@@ -596,6 +596,77 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const [loading, setLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [soundscapeAudioUrl, setSoundscapeAudioUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup registrazione su chiusura modal
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      recordingRef.current?.stopAndUnloadAsync().catch(() => {});
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) { Alert.alert(t('permissions.denied')); return; }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync({
+        isMeteringEnabled: false,
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.HIGH,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+        },
+        web: { mimeType: 'audio/webm', bitsPerSecond: 128000 },
+      });
+      recordingRef.current = recording;
+      setRecordSeconds(0);
+      setIsRecording(true);
+      recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
+    } catch {
+      Alert.alert(t('common.error'), t('podcast.errors.cannotRecord') ?? 'Impossibile avviare la registrazione');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recordingRef.current) return;
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = recordingRef.current.getURI();
+      const secs = recordSeconds;
+      recordingRef.current = null;
+      setIsRecording(false);
+      if (uri) {
+        setAudioUri(uri);
+        setSoundscapeAudioUrl(null);
+        const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        setAudioName(`Registrazione ${ts}`);
+        setAudioDuration(secs);
+      }
+    } catch {
+      setIsRecording(false);
+    }
+  };
+
+  const fmtRecSecs = (s: number) =>
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
   const handleSelectSound = (sound: SoundResult) => {
     setSoundscapeAudioUrl(sound.audioUrl);
@@ -718,13 +789,36 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
             />
           </View>
 
-          <TouchableOpacity style={pm.pickBtn} onPress={pickAudio}>
+          {/* Registra subito */}
+          {isRecording ? (
+            <TouchableOpacity
+              style={[pm.pickBtn, { borderColor: '#FF3B30', backgroundColor: 'rgba(255,59,48,0.08)' }]}
+              onPress={stopRecording}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' }} />
+                <Text style={{ color: '#FF3B30', fontWeight: '800', fontFamily: 'monospace', fontSize: 13 }}>
+                  {fmtRecSecs(recordSeconds)} — Tocca per fermare
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[pm.pickBtn, { borderColor: 'rgba(255,59,48,0.4)', marginBottom: 2 }]}
+              onPress={startRecording}
+            >
+              <Text style={pm.pickBtnTxt}>🎙 Registra ora</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Oppure scegli file */}
+          <TouchableOpacity style={[pm.pickBtn, { marginTop: 6 }]} onPress={pickAudio}>
             <Text style={pm.pickBtnTxt}>
-              {audioUri ? `✅ ${audioName}` : t('podcast.chooseFile')}
+              {audioUri && !isRecording ? `✅ ${audioName}` : t('podcast.chooseFile')}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[pm.pickBtn, { marginTop: 8, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
+          <TouchableOpacity style={[pm.pickBtn, { marginTop: 6, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
             <Text style={[pm.pickBtnTxt, soundscapeAudioUrl && { color: '#00FF9C' }]}>
               {soundscapeAudioUrl ? `✅ ${audioName}` : `🔍 ${t('podcast.searchSoundScape')}`}
             </Text>

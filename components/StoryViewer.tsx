@@ -70,6 +70,8 @@ export default function StoryViewer({
   const [viewers, setViewers] = useState<Array<{ id: string; name: string; avatar: string }>>([]);
   const pressStartRef = useRef<number>(0);
   const wasHoldRef = useRef(false);
+  const screenDurationRef = useRef<number>(SCREEN_DURATION); // durata reale dello screen corrente (ms)
+  const isAudioScreenRef = useRef<boolean>(false);          // true se lo screen ha audio
   const replyRecordingRef = useRef<Audio.Recording | null>(null);
   const replyTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -122,15 +124,21 @@ export default function StoryViewer({
     setPaused(false);
     const currentValue = (progressAnim as any)._value ?? 0;
     if (currentValue < 1) {
-      const remaining = (1 - currentValue) * SCREEN_DURATION;
+      // Usa la durata reale dello screen (audio → durationMillis, testo → 5000ms)
+      const remaining = Math.max(300, (1 - currentValue) * screenDurationRef.current);
       animRef.current = Animated.timing(progressAnim, {
         toValue: 1,
         duration: remaining,
         useNativeDriver: false,
       });
-      animRef.current.start(({ finished }) => {
-        if (finished) goForward();
-      });
+      if (isAudioScreenRef.current) {
+        // Screen audio: non mettere goForward qui, ci pensa didJustFinish sull'audio
+        animRef.current.start();
+      } else {
+        animRef.current.start(({ finished }) => {
+          if (finished) goForward();
+        });
+      }
     }
     soundRef.current?.playAsync().catch(() => {});
   }, [progressAnim, goForward]);
@@ -153,7 +161,12 @@ export default function StoryViewer({
 
     let cancelled = false;
 
+    // Aggiorna i ref sul tipo di screen corrente
+    isAudioScreenRef.current = !!(screen?.audioUrl);
+    screenDurationRef.current = SCREEN_DURATION; // default, sovrascritto per audio
+
     const startTimer = (duration: number, onFinish: () => void) => {
+      screenDurationRef.current = duration;
       animRef.current = Animated.timing(progressAnim, {
         toValue: 1,
         duration,
@@ -186,6 +199,7 @@ export default function StoryViewer({
           // Avvia l'animazione una volta che conosciamo la durata reale
           if (!animStarted && status.durationMillis && status.durationMillis > 0) {
             animStarted = true;
+            screenDurationRef.current = status.durationMillis; // durata reale audio
             progressAnim.setValue(0);
             animRef.current = Animated.timing(progressAnim, {
               toValue: 1,
@@ -307,15 +321,19 @@ export default function StoryViewer({
       setPaused(false);
       const currentValue = (progressAnim as any)._value ?? 0;
       if (currentValue < 1) {
-        const remaining = Math.max(300, (1 - currentValue) * SCREEN_DURATION);
+        const remaining = Math.max(300, (1 - currentValue) * screenDurationRef.current);
         animRef.current = Animated.timing(progressAnim, {
           toValue: 1,
           duration: remaining,
           useNativeDriver: false,
         });
-        animRef.current.start(({ finished }) => {
-          if (finished) goForward();
-        });
+        if (isAudioScreenRef.current) {
+          animRef.current.start();
+        } else {
+          animRef.current.start(({ finished }) => {
+            if (finished) goForward();
+          });
+        }
       }
       await soundRef.current?.playAsync().catch(() => {});
     }
