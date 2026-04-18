@@ -122,6 +122,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import * as Updates from 'expo-updates';
+import { useUpdates } from 'expo-updates';
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -172,6 +173,7 @@ function AppAvatar({ avatar, username, size = 36 }: { avatar?: string; username?
 
 export default function App() {
   const { t } = useTranslation();
+  const { currentlyRunning, initializationError } = useUpdates();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
@@ -982,15 +984,15 @@ const loadNotifications = async () => {
 };
 
   const handleCheckUpdates = async () => {
-    const isEmbedded = Updates.isEmbeddedLaunch;
-    const currentId = Updates.updateId ?? "nessuno";
-    const channel = Updates.channel ?? "NON IMPOSTATO";
-    const runtimeVersion = Updates.runtimeVersion ?? "?";
+    const isEmbedded = currentlyRunning.isEmbeddedLaunch;
+    const currentId = currentlyRunning.updateId ?? "nessuno";
+    const channel = currentlyRunning.channel ?? "NON IMPOSTATO";
+    const runtimeVersion = currentlyRunning.runtimeVersion ?? "?";
+    const initErr = initializationError ? `\n\n⚠️ INIT ERROR: ${initializationError.message}` : "";
 
-    // Mostra subito lo stato attuale PRIMA di cercare aggiornamenti
     Alert.alert(
       isEmbedded ? "⚠️ Bundle EMBEDDED" : "✅ Bundle OTA attivo",
-      `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate ID: ${currentId}\n\nPremi OK per cercare aggiornamenti`,
+      `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate ID: ${currentId}${initErr}\n\nPremi OK per cercare aggiornamenti`,
       [{ text: "OK", onPress: async () => {
         try {
           const update = await Updates.checkForUpdateAsync();
@@ -999,12 +1001,16 @@ const loadNotifications = async () => {
               "Aggiornamento trovato!",
               "Scarico e riavvio...",
               [{ text: "Riavvia", onPress: async () => {
-                await Updates.fetchUpdateAsync();
-                await Updates.reloadAsync();
+                const result = await Updates.fetchUpdateAsync();
+                if (result.isNew) {
+                  await Updates.reloadAsync();
+                } else {
+                  Alert.alert("Fetch completato", "isNew: false — nessun bundle nuovo scaricato");
+                }
               }}]
             );
           } else {
-            Alert.alert("Nessun aggiornamento disponibile", `Sei già aggiornato.\nCanale: ${channel}`);
+            Alert.alert("Nessun aggiornamento", `Canale: ${channel}`);
           }
         } catch (e) {
           Alert.alert("Errore OTA", String(e));
