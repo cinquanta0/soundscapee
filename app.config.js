@@ -9,7 +9,9 @@ module.exports = ({ config }) => ({
     checkAutomatically: "ON_LOAD",
     enabled: true,
   },
-  runtimeVersion: "1.0.0",
+  runtimeVersion: {
+    policy: "appVersion",
+  },
   icon: "./assets/images/icon.png",
   scheme: "soundscapemobile",
   userInterfaceStyle: "automatic",

@@ -1313,7 +1313,7 @@ if (loading) {
       {!isFullScreen && <View style={styles.header}>
         <View>
           <View style={styles.headerTitle}>
-            <Text style={styles.logo}>🟢</Text>
+            <Text style={styles.logo}>🎧</Text>
             <Text style={styles.title}>SoundScape</Text>
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
@@ -1322,6 +1322,9 @@ if (loading) {
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
+          <Text style={{ color: '#facc15', fontSize: 9, marginTop: 2 }}>
+            rv:{Updates.runtimeVersion ?? '?'} ch:{Updates.channel ?? '?'}
+          </Text>
         </View>
         <View style={styles.headerButtons}>
   {/* Bottone notifiche */}

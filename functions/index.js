@@ -1318,7 +1318,7 @@ exports.processCollab = onCall(
         ffmpeg()
           .input(hostPath)
           .input(guestPath)
-          .complexFilter('[0:a]volume=1.0[a0];[1:a]volume=1.0[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[out]')
+          .complexFilter('[0:a]volume=1.0[a0];[1:a]volume=1.0[a1];[a0][a1]amix=inputs=2:duration=longest[out]')
           .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k'])
           .output(outPath)
           .on('end', resolve)
