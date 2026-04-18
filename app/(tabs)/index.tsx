@@ -1818,15 +1818,6 @@ if (loading) {
         </View>
       )}
 
-      {/* Floating Record Button — nascosto nella schermata messaggi */}
-      {activeTab !== 'messages' && (
-        <TouchableOpacity
-          style={[styles.fab, isRecording && styles.fabRecording]}
-          onPress={handleRecord}
-        >
-          <Text style={styles.fabIcon}>🎤</Text>
-        </TouchableOpacity>
-      )}
 
       {/* Bottom Navigation — componente professionale senza emoji */}
       <BottomNavBar
