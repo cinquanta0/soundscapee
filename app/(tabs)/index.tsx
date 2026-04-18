@@ -121,6 +121,7 @@ import BackstageViewer from '../../components/BackstageViewer';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import * as Updates from 'expo-updates';
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -979,6 +980,32 @@ const loadNotifications = async () => {
   setNotifications(userNotifications);
   setUnreadCount(userNotifications.filter(n => !n.read).length);
 };
+
+  const handleCheckUpdates = async () => {
+    try {
+      Alert.alert(
+        "Controllo aggiornamenti",
+        "Controllo se ci sono aggiornamenti OTA disponibili..."
+      );
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        Alert.alert(
+          "Aggiornamento trovato!",
+          "Sto scaricando il nuovo aggiornamento in background. Non chiudere l'app..."
+        );
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          "Aggiornamento scaricato",
+          "L'aggiornamento è pronto! L'app si riavvierà per applicarlo.",
+          [{ text: "Riavvia ora", onPress: () => Updates.reloadAsync() }]
+        );
+      } else {
+        Alert.alert("Tutto aggiornato", "Stai già usando l'ultima versione dell'app.");
+      }
+    } catch (e) {
+      Alert.alert("Errore aggiornamento", "Si è verificato un errore: " + String(e));
+    }
+  };
   
   const handleLogout = async () => {
     Alert.alert(
@@ -2184,6 +2211,14 @@ if (loading) {
 
               <View style={styles.settingsSection}>
                 <Text style={styles.settingsSectionTitle}>{t('settings.actions')}</Text>
+                <TouchableOpacity
+                  style={[styles.settingsItem, { marginBottom: 8 }]}
+                  onPress={handleCheckUpdates}
+                >
+                  <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
+                    Cerca Aggiornamenti (OTA)
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.settingsItem}
                   onPress={handleLogout}
