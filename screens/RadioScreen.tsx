@@ -84,159 +84,304 @@ const FALLBACK_STREAM_URLS: Record<string, string> = {
 // ─── Palinsesto static schedules ──────────────────────────────────────────────
 interface ScheduleSlot {
   startHour: number;
-  endHour: number; // usa 24 per mezzanotte fine giornata
+  startMin?: number;   // minuti di inizio (default 0)
+  endHour: number;
+  endMin?: number;     // minuti di fine (default 0)
   djName: string;
   showName: string;
-  djPhotoUrl?: string; // URL statico foto DJ — fallback alle iniziali se mancante/rotto
+  djPhotoUrl?: string; // URL foto DJ — fallback alle iniziali se mancante/rotto
 }
 
-const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; weekend: ScheduleSlot[] }> = {
+const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: ScheduleSlot[]; sunday: ScheduleSlot[] }> = {
   rtl: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'RTL 102.5',         showName: 'RTL Night' },
-      { startHour: 6,  endHour: 10, djName: 'Diego Zappone',      showName: 'Mattino di RTL',       djPhotoUrl: 'https://www.rtl.it/var/rtl/storage/images/programmi/mattino-rtl-102-5/1040551-1-ita-IT/mattino-rtl-102-5.jpg' },
-      { startHour: 10, endHour: 14, djName: 'Matteo Campese',     showName: 'RTL 102.5',             djPhotoUrl: 'https://www.rtl.it/var/rtl/storage/images/programmi/rtl-1025-power-hits/1040560-1-ita-IT/rtl-1025-power-hits.jpg' },
-      { startHour: 14, endHour: 18, djName: 'Paola Giannetakis',  showName: 'RTL Pomeriggio' },
-      { startHour: 18, endHour: 21, djName: 'Federica Gentile',   showName: 'RTL Evening' },
-      { startHour: 21, endHour: 24, djName: 'RTL 102.5',          showName: 'RTL Night' },
+      { startHour: 0,  endHour: 6,  djName: 'RTL 102.5',           showName: 'Non Stop News' },
+      { startHour: 6,  endHour: 9,  djName: 'Francesco Fredella',   showName: 'W l\'Italia' },
+      { startHour: 9,  endHour: 12, djName: 'Fulvio Giuliani',      showName: 'Good Vibrations' },
+      { startHour: 12, endHour: 15, djName: 'Cecilia Songini',      showName: 'Rock Morning' },
+      { startHour: 15, endHour: 18, djName: 'Gianni Simioli',       showName: 'Electric Ladyland' },
+      { startHour: 18, endHour: 21, djName: 'Antonio Sica',         showName: 'Destinazione Zeta' },
+      { startHour: 21, endHour: 24, djName: 'Francesco Taranto',    showName: 'Molo 17' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'RTL 102.5',         showName: 'RTL Night' },
-      { startHour: 7,  endHour: 12, djName: 'Diego Zappone',      showName: 'Mattino RTL Weekend',   djPhotoUrl: 'https://www.rtl.it/var/rtl/storage/images/programmi/mattino-rtl-102-5/1040551-1-ita-IT/mattino-rtl-102-5.jpg' },
-      { startHour: 12, endHour: 17, djName: 'Claudio Maioli',     showName: 'RTL Weekend' },
-      { startHour: 17, endHour: 21, djName: 'Matteo Campese',     showName: 'RTL Weekend Pomeriggio' },
-      { startHour: 21, endHour: 24, djName: 'RTL 102.5',          showName: 'RTL Night' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'RTL 102.5',           showName: 'Non Stop News' },
+      { startHour: 6,  endHour: 12, djName: 'Nicoletta Deponti',    showName: 'Good Vibrations Weekend' },
+      { startHour: 12, endHour: 18, djName: 'RTL 102.5',            showName: 'RTL Weekend' },
+      { startHour: 18, endHour: 24, djName: 'RTL 102.5',            showName: 'Non Stop News' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'RTL 102.5',           showName: 'Non Stop News' },
+      { startHour: 6,  endHour: 12, djName: 'Nicoletta Deponti',    showName: 'Good Vibrations Weekend' },
+      { startHour: 12, endHour: 18, djName: 'RTL 102.5',            showName: 'RTL Weekend' },
+      { startHour: 18, endHour: 24, djName: 'RTL 102.5',            showName: 'Non Stop News' },
     ],
   },
   r105: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'Radio 105',         showName: '105 Night' },
-      { startHour: 6,  endHour: 10, djName: 'Marco Mazzoli',      showName: '105 Morning Show',      djPhotoUrl: 'https://www.105.net/wp-content/uploads/2022/05/mazzoli.jpg' },
-      { startHour: 10, endHour: 14, djName: 'Daniele Battaglia',  showName: '105 Midi',              djPhotoUrl: 'https://www.105.net/wp-content/uploads/2022/05/battaglia.jpg' },
-      { startHour: 14, endHour: 18, djName: 'Radio 105',          showName: '105 Drive' },
-      { startHour: 18, endHour: 21, djName: 'Giulio Motta',       showName: '105 Live' },
-      { startHour: 21, endHour: 24, djName: 'Radio 105',          showName: '105 Night' },
+      { startHour: 0,  endHour: 6,  djName: 'Radio 105',           showName: '105 Night' },
+      { startHour: 6,  endHour: 10, djName: 'Radio 105',            showName: '105 Morning Show' },
+      { startHour: 10, endHour: 14, djName: 'Radio 105',            showName: '105 Midi' },
+      { startHour: 14, endHour: 19, djName: 'Radio 105',            showName: '105 Drive' },
+      { startHour: 19, endHour: 24, djName: 'Radio 105',            showName: '105 Night' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'Radio 105',         showName: '105 Night' },
-      { startHour: 7,  endHour: 12, djName: 'Marco Mazzoli',      showName: '105 Morning Weekend',   djPhotoUrl: 'https://www.105.net/wp-content/uploads/2022/05/mazzoli.jpg' },
-      { startHour: 12, endHour: 18, djName: 'Radio 105',          showName: '105 Weekend' },
-      { startHour: 18, endHour: 24, djName: 'Radio 105',          showName: '105 Night' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio 105',           showName: '105 Night' },
+      { startHour: 6,  endHour: 12, djName: 'Radio 105',            showName: '105 Weekend Morning' },
+      { startHour: 12, endHour: 18, djName: 'Radio 105',            showName: '105 Weekend' },
+      { startHour: 18, endHour: 24, djName: 'Radio 105',            showName: '105 Night' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio 105',           showName: '105 Night' },
+      { startHour: 6,  endHour: 12, djName: 'Radio 105',            showName: '105 Weekend Morning' },
+      { startHour: 12, endHour: 18, djName: 'Radio 105',            showName: '105 Weekend' },
+      { startHour: 18, endHour: 24, djName: 'Radio 105',            showName: '105 Night' },
     ],
   },
   deejay: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'Albertino',         showName: 'DeeJay Night',          djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/albertino.jpg' },
-      { startHour: 6,  endHour: 9,  djName: 'Linus',              showName: 'Deejay chiama Italia',  djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/linus.jpg' },
-      { startHour: 9,  endHour: 12, djName: 'Marco Maccarini',    showName: 'Vai col liscio',        djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/maccarini.jpg' },
-      { startHour: 12, endHour: 14, djName: 'Nicola Savino',      showName: 'Tutto esaurito',        djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/savino.jpg' },
-      { startHour: 14, endHour: 17, djName: 'Fargetta',           showName: 'DeeJay Pomeriggio',     djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/fargetta.jpg' },
-      { startHour: 17, endHour: 20, djName: 'Molella',            showName: 'DeeJay Evening',        djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/molella.jpg' },
-      { startHour: 20, endHour: 24, djName: 'Albertino',          showName: 'DeeJay Night',          djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/albertino.jpg' },
+      { startHour: 0,  endHour: 1,                          djName: 'Fargetta, Molella e Prezioso', showName: 'Deejay Time In The Mix' },
+      { startHour: 1,  endHour: 6,                          djName: 'Radio DeeJay',                 showName: 'DeeJay Night' },
+      { startHour: 6,  startMin: 0, endHour: 7, endMin: 30, djName: 'Umberto e Damiano',            showName: '006' },
+      { startHour: 7,  startMin: 30, endHour: 9,            djName: 'Trio Medusa',                  showName: 'Chiamate Roma Triuno Triuno' },
+      { startHour: 9,  endHour: 10,                         djName: 'Fabio Volo',                   showName: 'Il Volo del Mattino' },
+      { startHour: 10, endHour: 12,                         djName: 'Linus e Nicola Savino',        showName: 'Deejay Chiama Italia' },
+      { startHour: 12, endHour: 13,                         djName: 'Alessandro Cattelan',          showName: 'Catteland' },
+      { startHour: 13, endHour: 14,                         djName: 'Vic e Marisa',                 showName: 'Vic & Mari' },
+      { startHour: 14, endHour: 15,                         djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
+      { startHour: 15, endHour: 19,                         djName: 'Claves',                       showName: 'Claves' },
+      { startHour: 19, endHour: 21,                         djName: 'Wad',                          showName: 'One Two One Two' },
+      { startHour: 21, endHour: 22,                         djName: 'Radio DeeJay',                 showName: 'DeeJay Selezioni' },
+      { startHour: 22, endHour: 23,                         djName: 'DJ Shorty',                    showName: 'La Mezcla' },
+      { startHour: 23, endHour: 24,                         djName: 'Val S',                        showName: 'One Two One Two Selecta' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'Albertino',         showName: 'DeeJay Night',          djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/albertino.jpg' },
-      { startHour: 7,  endHour: 12, djName: 'Linus',              showName: 'DeeJay Weekend',        djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/linus.jpg' },
-      { startHour: 12, endHour: 17, djName: 'Fargetta',           showName: 'DeeJay Weekend',        djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/fargetta.jpg' },
-      { startHour: 17, endHour: 22, djName: 'Albertino',          showName: 'DeeJay Weekend Evening',djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/albertino.jpg' },
-      { startHour: 22, endHour: 24, djName: 'Albertino',          showName: 'DeeJay Night',          djPhotoUrl: 'https://www.deejay.it/wp-content/uploads/sites/2/2021/05/albertino.jpg' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio DeeJay',                          showName: 'DeeJay Night' },
+      { startHour: 6,  endHour: 8,  djName: 'Florencia',                             showName: '¡Hola Deejay!' },
+      { startHour: 8,  endHour: 10, djName: 'Laura Antonini e Rudy Zerbi',           showName: 'Laura e Rudy' },
+      { startHour: 10, endHour: 12, djName: 'Vic e Luciana Littizzetto',             showName: 'La Bomba' },
+      { startHour: 12, endHour: 13, djName: 'Ivan Zazzaroni e Fabio Caressa',        showName: 'Deejay Football Club' },
+      { startHour: 13, endHour: 14, djName: 'Radio DeeJay',                          showName: 'DeeJay Selezioni' },
+      { startHour: 14, endHour: 15, djName: 'Digei Angelo e Roberto Ferrari',        showName: 'Ciao Belli' },
+      { startHour: 15, endHour: 17, djName: 'Nikki, Federico Russo e Francesco Quarna', showName: 'Summer Camp' },
+      { startHour: 17, endHour: 19, djName: 'La Pina, Diego e La Vale',              showName: 'Pinocchio' },
+      { startHour: 19, endHour: 20, djName: 'Chiara e Ciccio',                       showName: 'Chiacchiericcio' },
+      { startHour: 20, endHour: 21, djName: 'Gianluca Gazzoli',                      showName: 'Gazzology' },
+      { startHour: 21, startMin: 0, endHour: 22, endMin: 30, djName: 'Wad',          showName: 'Say Waaad?' },
+      { startHour: 22, startMin: 30, endHour: 24,            djName: 'Nicola e Gianluca Vitiello', showName: 'DeeNotte' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio DeeJay',                          showName: 'DeeJay Night' },
+      { startHour: 6,  endHour: 8,  djName: 'Florencia',                             showName: '¡Hola Deejay!' },
+      { startHour: 8,  endHour: 20, djName: 'Radio DeeJay',                          showName: 'DeeJay Weekend' },
+      { startHour: 20, endHour: 21, djName: 'Francesco Quarna e Carlotta Multari',   showName: 'Radar' },
+      { startHour: 21, endHour: 23, djName: 'Annie Mazzola',                         showName: 'Io e Annie' },
+      { startHour: 23, endHour: 24, djName: 'Radio DeeJay',                          showName: 'DeeJay Night' },
     ],
   },
   radioitalia: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'Radio Italia',      showName: 'Notte Radio Italia' },
-      { startHour: 6,  endHour: 10, djName: 'Manola Moslehi',     showName: 'Morning Radio Italia',  djPhotoUrl: 'https://www.radioitalia.it/var/radioitalia/storage/images/media/images/conduttori/manola/987654-1-ita-IT/manola.jpg' },
-      { startHour: 10, endHour: 13, djName: 'Davide Caprelli',    showName: 'Radio Italia Midday',   djPhotoUrl: 'https://www.radioitalia.it/var/radioitalia/storage/images/media/images/conduttori/davide-caprelli/987655-1-ita-IT/davide-caprelli.jpg' },
-      { startHour: 13, endHour: 17, djName: 'Radio Italia',       showName: 'Radio Italia Pomeriggio' },
-      { startHour: 17, endHour: 21, djName: 'Radio Italia',       showName: 'Radio Italia Serata' },
-      { startHour: 21, endHour: 24, djName: 'Radio Italia',       showName: 'Notte Radio Italia' },
+      { startHour: 0,  endHour: 6,  djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
+      { startHour: 6,  endHour: 10, djName: 'Radio Italia', showName: 'Buongiorno Italia' },
+      { startHour: 10, endHour: 13, djName: 'Radio Italia', showName: 'Radio Italia Live' },
+      { startHour: 13, endHour: 17, djName: 'Radio Italia', showName: 'Pomeriggio Italiano' },
+      { startHour: 17, endHour: 21, djName: 'Radio Italia', showName: 'Serata Italiana' },
+      { startHour: 21, endHour: 24, djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'Radio Italia',      showName: 'Notte Radio Italia' },
-      { startHour: 7,  endHour: 14, djName: 'Radio Italia',       showName: 'Radio Italia Weekend' },
-      { startHour: 14, endHour: 21, djName: 'Radio Italia',       showName: 'Radio Italia Weekend' },
-      { startHour: 21, endHour: 24, djName: 'Radio Italia',       showName: 'Notte Radio Italia' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
+      { startHour: 6,  endHour: 14, djName: 'Radio Italia', showName: 'Weekend Italia' },
+      { startHour: 14, endHour: 21, djName: 'Radio Italia', showName: 'Pomeriggio Weekend' },
+      { startHour: 21, endHour: 24, djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
+      { startHour: 6,  endHour: 14, djName: 'Radio Italia', showName: 'Weekend Italia' },
+      { startHour: 14, endHour: 21, djName: 'Radio Italia', showName: 'Pomeriggio Weekend' },
+      { startHour: 21, endHour: 24, djName: 'Radio Italia', showName: 'Musica Italiana Nonstop' },
     ],
   },
   rds: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'RDS',               showName: 'RDS Night' },
-      { startHour: 6,  endHour: 10, djName: 'Angelo Baiguini',    showName: 'RDS Morning Show',      djPhotoUrl: 'https://www.rds.it/wp-content/uploads/2022/01/baiguini.jpg' },
-      { startHour: 10, endHour: 14, djName: 'RDS',               showName: 'RDS 100% Grandi Successi' },
-      { startHour: 14, endHour: 18, djName: 'RDS',               showName: 'RDS Drive' },
-      { startHour: 18, endHour: 22, djName: 'RDS',               showName: 'RDS Serata' },
-      { startHour: 22, endHour: 24, djName: 'RDS',               showName: 'RDS Night' },
+      { startHour: 0,  endHour: 6,  djName: 'RDS', showName: 'RDS Night' },
+      { startHour: 6,  endHour: 10, djName: 'RDS', showName: 'RDS Morning' },
+      { startHour: 10, endHour: 14, djName: 'RDS', showName: 'RDS 100% Grandi Successi' },
+      { startHour: 14, endHour: 18, djName: 'RDS', showName: 'RDS Drive' },
+      { startHour: 18, endHour: 22, djName: 'RDS', showName: 'RDS Serata' },
+      { startHour: 22, endHour: 24, djName: 'RDS', showName: 'RDS Night' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'RDS',               showName: 'RDS Night' },
-      { startHour: 7,  endHour: 14, djName: 'RDS',               showName: 'RDS Weekend' },
-      { startHour: 14, endHour: 22, djName: 'RDS',               showName: 'RDS Weekend' },
-      { startHour: 22, endHour: 24, djName: 'RDS',               showName: 'RDS Night' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'RDS', showName: 'RDS Night' },
+      { startHour: 6,  endHour: 14, djName: 'RDS', showName: 'RDS Weekend' },
+      { startHour: 14, endHour: 22, djName: 'RDS', showName: 'RDS Weekend' },
+      { startHour: 22, endHour: 24, djName: 'RDS', showName: 'RDS Night' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'RDS', showName: 'RDS Night' },
+      { startHour: 6,  endHour: 14, djName: 'RDS', showName: 'RDS Weekend' },
+      { startHour: 14, endHour: 22, djName: 'RDS', showName: 'RDS Weekend' },
+      { startHour: 22, endHour: 24, djName: 'RDS', showName: 'RDS Night' },
     ],
   },
   virgin: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'Virgin Radio',      showName: 'Virgin Night' },
-      { startHour: 6,  endHour: 10, djName: 'Andrea Rock',        showName: 'Virgin Morning',        djPhotoUrl: 'https://www.virginradio.it/wp-content/uploads/2022/01/andrea-rock.jpg' },
-      { startHour: 10, endHour: 14, djName: 'Daniela Cappelletti',showName: 'Virgin Midday',         djPhotoUrl: 'https://www.virginradio.it/wp-content/uploads/2022/01/daniela-cappelletti.jpg' },
-      { startHour: 14, endHour: 18, djName: 'Virgin Radio',       showName: 'Virgin Drive' },
-      { startHour: 18, endHour: 22, djName: 'Virgin Radio',       showName: 'Virgin Evening' },
-      { startHour: 22, endHour: 24, djName: 'Virgin Radio',       showName: 'Virgin Night' },
+      { startHour: 0,  endHour: 6,  djName: 'Virgin Radio', showName: 'Virgin Night' },
+      { startHour: 6,  endHour: 10, djName: 'Virgin Radio', showName: 'Virgin Morning Rock' },
+      { startHour: 10, endHour: 14, djName: 'Virgin Radio', showName: 'Rock Midday' },
+      { startHour: 14, endHour: 18, djName: 'Virgin Radio', showName: 'Rock Drive' },
+      { startHour: 18, endHour: 22, djName: 'Virgin Radio', showName: 'Rock Evening' },
+      { startHour: 22, endHour: 24, djName: 'Virgin Radio', showName: 'Virgin Night' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'Virgin Radio',      showName: 'Virgin Night' },
-      { startHour: 7,  endHour: 14, djName: 'Virgin Radio',       showName: 'Virgin Weekend' },
-      { startHour: 14, endHour: 22, djName: 'Virgin Radio',       showName: 'Virgin Weekend' },
-      { startHour: 22, endHour: 24, djName: 'Virgin Radio',       showName: 'Virgin Night' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'Virgin Radio', showName: 'Virgin Night' },
+      { startHour: 6,  endHour: 14, djName: 'Virgin Radio', showName: 'Virgin Weekend Rock' },
+      { startHour: 14, endHour: 22, djName: 'Virgin Radio', showName: 'Rock Weekend' },
+      { startHour: 22, endHour: 24, djName: 'Virgin Radio', showName: 'Virgin Night' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'Virgin Radio', showName: 'Virgin Night' },
+      { startHour: 6,  endHour: 14, djName: 'Virgin Radio', showName: 'Virgin Weekend Rock' },
+      { startHour: 14, endHour: 22, djName: 'Virgin Radio', showName: 'Rock Weekend' },
+      { startHour: 22, endHour: 24, djName: 'Virgin Radio', showName: 'Virgin Night' },
     ],
   },
   m2o: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'DJ Ralf',           showName: 'Night m2o',             djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/dj-ralf.jpg' },
-      { startHour: 6,  endHour: 10, djName: 'Ilario DJ',          showName: 'Morning Club',          djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/ilario-dj.jpg' },
-      { startHour: 10, endHour: 13, djName: 'Daniele Tignino',    showName: 'Club Action',           djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/daniele-tignino.jpg' },
-      { startHour: 13, endHour: 16, djName: 'm2o',               showName: 'Afternoon m2o' },
-      { startHour: 16, endHour: 19, djName: 'Benny Benassi',      showName: 'Drive m2o',             djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/benny-benassi.jpg' },
-      { startHour: 19, endHour: 22, djName: 'DJ Ralf',            showName: 'Senza Filtro',          djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/dj-ralf.jpg' },
-      { startHour: 22, endHour: 24, djName: 'm2o',               showName: 'Night m2o' },
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso', showName: 'Deejay Time In The Mix' },
+      { startHour: 1,  endHour: 6,  djName: 'm2o',                          showName: 'm2o Night' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',              showName: 'Morning Show' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                 showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                       showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                       showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                    showName: 'Albertino Everyday' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                        showName: 'One Two One Two Selecta' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 6,  djName: 'm2o',               showName: 'Night m2o' },
-      { startHour: 6,  endHour: 11, djName: 'Ilario DJ',          showName: 'Morning Club Weekend',  djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/ilario-dj.jpg' },
-      { startHour: 11, endHour: 16, djName: 'Daniele Tignino',    showName: 'Club Action Weekend',   djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/daniele-tignino.jpg' },
-      { startHour: 16, endHour: 20, djName: 'Benny Benassi',      showName: 'Weekend Drive',         djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/benny-benassi.jpg' },
-      { startHour: 20, endHour: 24, djName: 'DJ Ralf',            showName: 'Night m2o',             djPhotoUrl: 'https://www.m2o.it/wp-content/uploads/sites/9/2021/10/dj-ralf.jpg' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'm2o',                                   showName: 'm2o Night' },
+      { startHour: 6,  endHour: 9,  djName: 'Isabella',                               showName: 'Isabella' },
+      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                   showName: 'Patrizia Prinzivalli' },
+      { startHour: 12, endHour: 14, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
+      { startHour: 14, endHour: 15, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
+      { startHour: 15, endHour: 19, djName: 'Claves',                                 showName: 'Claves' },
+      { startHour: 19, endHour: 21, djName: 'Ilario',                                 showName: 'm2o Chart' },
+      { startHour: 21, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 24, djName: 'm2o', showName: 'm2o Weekend' },
     ],
   },
   capital: {
     weekday: [
-      { startHour: 0,  endHour: 6,  djName: 'Radio Capital',     showName: 'Capital Night' },
-      { startHour: 6,  endHour: 10, djName: 'Paolo Noise',        showName: 'Capital Morning',       djPhotoUrl: 'https://www.capital.it/wp-content/uploads/sites/4/2021/05/paolo-noise.jpg' },
-      { startHour: 10, endHour: 14, djName: 'Radio Capital',      showName: 'Capital Midday' },
-      { startHour: 14, endHour: 18, djName: 'Radio Capital',      showName: 'Capital Pomeriggio' },
-      { startHour: 18, endHour: 21, djName: 'Radio Capital',      showName: 'Capital Serata' },
-      { startHour: 21, endHour: 24, djName: 'Radio Capital',      showName: 'Capital Night' },
+      { startHour: 0,  endHour: 6,  djName: 'Radio Capital',                                      showName: 'Capital Night' },
+      { startHour: 6,  endHour: 7,  djName: 'Marco Maisano',                                      showName: 'Buongiorno Capital' },
+      { startHour: 7,  endHour: 10, djName: 'Andrea Lucatello, Riccardo Quadrano e Imma Baccelliere', showName: 'The Breakfast Club' },
+      { startHour: 10, endHour: 12, djName: 'Stefano Meloccaro e Benny',                          showName: 'Il Mezzogiornale' },
+      { startHour: 12, endHour: 14, djName: 'Flavia Cercato',                                     showName: 'Fattore C' },
+      { startHour: 14, endHour: 16, djName: 'Mixo e Luca De Gennaro',                             showName: 'Capital Records' },
+      { startHour: 16, endHour: 18, djName: 'Marco Biondi',                                       showName: 'Marco Biondi' },
+      { startHour: 18, endHour: 20, djName: 'Edoardo Buffoni e Doris Zaccone',                    showName: 'Tg Zero' },
+      { startHour: 20, endHour: 22, djName: 'Massimo Oldani',                                     showName: 'Vibe' },
+      { startHour: 22, endHour: 24, djName: 'Alessio Bertallot',                                  showName: 'B-Side' },
     ],
-    weekend: [
-      { startHour: 0,  endHour: 7,  djName: 'Radio Capital',     showName: 'Capital Night' },
-      { startHour: 7,  endHour: 14, djName: 'Radio Capital',      showName: 'Capital Weekend' },
-      { startHour: 14, endHour: 21, djName: 'Radio Capital',      showName: 'Capital Weekend' },
-      { startHour: 21, endHour: 24, djName: 'Radio Capital',      showName: 'Capital Night' },
+    saturday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio Capital', showName: 'Capital Night' },
+      { startHour: 6,  endHour: 14, djName: 'Radio Capital', showName: 'Capital Weekend' },
+      { startHour: 14, endHour: 21, djName: 'Radio Capital', showName: 'Capital Weekend' },
+      { startHour: 21, endHour: 24, djName: 'Radio Capital', showName: 'Capital Night' },
+    ],
+    sunday: [
+      { startHour: 0,  endHour: 6,  djName: 'Radio Capital', showName: 'Capital Night' },
+      { startHour: 6,  endHour: 14, djName: 'Radio Capital', showName: 'Capital Weekend' },
+      { startHour: 14, endHour: 21, djName: 'Radio Capital', showName: 'Capital Weekend' },
+      { startHour: 21, endHour: 24, djName: 'Radio Capital', showName: 'Capital Night' },
     ],
   },
 };
 
-function getScheduleSlots(stationId: string): ScheduleSlot[] {
-  const day = new Date().getDay();
+function getScheduleSlots(stationId: string, day?: number): ScheduleSlot[] {
+  const d = day ?? new Date().getDay(); // 0=Dom, 6=Sab
   const s = STATION_SCHEDULES[stationId];
   if (!s) return [];
-  return (day === 0 || day === 6) ? s.weekend : s.weekday;
+  if (d === 6) return s.saturday ?? s.weekday;
+  if (d === 0) return s.sunday ?? s.saturday ?? s.weekday;
+  return s.weekday;
+}
+
+// Foto DJ per nome — fallback a iniziali colorate se URL 404
+const DJ_PHOTOS: Record<string, string> = {
+  // m2o
+  'Walter Pizzulli':    'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/walter-pizzulli.jpg',
+  'Davide Rizzi':       'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/davide-rizzi.jpg',
+  'Marlen':             'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/marlen.jpg',
+  'Ilario':             'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/ilario.jpg',
+  'Albertino':          'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/albertino.jpg',
+  'Andrea Mattei':      'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/andrea-mattei.jpg',
+  'Vittoria Hyde':      'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/vittoria-hyde.jpg',
+  'Val S':              'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/val-s.jpg',
+  'Isabella':           'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/isabella.jpg',
+  'Patrizia Prinzivalli': 'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/patrizia-prinzivalli.jpg',
+  'Giorgio Dazzi':      'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/giorgio-dazzi.jpg',
+  'Claves':             'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/claves.jpg',
+  'DJ Shorty':          'https://www.m2o.it/wp-content/uploads/sites/9/2024/09/dj-shorty.jpg',
+  'Fargetta, Molella e Prezioso': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/fargetta.jpg',
+  'Albertino, Fargetta, Molella e Prezioso': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/albertino.jpg',
+  // Radio DeeJay
+  'Umberto e Damiano':  'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/umberto-damiano.jpg',
+  'Trio Medusa':        'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/trio-medusa.jpg',
+  'Fabio Volo':         'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/fabio-volo.jpg',
+  'Linus e Nicola Savino': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/linus.jpg',
+  'Alessandro Cattelan': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/cattelan.jpg',
+  'Vic e Marisa':       'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/vic.jpg',
+  'Digei Angelo e Roberto Ferrari': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/digei-angelo.jpg',
+  'Nikki, Federico Russo e Francesco Quarna': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/federico-russo.jpg',
+  'La Pina, Diego e La Vale': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/pinocchio.jpg',
+  'Chiara e Ciccio':    'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/chiara-ciccio.jpg',
+  'Gianluca Gazzoli':   'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/gazzoli.jpg',
+  'Wad':                'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/wad.jpg',
+  'Nicola e Gianluca Vitiello': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/vitiello.jpg',
+  'Florencia':          'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/florencia.jpg',
+  'Laura Antonini e Rudy Zerbi': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/laura-rudy.jpg',
+  'Vic e Luciana Littizzetto': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/vic.jpg',
+  'Ivan Zazzaroni e Fabio Caressa': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/zazzaroni.jpg',
+  'Francesco Quarna e Carlotta Multari': 'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/quarna.jpg',
+  'Annie Mazzola':      'https://www.deejay.it/wp-content/uploads/sites/2/2023/09/annie-mazzola.jpg',
+  // RTL 102.5
+  'Francesco Fredella': 'https://www.rtl.it/var/rtl/storage/images/programmi/w-litalia/1040555-1-ita-IT/w-litalia.jpg',
+  'Fulvio Giuliani':    'https://www.rtl.it/var/rtl/storage/images/programmi/good-vibrations/1040553-1-ita-IT/good-vibrations.jpg',
+  'Cecilia Songini':    'https://www.rtl.it/var/rtl/storage/images/programmi/rock-morning/1040556-1-ita-IT/rock-morning.jpg',
+  'Gianni Simioli':     'https://www.rtl.it/var/rtl/storage/images/programmi/electric-ladyland/1040557-1-ita-IT/electric-ladyland.jpg',
+  'Antonio Sica':       'https://www.rtl.it/var/rtl/storage/images/programmi/destinazione-zeta/1040558-1-ita-IT/destinazione-zeta.jpg',
+  'Francesco Taranto':  'https://www.rtl.it/var/rtl/storage/images/programmi/molo-17/1040559-1-ita-IT/molo-17.jpg',
+  'Nicoletta Deponti':  'https://www.rtl.it/var/rtl/storage/images/programmi/good-vibrations/1040553-1-ita-IT/good-vibrations.jpg',
+  // Radio Capital
+  'Marco Maisano':      'https://www.capital.it/wp-content/uploads/sites/4/2023/09/marco-maisano.jpg',
+  'Andrea Lucatello, Riccardo Quadrano e Imma Baccelliere': 'https://www.capital.it/wp-content/uploads/sites/4/2023/09/breakfast-club.jpg',
+  'Stefano Meloccaro e Benny': 'https://www.capital.it/wp-content/uploads/sites/4/2023/09/mezzogiornale.jpg',
+  'Flavia Cercato':     'https://www.capital.it/wp-content/uploads/sites/4/2023/09/flavia-cercato.jpg',
+  'Mixo e Luca De Gennaro': 'https://www.capital.it/wp-content/uploads/sites/4/2023/09/capital-records.jpg',
+  'Marco Biondi':       'https://www.capital.it/wp-content/uploads/sites/4/2023/09/marco-biondi.jpg',
+  'Edoardo Buffoni e Doris Zaccone': 'https://www.capital.it/wp-content/uploads/sites/4/2023/09/tg-zero.jpg',
+  'Massimo Oldani':     'https://www.capital.it/wp-content/uploads/sites/4/2023/09/massimo-oldani.jpg',
+  'Alessio Bertallot':  'https://www.capital.it/wp-content/uploads/sites/4/2023/09/alessio-bertallot.jpg',
+};
+
+function getDjPhoto(djName: string): string | undefined {
+  return DJ_PHOTOS[djName];
 }
 
 function getCurrentSlotIndex(slots: ScheduleSlot[]): number {
-  const hour = new Date().getHours();
-  return slots.findIndex(s => hour >= s.startHour && hour < s.endHour);
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return slots.findIndex(s => {
+    const start = s.startHour * 60 + (s.startMin ?? 0);
+    const end   = s.endHour   * 60 + (s.endMin   ?? 0);
+    return mins >= start && mins < end;
+  });
 }
+
+
 
 const RADIO_URL_CACHE_PREFIX = 'radio_url_cache_';
 const RADIO_URL_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 giorni
@@ -2203,17 +2348,19 @@ const cm = StyleSheet.create({
 // Avatar foto DJ con fallback automatico alle iniziali se l'immagine non carica
 function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: string; isCurrent: boolean; initials: string }) {
   const [err, setErr] = useState(false);
+  const size = isCurrent ? 54 : 44;
+  const radius = size / 2;
   if (err) {
     return (
-      <View style={[palSt.avatarBg, { backgroundColor: color + (isCurrent ? '2E' : '10') }]}>
-        <Text style={[palSt.avatarTxt, { color: isCurrent ? color : 'rgba(255,255,255,0.35)' }]}>{initials}</Text>
+      <View style={[isCurrent ? palSt.avatarBgLg : palSt.avatarBg, { backgroundColor: color + (isCurrent ? '2E' : '12') }]}>
+        <Text style={[palSt.avatarTxt, { color: isCurrent ? color : 'rgba(255,255,255,0.3)', fontSize: isCurrent ? 18 : 14 }]}>{initials}</Text>
       </View>
     );
   }
   return (
     <Image
       source={{ uri }}
-      style={[palSt.avatar, { borderColor: color, borderWidth: isCurrent ? 2 : 1, opacity: isCurrent ? 1 : 0.7 }]}
+      style={{ width: size, height: size, borderRadius: radius, borderWidth: isCurrent ? 2 : 1, borderColor: color, opacity: isCurrent ? 1 : 0.75 }}
       onError={() => setErr(true)}
     />
   );
@@ -2228,6 +2375,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
   const [djImgError, setDjImgError] = useState(false);
   const [showPalinsesto, setShowPalinsesto] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
+  const scheduleScrollRef = useRef<any>(null);
+  const livePulse = useRef(new Animated.Value(1)).current;
 
   // Fetch audio stream
   useEffect(() => {
@@ -2296,13 +2446,36 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
-  const scheduleSlots = getScheduleSlots(station.id);
-  const currentSlotIdx = getCurrentSlotIndex(scheduleSlots);
-  // Per "ORA IN ONDA": priorità foto API live → foto statica dello slot corrente → iniziali
-  const staticSlotPhoto = scheduleSlots[currentSlotIdx]?.djPhotoUrl;
+  const isToday = selectedDay === new Date().getDay();
+  const scheduleSlots = getScheduleSlots(station.id, selectedDay);
+  const currentSlotIdx = isToday ? getCurrentSlotIndex(scheduleSlots) : -1;
+  // Per "ORA IN ONDA": priorità foto API live → foto lookup/statica slot corrente → iniziali
+  const staticSlotPhoto = currentSlotIdx >= 0
+    ? (scheduleSlots[currentSlotIdx]?.djPhotoUrl ?? getDjPhoto(scheduleSlots[currentSlotIdx]?.djName ?? ''))
+    : undefined;
   const resolvedDjPhoto = (nowPlaying?.djImageUrl && !djImgError) ? nowPlaying.djImageUrl : staticSlotPhoto;
   const showDjImage = !!(nowPlaying && resolvedDjPhoto);
   const showDjInitials = !!(nowPlaying && nowPlaying.djName && !resolvedDjPhoto);
+
+  // Animazione pulse per badge LIVE ORA
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(livePulse, { toValue: 0.2, duration: 700, useNativeDriver: true }),
+        Animated.timing(livePulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [livePulse]);
+
+  // Auto-scroll allo slot corrente quando si apre il palinsesto
+  useEffect(() => {
+    if (!showPalinsesto || currentSlotIdx < 0 || !scheduleScrollRef.current) return;
+    setTimeout(() => {
+      scheduleScrollRef.current?.scrollTo({ y: Math.max(0, currentSlotIdx * 80 - 40), animated: true });
+    }, 300);
+  }, [showPalinsesto, currentSlotIdx]);
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -2416,75 +2589,155 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         )}
       </View>
       ) : (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={palSt.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={palSt.heading}>
-            {['DOM', 'LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB'][new Date().getDay()]} — PALINSESTO
-          </Text>
-          {scheduleSlots.map((slot, i) => {
-            const isCurrent = i === currentSlotIdx;
-            // priorità: foto live API (solo slot corrente) → foto statica → iniziali
-            const photoUrl = (isCurrent && nowPlaying?.djImageUrl && !djImgError)
-              ? nowPlaying!.djImageUrl
-              : slot.djPhotoUrl;
-            const initials = slot.djName.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
-            const pad = (h: number) => (h % 24).toString().padStart(2, '0');
-            return (
-              <View
-                key={i}
-                style={[
-                  palSt.slot,
-                  isCurrent && { backgroundColor: station.color + '1E', borderColor: station.color + '55' },
-                ]}
-              >
-                <Text style={[palSt.time, isCurrent && { color: station.color }]}>
-                  {pad(slot.startHour)}–{pad(slot.endHour)}
-                </Text>
-                {photoUrl ? (
-                  <SlotPhoto uri={photoUrl} color={station.color} isCurrent={isCurrent} initials={initials} />
-                ) : (
-                  <View style={[palSt.avatarBg, { backgroundColor: station.color + (isCurrent ? '2E' : '10') }]}>
-                    <Text style={[palSt.avatarTxt, { color: isCurrent ? station.color : 'rgba(255,255,255,0.35)' }]}>
-                      {initials}
+        <View style={{ flex: 1 }}>
+          {/* Navigazione giorno */}
+          <View style={palSt.dayNav}>
+            <TouchableOpacity
+              onPress={() => setSelectedDay(d => (d + 6) % 7)}
+              style={palSt.dayArrowBtn}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text style={[palSt.dayArrowTxt, { color: station.color }]}>←</Text>
+            </TouchableOpacity>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={[palSt.dayLabelMain, { color: station.color }]}>
+                {['DOMENICA', 'LUNEDÌ', 'MARTEDÌ', 'MERCOLEDÌ', 'GIOVEDÌ', 'VENERDÌ', 'SABATO'][selectedDay]}
+              </Text>
+              {isToday && <Text style={palSt.dayLabelSub}>OGGI</Text>}
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedDay(d => (d + 1) % 7)}
+              style={palSt.dayArrowBtn}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text style={[palSt.dayArrowTxt, { color: station.color }]}>→</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            ref={scheduleScrollRef}
+            style={{ flex: 1 }}
+            contentContainerStyle={palSt.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {scheduleSlots.map((slot, i) => {
+              const isCurrent = i === currentSlotIdx;
+              const isPast = isToday && i < currentSlotIdx;
+              const isLast = i === scheduleSlots.length - 1;
+              const photoUrl = (isCurrent && nowPlaying?.djImageUrl && !djImgError)
+                ? nowPlaying!.djImageUrl
+                : (slot.djPhotoUrl ?? getDjPhoto(slot.djName));
+              const initials = slot.djName.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
+              const pad = (h: number, m?: number) =>
+                `${(h % 24).toString().padStart(2, '0')}:${(m ?? 0).toString().padStart(2, '0')}`;
+              const totalMins = (slot.endHour * 60 + (slot.endMin ?? 0)) - (slot.startHour * 60 + (slot.startMin ?? 0));
+              const durLabel = totalMins >= 60
+                ? `${Math.floor(totalMins / 60)}h${totalMins % 60 ? ` ${totalMins % 60}m` : ''}`
+                : `${totalMins}m`;
+              return (
+                <View key={i} style={[palSt.slotRow, isPast && { opacity: 0.4 }]}>
+                  {/* Colonna timeline */}
+                  <View style={palSt.timelineCol}>
+                    <View style={[
+                      palSt.timelineDot,
+                      isCurrent
+                        ? { backgroundColor: station.color, width: 10, height: 10, borderRadius: 5, marginTop: 2 }
+                        : { backgroundColor: 'rgba(255,255,255,0.15)', width: 6, height: 6, borderRadius: 3, marginTop: 4 },
+                    ]} />
+                    {!isLast && <View style={[palSt.timelineLine, isCurrent && { backgroundColor: station.color + '40' }]} />}
+                  </View>
+
+                  {/* Card slot */}
+                  <View style={[
+                    palSt.slot,
+                    isCurrent && { backgroundColor: station.color + '18', borderColor: station.color + '60' },
+                  ]}>
+                    {/* Ora inizio */}
+                    <Text style={[palSt.time, isCurrent && { color: station.color, fontWeight: '700' }]}>
+                      {pad(slot.startHour, slot.startMin)}
                     </Text>
+
+                    {/* Foto DJ */}
+                    <View style={isCurrent ? palSt.avatarWrapLg : palSt.avatarWrap}>
+                      {photoUrl ? (
+                        <SlotPhoto
+                          uri={photoUrl}
+                          color={station.color}
+                          isCurrent={isCurrent}
+                          initials={initials}
+                        />
+                      ) : (
+                        <View style={[
+                          isCurrent ? palSt.avatarBgLg : palSt.avatarBg,
+                          { backgroundColor: station.color + (isCurrent ? '2E' : '12') },
+                        ]}>
+                          <Text style={[palSt.avatarTxt, { color: isCurrent ? station.color : 'rgba(255,255,255,0.3)', fontSize: isCurrent ? 18 : 14 }]}>
+                            {initials}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Info testo */}
+                    <View style={palSt.info}>
+                      <Text style={[palSt.showNameBold, isCurrent && { color: '#fff' }]} numberOfLines={1}>
+                        {slot.showName}
+                      </Text>
+                      <Text style={palSt.djNameSmall} numberOfLines={1}>{slot.djName}</Text>
+                      <Text style={palSt.durTxt}>{durLabel}</Text>
+                    </View>
+
+                    {/* Badge LIVE ORA animato */}
+                    {isCurrent && (
+                      <View style={palSt.liveBadge}>
+                        <Animated.View style={[palSt.liveDot, { backgroundColor: station.color, opacity: livePulse }]} />
+                        <Text style={[palSt.liveTxt, { color: station.color }]}>LIVE ORA</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-                <View style={palSt.info}>
-                  <Text style={[palSt.djNameTxt, isCurrent && { color: '#fff' }]} numberOfLines={1}>
-                    {slot.djName}
-                  </Text>
-                  <Text style={palSt.showTxt} numberOfLines={1}>{slot.showName}</Text>
                 </View>
-                {isCurrent && (
-                  <View style={[palSt.liveBadge, { backgroundColor: station.color }]}>
-                    <Text style={palSt.liveTxt}>LIVE</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+              );
+            })}
+          </ScrollView>
+        </View>
       )}
     </Modal>
   );
 }
 
 const palSt = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
-  heading: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', letterSpacing: 2.5, textAlign: 'center', marginBottom: 16, marginTop: 4 },
-  slot: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', gap: 12 },
-  time: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', width: 60 },
-  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
+  // Navigazione giorno
+  dayNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  dayArrowBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  dayArrowTxt: { fontSize: 20, fontWeight: '700' },
+  dayLabelMain: { fontSize: 13, fontWeight: '800', letterSpacing: 2, fontFamily: 'monospace' },
+  dayLabelSub: { fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: 2, fontFamily: 'monospace', marginTop: 2 },
+  // Lista slot
+  scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  slotRow: { flexDirection: 'row', marginBottom: 4 },
+  // Timeline
+  timelineCol: { width: 20, alignItems: 'center', paddingTop: 18 },
+  timelineDot: { marginBottom: 0 },
+  timelineLine: { flex: 1, width: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 4, minHeight: 32 },
+  // Card slot
+  slot: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, marginLeft: 6, marginBottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)', gap: 10 },
+  time: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', width: 42 },
+  // Foto avatar
+  avatarWrap: { width: 44, height: 44 },
+  avatarWrapLg: { width: 54, height: 54 },
+  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5 },
   avatarBg: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { fontSize: 15, fontWeight: '800' },
-  info: { flex: 1 },
-  djNameTxt: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.65)', marginBottom: 2 },
-  showTxt: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' },
-  liveBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  liveTxt: { fontSize: 9, color: '#fff', fontWeight: '800', letterSpacing: 1.5, fontFamily: 'monospace' },
+  avatarBgLg: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  avatarTxt: { fontWeight: '800' },
+  // Testi
+  info: { flex: 1, minWidth: 0 },
+  showNameBold: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.6)', marginBottom: 2 },
+  djNameSmall: { fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2 },
+  durTxt: { fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' },
+  // Badge LIVE ORA
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveTxt: { fontSize: 8, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'monospace' },
 });
 
 const osp = StyleSheet.create({
