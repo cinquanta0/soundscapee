@@ -9,7 +9,6 @@ workflows:
         EXPO_UPDATE_CHANNEL: preview
       groups:
         - soundscape
-        - expo
     scripts:
       - name: Install dependencies
         script: |
