@@ -28,10 +28,14 @@ workflows:
           EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=$EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
           EXPO_PUBLIC_AGORA_APP_ID=$EXPO_PUBLIC_AGORA_APP_ID
           EOF
-      - name: Push OTA update
+      - name: Push OTA update iOS
         script: |
           set -e
           CI=1 npx eas-cli update --channel preview --message "OTA da Codemagic Mac" --platform ios
+      - name: Push OTA update Android
+        script: |
+          set -e
+          CI=1 npx eas-cli update --channel preview --message "OTA da Codemagic Mac" --platform android
 
   ios-unsigned:
     name: iOS Unsigned IPA
