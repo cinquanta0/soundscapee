@@ -985,37 +985,11 @@ const loadNotifications = async () => {
 
   const handleCheckUpdates = async () => {
     const isEmbedded = currentlyRunning.isEmbeddedLaunch;
-    const currentId = currentlyRunning.updateId ?? "nessuno";
-    const channel = currentlyRunning.channel ?? "NON IMPOSTATO";
+    const channel = currentlyRunning.channel ?? "non impostato";
     const runtimeVersion = currentlyRunning.runtimeVersion ?? "?";
-    const initErr = initializationError ? `\n\n⚠️ INIT ERROR: ${initializationError.message}` : "";
-
     Alert.alert(
-      isEmbedded ? "⚠️ Bundle EMBEDDED" : "✅ Bundle OTA attivo",
-      `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate ID: ${currentId}${initErr}\n\nPremi OK per cercare aggiornamenti`,
-      [{ text: "OK", onPress: async () => {
-        try {
-          const update = await Updates.checkForUpdateAsync();
-          if (update.isAvailable) {
-            Alert.alert(
-              "Aggiornamento trovato!",
-              "Scarico e riavvio...",
-              [{ text: "Riavvia", onPress: async () => {
-                const result = await Updates.fetchUpdateAsync();
-                if (result.isNew) {
-                  await Updates.reloadAsync();
-                } else {
-                  Alert.alert("Fetch completato", "isNew: false — nessun bundle nuovo scaricato");
-                }
-              }}]
-            );
-          } else {
-            Alert.alert("Nessun aggiornamento", `Canale: ${channel}`);
-          }
-        } catch (e) {
-          Alert.alert("Errore OTA", String(e));
-        }
-      }}]
+      isEmbedded ? "Bundle embedded" : "Bundle OTA attivo ✅",
+      `Canale: ${channel}\nRuntime: ${runtimeVersion}`,
     );
   };
   
@@ -2228,7 +2202,7 @@ if (loading) {
                   onPress={handleCheckUpdates}
                 >
                   <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
-                    OTA FUNZIONA ✅ (18 Apr 15:45)
+                    Aggiornamenti
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
