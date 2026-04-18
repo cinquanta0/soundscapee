@@ -230,8 +230,13 @@ export async function publishCollabAsSound(
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Non autenticato');
 
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  const userData = userDoc.data();
+
   await addDoc(collection(db, 'sounds'), {
     userId: uid,
+    username: userData?.username || userData?.displayName || 'Anonimo',
+    userAvatar: userData?.avatar || '🎧',
     collaboratorId: s.hostId === uid ? s.guestId : s.hostId,
     collaboratorName: s.hostId === uid ? s.guestName : s.hostName,
     title,

@@ -872,18 +872,20 @@ export const createCommunity = async (communityData) => {
 
 export const getCommunities = async (limitCount = 20) => {
   try {
-    const q = query(
-      collection(db, 'communities'),
-      where('isPublic', '==', true),
-      limit(limitCount)
-    );
-    
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date()
-    }));
+    const uid = auth.currentUser?.uid;
+
+    const [publicSnap, privateSnap] = await Promise.all([
+      getDocs(query(collection(db, 'communities'), where('isPublic', '==', true), limit(limitCount))),
+      uid
+        ? getDocs(query(collection(db, 'communities'), where('isPublic', '==', false), where('createdBy', '==', uid)))
+        : Promise.resolve({ docs: [] }),
+    ]);
+
+    const toItem = doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() || new Date() });
+    const seen = new Set();
+    return [...publicSnap.docs, ...privateSnap.docs]
+      .filter(doc => { if (seen.has(doc.id)) return false; seen.add(doc.id); return true; })
+      .map(toItem);
   } catch (error) {
     console.error('Error getting communities:', error);
     throw error;
