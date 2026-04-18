@@ -68,6 +68,24 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
     });
   }
 
+  // Aggiorna label e icon con i dati aggiornati dal profilo Firestore,
+  // così anche se il campo username nel documento stato è stale/errato mostriamo il nome corretto.
+  const uids = Object.keys(byUser);
+  await Promise.all(
+    uids.map(async (uid) => {
+      try {
+        const snap = await getDoc(doc(db, 'users', uid));
+        if (snap.exists()) {
+          const p = snap.data();
+          if (p.username) byUser[uid].label = p.username;
+          if (p.avatar) byUser[uid].icon = p.avatar;
+        }
+      } catch {
+        // profilo non disponibile — usa il valore denormalizzato già presente
+      }
+    })
+  );
+
   return Object.values(byUser);
 }
 
