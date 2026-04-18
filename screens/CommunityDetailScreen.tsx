@@ -15,7 +15,6 @@ import {
   leaveCommunity,
 } from '../services/communityService';
 import { deleteCommunity } from '../services/firebaseService';
-import { RECORDING_OPTIONS_AAC } from '../services/agoraService';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '🎵', '👏', '😂', '🎤'];
 
@@ -233,7 +232,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert('Permesso microfono necessario'); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
-      const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS_AAC);
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
       setIsRecording(true);
       setRecordSeconds(0);
