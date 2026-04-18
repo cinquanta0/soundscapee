@@ -9,6 +9,9 @@ module.exports = ({ config }) => ({
     checkAutomatically: "ON_LOAD",
     enabled: true,
     fallbackToCacheTimeout: 0,
+    requestHeaders: {
+      "expo-channel-name": process.env.EXPO_UPDATE_CHANNEL || "preview",
+    },
   },
   runtimeVersion: {
     policy: "appVersion",
