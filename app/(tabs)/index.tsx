@@ -2222,7 +2222,7 @@ if (loading) {
                   onPress={handleCheckUpdates}
                 >
                   <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
-                    Cerca Aggiornamenti — v2 (18 Apr 15:05)
+                    OTA FUNZIONA ✅ (18 Apr 15:45)
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
