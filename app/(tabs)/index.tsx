@@ -982,28 +982,31 @@ const loadNotifications = async () => {
 };
 
   const handleCheckUpdates = async () => {
+    const currentId = Updates.updateId ?? "embedded (nessun OTA)";
+    const channel = Updates.channel ?? "non impostato";
+    const runtimeVersion = Updates.runtimeVersion ?? "?";
     try {
-      Alert.alert(
-        "Controllo aggiornamenti",
-        "Controllo se ci sono aggiornamenti OTA disponibili..."
-      );
       const update = await Updates.checkForUpdateAsync();
       if (update.isAvailable) {
         Alert.alert(
           "Aggiornamento trovato!",
-          "Sto scaricando il nuovo aggiornamento in background. Non chiudere l'app..."
-        );
-        await Updates.fetchUpdateAsync();
-        Alert.alert(
-          "Aggiornamento scaricato",
-          "L'aggiornamento è pronto! L'app si riavvierà per applicarlo.",
-          [{ text: "Riavvia ora", onPress: () => Updates.reloadAsync() }]
+          `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}\n\nScarico e riavvio...`,
+          [{ text: "OK", onPress: async () => {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+          }}]
         );
       } else {
-        Alert.alert("Tutto aggiornato", "Stai già usando l'ultima versione dell'app.");
+        Alert.alert(
+          "Nessun aggiornamento",
+          `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}`
+        );
       }
     } catch (e) {
-      Alert.alert("Errore aggiornamento", "Si è verificato un errore: " + String(e));
+      Alert.alert(
+        "Errore OTA",
+        `Canale: ${channel}\nRuntime: ${runtimeVersion}\nUpdate attuale: ${currentId}\n\nErrore: ${String(e)}`
+      );
     }
   };
   
