@@ -1314,7 +1314,7 @@ if (loading) {
         <View>
           <View style={styles.headerTitle}>
             <Text style={styles.logo}>🎧</Text>
-            <Text style={styles.title}>SoundScape (OTA OK!)</Text>
+            <Text style={styles.title}>SoundScape</Text>
             {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>
@@ -1322,27 +1322,6 @@ if (loading) {
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
           </View>
-          <TouchableOpacity 
-            style={{ backgroundColor: '#06b6d4', padding: 8, borderRadius: 8, marginTop: 8 }}
-            onPress={async () => {
-              try {
-                const Updates = require('expo-updates');
-                const update = await Updates.checkForUpdateAsync();
-                if (update.isAvailable) {
-                  Alert.alert("Trovato!", "Scaricamento in corso...");
-                  await Updates.fetchUpdateAsync();
-                  Alert.alert("Fatto", "Riavvio in corso...");
-                  await Updates.reloadAsync();
-                } else {
-                  Alert.alert("Nessun aggiornamento", `Canale: ${Updates.channel}\nRuntime: ${Updates.runtimeVersion}\nUpdate ID: ${Updates.updateId}`);
-                }
-              } catch (e) {
-                Alert.alert("Errore OTA", String(e));
-              }
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>🔄 Controlla Aggiornamenti OTA</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.headerButtons}>
   {/* Bottone notifiche */}
