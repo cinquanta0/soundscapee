@@ -84,7 +84,7 @@ workflows:
       node: 20
       java: 17
       vars:
-        EXPO_UPDATE_CHANNEL: production
+        EXPO_UPDATE_CHANNEL: preview
       groups:
         - soundscape
     scripts:
