@@ -7,6 +7,8 @@ workflows:
       node: 20
       xcode: 16.2
       cocoapods: default
+      vars:
+        EXPO_UPDATE_CHANNEL: preview
       groups:
         - soundscape
     scripts:
@@ -36,33 +38,7 @@ workflows:
           ls -la ios/
           echo "=== Podfile exists? ==="
           test -f ios/Podfile && echo "YES - Podfile found" || echo "NO - Podfile MISSING"
-      - name: Patch Expo.plist — forza expo-updates channel preview
-        script: |
-          set -e
-          echo "=== Cerco Expo.plist ==="
-          find ios -name "Expo.plist" 2>/dev/null || echo "Expo.plist non trovato"
-          find ios -name "*.plist" | head -20
-          PLIST=$(find ios -name "Expo.plist" | head -1)
-          if [ -z "$PLIST" ]; then
-            echo "Expo.plist non trovato, skip patch"
-            exit 0
-          fi
-          echo "=== Expo.plist trovato: $PLIST ==="
-          echo "=== PRIMA del patch ==="
-          cat "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :EXUpdatesURL string https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled true" "$PLIST" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool true" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.0" "$PLIST" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :EXUpdatesRuntimeVersion string 1.0.0" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Delete :EXUpdatesRequestHeaders" "$PLIST" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders dict" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders:expo-channel-name string preview" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :EXUpdatesLaunchWaitMs 10000" "$PLIST" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :EXUpdatesLaunchWaitMs integer 10000" "$PLIST"
-          echo "=== DOPO il patch ==="
-          cat "$PLIST"
+
       - name: CocoaPods install
         script: |
           set -e
@@ -107,6 +83,8 @@ workflows:
     environment:
       node: 20
       java: 17
+      vars:
+        EXPO_UPDATE_CHANNEL: production
       groups:
         - soundscape
     scripts:
@@ -132,19 +110,7 @@ workflows:
         script: |
           set -e
           npx expo prebuild --platform android --clean --non-interactive --no-install
-      - name: Patch AndroidManifest — expo-updates channel preview
-        script: |
-          set -e
-          node -e "
-            const fs = require('fs');
-            const p = 'android/app/src/main/AndroidManifest.xml';
-            let c = fs.readFileSync(p, 'utf8');
-            c = c.replace(/<meta-data android:name=\"expo\.modules\.updates\.EXPO_CHANNEL_NAME\"[^\/]*\/>/g, '');
-            c = c.replace(/EXPO_RUNTIME_VERSION\" android:value=\"[^\"]*\"/, 'EXPO_RUNTIME_VERSION\" android:value=\"1.0.0\"');
-            c = c.replace('<\/application>', '    <meta-data android:name=\"expo.modules.updates.EXPO_CHANNEL_NAME\" android:value=\"preview\"\/>\n  <\/application>');
-            fs.writeFileSync(p, c);
-            console.log('Patch OK');
-          "
+
       - name: Generate keystore
         script: |
           set -e
