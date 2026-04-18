@@ -15,7 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../../firebaseConfig';
-import { getCommunities, createCommunity } from '../../services/firebaseService';
+import { getCommunities, createCommunity, deleteCommunity } from '../../services/firebaseService';
 import { joinCommunity, leaveCommunity, requestToJoin, cancelJoinRequest, getMyJoinRequest, getMyRole } from '../../services/communityService';
 import CommunityDetailScreen from '../../screens/CommunityDetailScreen';
 
@@ -60,6 +60,7 @@ export default function CommunitiesScreen() {
   };
 
   const handleJoinAction = async (community: any) => {
+    const uid = auth.currentUser?.uid;
     const state = membershipState[community.id];
     try {
       if (state === 'member') {
@@ -70,7 +71,7 @@ export default function CommunitiesScreen() {
         await cancelJoinRequest(community.id);
         setMembershipState((prev) => ({ ...prev, [community.id]: null }));
         Alert.alert('Richiesta annullata');
-      } else if (community.isPublic !== false) {
+      } else if (community.isPublic !== false || community.creatorId === uid) {
         await joinCommunity(community.id);
         setMembershipState((prev) => ({ ...prev, [community.id]: 'member' }));
         Alert.alert('✅ Iscritto!');
@@ -83,6 +84,28 @@ export default function CommunitiesScreen() {
     } catch (e: any) {
       Alert.alert('Errore', e.message);
     }
+  };
+
+  const handleDeleteCommunity = async (community: any) => {
+    Alert.alert(
+      '🗑 Elimina community',
+      `Vuoi eliminare "${community.name}"? Questa azione è irreversibile.`,
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Elimina',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteCommunity(community.id);
+              loadCommunities();
+            } catch (e: any) {
+              Alert.alert('Errore', e.message);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleCreate = async () => {
@@ -107,6 +130,7 @@ export default function CommunitiesScreen() {
       <CommunityDetailScreen
         community={selectedCommunity}
         onClose={() => { setSelectedCommunity(null); loadCommunities(); }}
+        onCommunityDeleted={() => { setSelectedCommunity(null); loadCommunities(); }}
       />
     );
   }
@@ -138,7 +162,9 @@ export default function CommunitiesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
+          const uid = auth.currentUser?.uid;
           const state = membershipState[item.id];
+          const isOwner = item.creatorId === uid;
           const joinLabel = state === 'member' ? 'Iscritto ✓' : state === 'pending' ? '⏳ In attesa' : item.isPublic !== false ? t('communities.join') : '🔒 Richiedi';
           const joinStyle = state === 'member' ? styles.joinButtonMember : state === 'pending' ? styles.joinButtonPending : styles.joinButton;
           return (
@@ -154,6 +180,15 @@ export default function CommunitiesScreen() {
                     {t('communities.membersAndSounds', { members: item.membersCount, sounds: item.soundsCount })}
                   </Text>
                 </View>
+                {isOwner && item.isPublic === false && (
+                  <TouchableOpacity
+                    style={styles.deleteCardBtn}
+                    onPress={(e) => { e.stopPropagation?.(); handleDeleteCommunity(item); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.deleteCardTxt}>🗑</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <Text style={styles.communityDescription} numberOfLines={2}>{item.description}</Text>
               <View style={styles.communityFooter}>
@@ -345,6 +380,13 @@ const styles = StyleSheet.create({
   },
   privateBadge: {
     fontSize: 12,
+  },
+  deleteCardBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  deleteCardTxt: {
+    fontSize: 18,
   },
   toggleRow: {
     flexDirection: 'row',

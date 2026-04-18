@@ -14,6 +14,7 @@ import {
   setMemberRole, kickMember,
   leaveCommunity,
 } from '../services/communityService';
+import { deleteCommunity } from '../services/firebaseService';
 import { RECORDING_OPTIONS_AAC } from '../services/agoraService';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '🎵', '👏', '😂', '🎤'];
@@ -166,9 +167,10 @@ function MessageBubble({ msg, isMe, isAdmin, onReact, onPin, onDelete }: Message
 interface Props {
   community: Community;
   onClose: () => void;
+  onCommunityDeleted?: () => void;
 }
 
-export default function CommunityDetailScreen({ community, onClose }: Props) {
+export default function CommunityDetailScreen({ community, onClose, onCommunityDeleted }: Props) {
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'requests'>('chat');
   const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [members, setMembers] = useState<CommunityMember[]>([]);
@@ -179,6 +181,7 @@ export default function CommunityDetailScreen({ community, onClose }: Props) {
   const [caption, setCaption] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedMember, setSelectedMember] = useState<CommunityMember | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chatListRef = useRef<FlatList<CommunityMessage>>(null);
@@ -283,11 +286,13 @@ export default function CommunityDetailScreen({ community, onClose }: Props) {
   };
 
   const handleMemberAction = (member: CommunityMember) => {
-    if (member.userId === myUid) return;
-    if (!isAdmin) return;
+    setSelectedMember(member);
+  };
+
+  const handleAdminActions = (member: CommunityMember) => {
+    if (!isAdmin || member.userId === myUid) return;
     const isCurrentAdmin = myRole === 'admin';
     const options: { text: string; onPress: () => void; style?: 'destructive' | 'cancel' }[] = [];
-
     if (isCurrentAdmin) {
       if (member.role === 'member') {
         options.push({ text: '⭐ Promuovi a Moderatore', onPress: () => setMemberRole(community.id, member.userId, 'moderator').catch(() => {}) });
@@ -297,8 +302,22 @@ export default function CommunityDetailScreen({ community, onClose }: Props) {
     }
     options.push({ text: '🚫 Rimuovi dalla community', style: 'destructive', onPress: () => kickMember(community.id, member.userId).catch(() => {}) });
     options.push({ text: 'Annulla', style: 'cancel', onPress: () => {} });
+    Alert.alert(member.userName, 'Azioni admin', options);
+  };
 
-    Alert.alert(member.userName, undefined, options);
+  const handleDelete = () => {
+    Alert.alert('Elimina community', `Vuoi eliminare "${community.name}"? Questa azione è irreversibile.`, [
+      { text: 'Annulla', style: 'cancel' },
+      { text: 'Elimina', style: 'destructive', onPress: async () => {
+        try {
+          await deleteCommunity(community.id);
+          onCommunityDeleted?.();
+          onClose();
+        } catch (e: any) {
+          Alert.alert('Errore', e.message);
+        }
+      }},
+    ]);
   };
 
   const handleLeave = () => {
@@ -322,6 +341,27 @@ export default function CommunityDetailScreen({ community, onClose }: Props) {
     <View style={s.container}>
       <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
 
+      {/* Modal profilo membro */}
+      {selectedMember && (
+        <Pressable style={s.profileOverlay} onPress={() => setSelectedMember(null)}>
+          <Pressable style={s.profileCard} onPress={() => {}}>
+            <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>{selectedMember.userAvatar}</Text>
+            <Text style={s.profileName}>{selectedMember.userName}</Text>
+            <View style={[s.roleBadge, selectedMember.role === 'admin' && s.roleBadgeAdmin, selectedMember.role === 'moderator' && s.roleBadgeMod, { alignSelf: 'center', marginBottom: 16 }]}>
+              <Text style={s.roleTxt}>{selectedMember.role === 'admin' ? '👑 Admin' : selectedMember.role === 'moderator' ? '🛡 Mod' : '🎵 Membro'}</Text>
+            </View>
+            {isAdmin && selectedMember.userId !== myUid && (
+              <TouchableOpacity style={s.adminActionsBtn} onPress={() => { setSelectedMember(null); handleAdminActions(selectedMember); }}>
+                <Text style={s.adminActionsTxt}>⚙️ Azioni admin</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={s.leaveBtn} onPress={() => setSelectedMember(null)}>
+              <Text style={s.leaveTxt}>Chiudi</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      )}
+
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={onClose}>
@@ -334,11 +374,18 @@ export default function CommunityDetailScreen({ community, onClose }: Props) {
             <Text style={s.headerMeta}>{com.membersCount} membri · {com.isPublic ? '🌍 Pubblica' : '🔒 Privata'}</Text>
           </View>
         </View>
-        {isMember && myRole !== 'admin' && (
-          <TouchableOpacity style={s.leaveBtn} onPress={handleLeave}>
-            <Text style={s.leaveTxt}>Esci</Text>
-          </TouchableOpacity>
-        )}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {isMember && myRole !== 'admin' && (
+            <TouchableOpacity style={s.leaveBtn} onPress={handleLeave}>
+              <Text style={s.leaveTxt}>Esci</Text>
+            </TouchableOpacity>
+          )}
+          {myRole === 'admin' && community.creatorId === myUid && (
+            <TouchableOpacity style={s.leaveBtn} onPress={handleDelete}>
+              <Text style={[s.leaveTxt, { color: '#ef4444' }]}>🗑</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Tabs */}
@@ -586,6 +633,13 @@ const s = StyleSheet.create({
   roleBadgeAdmin: { backgroundColor: 'rgba(255,215,0,0.15)' },
   roleBadgeMod: { backgroundColor: 'rgba(6,182,212,0.15)' },
   roleTxt: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+
+  // Member profile modal
+  profileOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
+  profileCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 24, width: '80%', alignItems: 'stretch', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  profileName: { fontSize: 20, fontWeight: '700', color: '#f8fafc', textAlign: 'center', marginBottom: 8 },
+  adminActionsBtn: { backgroundColor: 'rgba(6,182,212,0.15)', borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(6,182,212,0.3)' },
+  adminActionsTxt: { color: '#06b6d4', fontWeight: '600' },
 
   // Requests
   requestRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },

@@ -1567,6 +1567,25 @@ export const getFollowingList = async (userId) => {
  * Conta follower e following direttamente dalla collezione `follows`.
  * Sempre accurato — non usa i counter fields che si desincronizzano.
  */
+export const deleteCommunity = async (communityId) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Non autenticato');
+  const comRef = doc(db, 'communities', communityId);
+  const comSnap = await getDoc(comRef);
+  if (!comSnap.exists()) throw new Error('Community non trovata');
+  if (comSnap.data().creatorId !== uid) throw new Error('Solo il creatore può eliminare la community');
+
+  const batch = writeBatch(db);
+  const [membersSnap, requestsSnap] = await Promise.all([
+    getDocs(collection(db, 'communities', communityId, 'members')),
+    getDocs(collection(db, 'communities', communityId, 'joinRequests')),
+  ]);
+  membersSnap.docs.forEach(d => batch.delete(d.ref));
+  requestsSnap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(comRef);
+  await batch.commit();
+};
+
 export const getFollowStats = async (userId) => {
   try {
     const [followersSnap, followingSnap] = await Promise.all([
