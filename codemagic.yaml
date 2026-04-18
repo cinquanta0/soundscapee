@@ -59,6 +59,8 @@ workflows:
           /usr/libexec/PlistBuddy -c "Delete :EXUpdatesRequestHeaders" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders dict" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesRequestHeaders:expo-channel-name string preview" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesLaunchWaitMs 10000" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :EXUpdatesLaunchWaitMs integer 10000" "$PLIST"
           echo "=== DOPO il patch ==="
           cat "$PLIST"
       - name: CocoaPods install
