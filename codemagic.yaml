@@ -152,16 +152,7 @@ workflows:
       - name: Fix Kotlin compatibility
         script: |
           set -e
-          FILE="node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt"
-          python3 -c "
-          content = open('$FILE').read()
-          content = content.replace(
-            'track.setMetadata(context, Arguments.toBundle(map), musicService.ratingType)',
-            'track.setMetadata(context, Arguments.toBundle(map) ?: Bundle(), musicService.ratingType)'
-          )
-          open('$FILE', 'w').write(content)
-          print('Patch applied successfully')
-          "
+          cp patches/MusicModule.kt node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
           echo "kotlin.jvm.target.validation.mode=IGNORE" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4g" >> android/gradle.properties
  
