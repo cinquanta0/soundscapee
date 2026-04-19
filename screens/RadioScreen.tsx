@@ -2427,13 +2427,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const isToday = selectedDay === new Date().getDay();
   const scheduleSlots = getScheduleSlots(station.id, selectedDay);
   const currentSlotIdx = isToday ? getCurrentSlotIndex(scheduleSlots) : -1;
-  // Per "ORA IN ONDA": priorità foto API live → foto lookup/statica slot corrente → iniziali
-  const staticSlotPhoto = currentSlotIdx >= 0
-    ? (scheduleSlots[currentSlotIdx]?.djPhotoUrl ?? getDjPhoto(scheduleSlots[currentSlotIdx]?.djName ?? ''))
+  const currentSlot = currentSlotIdx >= 0 ? scheduleSlots[currentSlotIdx] : null;
+  // Per "ORA IN ONDA": priorità API live → palinsesto statico → iniziali
+  const staticSlotPhoto = currentSlot
+    ? (currentSlot.djPhotoUrl ?? getDjPhoto(currentSlot.djName ?? ''))
     : undefined;
-  const resolvedDjPhoto = (nowPlaying?.djImageUrl && !djImgError) ? nowPlaying.djImageUrl : staticSlotPhoto;
-  const showDjImage = !!(nowPlaying && resolvedDjPhoto);
-  const showDjInitials = !!(nowPlaying && nowPlaying.djName && !resolvedDjPhoto);
+  const liveApiPhoto = nowPlaying?.djImageUrl && !djImgError ? nowPlaying.djImageUrl : undefined;
+  const resolvedDjPhoto = liveApiPhoto ?? staticSlotPhoto;
+  // Nome e show: API live ha priorità, poi palinsesto statico
+  const effectiveDjName = nowPlaying?.djName || currentSlot?.djName || station.name;
+  const effectiveShowName = nowPlaying?.showName || currentSlot?.showName || station.genre;
+  const showDjImage = !!resolvedDjPhoto;
+  const showDjInitials = !resolvedDjPhoto && !!effectiveDjName;
 
   // Animazione pulse per badge LIVE ORA
   useEffect(() => {
@@ -2491,44 +2496,23 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       {!showPalinsesto ? (
       <View style={osp.body}>
 
-        {nowPlaying ? (
-          /* ── Con info "Ora in Onda" ── */
-          <>
-            {/* Foto DJ o iniziali */}
-            {showDjImage ? (
-              <View style={[osp.djPhotoWrap, { borderColor: station.color, shadowColor: station.color }]}>
-                <Image
-                  source={{ uri: resolvedDjPhoto! }}
-                  style={osp.djPhoto}
-                  onError={() => setDjImgError(true)}
-                />
-              </View>
-            ) : showDjInitials ? (
-              <View style={[osp.djInitialsWrap, { backgroundColor: station.color + '25', borderColor: station.color }]}>
-                <Text style={[osp.djInitialsTxt, { color: station.color }]}>
-                  {nowPlaying!.djName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* ORA IN ONDA label */}
-            <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
-            <Text style={osp.djName} numberOfLines={2}>{nowPlaying.djName}</Text>
-            {nowPlaying.showName ? (
-              <Text style={osp.showName} numberOfLines={1}>{nowPlaying.showName}</Text>
-            ) : null}
-
-            {/* Nome stazione + waveform piccola */}
-            <View style={osp.stationRowNp}>
-              <Text style={[osp.stationDot, { color: station.color }]}>●</Text>
-              <Text style={osp.stationNameNp}>{station.name}</Text>
-              <Text style={osp.genreNp}> · {station.genre}</Text>
+        <>
+          {/* Foto DJ o iniziali — sempre visibile se c'è uno slot corrente */}
+          {showDjImage ? (
+            <View style={[osp.djPhotoWrap, { borderColor: station.color, shadowColor: station.color }]}>
+              <Image
+                source={{ uri: resolvedDjPhoto! }}
+                style={osp.djPhoto}
+                onError={() => { setDjImgError(true); }}
+              />
             </View>
-            <WaveformAnim active={isPlaying && !loading} color={station.color} />
-          </>
-        ) : (
-          /* ── Senza info: cerchio waveform originale ── */
-          <>
+          ) : showDjInitials ? (
+            <View style={[osp.djInitialsWrap, { backgroundColor: station.color + '25', borderColor: station.color }]}>
+              <Text style={[osp.djInitialsTxt, { color: station.color }]}>
+                {effectiveDjName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          ) : (
             <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
               <LinearGradient
                 colors={[station.color + '30', station.color + '10']}
@@ -2537,10 +2521,25 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               />
               <WaveformAnim active={isPlaying && !loading} color={station.color} />
             </View>
-            <Text style={osp.stationName}>{station.name}</Text>
-            <Text style={osp.genre}>{station.genre}</Text>
-          </>
-        )}
+          )}
+
+          {/* ORA IN ONDA label */}
+          <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
+          <Text style={osp.djName} numberOfLines={2}>{effectiveDjName}</Text>
+          {effectiveShowName && effectiveShowName !== effectiveDjName ? (
+            <Text style={osp.showName} numberOfLines={1}>{effectiveShowName}</Text>
+          ) : null}
+
+          {/* Waveform sotto il nome DJ */}
+          <WaveformAnim active={isPlaying && !loading} color={station.color} />
+
+          {/* Nome stazione */}
+          <View style={osp.stationRowNp}>
+            <Text style={[osp.stationDot, { color: station.color }]}>●</Text>
+            <Text style={osp.stationNameNp}>{station.name}</Text>
+            <Text style={osp.genreNp}> · {station.genre}</Text>
+          </View>
+        </>
 
         {/* Badge stato */}
         <View style={[osp.statusBadge, { backgroundColor: station.color + '20', borderColor: station.color + '50' }]}>
