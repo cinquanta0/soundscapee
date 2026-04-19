@@ -7,7 +7,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
+const _isIOS = require('react-native').Platform.OS === 'ios';
+const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
+const { Event = {}, State = {}, Capability = {} } = _isIOS ? require('react-native-track-player') : {};
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';

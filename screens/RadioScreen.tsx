@@ -7,7 +7,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-import TrackPlayer, { State, Capability } from 'react-native-track-player';
+const _isIOS = require('react-native').Platform.OS === 'ios';
+const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
+const { State = {}, Capability = {} } = _isIOS ? require('react-native-track-player') : {};
 import { auth } from '../firebaseConfig';
 import {
   listenToLiveRooms, createRadioRoom, uploadTrack, endRadioRoom, skipToNextTrack,

@@ -1,4 +1,7 @@
-import TrackPlayer, { Event } from 'react-native-track-player';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const TrackPlayer = require('react-native-track-player').default;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Event } = require('react-native-track-player');
 
 // Questo file viene eseguito in un thread separato in background da React Native Track Player.
 // È obbligatorio registrarlo tramite TrackPlayer.registerPlaybackService().
