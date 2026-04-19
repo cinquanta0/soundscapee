@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system/legacy';
 import TrackPlayer, { useProgress, usePlaybackState, State, Capability } from 'react-native-track-player';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -127,27 +126,10 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         backwardJumpInterval: 15,
       });
 
-      const urlPath = decodeURIComponent(podcast.audioUrl.split('?')[0]);
-      const rawExt = urlPath.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? '';
-      const allowed = ['mp3', 'm4a', 'mp4', 'aac', 'wav', 'ogg', 'flac', 'webm'];
-      const ext = allowed.includes(rawExt) ? rawExt : 'mp3';
-
-      let uri = podcast.audioUrl;
-      try {
-        const localUri = FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`;
-        const fileInfo = await FileSystem.getInfoAsync(localUri);
-        const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
-        if (needsDownload) {
-          if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
-          await FileSystem.downloadAsync(podcast.audioUrl, localUri);
-        }
-        uri = localUri;
-      } catch {}
-
       await TrackPlayer.reset();
       await TrackPlayer.add({
         id: podcast.id,
-        url: uri,
+        url: podcast.audioUrl,
         title: podcast.title,
         artist: podcast.username,
         artwork: podcast.coverUrl ?? undefined,
