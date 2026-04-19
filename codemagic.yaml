@@ -36,7 +36,7 @@ workflows:
         script: |
           set -e
           CI=1 npx eas-cli update --channel preview --message "OTA da Codemagic Mac" --platform android
-
+ 
   ios-unsigned:
     name: iOS Unsigned IPA
     max_build_duration: 60
@@ -76,7 +76,7 @@ workflows:
           ls -la ios/
           echo "=== Podfile exists? ==="
           test -f ios/Podfile && echo "YES - Podfile found" || echo "NO - Podfile MISSING"
-
+ 
       - name: CocoaPods install
         script: |
           set -e
@@ -113,7 +113,7 @@ workflows:
           cd "$CM_BUILD_DIR" && zip -r soundscape.ipa Payload/
     artifacts:
       - $CM_BUILD_DIR/soundscape.ipa
-
+ 
   android-release:
     name: Android Release APK (unsigned)
     max_build_duration: 60
@@ -148,7 +148,13 @@ workflows:
         script: |
           set -e
           npx expo prebuild --platform android --clean --non-interactive --no-install
-
+ 
+      - name: Fix Kotlin compatibility
+        script: |
+          set -e
+          echo "kotlin.jvm.target.validation.mode=IGNORE" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4g" >> android/gradle.properties
+ 
       - name: Generate keystore
         script: |
           set -e
