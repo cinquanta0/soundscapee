@@ -2193,7 +2193,7 @@ if (loading) {
                   onPress={handleCheckUpdates}
                 >
                   <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
-                    ✅ OTA v5 confermato!
+                    ✅ OTA v6 confermato!
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
