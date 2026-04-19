@@ -59,14 +59,14 @@ interface NowPlayingInfo {
 }
 
 const OFFLINE_STATIONS: OfflineStation[] = [
-  { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
-  { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://www.google.com/s2/favicons?domain=105.net&sz=128' },
-  { id: 'deejay',     name: 'Radio DeeJay', genre: 'Dance · Electronic',  color: '#FF9800', searchName: 'Radio DeeJay',        logoUrl: 'https://www.google.com/s2/favicons?domain=deejay.it&sz=128' },
-  { id: 'radioitalia',name: 'Radio Italia', genre: 'Musica Italiana',     color: '#4CAF50', searchName: 'Radio Italia',        logoUrl: 'https://www.google.com/s2/favicons?domain=radioitalia.it&sz=128' },
-  { id: 'rds',        name: 'RDS',          genre: 'Pop · News',          color: '#2196F3', searchName: 'RDS',                 logoUrl: 'https://www.google.com/s2/favicons?domain=rds.it&sz=128' },
-  { id: 'virgin',     name: 'Virgin Radio', genre: 'Rock · Alternative',  color: '#9C27B0', searchName: 'Virgin Radio Italy',  logoUrl: 'https://www.google.com/s2/favicons?domain=virginradio.it&sz=128' },
-  { id: 'm2o',        name: 'm2o',          genre: 'Dance · House',       color: '#00BCD4', searchName: 'm2o',                 logoUrl: 'https://www.google.com/s2/favicons?domain=m2o.it&sz=128' },
-  { id: 'capital',    name: 'Radio Capital',genre: 'Pop · Hits',          color: '#F44336', searchName: 'Radio Capital',       logoUrl: 'https://www.google.com/s2/favicons?domain=capital.it&sz=128' },
+  { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://cdn.gelestatic.it/rtl/sites/3/2022/06/cropped-favicon-rtl-32x32.png' },
+  { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://cdn.gelestatic.it/r105/sites/5/2023/01/favicon-96x96.png' },
+  { id: 'deejay',     name: 'Radio DeeJay', genre: 'Dance · Electronic',  color: '#FF9800', searchName: 'Radio DeeJay',        logoUrl: 'https://cdn.gelestatic.it/deejay/sites/2/2019/09/cropped-fav-deejay-1-192x192.png' },
+  { id: 'radioitalia',name: 'Radio Italia', genre: 'Musica Italiana',     color: '#4CAF50', searchName: 'Radio Italia',        logoUrl: 'https://www.radioitalia.it/favicon.ico' },
+  { id: 'rds',        name: 'RDS',          genre: 'Pop · News',          color: '#2196F3', searchName: 'RDS',                 logoUrl: 'https://www.rds.it/favicon.ico' },
+  { id: 'virgin',     name: 'Virgin Radio', genre: 'Rock · Alternative',  color: '#9C27B0', searchName: 'Virgin Radio Italy',  logoUrl: 'https://www.virginradio.it/favicon.ico' },
+  { id: 'm2o',        name: 'm2o',          genre: 'Dance · House',       color: '#00BCD4', searchName: 'm2o',                 logoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2019/05/cropped-cropped-m2o-favicon-270x270.png' },
+  { id: 'capital',    name: 'Radio Capital',genre: 'Pop · Hits',          color: '#F44336', searchName: 'Radio Capital',       logoUrl: 'https://cdn.gelestatic.it/capital/sites/2/2019/04/cropped-cropped-capital-favicon-192x192.png' },
 ];
 
 // URL hardcoded di fallback (aggiornati aprile 2026) — usati quando radio-browser.info non è raggiungibile
@@ -2433,12 +2433,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     ? (currentSlot.djPhotoUrl ?? getDjPhoto(currentSlot.djName ?? ''))
     : undefined;
   const liveApiPhoto = nowPlaying?.djImageUrl && !djImgError ? nowPlaying.djImageUrl : undefined;
-  const resolvedDjPhoto = liveApiPhoto ?? staticSlotPhoto;
+  // Priorità: API live → foto DJ statica → logo stazione
+  const resolvedDjPhoto = liveApiPhoto ?? staticSlotPhoto ?? station.logoUrl;
   // Nome e show: API live ha priorità, poi palinsesto statico
   const effectiveDjName = nowPlaying?.djName || currentSlot?.djName || station.name;
   const effectiveShowName = nowPlaying?.showName || currentSlot?.showName || station.genre;
   const showDjImage = !!resolvedDjPhoto;
-  const showDjInitials = !resolvedDjPhoto && !!effectiveDjName;
+  const showDjInitials = false; // ora c'è sempre almeno il logo stazione
 
   // Animazione pulse per badge LIVE ORA
   useEffect(() => {
@@ -2601,9 +2602,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               const isCurrent = i === currentSlotIdx;
               const isPast = isToday && i < currentSlotIdx;
               const isLast = i === scheduleSlots.length - 1;
+              // Priorità: API live (solo slot corrente) → foto DJ statica → logo stazione
               const photoUrl = (isCurrent && nowPlaying?.djImageUrl && !djImgError)
                 ? nowPlaying!.djImageUrl
-                : (slot.djPhotoUrl ?? getDjPhoto(slot.djName));
+                : (slot.djPhotoUrl ?? getDjPhoto(slot.djName) ?? station.logoUrl);
               const initials = slot.djName.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
               const pad = (h: number, m?: number) =>
                 `${(h % 24).toString().padStart(2, '0')}:${(m ?? 0).toString().padStart(2, '0')}`;
