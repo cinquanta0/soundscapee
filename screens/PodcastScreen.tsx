@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-import TrackPlayer, { useProgress, usePlaybackState, State, Capability } from 'react-native-track-player';
+import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
@@ -31,16 +31,15 @@ function fmtTime(secs: number) {
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
   const { t } = useTranslation();
-  const rnProgress = useProgress();
-  const playbackState = usePlaybackState();
+  const isIOS = Platform.OS === 'ios';
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [position, setPosition] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [duration, setDuration] = useState(podcast.duration || 0);
   const [loading, setLoading] = useState(true);
   const [speed, setSpeed] = useState(1);
   const seekBarWidth = SW - 80;
-
-  const position = rnProgress.position;
-  const isPlaying = playbackState.state === State.Playing;
-  const isBuffering = playbackState.state === State.Buffering || playbackState.state === State.Loading;
 
   // Likes / dislikes / commenti
   const [liked, setLiked] = useState(false);
@@ -57,12 +56,19 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
   useEffect(() => {
     loadAudio();
-    return () => { TrackPlayer.reset().catch(() => {}); };
+    if (isIOS) {
+      const s1 = TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e: any) => {
+        setPosition(e.position);
+        if (podcast.duration <= 0 && e.duration > 0) setDuration(e.duration);
+      });
+      const s2 = TrackPlayer.addEventListener(Event.PlaybackState, (e: any) => {
+        setIsPlaying(e.state === State.Playing);
+        setIsBuffering(e.state === State.Buffering || e.state === State.Loading);
+      });
+      return () => { s1.remove(); s2.remove(); TrackPlayer.reset().catch(() => {}); };
+    }
+    return () => { soundRef.current?.unloadAsync().catch(() => {}); };
   }, []);
-
-  useEffect(() => {
-    if (rnProgress.duration > 0 && podcast.duration <= 0) setDuration(rnProgress.duration);
-  }, [rnProgress.duration]);
 
   useEffect(() => {
     getPodcastVotes(podcast.id).then(({ liked, disliked }) => {
@@ -116,27 +122,45 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
   const loadAudio = async () => {
     try {
-      await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
-    } catch {}
-    try {
-      await TrackPlayer.updateOptions({
-        capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
-        compactCapabilities: [Capability.Play, Capability.Pause],
-        forwardJumpInterval: 15,
-        backwardJumpInterval: 15,
-      });
-
-      await TrackPlayer.reset();
-      await TrackPlayer.add({
-        id: podcast.id,
-        url: podcast.audioUrl,
-        title: podcast.title,
-        artist: podcast.username,
-        artwork: podcast.coverUrl ?? undefined,
-        duration: podcast.duration > 0 ? podcast.duration : undefined,
-      });
-      await TrackPlayer.play();
-      if (podcast.duration > 0) setDuration(podcast.duration);
+      if (isIOS) {
+        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+        await TrackPlayer.updateOptions({
+          capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+          forwardJumpInterval: 15,
+          backwardJumpInterval: 15,
+        });
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          id: podcast.id,
+          url: podcast.audioUrl,
+          title: podcast.title,
+          artist: podcast.username,
+          artwork: podcast.coverUrl ?? undefined,
+          duration: podcast.duration > 0 ? podcast.duration : undefined,
+        });
+        await TrackPlayer.play();
+        if (podcast.duration > 0) setDuration(podcast.duration);
+      } else {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+        });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: podcast.audioUrl },
+          { shouldPlay: true, rate: speed },
+          (status: any) => {
+            if (!status.isLoaded) return;
+            setPosition(status.positionMillis / 1000);
+            setIsPlaying(status.isPlaying);
+            if (status.durationMillis) setDuration(podcast.duration > 0 ? podcast.duration : status.durationMillis / 1000);
+            if (status.didJustFinish) { setIsPlaying(false); setPosition(0); }
+          },
+        );
+        soundRef.current = sound;
+      }
     } catch (e) {
       console.error('Podcast load error', e);
     } finally {
@@ -145,22 +169,28 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   };
 
   const togglePlay = async () => {
-    if (isPlaying) await TrackPlayer.pause();
-    else await TrackPlayer.play();
+    if (isIOS) {
+      if (isPlaying) await TrackPlayer.pause(); else await TrackPlayer.play();
+    } else {
+      if (isPlaying) await soundRef.current?.pauseAsync(); else await soundRef.current?.playAsync();
+    }
   };
 
   const seekTo = async (ratio: number) => {
     if (!duration) return;
-    await TrackPlayer.seekTo(ratio * duration);
+    if (isIOS) await TrackPlayer.seekTo(ratio * duration);
+    else await soundRef.current?.setPositionAsync(ratio * duration * 1000);
   };
 
   const changeSpeed = async (s: number) => {
     setSpeed(s);
-    await TrackPlayer.setRate(s);
+    if (isIOS) await TrackPlayer.setRate(s);
+    else await soundRef.current?.setRateAsync(s, true);
   };
 
   const skip = async (secs: number) => {
-    await TrackPlayer.seekBy(secs);
+    if (isIOS) await TrackPlayer.seekBy(secs);
+    else await soundRef.current?.setPositionAsync(Math.max(0, (position + secs) * 1000));
   };
 
   const SH = Dimensions.get('window').height;
