@@ -2,7 +2,7 @@ module.exports = ({ config }) => ({
   ...config,
   name: "soundscape-mobile",
   slug: "soundscape-mobile",
-  version: "1.0.1",
+  version: "1.0.0",
   orientation: "portrait",
   updates: {
     url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
