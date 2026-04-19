@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import TrackPlayer, { usePlaybackState, State, Capability } from 'react-native-track-player';
 import { auth } from '../firebaseConfig';
 import {
   listenToLiveRooms, createRadioRoom, uploadTrack, endRadioRoom, skipToNextTrack,
@@ -2345,9 +2346,10 @@ function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: st
 }
 
 function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; onClose: () => void }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const playbackState = usePlaybackState();
   const [loading, setLoading] = useState(true);
+  const isPlaying = playbackState.state === State.Playing;
+  const isBufferingStream = playbackState.state === State.Buffering || playbackState.state === State.Loading;
   const [statusLabel, setStatusLabel] = useState('Ricerca stream...');
   const [error, setError] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
@@ -2362,11 +2364,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     let mounted = true;
     (async () => {
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: false,
+        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+        await TrackPlayer.updateOptions({
+          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+          compactCapabilities: [Capability.Play, Capability.Pause],
         });
 
         if (mounted) setStatusLabel(
@@ -2375,20 +2376,17 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         const streamUrl = await fetchRadioBrowserUrl(station.searchName);
         if (!streamUrl) throw new Error('Nessun stream trovato');
 
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: streamUrl },
-          { shouldPlay: true },
-          (status) => {
-            if (!mounted || !status.isLoaded) return;
-            setIsPlaying(status.isPlaying);
-          },
-        );
-        if (mounted) {
-          soundRef.current = sound;
-          setLoading(false);
-        } else {
-          sound.unloadAsync().catch(() => {});
-        }
+        if (!mounted) return;
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          id: station.id,
+          url: streamUrl,
+          title: station.name,
+          artist: 'Radio in diretta',
+          artwork: station.logoUrl,
+        });
+        await TrackPlayer.play();
+        if (mounted) setLoading(false);
       } catch (e) {
         console.warn('OfflineStation error:', station.searchName, e);
         if (mounted) { setLoading(false); setError(true); }
@@ -2396,9 +2394,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
-      const s = soundRef.current;
-      soundRef.current = null;
-      s?.stopAsync().catch(() => {}).finally(() => s?.unloadAsync().catch(() => {}));
+      TrackPlayer.reset().catch(() => {});
     };
   }, []);
 
@@ -2418,12 +2414,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, [station.id]);
 
   const togglePlay = async () => {
-    if (!soundRef.current) return;
-    if (isPlaying) await soundRef.current.pauseAsync();
-    else await soundRef.current.playAsync();
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
-  const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+  const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
   const isToday = selectedDay === new Date().getDay();
   const scheduleSlots = getScheduleSlots(station.id, selectedDay);
   const currentSlotIdx = isToday ? getCurrentSlotIndex(scheduleSlots) : -1;
