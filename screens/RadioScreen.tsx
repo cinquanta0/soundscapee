@@ -59,14 +59,14 @@ interface NowPlayingInfo {
 }
 
 const OFFLINE_STATIONS: OfflineStation[] = [
-  { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://cdn.gelestatic.it/rtl/sites/3/2022/06/cropped-favicon-rtl-32x32.png' },
-  { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://cdn.gelestatic.it/r105/sites/5/2023/01/favicon-96x96.png' },
-  { id: 'deejay',     name: 'Radio DeeJay', genre: 'Dance · Electronic',  color: '#FF9800', searchName: 'Radio DeeJay',        logoUrl: 'https://cdn.gelestatic.it/deejay/sites/2/2019/09/cropped-fav-deejay-1-192x192.png' },
-  { id: 'radioitalia',name: 'Radio Italia', genre: 'Musica Italiana',     color: '#4CAF50', searchName: 'Radio Italia',        logoUrl: 'https://www.radioitalia.it/favicon.ico' },
-  { id: 'rds',        name: 'RDS',          genre: 'Pop · News',          color: '#2196F3', searchName: 'RDS',                 logoUrl: 'https://www.rds.it/favicon.ico' },
-  { id: 'virgin',     name: 'Virgin Radio', genre: 'Rock · Alternative',  color: '#9C27B0', searchName: 'Virgin Radio Italy',  logoUrl: 'https://www.virginradio.it/favicon.ico' },
-  { id: 'm2o',        name: 'm2o',          genre: 'Dance · House',       color: '#00BCD4', searchName: 'm2o',                 logoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2019/05/cropped-cropped-m2o-favicon-270x270.png' },
-  { id: 'capital',    name: 'Radio Capital',genre: 'Pop · Hits',          color: '#F44336', searchName: 'Radio Capital',       logoUrl: 'https://cdn.gelestatic.it/capital/sites/2/2019/04/cropped-cropped-capital-favicon-192x192.png' },
+  { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
+  { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://www.google.com/s2/favicons?domain=105.net&sz=128' },
+  { id: 'deejay',     name: 'Radio DeeJay', genre: 'Dance · Electronic',  color: '#FF9800', searchName: 'Radio DeeJay',        logoUrl: 'https://www.google.com/s2/favicons?domain=deejay.it&sz=128' },
+  { id: 'radioitalia',name: 'Radio Italia', genre: 'Musica Italiana',     color: '#4CAF50', searchName: 'Radio Italia',        logoUrl: 'https://www.google.com/s2/favicons?domain=radioitalia.it&sz=128' },
+  { id: 'rds',        name: 'RDS',          genre: 'Pop · News',          color: '#2196F3', searchName: 'RDS',                 logoUrl: 'https://www.google.com/s2/favicons?domain=rds.it&sz=128' },
+  { id: 'virgin',     name: 'Virgin Radio', genre: 'Rock · Alternative',  color: '#9C27B0', searchName: 'Virgin Radio Italy',  logoUrl: 'https://www.google.com/s2/favicons?domain=virginradio.it&sz=128' },
+  { id: 'm2o',        name: 'm2o',          genre: 'Dance · House',       color: '#00BCD4', searchName: 'm2o',                 logoUrl: 'https://www.google.com/s2/favicons?domain=m2o.it&sz=128' },
+  { id: 'capital',    name: 'Radio Capital',genre: 'Pop · Hits',          color: '#F44336', searchName: 'Radio Capital',       logoUrl: 'https://www.google.com/s2/favicons?domain=capital.it&sz=128' },
 ];
 
 // URL hardcoded di fallback (aggiornati aprile 2026) — usati quando radio-browser.info non è raggiungibile
@@ -2433,13 +2433,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     ? (currentSlot.djPhotoUrl ?? getDjPhoto(currentSlot.djName ?? ''))
     : undefined;
   const liveApiPhoto = nowPlaying?.djImageUrl && !djImgError ? nowPlaying.djImageUrl : undefined;
-  // Priorità: API live → foto DJ statica → logo stazione
-  const resolvedDjPhoto = liveApiPhoto ?? staticSlotPhoto ?? station.logoUrl;
+  // Foto DJ vera (non logo stazione generico)
+  const resolvedDjPhoto = liveApiPhoto ?? staticSlotPhoto;
   // Nome e show: API live ha priorità, poi palinsesto statico
   const effectiveDjName = nowPlaying?.djName || currentSlot?.djName || station.name;
   const effectiveShowName = nowPlaying?.showName || currentSlot?.showName || station.genre;
-  const showDjImage = !!resolvedDjPhoto;
-  const showDjInitials = false; // ora c'è sempre almeno il logo stazione
+  const hasDjPhoto = !!resolvedDjPhoto;
 
   // Animazione pulse per badge LIVE ORA
   useEffect(() => {
@@ -2498,29 +2497,28 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       <View style={osp.body}>
 
         <>
-          {/* Foto DJ o iniziali — sempre visibile se c'è uno slot corrente */}
-          {showDjImage ? (
+          {hasDjPhoto ? (
+            /* ── Foto DJ vera disponibile ── */
             <View style={[osp.djPhotoWrap, { borderColor: station.color, shadowColor: station.color }]}>
               <Image
                 source={{ uri: resolvedDjPhoto! }}
                 style={osp.djPhoto}
-                onError={() => { setDjImgError(true); }}
+                onError={() => setDjImgError(true)}
               />
             </View>
-          ) : showDjInitials ? (
-            <View style={[osp.djInitialsWrap, { backgroundColor: station.color + '25', borderColor: station.color }]}>
-              <Text style={[osp.djInitialsTxt, { color: station.color }]}>
-                {effectiveDjName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
           ) : (
+            /* ── Nessuna foto DJ: cerchio con logo stazione + waveform ── */
             <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
               <LinearGradient
                 colors={[station.color + '30', station.color + '10']}
                 style={StyleSheet.absoluteFill}
                 borderRadius={80}
               />
-              <WaveformAnim active={isPlaying && !loading} color={station.color} />
+              <Image
+                source={{ uri: station.logoUrl }}
+                style={{ width: 52, height: 52, opacity: 0.85 }}
+                resizeMode="contain"
+              />
             </View>
           )}
 
@@ -2531,15 +2529,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             <Text style={osp.showName} numberOfLines={1}>{effectiveShowName}</Text>
           ) : null}
 
-          {/* Waveform sotto il nome DJ */}
-          <WaveformAnim active={isPlaying && !loading} color={station.color} />
-
-          {/* Nome stazione */}
+          {/* Nome stazione + waveform */}
           <View style={osp.stationRowNp}>
             <Text style={[osp.stationDot, { color: station.color }]}>●</Text>
             <Text style={osp.stationNameNp}>{station.name}</Text>
             <Text style={osp.genreNp}> · {station.genre}</Text>
           </View>
+          <WaveformAnim active={isPlaying && !loading} color={station.color} />
         </>
 
         {/* Badge stato */}
@@ -2602,10 +2598,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               const isCurrent = i === currentSlotIdx;
               const isPast = isToday && i < currentSlotIdx;
               const isLast = i === scheduleSlots.length - 1;
-              // Priorità: API live (solo slot corrente) → foto DJ statica → logo stazione
               const photoUrl = (isCurrent && nowPlaying?.djImageUrl && !djImgError)
                 ? nowPlaying!.djImageUrl
-                : (slot.djPhotoUrl ?? getDjPhoto(slot.djName) ?? station.logoUrl);
+                : (slot.djPhotoUrl ?? getDjPhoto(slot.djName));
               const initials = slot.djName.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
               const pad = (h: number, m?: number) =>
                 `${(h % 24).toString().padStart(2, '0')}:${(m ?? 0).toString().padStart(2, '0')}`;
