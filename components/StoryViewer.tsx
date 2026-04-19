@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 100,
     right: 24,
     zIndex: 10,
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 120,
+    bottom: 40,
     zIndex: 15,
   },
   replyToggle: {

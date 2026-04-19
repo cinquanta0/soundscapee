@@ -125,7 +125,9 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       const onStatus = (status: any) => {
         if (!status.isLoaded) return;
         setPosition(status.positionMillis / 1000);
-        setDuration(status.durationMillis ? status.durationMillis / 1000 : podcast.duration);
+        // Preferisci podcast.duration (da Firestore, basato sul counter) ai metadati del file
+        // che su Android possono essere errati (es. 600s invece di 3s)
+        setDuration(podcast.duration > 0 ? podcast.duration : (status.durationMillis ? status.durationMillis / 1000 : 0));
         setIsPlaying(status.isPlaying);
         if (status.didJustFinish) { setIsPlaying(false); setPosition(0); }
       };
