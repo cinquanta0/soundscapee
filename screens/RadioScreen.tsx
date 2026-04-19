@@ -241,30 +241,55 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
   },
   m2o: {
     weekday: [
-      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso', showName: 'Deejay Time In The Mix' },
-      { startHour: 1,  endHour: 6,  djName: 'm2o',                          showName: 'm2o Night' },
-      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',              showName: 'Morning Show' },
-      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                 showName: 'Davide Rizzi' },
-      { startHour: 12, endHour: 14, djName: 'Marlen',                       showName: 'Marlen' },
-      { startHour: 14, endHour: 17, djName: 'Ilario',                       showName: 'Ilario' },
-      { startHour: 17, endHour: 19, djName: 'Albertino',                    showName: 'Albertino Everyday' },
-      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                showName: 'Andrea Mattei' },
-      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                showName: 'Vittoria Hyde' },
-      { startHour: 23, endHour: 24, djName: 'Val S',                        showName: 'One Two One Two Selecta' },
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',           showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 3,  djName: 'm2o',                                    showName: 'Dance With Us' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                    showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                        showName: 'Morning Show' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                           showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                 showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                 showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                          showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                                  showName: 'One Two One Two Selecta' },
+    ],
+    friday: [
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',           showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 3,  djName: 'm2o',                                    showName: 'Dance With Us' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                    showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                        showName: 'Morning Show' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                           showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                 showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                 showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                          showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Dance Revolution' },
     ],
     saturday: [
-      { startHour: 0,  endHour: 6,  djName: 'm2o',                                   showName: 'm2o Night' },
+      { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
       { startHour: 6,  endHour: 9,  djName: 'Isabella',                               showName: 'Isabella' },
       { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                   showName: 'Patrizia Prinzivalli' },
-      { startHour: 12, endHour: 14, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
+      { startHour: 12, endHour: 14, djName: 'Claves',                                 showName: 'Claves' },
       { startHour: 14, endHour: 15, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
-      { startHour: 15, endHour: 19, djName: 'Claves',                                 showName: 'Claves' },
-      { startHour: 19, endHour: 21, djName: 'Ilario',                                 showName: 'm2o Chart' },
-      { startHour: 21, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla' },
+      { startHour: 15, endHour: 19, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
+      { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two' },
+      { startHour: 21, endHour: 22, djName: 'Ilario',                                 showName: 'm2o Chart' },
+      { startHour: 22, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla' },
       { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade' },
     ],
     sunday: [
-      { startHour: 0,  endHour: 24, djName: 'm2o', showName: 'm2o Weekend' },
+      { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
+      { startHour: 6,  endHour: 9,  djName: 'Isabella',                               showName: 'Isabella' },
+      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                   showName: 'Patrizia Prinzivalli' },
+      { startHour: 12, endHour: 15, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
+      { startHour: 15, endHour: 18, djName: 'Claves',                                 showName: 'Claves' },
+      { startHour: 18, endHour: 19, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
+      { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'm2o',                                    showName: 'Dance With Us' },
     ],
   },
   capital: {
@@ -296,11 +321,12 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
 };
 
 function getScheduleSlots(stationId: string, day?: number): ScheduleSlot[] {
-  const d = day ?? new Date().getDay(); // 0=Dom, 6=Sab
-  const s = STATION_SCHEDULES[stationId];
+  const d = day ?? new Date().getDay(); // 0=Dom, 6=Sab, 5=Ven
+  const s = STATION_SCHEDULES[stationId] as any;
   if (!s) return [];
   if (d === 6) return s.saturday ?? s.weekday;
   if (d === 0) return s.sunday ?? s.saturday ?? s.weekday;
+  if (d === 5) return s.friday ?? s.weekday;
   return s.weekday;
 }
 
