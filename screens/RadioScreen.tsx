@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import TrackPlayer, { usePlaybackState, State, Capability } from 'react-native-track-player';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
@@ -2345,8 +2346,8 @@ function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: st
 }
 
 function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; onClose: () => void }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { state: playbackState } = usePlaybackState();
+  const isPlaying = playbackState === State.Playing;
   const [loading, setLoading] = useState(true);
   const [statusLabel, setStatusLabel] = useState('Ricerca stream...');
   const [error, setError] = useState(false);
@@ -2357,50 +2358,56 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const scheduleScrollRef = useRef<any>(null);
   const livePulse = useRef(new Animated.Value(1)).current;
 
-  // Fetch audio stream
+  // Fetch audio stream via RNTP (widget on lock screen + notification)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: false,
+        try { await TrackPlayer.setupPlayer(); } catch {}
+        await TrackPlayer.updateOptions({
+          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+          android: { alwaysPauseOnInterruption: true },
         });
+        await TrackPlayer.reset();
 
         if (mounted) setStatusLabel(
           FALLBACK_STREAM_URLS[station.searchName] ? 'Connessione...' : 'Ricerca stream...'
         );
         const streamUrl = await fetchRadioBrowserUrl(station.searchName);
         if (!streamUrl) throw new Error('Nessun stream trovato');
+        if (!mounted) return;
 
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: streamUrl },
-          { shouldPlay: true },
-          (status) => {
-            if (!mounted || !status.isLoaded) return;
-            setIsPlaying(status.isPlaying);
-          },
-        );
-        if (mounted) {
-          soundRef.current = sound;
-          setLoading(false);
-        } else {
-          sound.unloadAsync().catch(() => {});
-        }
+        await TrackPlayer.add({
+          url: streamUrl,
+          title: station.name,
+          artist: station.genre,
+          artwork: station.logoUrl,
+          isLiveStream: true,
+        });
+        await TrackPlayer.play();
+        if (mounted) setLoading(false);
       } catch (e) {
-        console.warn('OfflineStation error:', station.searchName, e);
+        console.warn('OfflineStation RNTP error:', station.searchName, e);
         if (mounted) { setLoading(false); setError(true); }
       }
     })();
     return () => {
       mounted = false;
-      const s = soundRef.current;
-      soundRef.current = null;
-      s?.stopAsync().catch(() => {}).finally(() => s?.unloadAsync().catch(() => {}));
+      TrackPlayer.pause().catch(() => {});
     };
   }, []);
+
+  // Aggiorna metadati widget quando arriva l'info del DJ in onda
+  useEffect(() => {
+    if (!nowPlaying) return;
+    const artwork = (nowPlaying.djImageUrl && !djImgError) ? nowPlaying.djImageUrl : station.logoUrl;
+    TrackPlayer.updateMetadataForTrack(0, {
+      title: nowPlaying.djName || station.name,
+      artist: nowPlaying.showName || station.genre,
+      artwork,
+    }).catch(() => {});
+  }, [nowPlaying, djImgError]);
 
   // Fetch "Ora in onda" — al mount e ogni 15 min
   useEffect(() => {
@@ -2418,9 +2425,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, [station.id]);
 
   const togglePlay = async () => {
-    if (!soundRef.current) return;
-    if (isPlaying) await soundRef.current.pauseAsync();
-    else await soundRef.current.playAsync();
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isPlaying ? 'IN ONDA' : 'IN PAUSA';

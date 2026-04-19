@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 82,
+    bottom: 120,
     zIndex: 15,
   },
   replyToggle: {

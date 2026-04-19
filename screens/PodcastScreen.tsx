@@ -8,6 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import TrackPlayer, { useProgress, usePlaybackState, State, Capability } from 'react-native-track-player';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
@@ -31,12 +32,13 @@ function fmtTime(secs: number) {
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
   const { t } = useTranslation();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
+  const { position, duration: trackDuration } = useProgress(500);
+  const { state: playbackState } = usePlaybackState();
+  const isPlaying = playbackState === State.Playing;
   const [duration, setDuration] = useState(podcast.duration || 0);
   const [loading, setLoading] = useState(true);
   const [speed, setSpeed] = useState(1);
+  const mountedRef = useRef(true);
   const seekBarWidth = SW - 80;
 
   // Likes / dislikes / commenti
@@ -50,12 +52,16 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
-  const isBuffering = false;
   const progress = duration > 0 ? position / duration : 0;
 
   useEffect(() => {
+    if (trackDuration > 0) setDuration(trackDuration);
+  }, [trackDuration]);
+
+  useEffect(() => {
+    mountedRef.current = true;
     loadAudio();
-    return () => { soundRef.current?.unloadAsync(); };
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
@@ -110,79 +116,67 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
   const loadAudio = async () => {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: false,
+      try { await TrackPlayer.setupPlayer({ waitForBuffer: true }); } catch {}
+      await TrackPlayer.updateOptions({
+        capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
+        compactCapabilities: [Capability.Play, Capability.Pause, Capability.SeekTo],
+        forwardJumpInterval: 15,
+        backwardJumpInterval: 15,
+        android: { alwaysPauseOnInterruption: true },
       });
+      await TrackPlayer.reset();
 
       const urlPath = decodeURIComponent(podcast.audioUrl.split('?')[0]);
       const rawExt = urlPath.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? '';
       const allowed = ['mp3', 'm4a', 'mp4', 'aac', 'wav', 'ogg', 'flac', 'webm'];
       const ext = allowed.includes(rawExt) ? rawExt : 'mp3';
 
-      const onStatus = (status: any) => {
-        if (!status.isLoaded) return;
-        setPosition(status.positionMillis / 1000);
-        setDuration(status.durationMillis ? status.durationMillis / 1000 : podcast.duration);
-        setIsPlaying(status.isPlaying);
-        if (status.didJustFinish) { setIsPlaying(false); setPosition(0); }
-      };
-
+      let localUri = podcast.audioUrl;
       try {
-        const localUri = FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`;
-        const fileInfo = await FileSystem.getInfoAsync(localUri);
+        const cacheUri = FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`;
+        const fileInfo = await FileSystem.getInfoAsync(cacheUri);
         const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
         if (needsDownload) {
-          if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
-          await FileSystem.downloadAsync(podcast.audioUrl, localUri);
+          if (fileInfo.exists) await FileSystem.deleteAsync(cacheUri, { idempotent: true });
+          await FileSystem.downloadAsync(podcast.audioUrl, cacheUri);
         }
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: localUri },
-          { shouldPlay: true, rate: speed },
-          onStatus,
-        );
-        soundRef.current = sound;
-      } catch {
-        await FileSystem.deleteAsync(
-          FileSystem.cacheDirectory + `podcast_${podcast.id}.${ext}`,
-          { idempotent: true },
-        ).catch(() => {});
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: podcast.audioUrl },
-          { shouldPlay: true, rate: speed },
-          onStatus,
-        );
-        soundRef.current = sound;
-      }
+        localUri = cacheUri;
+      } catch {}
+
+      if (!mountedRef.current) return;
+
+      await TrackPlayer.add({
+        url: localUri,
+        title: podcast.title,
+        artist: podcast.username ? `@${podcast.username}` : 'SoundScape',
+        artwork: podcast.coverUrl ?? undefined,
+        duration: podcast.duration ?? undefined,
+      });
+      await TrackPlayer.play();
     } catch (e) {
-      console.error('Podcast load error', e);
+      console.error('Podcast RNTP error', e);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   const togglePlay = async () => {
-    if (!soundRef.current) return;
-    if (isPlaying) await soundRef.current.pauseAsync();
-    else await soundRef.current.playAsync();
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
   const seekTo = async (ratio: number) => {
-    if (!soundRef.current || !duration) return;
-    await soundRef.current.setPositionAsync(ratio * duration * 1000);
+    if (!duration) return;
+    await TrackPlayer.seekTo(ratio * duration);
   };
 
   const changeSpeed = async (s: number) => {
     setSpeed(s);
-    await soundRef.current?.setRateAsync(s, true);
+    await TrackPlayer.setRate(s);
   };
 
   const skip = async (secs: number) => {
-    if (!soundRef.current) return;
-    const newPos = Math.max(0, Math.min((position + secs) * 1000, duration * 1000));
-    await soundRef.current.setPositionAsync(newPos);
+    await TrackPlayer.seekBy(secs);
   };
 
   const SH = Dimensions.get('window').height;
@@ -598,6 +592,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const [soundscapeAudioUrl, setSoundscapeAudioUrl] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const recordSecondsRef = useRef(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -635,9 +630,13 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         web: { mimeType: 'audio/webm', bitsPerSecond: 128000 },
       });
       recordingRef.current = recording;
+      recordSecondsRef.current = 0;
       setRecordSeconds(0);
       setIsRecording(true);
-      recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
+      recordTimerRef.current = setInterval(() => {
+        recordSecondsRef.current += 1;
+        setRecordSeconds(recordSecondsRef.current);
+      }, 1000);
     } catch {
       Alert.alert(t('common.error'), t('podcast.errors.cannotRecord') ?? 'Impossibile avviare la registrazione');
     }
@@ -650,7 +649,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       await recordingRef.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
       const uri = recordingRef.current.getURI();
-      const secs = recordSeconds;
+      const secs = recordSecondsRef.current;
       recordingRef.current = null;
       setIsRecording(false);
       if (uri) {
