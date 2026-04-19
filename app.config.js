@@ -32,6 +32,7 @@ module.exports = ({ config }) => ({
     },
   },
   android: {
+    newArchEnabled: false,
     googleServicesFile: "./google-services.json",
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
