@@ -153,7 +153,15 @@ workflows:
         script: |
           set -e
           FILE="node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt"
-          sed -i '' 's/track.setMetadata(context, Arguments.toBundle(map), musicService.ratingType)/track.setMetadata(context, Arguments.toBundle(map) ?: Bundle(), musicService.ratingType)/g' "$FILE"
+          python3 -c "
+          content = open('$FILE').read()
+          content = content.replace(
+            'track.setMetadata(context, Arguments.toBundle(map), musicService.ratingType)',
+            'track.setMetadata(context, Arguments.toBundle(map) ?: Bundle(), musicService.ratingType)'
+          )
+          open('$FILE', 'w').write(content)
+          print('Patch applied successfully')
+          "
           echo "kotlin.jvm.target.validation.mode=IGNORE" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4g" >> android/gradle.properties
  
