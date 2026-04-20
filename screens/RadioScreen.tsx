@@ -356,7 +356,7 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
       { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two con Wad' },
       { startHour: 21, endHour: 22, djName: 'Ilario',                                 showName: 'm2o Chart con Ilario',          djPhotoUrl: M2O_CHART_URI },
       { startHour: 22, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla con Shorty' },
-      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade con Albertino',    djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade',    djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
     ],
     sunday: [
       { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
