@@ -2945,14 +2945,14 @@ const osp = StyleSheet.create({
   headerLabel: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Math.round(32 * scale), paddingBottom: Math.round(40 * scale) },
   // Fallback: cerchio waveform (quando non ci sono info DJ)
-  circle: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Math.round(24 * scale), overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
+  circle: { width: 192, height: 192, borderRadius: 96, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Math.round(24 * scale), overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
   stationName: { fontSize: Math.round(24 * scale), fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
   genre: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: Math.round(18 * scale), textAlign: 'center' },
   // Stili "Ora in onda"
-  djPhotoWrap: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 2.5, marginBottom: Math.round(18 * scale), overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  djPhotoWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2.5, marginBottom: Math.round(18 * scale), overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
   djPhoto: { width: '100%', height: '100%', resizeMode: 'cover' } as any,
-  djInitialsWrap: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 2, marginBottom: Math.round(18 * scale), alignItems: 'center', justifyContent: 'center' },
-  djInitialsTxt: { fontSize: Math.round(46 * scale), fontWeight: '800', fontStyle: 'italic' },
+  djInitialsWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2, marginBottom: Math.round(18 * scale), alignItems: 'center', justifyContent: 'center' },
+  djInitialsTxt: { fontSize: 52, fontWeight: '800', fontStyle: 'italic' },
   oraInOnda: { fontSize: Math.round(10 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 4, textTransform: 'uppercase' },
   djName: { fontSize: Math.round(26 * scale), fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
   showName: { fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.45)', marginBottom: Math.round(16 * scale), textAlign: 'center', fontStyle: 'italic' },
