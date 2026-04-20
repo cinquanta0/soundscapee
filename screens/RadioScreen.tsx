@@ -2488,7 +2488,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
-        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
         try {
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
@@ -2497,6 +2496,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             shouldDuckAndroid: true,
           });
         } catch {}
+        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
         await TrackPlayer.updateOptions({
           capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
           compactCapabilities: [Capability.Play, Capability.Pause],
