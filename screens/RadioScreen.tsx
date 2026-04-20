@@ -20,6 +20,7 @@ import {
     Text, TextInput,
     TouchableOpacity,
     View,
+    AppState,
 } from 'react-native';
 import TrackPlayer, { Capability, Event, State, useTrackPlayerEvents } from 'react-native-track-player';
 import { auth } from '../firebaseConfig';
@@ -2524,22 +2525,58 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   // Fetch "Ora in onda" — al mount e ogni 15 min
   useEffect(() => {
     let cancelled = false;
+    let interval: NodeJS.Timeout;
+
     const load = async () => {
       const info = await fetchNowPlaying(station.id);
       if (!cancelled) { setNowPlaying(info); setDjImgError(false); }
     };
-    load();
-    const interval = setInterval(() => {
-      _npCache.delete(station.id);
+
+    const startInterval = () => {
       load();
-    }, NP_TTL);
-    return () => { cancelled = true; clearInterval(interval); };
+      interval = setInterval(() => {
+        _npCache.delete(station.id);
+        load();
+      }, NP_TTL);
+    };
+
+    startInterval();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        clearInterval(interval);
+      } else if (state === 'active') {
+        startInterval();
+      }
+    });
+
+    return () => { 
+      cancelled = true; 
+      clearInterval(interval); 
+      sub.remove();
+    };
   }, [station.id]);
 
   // Update time every 30 seconds to refresh current slot
   useEffect(() => {
-    const id = setInterval(() => setTimeUpdate(t => t + 1), 30000);
-    return () => clearInterval(id);
+    let id: NodeJS.Timeout;
+    const startTimer = () => {
+      id = setInterval(() => setTimeUpdate(t => t + 1), 30000);
+    };
+    startTimer();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        clearInterval(id);
+      } else if (state === 'active') {
+        startTimer();
+      }
+    });
+
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
   }, []);
 
   const togglePlay = async () => {
@@ -2568,14 +2605,31 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   // Animazione pulse per badge LIVE ORA
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(livePulse, { toValue: 0.2, duration: 700, useNativeDriver: true }),
-        Animated.timing(livePulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
+    let anim: Animated.CompositeAnimation | null = null;
+    const startAnim = () => {
+      anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(livePulse, { toValue: 0.2, duration: 700, useNativeDriver: true }),
+          Animated.timing(livePulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        ])
+      );
+      anim.start();
+    };
+
+    startAnim();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        anim?.stop();
+      } else if (state === 'active') {
+        startAnim();
+      }
+    });
+
+    return () => {
+      sub.remove();
+      anim?.stop();
+    };
   }, [livePulse]);
 
   // Auto-scroll allo slot corrente quando si apre il palinsesto
