@@ -77,7 +77,6 @@ import {
     uploadTrack,
     UserSound
 } from '../services/radioService';
-const _isIOS = require('react-native').Platform.OS === 'ios';
 const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
 
 const SW = Dimensions.get('window').width;
