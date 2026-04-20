@@ -2567,6 +2567,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const currentSlotIdx = getCurrentSlotIndex(scheduleSlotsForLive);
   const currentSlot = currentSlotIdx >= 0 ? scheduleSlotsForLive[currentSlotIdx] : null;
   const scheduleSlots = getScheduleSlots(station.id, selectedDay);
+  const isToday = selectedDay === today;
   // Per "ORA IN ONDA": priorità API live → palinsesto statico → iniziali
   const staticSlotPhoto = currentSlot
     ? (currentSlot.djPhotoUrl ?? getDjPhoto(currentSlot.djName ?? ''))
