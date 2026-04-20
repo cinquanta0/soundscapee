@@ -22,7 +22,10 @@ import {
     View,
     AppState,
 } from 'react-native';
-import TrackPlayer, { Capability, Event, State, useTrackPlayerEvents } from 'react-native-track-player';
+const _isIOS = Platform.OS === 'ios';
+const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
+const { Event = {}, State = {}, Capability = {}, useTrackPlayerEvents = () => {} } = _isIOS ? require('react-native-track-player') : {};
+
 import { auth } from '../firebaseConfig';
 import {
     destroyAgoraEngine,
@@ -2468,8 +2471,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const livePulse = useRef(new Animated.Value(1)).current;
   const [timeUpdate, setTimeUpdate] = useState(0);
 
+  const soundRef = useRef<Audio.Sound | null>(null);
+
   useTrackPlayerEvents([Event.PlaybackState], async (event) => {
-    if (event.type === Event.PlaybackState) {
+    if (_isIOS && event.type === Event.PlaybackState) {
       const state = await TrackPlayer.getState();
       setIsPlaying(state === State.Playing);
       setIsBufferingStream(state === State.Buffering || state === State.Connecting);
@@ -2488,20 +2493,41 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
-        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
-        await TrackPlayer.updateOptions({
-          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-          compactCapabilities: [Capability.Play, Capability.Pause],
-        });
-        await TrackPlayer.reset();
-        await TrackPlayer.add({
-          id: station.id,
-          url: streamUrl,
-          title: station.name,
-          artist: 'Radio in diretta',
-          artwork: station.logoUrl,
-        });
-        await TrackPlayer.play();
+        if (_isIOS) {
+          try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+          await TrackPlayer.updateOptions({
+            capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+            compactCapabilities: [Capability.Play, Capability.Pause],
+          });
+          await TrackPlayer.reset();
+          await TrackPlayer.add({
+            id: station.id,
+            url: streamUrl,
+            title: station.name,
+            artist: 'Radio in diretta',
+            artwork: station.logoUrl,
+          });
+          await TrackPlayer.play();
+        } else {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            shouldDuckAndroid: true,
+          });
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: streamUrl },
+            { shouldPlay: true },
+            (status: any) => {
+              if (mounted) {
+                setIsPlaying(status.isPlaying || false);
+                setIsBufferingStream(status.isBuffering || false);
+                if (status.didJustFinish) setIsPlaying(false);
+              }
+            }
+          );
+          soundRef.current = sound;
+        }
         if (mounted) setLoading(false);
       } catch (e) {
         console.warn('OfflineStation error:', station.searchName, e);
@@ -2510,7 +2536,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
-      TrackPlayer.reset().catch(() => {});
+      if (_isIOS) TrackPlayer.reset().catch(() => {});
+      else soundRef.current?.unloadAsync().catch(() => {});
     };
   }, []);
 
@@ -2572,8 +2599,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, []);
 
   const togglePlay = async () => {
-    if (isPlaying) await TrackPlayer.pause();
-    else await TrackPlayer.play();
+    if (_isIOS) {
+      if (isPlaying) await TrackPlayer.pause();
+      else await TrackPlayer.play();
+    } else {
+      if (isPlaying) await soundRef.current?.pauseAsync();
+      else await soundRef.current?.playAsync();
+    }
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
