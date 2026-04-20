@@ -19,7 +19,7 @@ module.exports = ({ config }) => ({
   icon: "./assets/images/icon.png",
   scheme: "soundscapemobile",
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
+  newArchEnabled: false,
   ios: {
     supportsTablet: true,
     buildNumber: "1",
