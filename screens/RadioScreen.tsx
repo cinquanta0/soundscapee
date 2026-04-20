@@ -2488,6 +2488,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!mounted) return;
 
         try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+        try {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            shouldDuckAndroid: true,
+          });
+        } catch {}
         await TrackPlayer.updateOptions({
           capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
           compactCapabilities: [Capability.Play, Capability.Pause],
