@@ -8,6 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 const _isIOS = require('react-native').Platform.OS === 'ios';
+const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
 const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
 const { State = {}, Capability = {} } = _isIOS ? require('react-native-track-player') : {};
 import { auth } from '../firebaseConfig';
@@ -275,12 +276,12 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
       { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',           showName: 'Deejay Time in the Mix' },
       { startHour: 1,  endHour: 3,  djName: 'm2o',                                    showName: 'Dance With Us' },
       { startHour: 3,  endHour: 4,  djName: 'm2o',                                    showName: 'm2o Playlist' },
-      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
       { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                        showName: 'Il Morning Show di m2o' },
       { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                           showName: 'Davide Rizzi' },
       { startHour: 12, endHour: 14, djName: 'Marlen',                                 showName: 'Marlen' },
       { startHour: 14, endHour: 17, djName: 'Ilario',                                 showName: 'Ilario' },
-      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
       { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                          showName: 'Andrea Mattei' },
       { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
       { startHour: 23, endHour: 24, djName: 'Val S',                                  showName: 'One Two One Two Selecta con Val S' },
@@ -289,12 +290,12 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
       { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',           showName: 'Deejay Time in the Mix' },
       { startHour: 1,  endHour: 3,  djName: 'm2o',                                    showName: 'Dance With Us' },
       { startHour: 3,  endHour: 4,  djName: 'm2o',                                    showName: 'm2o Playlist' },
-      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
       { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                        showName: 'Il Morning Show di m2o' },
       { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                           showName: 'Davide Rizzi' },
       { startHour: 12, endHour: 14, djName: 'Marlen',                                 showName: 'Marlen' },
       { startHour: 14, endHour: 17, djName: 'Ilario',                                 showName: 'Ilario' },
-      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
       { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                          showName: 'Andrea Mattei' },
       { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
       { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Dance Revolution con Albertino' },
@@ -307,9 +308,9 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
       { startHour: 14, endHour: 15, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
       { startHour: 15, endHour: 19, djName: 'Claves',                                 showName: 'Claves' },
       { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two con Wad' },
-      { startHour: 21, endHour: 22, djName: 'Ilario',                                 showName: 'm2o Chart con Ilario' },
+      { startHour: 21, endHour: 22, djName: 'Ilario',                                 showName: 'm2o Chart con Ilario',          djPhotoUrl: M2O_CHART_URI },
       { startHour: 22, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla con Shorty' },
-      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade con Albertino' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade con Albertino',    djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
     ],
     sunday: [
       { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
@@ -2401,6 +2402,7 @@ function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: st
     <Image
       source={{ uri }}
       style={{ width: size, height: size, borderRadius: radius, borderWidth: isCurrent ? 2 : 1, borderColor: color, opacity: isCurrent ? 1 : 0.75 }}
+      resizeMode="cover"
       onError={() => setErr(true)}
     />
   );
@@ -2808,13 +2810,13 @@ const osp = StyleSheet.create({
   headerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
   // Fallback: cerchio waveform (quando non ci sono info DJ)
-  circle: { width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 32, overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
+  circle: { width: 192, height: 192, borderRadius: 96, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 32, overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
   stationName: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
   genre: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center' },
   // Stili "Ora in onda"
-  djPhotoWrap: { width: 152, height: 152, borderRadius: 76, borderWidth: 2.5, marginBottom: 24, overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
-  djPhoto: { width: '100%', height: '100%' },
-  djInitialsWrap: { width: 152, height: 152, borderRadius: 76, borderWidth: 2, marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
+  djPhotoWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2.5, marginBottom: 24, overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  djPhoto: { width: '100%', height: '100%', resizeMode: 'cover' } as any,
+  djInitialsWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2, marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
   djInitialsTxt: { fontSize: 52, fontWeight: '800', fontStyle: 'italic' },
   oraInOnda: { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 6, textTransform: 'uppercase' },
   djName: { fontSize: 30, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
