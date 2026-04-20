@@ -669,7 +669,11 @@ export const acceptFriendRequest = async (targetUserId) => {
   ops.push(updateDoc(doc(db, 'users', meId), { friendsCount: increment(1) }));
   ops.push(updateDoc(doc(db, 'users', themId), { friendsCount: increment(1) }));
 
-  await Promise.all(ops);
+  try {
+    await Promise.all(ops);
+  } catch (err) {
+    console.warn('Avviso: impossibile aggiornare alcuni contatori amicizia (regole di sicurezza Firebase):', err);
+  }
 };
 
 /**
@@ -695,9 +699,10 @@ export const removeFriend = async (targetUserId) => {
   const followAtoB = `${themId}_${meId}`;
   const followBtoA = `${meId}_${themId}`;
 
-  const ops = [
-    deleteDoc(doc(db, 'friendRequests', id)),
-  ];
+  // Elimina subito la richiesta/amicizia
+  await deleteDoc(doc(db, 'friendRequests', id));
+
+  const ops = [];
 
   const [snapAtoB, snapBtoA] = await Promise.all([
     getDoc(doc(db, 'follows', followAtoB)),
@@ -717,7 +722,11 @@ export const removeFriend = async (targetUserId) => {
   ops.push(updateDoc(doc(db, 'users', meId), { friendsCount: increment(-1) }));
   ops.push(updateDoc(doc(db, 'users', themId), { friendsCount: increment(-1) }));
 
-  await Promise.all(ops);
+  try {
+    await Promise.all(ops);
+  } catch (err) {
+    console.warn('Avviso: impossibile aggiornare alcuni contatori rimozione amicizia:', err);
+  }
 };
 
 /**
