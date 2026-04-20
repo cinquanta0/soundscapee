@@ -21,7 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { Capability } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, State, useTrackPlayerEvents } from 'react-native-track-player';
 import { auth } from '../firebaseConfig';
 import {
     destroyAgoraEngine,
@@ -75,7 +75,6 @@ import {
 } from '../services/radioService';
 const _isIOS = require('react-native').Platform.OS === 'ios';
 const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
-const TrackPlayer = require('react-native-track-player').default;
 
 const SW = Dimensions.get('window').width;
 
