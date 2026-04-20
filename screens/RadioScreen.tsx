@@ -80,6 +80,9 @@ import {
 const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
 
 const SW = Dimensions.get('window').width;
+const SH = Dimensions.get('window').height;
+// scale: 1.0 on a 360px-wide screen, smaller on narrower, larger on wider (capped)
+const scale = Math.min(Math.max(SW / 390, 0.78), 1.0);
 
 // ─── Tipi locali ──────────────────────────────────────────────────────────────
 interface LocalTrack {
@@ -2932,42 +2935,43 @@ const palSt = StyleSheet.create({
 });
 
 const osp = StyleSheet.create({
-  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150, top: -80, alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16 },
-  tabBar: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabTxt: { fontSize: 10, fontFamily: 'monospace', letterSpacing: 1.5, color: 'rgba(255,255,255,0.3)', fontWeight: '700' },
+  orb: { position: 'absolute', width: 300 * scale, height: 300 * scale, borderRadius: 150 * scale, top: -80, alignSelf: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 36 : 56, paddingBottom: 12 },
+  tabBar: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabTxt: { fontSize: Math.round(10 * scale), fontFamily: 'monospace', letterSpacing: 1.5, color: 'rgba(255,255,255,0.3)', fontWeight: '700' },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  headerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
+  headerLabel: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Math.round(32 * scale), paddingBottom: Math.round(40 * scale) },
   // Fallback: cerchio waveform (quando non ci sono info DJ)
-  circle: { width: 192, height: 192, borderRadius: 96, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 32, overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
-  stationName: { fontSize: 28, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
-  genre: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center' },
+  circle: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Math.round(24 * scale), overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
+  stationName: { fontSize: Math.round(24 * scale), fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
+  genre: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: Math.round(18 * scale), textAlign: 'center' },
   // Stili "Ora in onda"
-  djPhotoWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2.5, marginBottom: 24, overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  djPhotoWrap: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 2.5, marginBottom: Math.round(18 * scale), overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
   djPhoto: { width: '100%', height: '100%', resizeMode: 'cover' } as any,
-  djInitialsWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2, marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
-  djInitialsTxt: { fontSize: 52, fontWeight: '800', fontStyle: 'italic' },
-  oraInOnda: { fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 6, textTransform: 'uppercase' },
-  djName: { fontSize: 30, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
-  showName: { fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' },
+  djInitialsWrap: { width: Math.round(160 * scale), height: Math.round(160 * scale), borderRadius: Math.round(80 * scale), borderWidth: 2, marginBottom: Math.round(18 * scale), alignItems: 'center', justifyContent: 'center' },
+  djInitialsTxt: { fontSize: Math.round(46 * scale), fontWeight: '800', fontStyle: 'italic' },
+  oraInOnda: { fontSize: Math.round(10 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 4, textTransform: 'uppercase' },
+  djName: { fontSize: Math.round(26 * scale), fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
+  showName: { fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.45)', marginBottom: Math.round(16 * scale), textAlign: 'center', fontStyle: 'italic' },
   stationRowNp: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   stationDot: { fontSize: 8, marginRight: 6 },
-  stationNameNp: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '700', fontFamily: 'monospace' },
-  genreNp: { fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' },
+  stationNameNp: { fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.6)', fontWeight: '700', fontFamily: 'monospace' },
+  genreNp: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' },
   // Comuni
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 36, marginTop: 8 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, marginBottom: Math.round(28 * scale), marginTop: 6 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusTxt: { fontSize: 11, fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1.5 },
-  playBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
-  playIcon: { fontSize: 28, color: '#fff' },
-  errorTxt: { marginTop: 20, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', textAlign: 'center' },
-  androidTip: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 20, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255,200,50,0.08)', borderWidth: 1, borderColor: 'rgba(255,200,50,0.2)' },
-  androidTipIcon: { fontSize: 16, marginTop: 1 },
-  androidTipTxt: { flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 17 },
+  statusTxt: { fontSize: Math.round(11 * scale), fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1.5 },
+  playBtn: { width: Math.round(64 * scale), height: Math.round(64 * scale), borderRadius: Math.round(32 * scale), alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+  playIcon: { fontSize: Math.round(26 * scale), color: '#fff' },
+  errorTxt: { marginTop: 16, fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', textAlign: 'center' },
+  androidTip: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 16, marginHorizontal: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,200,50,0.08)', borderWidth: 1, borderColor: 'rgba(255,200,50,0.2)' },
+  androidTipIcon: { fontSize: Math.round(14 * scale), marginTop: 1 },
+  androidTipTxt: { flex: 1, fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.5)', lineHeight: Math.round(16 * scale) },
 });
+
 
 // ─── Station card (card orizzontale) ─────────────────────────────────────────
 function OfflineStationCard({ station, onPress }: { station: OfflineStation; onPress: () => void }) {
