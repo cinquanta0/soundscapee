@@ -21,6 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { Capability } from 'react-native-track-player';
 import { auth } from '../firebaseConfig';
 import {
     destroyAgoraEngine,
@@ -74,8 +75,7 @@ import {
 } from '../services/radioService';
 const _isIOS = require('react-native').Platform.OS === 'ios';
 const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
-const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
-const { State = {}, Capability = {} } = _isIOS ? require('react-native-track-player') : {};
+const TrackPlayer = require('react-native-track-player').default;
 
 const SW = Dimensions.get('window').width;
 
@@ -2455,8 +2455,6 @@ function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: st
 }
 
 function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; onClose: () => void }) {
-  const isIOS = Platform.OS === 'ios';
-  const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBufferingStream, setIsBufferingStream] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2470,6 +2468,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const livePulse = useRef(new Animated.Value(1)).current;
   const [timeUpdate, setTimeUpdate] = useState(0);
 
+  useTrackPlayerEvents([Event.PlaybackState], async (event) => {
+    if (event.type === Event.PlaybackState) {
+      const state = await TrackPlayer.getState();
+      setIsPlaying(state === State.Playing);
+      setIsBufferingStream(state === State.Buffering || state === State.Connecting);
+    }
+  });
+
   // Fetch audio stream
   useEffect(() => {
     let mounted = true;
@@ -2482,41 +2488,20 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
-        if (isIOS) {
-          try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
-          await TrackPlayer.updateOptions({
-            capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-            compactCapabilities: [Capability.Play, Capability.Pause],
-          });
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            id: station.id,
-            url: streamUrl,
-            title: station.name,
-            artist: 'Radio in diretta',
-            artwork: station.logoUrl,
-          });
-          await TrackPlayer.play();
-          setIsPlaying(true);
-        } else {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            shouldDuckAndroid: false,
-          });
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: streamUrl },
-            { shouldPlay: true },
-            (status: any) => {
-              if (!mounted || !status.isLoaded) return;
-              setIsPlaying(status.isPlaying);
-              setIsBufferingStream(status.isBuffering ?? false);
-            },
-          );
-          if (mounted) soundRef.current = sound;
-          else sound.unloadAsync().catch(() => {});
-        }
+        try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+        await TrackPlayer.updateOptions({
+          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+        });
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          id: station.id,
+          url: streamUrl,
+          title: station.name,
+          artist: 'Radio in diretta',
+          artwork: station.logoUrl,
+        });
+        await TrackPlayer.play();
         if (mounted) setLoading(false);
       } catch (e) {
         console.warn('OfflineStation error:', station.searchName, e);
@@ -2525,8 +2510,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
-      if (isIOS) TrackPlayer.reset().catch(() => {});
-      else { const s = soundRef.current; soundRef.current = null; s?.stopAsync().catch(() => {}).finally(() => s?.unloadAsync().catch(() => {})); }
+      TrackPlayer.reset().catch(() => {});
     };
   }, []);
 
@@ -2552,13 +2536,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, []);
 
   const togglePlay = async () => {
-    if (isIOS) {
-      if (isPlaying) await TrackPlayer.pause();
-      else await TrackPlayer.play();
-    } else {
-      if (isPlaying) await soundRef.current?.pauseAsync();
-      else await soundRef.current?.playAsync();
-    }
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
