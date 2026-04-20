@@ -77,6 +77,7 @@ module.exports = ({ config }) => ({
         },
       },
     ],
+    "react-native-track-player",
   ],
   experiments: {
     typedRoutes: true,
