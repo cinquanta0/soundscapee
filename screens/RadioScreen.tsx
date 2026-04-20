@@ -1,35 +1,81 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
+import * as DocumentPicker from 'expo-document-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Modal, Alert, StatusBar, Animated, ScrollView,
-  KeyboardAvoidingView, Platform, Dimensions, Image,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text, TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+import { auth } from '../firebaseConfig';
+import {
+    destroyAgoraEngine,
+    downgradeToAudience,
+    fetchAgoraToken,
+    joinAsAudience,
+    joinAsHost,
+    leaveAgoraChannel,
+    refreshSpeakerphone,
+    setMicActive, upgradeToSpeaker,
+} from '../services/agoraService';
+import {
+    addCohost,
+    approveSuggestion,
+    ChatMessage,
+    createRadioRoom,
+    dismissPick,
+    endRadioRoom,
+    extendGap,
+    fetchUserSoundsForSuggestion,
+    grantSpeaker,
+    HandRaise,
+    hostHeartbeat,
+    joinRadioRoom, leaveRadioRoom,
+    listenToChat,
+    listenToHandRaises,
+    listenToLiveRooms,
+    listenToMyHandRaise,
+    listenToReactions,
+    listenToRoom,
+    listenToScheduledRooms,
+    listenToSuggestions,
+    lowerHand,
+    pickListener,
+    PlaylistTrack,
+    RadioRoom,
+    raiseHand,
+    rejectSuggestion,
+    removeCohost,
+    reorderPlaylist,
+    revokeSpeaker,
+    scheduleRadioRoom,
+    sendChatMessage, sendReaction,
+    setHostMicLive,
+    skipToNextTrack,
+    startScheduledRoom,
+    Suggestion,
+    suggestTrack,
+    uploadTrack,
+    UserSound
+} from '../services/radioService';
 const _isIOS = require('react-native').Platform.OS === 'ios';
 const M2O_CHART_URI: string = Image.resolveAssetSource(require('../assets/m2o-chart.jpg')).uri;
 const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
 const { State = {}, Capability = {} } = _isIOS ? require('react-native-track-player') : {};
-import { auth } from '../firebaseConfig';
-import {
-  listenToLiveRooms, createRadioRoom, uploadTrack, endRadioRoom, skipToNextTrack,
-  joinRadioRoom, leaveRadioRoom, listenToRoom, RadioRoom, PlaylistTrack,
-  ChatMessage, HandRaise, Reaction, Suggestion, UserSound,
-  listenToChat, sendChatMessage, sendReaction, listenToReactions,
-  raiseHand, lowerHand, listenToMyHandRaise, listenToHandRaises,
-  pickListener, dismissPick, setHostMicLive,
-  grantSpeaker, revokeSpeaker, addCohost, removeCohost,
-  listenToSuggestions, suggestTrack, approveSuggestion, rejectSuggestion, fetchUserSoundsForSuggestion,
-  scheduleRadioRoom, startScheduledRoom, listenToScheduledRooms,
-  extendGap, reorderPlaylist, hostHeartbeat,
-} from '../services/radioService';
-import {
-  fetchAgoraToken, joinAsHost, joinAsAudience, leaveAgoraChannel,
-  setMicActive, upgradeToSpeaker, downgradeToAudience, destroyAgoraEngine, refreshSpeakerphone,
-} from '../services/agoraService';
-import * as DocumentPicker from 'expo-document-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SW = Dimensions.get('window').width;
 
@@ -513,7 +559,7 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
 }
 
 // ─── Now Playing (Ora in Onda) ────────────────────────────────────────────────
-const NP_TTL = 15 * 60 * 1000; // 15 minuti
+const NP_TTL = 2 * 60 * 1000; // 2 minuti
 const _npCache: Map<string, { data: NowPlayingInfo; ts: number }> = new Map();
 
 async function _fetchJson(url: string, ms = 5000): Promise<unknown> {
@@ -2422,6 +2468,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const scheduleScrollRef = useRef<any>(null);
   const livePulse = useRef(new Animated.Value(1)).current;
+  const [timeUpdate, setTimeUpdate] = useState(0);
 
   // Fetch audio stream
   useEffect(() => {
@@ -2498,6 +2545,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     return () => { cancelled = true; clearInterval(interval); };
   }, [station.id]);
 
+  // Update time every 30 seconds to refresh current slot
+  useEffect(() => {
+    const id = setInterval(() => setTimeUpdate(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const togglePlay = async () => {
     if (isIOS) {
       if (isPlaying) await TrackPlayer.pause();
@@ -2509,10 +2562,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
-  const isToday = selectedDay === new Date().getDay();
+  const today = new Date().getDay();
+  const scheduleSlotsForLive = getScheduleSlots(station.id, today);
+  const currentSlotIdx = getCurrentSlotIndex(scheduleSlotsForLive);
+  const currentSlot = currentSlotIdx >= 0 ? scheduleSlotsForLive[currentSlotIdx] : null;
   const scheduleSlots = getScheduleSlots(station.id, selectedDay);
-  const currentSlotIdx = isToday ? getCurrentSlotIndex(scheduleSlots) : -1;
-  const currentSlot = currentSlotIdx >= 0 ? scheduleSlots[currentSlotIdx] : null;
   // Per "ORA IN ONDA": priorità API live → palinsesto statico → iniziali
   const staticSlotPhoto = currentSlot
     ? (currentSlot.djPhotoUrl ?? getDjPhoto(currentSlot.djName ?? ''))
