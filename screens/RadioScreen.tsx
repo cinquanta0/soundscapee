@@ -2764,6 +2764,20 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         {error && (
           <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
         )}
+
+        {/* Android battery tip for Xiaomi/Huawei */}
+        {!_isIOS && isPlaying && (
+          <View style={osp.androidTip}>
+            <Text style={osp.androidTipIcon}>💡</Text>
+            <Text style={osp.androidTipTxt}>
+              Su Xiaomi/Huawei: vai in{' '}
+              <Text style={{ fontWeight: '700' }}>Impostazioni → App → Soundscape → Batteria</Text>
+              {' '}e scegli{' '}
+              <Text style={{ fontWeight: '700' }}>"Nessuna restrizione"</Text>
+              {' '}per ascoltare in background.
+            </Text>
+          </View>
+        )}
       </View>
       ) : (
         <View style={{ flex: 1 }}>
@@ -2950,6 +2964,9 @@ const osp = StyleSheet.create({
   playBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
   playIcon: { fontSize: 28, color: '#fff' },
   errorTxt: { marginTop: 20, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', textAlign: 'center' },
+  androidTip: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 20, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255,200,50,0.08)', borderWidth: 1, borderColor: 'rgba(255,200,50,0.2)' },
+  androidTipIcon: { fontSize: 16, marginTop: 1 },
+  androidTipTxt: { flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 17 },
 });
 
 // ─── Station card (card orizzontale) ─────────────────────────────────────────
