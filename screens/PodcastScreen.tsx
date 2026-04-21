@@ -671,8 +671,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       if (uri) {
         setAudioUri(uri);
         setSoundscapeAudioUrl(null);
-        const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-        setAudioName(`Registrazione ${ts}`);
+        setAudioName('AUDIO REGISTRATO');
         setAudioDuration(secs);
       }
     } catch {

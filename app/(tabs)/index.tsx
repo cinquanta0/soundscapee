@@ -1449,10 +1449,8 @@ if (loading) {
     <View>
       <Text style={styles.userName}>{post.username}</Text>
       <Text style={styles.soundLocation}>
-        {post.location 
-          ? `📍 ${post.location.latitude.toFixed(2)}, ${post.location.longitude.toFixed(2)}`
-          : timeAgo(post.createdAt)
-        }
+        {timeAgo(post.createdAt)}
+        {post.location ? ' • 📍' : ''}
       </Text>
     </View>
   </TouchableOpacity>
