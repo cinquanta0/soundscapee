@@ -2563,32 +2563,31 @@ if (loading) {
         transparent={true}
         onRequestClose={() => setShowNotificationsModal(false)}
       >
-        <TouchableOpacity 
-          style={[styles.modalOverlay, { justifyContent: 'center', padding: 20 }]} 
-          activeOpacity={1} 
-          onPress={() => setShowNotificationsModal(false)}
-        >
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', paddingBottom: insets.bottom + 20 }]}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFillObject} 
+            activeOpacity={1} 
+            onPress={() => setShowNotificationsModal(false)} 
+          />
           <View 
             style={[
               styles.modalContent, 
               { 
-                height: '80%', 
+                height: '75%', 
                 backgroundColor: '#0f172a', 
                 borderWidth: 1.5, 
                 borderColor: 'rgba(0,255,156,0.3)',
-                borderRadius: 30,
+                borderRadius: 28,
+                marginHorizontal: 10,
+                marginBottom: 10,
                 overflow: 'hidden',
-                shadowColor: '#00FF9C',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.2,
-                shadowRadius: 20,
-                elevation: 15
+                elevation: 20
               }
             ]} 
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🔔 {t('notifications.title')}</Text>
+              <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
               <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
