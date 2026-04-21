@@ -2689,34 +2689,38 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     }, 300);
   }, [showPalinsesto, currentSlotIdx]);
 
+  const lastNotificationId = useRef<string | null>(null);
+
   // Gestione Notifica di Background (Semplice - SOLO ANDROID)
   useEffect(() => {
-    if (_isIOS) return; // Su iOS usiamo già TrackPlayer
-
-    let notificationId: string | null = null;
+    if (_isIOS) return;
 
     const updateNotification = async () => {
       try {
-        if (!_isIOS) {
-          await Notifications.setNotificationChannelAsync('radio-playback', {
-            name: 'Radio Playback',
-            importance: Notifications.AndroidImportance.MAX,
-            showBadge: false,
-          });
-        }
-        
+        // 1. Canale (sempre meglio assicurarsi che esista)
+        await Notifications.setNotificationChannelAsync('radio-playback', {
+          name: 'Radio Playback',
+          importance: Notifications.AndroidImportance.MAX,
+          showBadge: false,
+        });
+
+        // 2. Permessi
         const { status: currentStatus } = await Notifications.getPermissionsAsync();
         if (currentStatus !== 'granted') {
           await Notifications.requestPermissionsAsync();
         }
 
-        if (!isPlaying || loading) {
-          if (notificationId) {
-            await Notifications.dismissNotificationAsync(notificationId);
-            notificationId = null;
+        // 3. Logica di visibilità
+        if (!isPlaying) {
+          if (lastNotificationId.current) {
+            await Notifications.dismissNotificationAsync(lastNotificationId.current);
+            lastNotificationId.current = null;
           }
           return;
         }
+
+        // DEBUG ALERT: Se vedi questo, il codice sta girando!
+        // Alert.alert("Notifica", "Tento invio...");
 
         const content = {
           title: `📻 Soundscape - ${station.name}`,
@@ -2727,12 +2731,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           sticky: true,
           android: {
             channelId: 'radio-playback',
-            ongoing: true,
           }
         };
 
-        // Rimuoviamo l'identificatore fisso per testare la generazione dinamica
-        notificationId = await Notifications.scheduleNotificationAsync({
+        if (lastNotificationId.current) {
+          await Notifications.dismissNotificationAsync(lastNotificationId.current);
+        }
+        
+        lastNotificationId.current = await Notifications.scheduleNotificationAsync({
           content,
           trigger: null,
         });
@@ -2744,11 +2750,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     updateNotification();
 
     return () => {
-      if (notificationId) {
-        Notifications.dismissNotificationAsync(notificationId).catch(() => {});
+      if (lastNotificationId.current) {
+        Notifications.dismissNotificationAsync(lastNotificationId.current).catch(() => {});
       }
     };
-  }, [isPlaying, loading, effectiveDjName, station.name]);
+  }, [isPlaying, effectiveDjName, station.name]);
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
