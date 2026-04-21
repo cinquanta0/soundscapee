@@ -37,6 +37,16 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+// Crea il canale per Android (Obbligatorio per Android 8+)
+if (!_isIOS) {
+  Notifications.setNotificationChannelAsync('radio-playback', {
+    name: 'Radio Playback',
+    importance: Notifications.AndroidImportance.LOW,
+    showBadge: false,
+    lockscreenVisibility: Notifications.AndroidActivityAction.VIEW,
+  });
+}
 import {
     destroyAgoraEngine,
     downgradeToAudience,
@@ -2718,6 +2728,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           sound: false,
           priority: Notifications.AndroidPriority.LOW,
           sticky: true,
+          android: {
+            channelId: 'radio-playback',
+            ongoing: true, // Impedisce la chiusura accidentale
+          }
         };
 
         if (notificationId) {
