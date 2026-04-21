@@ -2564,90 +2564,87 @@ if (loading) {
         onRequestClose={() => setShowNotificationsModal(false)}
         statusBarTranslucent={true}
       >
-        {/* Sfondo scuro cliccabile per chiudere — l'intero overlay è il backdrop */}
-        <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
-          activeOpacity={1}
-          onPress={() => setShowNotificationsModal(false)}
-        >
-          {/* Pannello Notifiche — blocca la propagazione dei touch verso il backdrop */}
-          <View
-            style={{
-              width: '100%',
-              height: '75%',
-              backgroundColor: '#0f172a',
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: 'rgba(0,255,156,0.3)',
-              overflow: 'hidden',
-              elevation: 25,
-            }}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
-              <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {unreadCount > 0 && (
-              <TouchableOpacity
-                style={{ marginHorizontal: 16, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.1)', alignItems: 'center' }}
-                onPress={async () => {
-                  const user = auth.currentUser;
-                  if (!user) return;
-                  await markAllNotificationsAsRead(user.uid);
-                  loadNotifications();
-                }}
-              >
-                <Text style={{ color: '#00FF9C', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{t('notifications.markAllRead')}</Text>
-              </TouchableOpacity>
-            )}
-
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-              showsVerticalScrollIndicator={false}
+        <TouchableWithoutFeedback onPress={() => setShowNotificationsModal(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            {/* Pannello Notifiche — blocca la propagazione dei touch verso il backdrop */}
+            <View
+              style={{
+                width: '100%',
+                height: '75%',
+                backgroundColor: '#0f172a',
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: 'rgba(0,255,156,0.3)',
+                overflow: 'hidden',
+                elevation: 25,
+              }}
+              onStartShouldSetResponder={() => true}
             >
-              {notifications.length === 0 ? (
-                <View style={[styles.emptyState, { marginTop: 60 }]}>
-                  <Text style={{ fontSize: 40, marginBottom: 16 }}>🔔</Text>
-                  <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
-                  <Text style={styles.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
-                </View>
-              ) : (
-                notifications.map((notif) => (
-                  <TouchableOpacity
-                    key={notif.id}
-                    style={[
-                      styles.notificationItem,
-                      !notif.read && { backgroundColor: '#1e293b', borderColor: '#00FF9C', borderLeftWidth: 4 }
-                    ]}
-                    onPress={async () => {
-                      await markNotificationAsRead(notif.id);
-                      loadNotifications();
-                      setShowNotificationsModal(false);
-                      await handleNotificationNavigation(notif.data);
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={[styles.notificationTitle, !notif.read && { color: '#00FF9C' }]}>{notif.title}</Text>
-                      {!notif.read && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FF9C', marginTop: 4 }} />}
-                    </View>
-                    <Text style={styles.notificationBody}>{notif.body}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, opacity: 0.6 }}>
-                      <Feather name="clock" size={10} color="#94a3b8" />
-                      <Text style={[styles.notificationTime, { marginLeft: 4 }]}>
-                        {timeAgo(notif.createdAt)}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
+                <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
+                  <Text style={styles.modalClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {unreadCount > 0 && (
+                <TouchableOpacity
+                  style={{ marginHorizontal: 16, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.1)', alignItems: 'center' }}
+                  onPress={async () => {
+                    const user = auth.currentUser;
+                    if (!user) return;
+                    await markAllNotificationsAsRead(user.uid);
+                    loadNotifications();
+                  }}
+                >
+                  <Text style={{ color: '#00FF9C', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{t('notifications.markAllRead')}</Text>
+                </TouchableOpacity>
               )}
-            </ScrollView>
+
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {notifications.length === 0 ? (
+                  <View style={[styles.emptyState, { marginTop: 60 }]}>
+                    <Text style={{ fontSize: 40, marginBottom: 16 }}>🔔</Text>
+                    <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
+                    <Text style={styles.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
+                  </View>
+                ) : (
+                  notifications.map((notif) => (
+                    <TouchableOpacity
+                      key={notif.id}
+                      style={[
+                        styles.notificationItem,
+                        !notif.read && { backgroundColor: '#1e293b', borderColor: '#00FF9C', borderLeftWidth: 4 }
+                      ]}
+                      onPress={async () => {
+                        await markNotificationAsRead(notif.id);
+                        loadNotifications();
+                        setShowNotificationsModal(false);
+                        await handleNotificationNavigation(notif.data);
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <Text style={[styles.notificationTitle, !notif.read && { color: '#00FF9C' }]}>{notif.title}</Text>
+                        {!notif.read && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FF9C', marginTop: 4 }} />}
+                      </View>
+                      <Text style={styles.notificationBody}>{notif.body}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, opacity: 0.6 }}>
+                        <Feather name="clock" size={10} color="#94a3b8" />
+                        <Text style={[styles.notificationTime, { marginLeft: 4 }]}>
+                          {timeAgo(notif.createdAt)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </View>
           </View>
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
       </Modal>
 
 
