@@ -2700,15 +2700,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!_isIOS) {
           await Notifications.setNotificationChannelAsync('radio-playback', {
             name: 'Radio Playback',
-            importance: Notifications.AndroidImportance.LOW,
+            importance: Notifications.AndroidImportance.MAX,
             showBadge: false,
           });
         }
         
-        const { status } = await Notifications.getPermissionsAsync();
-        if (status !== 'granted') {
-          const { status: newStatus } = await Notifications.requestPermissionsAsync();
-          if (newStatus !== 'granted') return;
+        const { status: currentStatus } = await Notifications.getPermissionsAsync();
+        if (currentStatus !== 'granted') {
+          await Notifications.requestPermissionsAsync();
         }
 
         if (!isPlaying || loading) {
@@ -2724,21 +2723,19 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           body: `In onda: ${effectiveDjName}`,
           data: { stationId: station.id },
           sound: false,
-          priority: Notifications.AndroidPriority.LOW,
+          priority: Notifications.AndroidPriority.MAX,
           sticky: true,
           android: {
             channelId: 'radio-playback',
-            ongoing: true, // Impedisce la chiusura accidentale
+            ongoing: true,
           }
         };
 
-        // Usiamo un ID fisso per sovrascrivere sempre la stessa notifica invece di crearne nuove
-        await Notifications.scheduleNotificationAsync({
-          identifier: 'radio-status',
+        // Rimuoviamo l'identificatore fisso per testare la generazione dinamica
+        notificationId = await Notifications.scheduleNotificationAsync({
           content,
           trigger: null,
         });
-        notificationId = 'radio-status';
       } catch (err) {
         console.error("Errore notifica radio Android:", err);
       }
