@@ -27,6 +27,7 @@ const TrackPlayer = _isIOS ? require('react-native-track-player').default : null
 const { Event = {}, State = {}, Capability = {}, useTrackPlayerEvents = () => {} } = _isIOS ? require('react-native-track-player') : {};
 
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance, AndroidPriority } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
 
 // Configura come gestire le notifiche quando l'app è aperta
@@ -503,7 +504,7 @@ async function showRadioNotification(stationName: string, djName: string) {
 
     await Notifications.setNotificationChannelAsync('radio-playback', {
       name: 'Radio Playback',
-      importance: Notifications.AndroidImportance.MAX,
+      importance: AndroidImportance?.MAX || 5,
       showBadge: false,
     });
 
@@ -512,7 +513,7 @@ async function showRadioNotification(stationName: string, djName: string) {
       content: {
         title: `📻 Soundscape - ${stationName}`,
         body: `In onda: ${djName}`,
-        priority: Notifications.AndroidPriority.MAX,
+        priority: AndroidPriority?.MAX || 2,
         sticky: true,
       },
       trigger: null,
