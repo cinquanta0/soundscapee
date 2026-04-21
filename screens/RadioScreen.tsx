@@ -564,7 +564,7 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
 }
 
 // ─── Now Playing (Ora in Onda) ────────────────────────────────────────────────
-const NP_TTL = 2 * 60 * 1000; // 2 minuti
+const NP_TTL = 1 * 60 * 1000; // 1 minuto (più reattivo)
 const _npCache: Map<string, { data: NowPlayingInfo; ts: number }> = new Map();
 
 async function _fetchJson(url: string, ms = 5000): Promise<unknown> {
@@ -2582,7 +2582,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   useEffect(() => {
     let id: NodeJS.Timeout;
     const startTimer = () => {
-      id = setInterval(() => setTimeUpdate(t => t + 1), 30000);
+      id = setInterval(() => setTimeUpdate(t => t + 1), 10000); // Ogni 10 secondi per massima precisione
     };
     startTimer();
 
