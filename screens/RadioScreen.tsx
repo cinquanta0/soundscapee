@@ -504,16 +504,20 @@ async function showRadioNotification(station: OfflineStation, djName: string) {
     await Notifications.scheduleNotificationAsync({
       identifier: 'radio-status',
       content: {
-        title: `📻 Soundscape - ${stationName}`,
+        title: `📻 Soundscape - ${station.name}`,
         body: `In onda: ${djName}`,
         priority: AndroidPriority?.MAX || 2,
         sticky: true,
+        color: station.color,
+        android: {
+          channelId: 'radio-playback',
+          largeIcon: station.logoUrl,
+        }
       },
       trigger: null,
     });
-    Alert.alert("Successo", "Comando inviato al sistema");
   } catch (err: any) {
-    Alert.alert("Errore Notifica", `MSG: ${err.message}\nCODE: ${err.code}\nFULL: ${String(err)}`);
+    console.error("Errore Notifica:", err);
   }
 }
 
