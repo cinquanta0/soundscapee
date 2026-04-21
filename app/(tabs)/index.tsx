@@ -2564,24 +2564,26 @@ if (loading) {
         onRequestClose={() => setShowNotificationsModal(false)}
         statusBarTranslucent={true}
       >
-        {/* Sfondo scuro cliccabile per chiudere */}
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={() => setShowNotificationsModal(false)}
-          />
-          {/* Pannello Notifiche */}
-          <View style={{
-            width: '100%',
-            height: '75%',
-            backgroundColor: '#0f172a',
-            borderRadius: 24,
-            borderWidth: 1,
-            borderColor: 'rgba(0,255,156,0.3)',
-            overflow: 'hidden',
-            elevation: 25,
-          }}>
+        {/* Sfondo scuro cliccabile per chiudere — l'intero overlay è il backdrop */}
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
+          activeOpacity={1}
+          onPress={() => setShowNotificationsModal(false)}
+        >
+          {/* Pannello Notifiche — blocca la propagazione dei touch verso il backdrop */}
+          <View
+            style={{
+              width: '100%',
+              height: '75%',
+              backgroundColor: '#0f172a',
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: 'rgba(0,255,156,0.3)',
+              overflow: 'hidden',
+              elevation: 25,
+            }}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
               <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
@@ -2645,7 +2647,7 @@ if (loading) {
               )}
             </ScrollView>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
 
 
