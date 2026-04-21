@@ -2689,8 +2689,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     }, 300);
   }, [showPalinsesto, currentSlotIdx]);
 
-  // Gestione Notifica di Background (Semplice)
+  // Gestione Notifica di Background (Semplice - SOLO ANDROID)
   useEffect(() => {
+    if (_isIOS) return; // Su iOS usiamo già TrackPlayer
+
     let notificationId: string | null = null;
 
     const updateNotification = async () => {
@@ -2724,7 +2726,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         
         notificationId = await Notifications.presentNotificationAsync(content);
       } catch (err) {
-        console.error("Errore notifica radio:", err);
+        console.error("Errore notifica radio Android:", err);
       }
     };
 
