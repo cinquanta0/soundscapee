@@ -26,7 +26,17 @@ const _isIOS = Platform.OS === 'ios';
 const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
 const { Event = {}, State = {}, Capability = {}, useTrackPlayerEvents = () => {} } = _isIOS ? require('react-native-track-player') : {};
 
-import { auth } from '../firebaseConfig';
+import * as Notifications from 'expo-notifications';
+import { auth, db } from '../firebaseConfig';
+
+// Configura come gestire le notifiche quando l'app è aperta
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 import {
     destroyAgoraEngine,
     downgradeToAudience,
@@ -2678,6 +2688,54 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       scheduleScrollRef.current?.scrollTo({ y: Math.max(0, currentSlotIdx * 80 - 40), animated: true });
     }, 300);
   }, [showPalinsesto, currentSlotIdx]);
+
+  // Gestione Notifica di Background (Semplice)
+  useEffect(() => {
+    let notificationId: string | null = null;
+
+    const updateNotification = async () => {
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') {
+          const { status: newStatus } = await Notifications.requestPermissionsAsync();
+          if (newStatus !== 'granted') return;
+        }
+
+        if (!isPlaying || loading) {
+          if (notificationId) {
+            await Notifications.dismissNotificationAsync(notificationId);
+            notificationId = null;
+          }
+          return;
+        }
+
+        const content = {
+          title: `📻 Soundscape - ${station.name}`,
+          body: `In onda: ${effectiveDjName}`,
+          data: { stationId: station.id },
+          sound: false,
+          priority: Notifications.AndroidPriority.LOW,
+          sticky: true,
+        };
+
+        if (notificationId) {
+          await Notifications.dismissNotificationAsync(notificationId);
+        }
+        
+        notificationId = await Notifications.presentNotificationAsync(content);
+      } catch (err) {
+        console.error("Errore notifica radio:", err);
+      }
+    };
+
+    updateNotification();
+
+    return () => {
+      if (notificationId) {
+        Notifications.dismissNotificationAsync(notificationId);
+      }
+    };
+  }, [isPlaying, loading, effectiveDjName, station.name]);
 
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
