@@ -13,6 +13,7 @@ import { auth, storage } from '../firebaseConfig';
 import { getRecentStati, createStato, StatiGroup, deleteStato, getStatoViewers, markStatoViewed } from '../services/statiService';
 import { inviaMessaggio } from '../services/messaggiService';
 import StoryViewer, { StoryGroup } from './StoryViewer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MAX_RECORDING_SECONDS = 15;
 
@@ -164,7 +165,15 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   useEffect(() => {
     loadUserStati();
+    checkTutorialViewed();
   }, []);
+
+  const checkTutorialViewed = async () => {
+    try {
+      const val = await AsyncStorage.getItem('soundscape_tutorial_viewed');
+      if (val === '1') setViewedTutorial(true);
+    } catch (e) {}
+  };
 
   const loadUserStati = async () => {
     try {
@@ -222,6 +231,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const handleViewed = (groupId: string) => {
     if (groupId.startsWith('tutorial')) {
       setViewedTutorial(true);
+      AsyncStorage.setItem('soundscape_tutorial_viewed', '1').catch(() => {});
     } else {
       // Aggiorna lo stato locale e ricarica per ri-ordinare
       setViewedStati((prev) => {
