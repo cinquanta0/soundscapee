@@ -88,6 +88,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   useEffect(() => {
     loadAudio();
     if (isIOS) {
+      // Ascolta gli eventi progress del player
       const s1 = TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e: any) => {
         setPosition(e.position);
         if (podcast.duration <= 0 && e.duration > 0) setDuration(e.duration);
@@ -96,10 +97,24 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         setIsPlaying(e.state === State.Playing);
         setIsBuffering(e.state === State.Buffering || e.state === State.Loading);
       });
-      return () => { s1.remove(); s2.remove(); TrackPlayer.reset().catch(() => {}); };
+      // Poller di backup ogni 500ms: in foreground il PlaybackProgressUpdated può essere lento
+      const pollInterval = setInterval(async () => {
+        try {
+          const prog = await TrackPlayer.getProgress();
+          if (prog.position != null) setPosition(prog.position);
+          if (prog.duration > 0 && podcast.duration <= 0) setDuration(prog.duration);
+        } catch {}
+      }, 500);
+      return () => {
+        s1.remove();
+        s2.remove();
+        clearInterval(pollInterval);
+        TrackPlayer.reset().catch(() => {});
+      };
     }
     return () => { soundRef.current?.unloadAsync().catch(() => {}); };
   }, []);
+
 
   useEffect(() => {
     getPodcastVotes(podcast.id).then(({ liked, disliked }) => {
