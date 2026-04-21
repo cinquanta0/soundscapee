@@ -24,13 +24,8 @@ import {
 } from 'react-native';
 const _isIOS = Platform.OS === 'ios';
 const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
-const { 
-  Event = {}, 
-  State = {}, 
-  Capability = {}, 
-  useTrackPlayerEvents = () => {},
-  AppKilledPlaybackBehavior = {} 
-} = _isIOS ? require('react-native-track-player') : {};
+const TrackPlayerLibrary = _isIOS ? require('react-native-track-player') : {};
+const { Event, State, Capability } = TrackPlayerLibrary;
 
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance, AndroidPriority } from 'expo-notifications';
@@ -2532,13 +2527,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  useTrackPlayerEvents([Event.PlaybackState], async (event) => {
-    if (_isIOS && event.type === Event.PlaybackState) {
+  useEffect(() => {
+    if (!_isIOS || !TrackPlayer) return;
+    const sub = TrackPlayer.addEventListener(Event.PlaybackState, async () => {
       const state = await TrackPlayer.getState();
       setIsPlaying(state === State.Playing);
       setIsBufferingStream(state === State.Buffering || state === State.Connecting);
-    }
-  });
+    });
+    return () => sub.remove();
+  }, []);
 
   // Fetch audio stream
   useEffect(() => {
