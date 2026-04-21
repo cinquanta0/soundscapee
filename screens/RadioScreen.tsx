@@ -22,14 +22,15 @@ import {
     View,
     AppState,
 } from 'react-native';
-const TrackPlayer = require('react-native-track-player').default;
+const _isIOS = Platform.OS === 'ios';
+const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
 const { 
   Event = {}, 
   State = {}, 
   Capability = {}, 
   useTrackPlayerEvents = () => {},
   AppKilledPlaybackBehavior = {} 
-} = require('react-native-track-player');
+} = _isIOS ? require('react-native-track-player') : {};
 
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance, AndroidPriority } from 'expo-notifications';
