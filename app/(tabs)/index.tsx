@@ -2562,30 +2562,26 @@ if (loading) {
         animationType="fade"
         transparent={true}
         onRequestClose={() => setShowNotificationsModal(false)}
+        statusBarTranslucent={true}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowNotificationsModal(false)}
-        >
-          <View 
-            style={[
-              styles.modalContent, 
-              { 
-                height: '70%', 
-                backgroundColor: '#0f172a', 
-                borderWidth: 1.5, 
-                borderColor: 'rgba(0,255,156,0.3)',
-                borderRadius: 24,
-                elevation: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.5,
-                shadowRadius: 15
-              }
-            ]} 
-            onStartShouldSetResponder={() => true}
-          >
+        {/* Sfondo scuro cliccabile per chiudere */}
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowNotificationsModal(false)}
+          />
+          {/* Pannello Notifiche */}
+          <View style={{
+            width: '100%',
+            height: '75%',
+            backgroundColor: '#0f172a',
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: 'rgba(0,255,156,0.3)',
+            overflow: 'hidden',
+            elevation: 25,
+          }}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
               <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
@@ -2607,16 +2603,14 @@ if (loading) {
               </TouchableOpacity>
             )}
 
-            <ScrollView 
-              style={{ flex: 1 }} 
+            <ScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
               showsVerticalScrollIndicator={false}
             >
               {notifications.length === 0 ? (
                 <View style={[styles.emptyState, { marginTop: 60 }]}>
-                  <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.03)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-                    <Text style={{ fontSize: 40 }}>🔔</Text>
-                  </View>
+                  <Text style={{ fontSize: 40, marginBottom: 16 }}>🔔</Text>
                   <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
                   <Text style={styles.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
                 </View>
@@ -2651,7 +2645,7 @@ if (loading) {
               )}
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
 
