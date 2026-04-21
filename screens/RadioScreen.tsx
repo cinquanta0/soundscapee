@@ -2578,24 +2578,37 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     };
   }, [station.id]);
 
-  // Update time every 30 seconds to refresh current slot
+  // Update time exactly at slot changes and every minute for precision
   useEffect(() => {
-    let id: NodeJS.Timeout;
-    const startTimer = () => {
-      id = setInterval(() => setTimeUpdate(t => t + 1), 10000); // Ogni 10 secondi per massima precisione
+    let timerId: NodeJS.Timeout;
+
+    const scheduleNextUpdate = () => {
+      const now = new Date();
+      // Calcoliamo quanti ms mancano allo scoccare del prossimo minuto
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      
+      // Troviamo anche se c'è un cambio slot imminente (opzionale ma utile)
+      // Per semplicità, aggiornare ogni minuto è lo standard d'oro.
+      
+      timerId = setTimeout(() => {
+        setTimeUpdate(t => t + 1);
+        scheduleNextUpdate(); // Programma il prossimo minuto
+      }, msUntilNextMinute + 100); // +100ms di margine per sicurezza
     };
-    startTimer();
+
+    scheduleNextUpdate();
 
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background' || state === 'inactive') {
-        clearInterval(id);
+        clearTimeout(timerId);
       } else if (state === 'active') {
-        startTimer();
+        setTimeUpdate(t => t + 1);
+        scheduleNextUpdate();
       }
     });
 
     return () => {
-      clearInterval(id);
+      clearTimeout(timerId);
       sub.remove();
     };
   }, []);
