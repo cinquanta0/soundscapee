@@ -43,9 +43,12 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const [speed, setSpeed] = useState(1);
   const seekBarWidth = SW - 80;
 
-  // Stato per la barra di scorrimento
+  // Stato per la barra di scorrimento — usiamo REF per le closure del PanResponder
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const isScrubbingRef = useRef(false);
   const [scrubPosition, setScrubPosition] = useState(0);
+  const durationRef = useRef(podcast.duration || 0);
+  const seekBarWidthRef = useRef(seekBarWidth);
 
   // Likes / dislikes / commenti
   const [liked, setLiked] = useState(false);
@@ -58,6 +61,10 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
+  // Tieni i ref sincronizzati con lo stato
+  const setDurationWithRef = (d: number) => { durationRef.current = d; setDuration(d); };
+  const setScrubbingWithRef = (v: boolean) => { isScrubbingRef.current = v; setIsScrubbing(v); };
+
   const displayPosition = isScrubbing ? scrubPosition : position;
   const progress = duration > 0 ? displayPosition / duration : 0;
 
@@ -66,21 +73,30 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e, gestureState) => {
-        setIsScrubbing(true);
-        const ratio = Math.min(Math.max((gestureState.x0 - 40) / seekBarWidth, 0), 1);
-        setScrubPosition(ratio * (duration || 1));
+        setScrubbingWithRef(true);
+        const ratio = Math.min(Math.max((gestureState.x0 - 40) / seekBarWidthRef.current, 0), 1);
+        setScrubPosition(ratio * (durationRef.current || 1));
       },
       onPanResponderMove: (e, gestureState) => {
-        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidth, 0), 1);
-        setScrubPosition(ratio * (duration || 1));
+        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidthRef.current, 0), 1);
+        setScrubPosition(ratio * (durationRef.current || 1));
       },
       onPanResponderRelease: async (e, gestureState) => {
-        setIsScrubbing(false);
-        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidth, 0), 1);
-        await seekTo(ratio);
+        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidthRef.current, 0), 1);
+        const targetSecs = ratio * (durationRef.current || 1);
+        setScrubPosition(targetSecs);
+        setScrubbingWithRef(false);
+        // Seek su iOS o Android
+        try {
+          if (Platform.OS === 'ios') {
+            await (TrackPlayer as any).seekTo(targetSecs);
+          } else if (soundRef.current) {
+            await soundRef.current.setPositionAsync(targetSecs * 1000);
+          }
+        } catch {}
       },
       onPanResponderTerminate: () => {
-        setIsScrubbing(false);
+        setScrubbingWithRef(false);
       }
     })
   ).current;
@@ -100,9 +116,11 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       // Poller di backup ogni 500ms: in foreground il PlaybackProgressUpdated può essere lento
       const pollInterval = setInterval(async () => {
         try {
+          // Non aggiornare la posizione se l'utente sta trascinando la barra
+          if (isScrubbingRef.current) return;
           const prog = await TrackPlayer.getProgress();
           if (prog.position != null) setPosition(prog.position);
-          if (prog.duration > 0 && podcast.duration <= 0) setDuration(prog.duration);
+          if (prog.duration > 0 && podcast.duration <= 0) setDurationWithRef(prog.duration);
         } catch {}
       }, 500);
       return () => {
@@ -199,10 +217,10 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
           { shouldPlay: true, rate: speed, progressUpdateIntervalMillis: 500 },
           (status: any) => {
             if (!status.isLoaded) return;
-            // Solo se non stiamo trascinando aggiorniamo la posizione visiva reale
-            setPosition(status.positionMillis / 1000);
+            // Non aggiornare se l'utente sta trascinando
+            if (!isScrubbingRef.current) setPosition(status.positionMillis / 1000);
             setIsPlaying(status.isPlaying);
-            if (status.durationMillis) setDuration(podcast.duration > 0 ? podcast.duration : status.durationMillis / 1000);
+            if (status.durationMillis) setDurationWithRef(podcast.duration > 0 ? podcast.duration : status.durationMillis / 1000);
             if (status.didJustFinish) { setIsPlaying(false); setPosition(0); }
           },
         );
