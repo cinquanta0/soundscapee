@@ -37,16 +37,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-
-// Crea il canale per Android (Obbligatorio per Android 8+)
-if (!_isIOS) {
-  Notifications.setNotificationChannelAsync('radio-playback', {
-    name: 'Radio Playback',
-    importance: Notifications.AndroidImportance.LOW,
-    showBadge: false,
-    lockscreenVisibility: Notifications.AndroidActivityAction.VIEW,
-  });
-}
 import {
     destroyAgoraEngine,
     downgradeToAudience,
@@ -2707,6 +2697,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
     const updateNotification = async () => {
       try {
+        if (!_isIOS) {
+          await Notifications.setNotificationChannelAsync('radio-playback', {
+            name: 'Radio Playback',
+            importance: Notifications.AndroidImportance.LOW,
+            showBadge: false,
+          });
+        }
+        
         const { status } = await Notifications.getPermissionsAsync();
         if (status !== 'granted') {
           const { status: newStatus } = await Notifications.requestPermissionsAsync();
