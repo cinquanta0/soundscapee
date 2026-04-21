@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Animated, Image, StatusBar,
-  Dimensions, Alert, Platform, ScrollView, KeyboardAvoidingView,
+  Dimensions, Alert, Platform, ScrollView, KeyboardAvoidingView, PanResponder
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -43,6 +43,10 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const [speed, setSpeed] = useState(1);
   const seekBarWidth = SW - 80;
 
+  // Stato per la barra di scorrimento
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubPosition, setScrubPosition] = useState(0);
+
   // Likes / dislikes / commenti
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -54,7 +58,32 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
-  const progress = duration > 0 ? position / duration : 0;
+  const displayPosition = isScrubbing ? scrubPosition : position;
+  const progress = duration > 0 ? displayPosition / duration : 0;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e, gestureState) => {
+        setIsScrubbing(true);
+        const ratio = Math.min(Math.max((gestureState.x0 - 40) / seekBarWidth, 0), 1);
+        setScrubPosition(ratio * (duration || 1));
+      },
+      onPanResponderMove: (e, gestureState) => {
+        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidth, 0), 1);
+        setScrubPosition(ratio * (duration || 1));
+      },
+      onPanResponderRelease: async (e, gestureState) => {
+        setIsScrubbing(false);
+        const ratio = Math.min(Math.max((gestureState.moveX - 40) / seekBarWidth, 0), 1);
+        await seekTo(ratio);
+      },
+      onPanResponderTerminate: () => {
+        setIsScrubbing(false);
+      }
+    })
+  ).current;
 
   useEffect(() => {
     loadAudio();
@@ -152,9 +181,10 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         });
         const { sound } = await Audio.Sound.createAsync(
           { uri: podcast.audioUrl },
-          { shouldPlay: true, rate: speed },
+          { shouldPlay: true, rate: speed, progressUpdateIntervalMillis: 500 },
           (status: any) => {
             if (!status.isLoaded) return;
+            // Solo se non stiamo trascinando aggiorniamo la posizione visiva reale
             setPosition(status.positionMillis / 1000);
             setIsPlaying(status.isPlaying);
             if (status.durationMillis) setDuration(podcast.duration > 0 ? podcast.duration : status.durationMillis / 1000);
@@ -247,16 +277,15 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
           {/* Progress bar */}
           <View style={pl.seekSection}>
-            <TouchableOpacity
+            <View
               style={pl.seekTrack}
-              onPress={(e) => seekTo(e.nativeEvent.locationX / seekBarWidth)}
-              activeOpacity={1}
+              {...panResponder.panHandlers}
             >
               <View style={[pl.seekFill, { width: `${progress * 100}%` }]} />
               <View style={[pl.seekThumb, { left: `${progress * 100}%` }]} />
-            </TouchableOpacity>
+            </View>
             <View style={pl.seekTimes}>
-              <Text style={pl.seekTime}>{fmtTime(position)}</Text>
+              <Text style={pl.seekTime}>{fmtTime(displayPosition)}</Text>
               <Text style={pl.seekTime}>{fmtTime(duration)}</Text>
             </View>
           </View>
