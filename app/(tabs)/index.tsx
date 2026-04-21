@@ -2559,17 +2559,32 @@ if (loading) {
       {/* Notifications Modal */}
       <Modal
         visible={showNotificationsModal}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setShowNotificationsModal(false)}
       >
         <TouchableOpacity 
-          style={styles.modalOverlay} 
+          style={[styles.modalOverlay, { justifyContent: 'center', padding: 20 }]} 
           activeOpacity={1} 
           onPress={() => setShowNotificationsModal(false)}
         >
           <View 
-            style={[styles.modalContent, { height: '85%', backgroundColor: '#0f172a', borderTopWidth: 2, borderTopColor: '#00FF9C' }]} 
+            style={[
+              styles.modalContent, 
+              { 
+                height: '80%', 
+                backgroundColor: '#0f172a', 
+                borderWidth: 1.5, 
+                borderColor: 'rgba(0,255,156,0.3)',
+                borderRadius: 30,
+                overflow: 'hidden',
+                shadowColor: '#00FF9C',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.2,
+                shadowRadius: 20,
+                elevation: 15
+              }
+            ]} 
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
