@@ -2698,11 +2698,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     const updateNotification = async () => {
       try {
         if (!_isIOS) {
+          // DEBUG: Togliamo il canale momentaneamente per vedere se è lui a bloccare
+          /*
           await Notifications.setNotificationChannelAsync('radio-playback', {
             name: 'Radio Playback',
             importance: Notifications.AndroidImportance.MAX,
             showBadge: false,
           });
+          */
         }
         
         const { status: currentStatus } = await Notifications.getPermissionsAsync();
@@ -2716,6 +2719,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             notificationId = null;
           }
           return;
+        }
+
+        // Se siamo qui, la radio sta suonando. Mostriamo un Alert di test (solo Android)
+        if (!_isIOS && isPlaying) {
+           // Alert.alert("Debug", "Tento di mostrare la notifica..."); 
         }
 
         const content = {
