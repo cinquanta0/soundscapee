@@ -2563,25 +2563,25 @@ if (loading) {
         transparent={true}
         onRequestClose={() => setShowNotificationsModal(false)}
       >
-        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', paddingBottom: insets.bottom + 20 }]}>
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFillObject} 
-            activeOpacity={1} 
-            onPress={() => setShowNotificationsModal(false)} 
-          />
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowNotificationsModal(false)}
+        >
           <View 
             style={[
               styles.modalContent, 
               { 
-                height: '75%', 
+                height: '70%', 
                 backgroundColor: '#0f172a', 
                 borderWidth: 1.5, 
                 borderColor: 'rgba(0,255,156,0.3)',
-                borderRadius: 28,
-                marginHorizontal: 10,
-                marginBottom: 10,
-                overflow: 'hidden',
-                elevation: 20
+                borderRadius: 24,
+                elevation: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.5,
+                shadowRadius: 15
               }
             ]} 
             onStartShouldSetResponder={() => true}
