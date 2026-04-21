@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, TextInput, StyleSheet,
   FlatList, ActivityIndicator, Alert, ScrollView,
-  useWindowDimensions, Clipboard,
+  useWindowDimensions, Clipboard, Image,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebaseConfig';
@@ -37,6 +39,7 @@ import {
   gradeSubmission,
   setSchoolRoleByAdmin,
   getPodcastById,
+  updateClassPhoto,
 } from '../services/podcastService';
 
 const ONBOARDING_KEY = 'soundscape_school_onboarding_done';
@@ -192,6 +195,18 @@ export default function ITSSchoolScreen() {
   const [lessonAudioPlaying, setLessonAudioPlaying] = useState(false);
   const screenScrollRef = useRef<ScrollView | null>(null);
   const lessonSoundRef = useRef<Audio.Sound | null>(null);
+
+  // ── Stato per audio locale (registrazione / file) ──────────────────────────
+  const [localAudioUri, setLocalAudioUri] = useState<string | null>(null);
+  const [localAudioName, setLocalAudioName] = useState<string>('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordSecondsRef = useRef(0);
+  const [uploadingClassPhoto, setUploadingClassPhoto] = useState(false);
+
+  const clearLocalAudio = () => { setLocalAudioUri(null); setLocalAudioName(''); };
 
   const activeClass = useMemo(
     () => classes.find((c) => c.id === activeClassId) ?? null,
@@ -386,16 +401,19 @@ export default function ITSSchoolScreen() {
   };
 
   const handlePublishLesson = async () => {
-    if (!activeClassId || !pickedAudio || !lessonTitle.trim()) return;
+    if (!activeClassId || !lessonTitle.trim()) return;
+    const hasAudio = !!pickedAudio || !!localAudioUri;
+    if (!hasAudio) return;
     setBusy(true);
     try {
       await createLessonPodcast({
         classId: activeClassId,
         title: lessonTitle.trim(),
         description: lessonDesc.trim(),
-        audioUrl: pickedAudio.audioUrl,
+        audioUrl: pickedAudio?.audioUrl,
+        audioUri: localAudioUri || undefined,
       });
-      setLessonTitle(''); setLessonDesc(''); setPickedAudio(null);
+      setLessonTitle(''); setLessonDesc(''); setPickedAudio(null); clearLocalAudio();
       await refreshClassData(activeClassId, 'teacher');
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('school.errors.cannotPublishLesson'));
@@ -403,7 +421,9 @@ export default function ITSSchoolScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!activeClassId || !selectedLessonId || !pickedAudio || !subTitle.trim()) return;
+    if (!activeClassId || !selectedLessonId || !subTitle.trim()) return;
+    const hasAudio = !!pickedAudio || !!localAudioUri;
+    if (!hasAudio) return;
     setBusy(true);
     try {
       await submitLessonAssignment({
@@ -411,9 +431,10 @@ export default function ITSSchoolScreen() {
         lessonId: selectedLessonId,
         title: subTitle.trim(),
         description: subDesc.trim(),
-        audioUrl: pickedAudio.audioUrl,
+        audioUrl: pickedAudio?.audioUrl,
+        audioUri: localAudioUri || undefined,
       });
-      setSubTitle(''); setSubDesc(''); setPickedAudio(null);
+      setSubTitle(''); setSubDesc(''); setPickedAudio(null); clearLocalAudio();
       await refreshClassData(activeClassId, 'student');
       setSection('mine');
     } catch (e: any) {
@@ -525,6 +546,82 @@ export default function ITSSchoolScreen() {
     }
   };
 
+  // ── Audio actions ────────────────────────────────────────────────────────────
+  const handlePickAudioFile = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        clearLocalAudio();
+        setPickedAudio(null);
+        setLocalAudioUri(res.assets[0].uri);
+        setLocalAudioName(res.assets[0].name || 'File audio');
+      }
+    } catch (e: any) {
+      Alert.alert(t('common.error'), 'Impossibile selezionare il file');
+    }
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert(t('common.error'), 'Permesso microfono negato');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordSeconds(0);
+      recordSecondsRef.current = 0;
+      recordTimerRef.current = setInterval(() => {
+        recordSecondsRef.current += 1;
+        setRecordSeconds(recordSecondsRef.current);
+      }, 1000);
+      clearLocalAudio();
+      setPickedAudio(null);
+    } catch (err: any) {
+      Alert.alert(t('common.error'), 'Impossibile avviare registrazione');
+      setIsRecording(false);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (!recordingRef.current) return;
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      if (uri) {
+        setLocalAudioUri(uri);
+        setLocalAudioName('AUDIO REGISTRATO');
+      }
+    } catch (err) {}
+    setIsRecording(false);
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+  };
+
+  const handleUpdateClassPhoto = async () => {
+    if (!activeClassId || roleMode !== 'teacher') return;
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.6,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setUploadingClassPhoto(true);
+        await updateClassPhoto(activeClassId, res.assets[0].uri);
+        await refreshClassData(activeClassId, roleMode);
+        await loadClasses(roleMode);
+      }
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || 'Errore aggiornamento foto');
+    } finally {
+      setUploadingClassPhoto(false);
+    }
+  };
+
   // ── Status banner ──────────────────────────────────────────────────────────
   const renderStatusBanner = () => {
     const roleColor = schoolStatus?.schoolRole === 'teacher' ? C.blue
@@ -591,41 +688,86 @@ export default function ITSSchoolScreen() {
   );
 
   // ── Audio picker ─────────────────────────────────────────────────────────────
+  const [audioMode, setAudioMode] = useState<'search' | 'record' | 'file'>('search');
+
   const renderAudioPicker = () => (
     <View style={{ marginTop: 8 }}>
       <Text style={s.fieldLabel}>{t('school.audioSection')}</Text>
-      <TextInput
-        style={s.input}
-        value={search}
-        onChangeText={setSearch}
-        placeholder={t('school.searchAudio')}
-        placeholderTextColor={C.textMute}
-      />
-      {pickedAudio ? (
-        <View style={s.pickedRow}>
-          <Text style={s.pickedTxt} numberOfLines={1}>🎵  {pickedAudio.title}</Text>
-          <TouchableOpacity onPress={() => setPickedAudio(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-      <FlatList
-        data={results.slice(0, 6)}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[s.audioRow, pickedAudio?.id === item.id && s.audioRowActive]}
-            onPress={() => setPickedAudio(item)}
-          >
-            <View style={[s.audioRowDot, pickedAudio?.id === item.id && { backgroundColor: C.green }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.audioRowTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={s.audioRowSub}>@{item.username}</Text>
+      <View style={s.audioModeTabs}>
+        <TouchableOpacity style={[s.audioModeTab, audioMode === 'search' && s.audioModeTabActive]} onPress={() => setAudioMode('search')}>
+          <Text style={[s.audioModeTxt, audioMode === 'search' && s.audioModeTxtActive]}>Cerca</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.audioModeTab, audioMode === 'record' && s.audioModeTabActive]} onPress={() => setAudioMode('record')}>
+          <Text style={[s.audioModeTxt, audioMode === 'record' && s.audioModeTxtActive]}>Registra</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.audioModeTab, audioMode === 'file' && s.audioModeTabActive]} onPress={() => setAudioMode('file')}>
+          <Text style={[s.audioModeTxt, audioMode === 'file' && s.audioModeTxtActive]}>File</Text>
+        </TouchableOpacity>
+      </View>
+
+      {audioMode === 'search' && (
+        <View>
+          <TextInput style={s.input} value={search} onChangeText={setSearch} placeholder={t('school.searchAudio')} placeholderTextColor={C.textMute} />
+          {pickedAudio ? (
+            <View style={s.pickedRow}>
+              <Text style={s.pickedTxt} numberOfLines={1}>🎵  {pickedAudio.title}</Text>
+              <TouchableOpacity onPress={() => setPickedAudio(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
             </View>
+          ) : null}
+          <FlatList
+            data={results.slice(0, 6)} keyExtractor={(item) => item.id} scrollEnabled={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={[s.audioRow, pickedAudio?.id === item.id && s.audioRowActive]} onPress={() => { setPickedAudio(item); clearLocalAudio(); }}>
+                <View style={[s.audioRowDot, pickedAudio?.id === item.id && { backgroundColor: C.green }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.audioRowTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={s.audioRowSub}>@{item.username}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
+      {audioMode === 'record' && (
+        <View style={s.recordSection}>
+          <Text style={s.recordTime}>
+            {isRecording ? `00:${String(recordSeconds).padStart(2, '0')}` : localAudioUri && audioMode === 'record' ? 'Registrazione pronta' : 'Pronto a registrare'}
+          </Text>
+          <TouchableOpacity
+            style={[s.recordBtn, isRecording && s.recordBtnActive]}
+            onPress={isRecording ? handleStopRecording : handleStartRecording}
+          >
+            <View style={[s.recordBtnInner, isRecording && s.recordBtnInnerActive]} />
           </TouchableOpacity>
-        )}
-      />
+          {localAudioUri && audioMode === 'record' && !isRecording && (
+            <View style={s.pickedRow}>
+              <Text style={s.pickedTxt} numberOfLines={1}>🎙️ {localAudioName}</Text>
+              <TouchableOpacity onPress={clearLocalAudio} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+
+      {audioMode === 'file' && (
+        <View style={s.fileSection}>
+          <TouchableOpacity style={s.btnBlue} onPress={handlePickAudioFile}>
+            <Text style={s.btnBlueTxt}>Scegli file audio</Text>
+          </TouchableOpacity>
+          {localAudioUri && audioMode === 'file' && (
+            <View style={s.pickedRow}>
+              <Text style={s.pickedTxt} numberOfLines={1}>📁 {localAudioName}</Text>
+              <TouchableOpacity onPress={clearLocalAudio} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 
@@ -710,9 +852,9 @@ export default function ITSSchoolScreen() {
               placeholder={t('school.lessonDescPlaceholder')} placeholderTextColor={C.textMute} multiline numberOfLines={2} />
             {renderAudioPicker()}
             <TouchableOpacity
-              style={[s.btnGold, (!pickedAudio || !lessonTitle.trim() || busy) && s.btnDisabled]}
+              style={[s.btnGold, (!(pickedAudio || localAudioUri) || !lessonTitle.trim() || busy) && s.btnDisabled]}
               onPress={handlePublishLesson}
-              disabled={!pickedAudio || !lessonTitle.trim() || busy}
+              disabled={!(pickedAudio || localAudioUri) || !lessonTitle.trim() || busy}
             >
               {busy ? <ActivityIndicator color={C.bg} size="small" />
                 : <Text style={s.btnGoldTxt}>{t('school.publishLesson')}</Text>}
@@ -727,9 +869,9 @@ export default function ITSSchoolScreen() {
               placeholder={t('school.submissionDescPlaceholder')} placeholderTextColor={C.textMute} multiline numberOfLines={2} />
             {renderAudioPicker()}
             <TouchableOpacity
-              style={[s.btnGreen, (!pickedAudio || !subTitle.trim() || !selectedLessonId || busy) && s.btnDisabled]}
+              style={[s.btnGreen, (!(pickedAudio || localAudioUri) || !subTitle.trim() || !selectedLessonId || busy) && s.btnDisabled]}
               onPress={handleSubmit}
-              disabled={!pickedAudio || !subTitle.trim() || !selectedLessonId || busy}
+              disabled={!(pickedAudio || localAudioUri) || !subTitle.trim() || !selectedLessonId || busy}
             >
               {busy ? <ActivityIndicator color={C.bg} size="small" />
                 : <Text style={s.btnGreenTxt}>{t('school.submitAssignment')}</Text>}
@@ -1053,6 +1195,28 @@ export default function ITSSchoolScreen() {
           </>
         ) : (
         <View>
+          {/* Class Header */}
+          <View style={[s.classHeader, { marginHorizontal: hPad, maxWidth: maxW, alignSelf: maxW ? 'center' : undefined, width: maxW ? '100%' : undefined }]}>
+            <View style={s.classPhotoWrap}>
+              {activeClass.photoUrl ? (
+                <Image source={{ uri: activeClass.photoUrl }} style={s.classPhoto} />
+              ) : (
+                <View style={s.classPhotoFallback}>
+                  <Text style={s.classPhotoFallbackTxt}>{activeClass.name[0]?.toUpperCase()}</Text>
+                </View>
+              )}
+              {roleMode === 'teacher' && (
+                <TouchableOpacity style={s.editPhotoBtn} onPress={handleUpdateClassPhoto} disabled={uploadingClassPhoto}>
+                  {uploadingClassPhoto ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.editPhotoBtnTxt}>📷</Text>}
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={{ flex: 1, paddingLeft: 16 }}>
+              <Text style={s.classHeaderName} numberOfLines={2}>{activeClass.name}</Text>
+              <Text style={s.classHeaderTeacher}>{t('school.lessonBy', { name: activeClass.teacherName })}</Text>
+            </View>
+          </View>
+
           {/* Section tabs */}
           <View style={[s.tabsWrap, { marginHorizontal: hPad }]}>
             <SectionTab

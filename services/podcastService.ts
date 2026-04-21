@@ -60,6 +60,7 @@ export interface SchoolClass {
   code: string;
   teacherId: string;
   teacherName: string;
+  photoUrl?: string | null;
   createdAt: Date;
 }
 
@@ -375,6 +376,7 @@ export async function getTeacherClasses(): Promise<SchoolClass[]> {
     code: d.data().code ?? '',
     teacherId: d.data().teacherId ?? '',
     teacherName: d.data().teacherName ?? 'Docente',
+    photoUrl: d.data().photoUrl ?? null,
     createdAt: d.data().createdAt?.toDate() ?? new Date(),
   }));
   return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -399,6 +401,7 @@ export async function getStudentClasses(): Promise<SchoolClass[]> {
       code: c.data().code ?? '',
       teacherId: c.data().teacherId ?? '',
       teacherName: c.data().teacherName ?? 'Docente',
+      photoUrl: c.data().photoUrl ?? null,
       createdAt: c.data().createdAt?.toDate() ?? new Date(),
     }))
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -425,6 +428,22 @@ export async function approveClassMember(classId: string, studentId: string): Pr
 export async function rejectClassMember(classId: string, studentId: string): Promise<void> {
   const callable = httpsCallable<{ classId: string; studentId: string }, { ok: boolean }>(functions, 'rejectClassMemberSecure');
   await callable({ classId, studentId });
+}
+
+export async function updateClassPhoto(classId: string, photoUri: string): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+  // Verifica che l'utente sia il docente della classe
+  const classSnap = await getDoc(doc(db, 'classes', classId));
+  if (!classSnap.exists() || classSnap.data().teacherId !== user.uid) {
+    throw new Error('Solo il docente può aggiornare la foto della classe');
+  }
+  const blob = await (await fetch(photoUri)).blob();
+  const photoRef = ref(storage, `classes/${classId}/cover_${Date.now()}.jpg`);
+  await uploadBytes(photoRef, blob, { contentType: 'image/jpeg' });
+  const photoUrl = await getDownloadURL(photoRef);
+  await updateDoc(doc(db, 'classes', classId), { photoUrl });
+  return photoUrl;
 }
 
 export async function createLessonPodcast(params: {
