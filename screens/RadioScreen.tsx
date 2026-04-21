@@ -484,22 +484,15 @@ function getCurrentSlotIndex(slots: ScheduleSlot[]): number {
   });
 }
 
-
-
 const RADIO_URL_CACHE_PREFIX = 'radio_url_cache_';
 
 // --- Funzioni Helper Notifica Radio (Direct Method) ---
-async function showRadioNotification(stationName: string, djName: string) {
+async function showRadioNotification(station: OfflineStation, djName: string) {
   if (Platform.OS === 'ios') return;
   try {
-    Alert.alert("Notifica", "Esecuzione showRadioNotification...");
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
-      const { status: newStatus } = await Notifications.requestPermissionsAsync();
-      if (newStatus !== 'granted') {
-        // Alert.alert("Permessi", "Notifiche negate dall'utente");
-        return;
-      }
+      await Notifications.requestPermissionsAsync();
     }
 
     await Notifications.setNotificationChannelAsync('radio-playback', {
@@ -2584,7 +2577,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             }
           );
           soundRef.current = sound;
-          showRadioNotification(station.name, 'Radio in diretta'); // Notifica all'avvio
+          showRadioNotification(station, 'Radio in diretta'); // Notifica all'avvio
         }
         if (mounted) setLoading(false);
       } catch (e) {
@@ -2680,7 +2673,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         hideRadioNotification();
       } else {
         await soundRef.current?.playAsync();
-        showRadioNotification(station.name, effectiveDjName);
+        showRadioNotification(station, effectiveDjName);
       }
     }
   };
