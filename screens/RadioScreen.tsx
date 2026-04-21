@@ -518,8 +518,8 @@ async function showRadioNotification(stationName: string, djName: string) {
       trigger: null,
     });
     Alert.alert("Successo", "Comando inviato al sistema");
-  } catch (err) {
-    Alert.alert("Errore Notifica", JSON.stringify(err));
+  } catch (err: any) {
+    Alert.alert("Errore Notifica", `MSG: ${err.message}\nCODE: ${err.code}\nFULL: ${String(err)}`);
   }
 }
 
