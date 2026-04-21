@@ -2815,7 +2815,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             showsVerticalScrollIndicator={false}
           >
             {scheduleSlots.map((slot, i) => {
-              const isCurrent = i === currentSlotIdx;
+              // "LIVE ORA" è valido solo se l'utente sta guardando il giorno di oggi
+              const isCurrent = isToday && i === currentSlotIdx;
               const isPast = isToday && i < currentSlotIdx;
               const isLast = i === scheduleSlots.length - 1;
               const photoUrl = (isCurrent && nowPlaying?.djImageUrl && !djImgError)
