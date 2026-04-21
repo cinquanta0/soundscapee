@@ -144,6 +144,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const [viewedTutorial, setViewedTutorial] = useState(false);
   const [userStati, setUserStati] = useState<StatiGroup[]>([]);
   const [viewedStati, setViewedStati] = useState<Set<string>>(new Set());
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   // Creazione stato
   const [createVisible, setCreateVisible] = useState(false);
@@ -167,10 +168,42 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   const loadUserStati = async () => {
     try {
+      const uid = auth.currentUser?.uid;
       const stati = await getRecentStati();
-      setUserStati(stati);
+      
+      let followingSet = new Set<string>();
+      if (uid) {
+        try {
+          const { getFollowingList } = require('../services/firebaseService');
+          const following = await getFollowingList(uid);
+          followingSet = new Set(following.map((f: any) => f.id));
+          setFollowingIds(followingSet);
+        } catch (err) {
+          console.error("Errore caricamento following per storie:", err);
+        }
+      }
+
+      const viewedSet = new Set<string>();
+      stati.forEach(group => {
+        const allSeen = group.screens.every(s => s.seenBy?.includes(uid || ''));
+        if (allSeen) viewedSet.add(group.id);
+      });
+      setViewedStati(viewedSet);
+
+      const sortedStati = [...stati].sort((a, b) => {
+        const aViewed = viewedSet.has(a.id);
+        const bViewed = viewedSet.has(b.id);
+        const aFollowed = followingSet.has(a.userId);
+        const bFollowed = followingSet.has(b.userId);
+
+        if (aViewed !== bViewed) return aViewed ? 1 : -1;
+        if (aFollowed !== bFollowed) return aFollowed ? -1 : 1;
+        return 0;
+      });
+
+      setUserStati(sortedStati);
     } catch (e) {
-      // silenzioso — le storie utenti sono opzionali
+      // silenzioso
     }
   };
 
@@ -190,7 +223,14 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
     if (groupId.startsWith('tutorial')) {
       setViewedTutorial(true);
     } else {
-      setViewedStati((prev) => new Set([...prev, groupId]));
+      // Aggiorna lo stato locale e ricarica per ri-ordinare
+      setViewedStati((prev) => {
+        const next = new Set(prev);
+        next.add(groupId);
+        return next;
+      });
+      // Facciamo un caricamento leggero o ri-ordiniamo i dati esistenti
+      loadUserStati();
     }
   };
 
