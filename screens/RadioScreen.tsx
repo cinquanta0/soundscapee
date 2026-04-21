@@ -22,9 +22,14 @@ import {
     View,
     AppState,
 } from 'react-native';
-const _isIOS = Platform.OS === 'ios';
-const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
-const { Event = {}, State = {}, Capability = {}, useTrackPlayerEvents = () => {} } = _isIOS ? require('react-native-track-player') : {};
+const TrackPlayer = require('react-native-track-player').default;
+const { 
+  Event = {}, 
+  State = {}, 
+  Capability = {}, 
+  useTrackPlayerEvents = () => {},
+  AppKilledPlaybackBehavior = {} 
+} = require('react-native-track-player');
 
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance, AndroidPriority } from 'expo-notifications';
@@ -469,7 +474,6 @@ const DJ_PHOTOS: Record<string, string> = {
   'Gianni Simioli':     'https://cloud.rtl.it/RTLFM/speakers/400xH/gianni-simioli-wide-rtl-play-tzlip.jpg',
   'Francesco Taranto':  'https://cloud.rtl.it/RTLFM/speakers/400xH/francesco-taranto-wide-rtl-play-lypwy.jpg',
 };
-
 function getDjPhoto(djName: string): string | undefined {
   return DJ_PHOTOS[djName];
 }
@@ -485,48 +489,6 @@ function getCurrentSlotIndex(slots: ScheduleSlot[]): number {
 }
 
 const RADIO_URL_CACHE_PREFIX = 'radio_url_cache_';
-
-// --- Funzioni Helper Notifica Radio (Direct Method) ---
-async function showRadioNotification(station: OfflineStation, djName: string) {
-  if (Platform.OS === 'ios') return;
-  try {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-      await Notifications.requestPermissionsAsync();
-    }
-
-    await Notifications.setNotificationChannelAsync('radio-playback', {
-      name: 'Radio Playback',
-      importance: AndroidImportance?.MAX || 5,
-      showBadge: false,
-    });
-
-    await Notifications.scheduleNotificationAsync({
-      identifier: 'radio-status',
-      content: {
-        title: `📻 Soundscape - ${station.name}`,
-        body: `In onda: ${djName}`,
-        priority: AndroidPriority?.MAX || 2,
-        sticky: true,
-        color: station.color,
-        android: {
-          channelId: 'radio-playback',
-          largeIcon: station.logoUrl,
-        }
-      },
-      trigger: null,
-    });
-  } catch (err: any) {
-    console.error("Errore Notifica:", err);
-  }
-}
-
-async function hideRadioNotification() {
-  if (Platform.OS === 'ios') return;
-  try {
-    await Notifications.dismissNotificationAsync('radio-status');
-  } catch (err) {}
-}
 // ------------------------------------------------------
 const RADIO_URL_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 giorni
 
@@ -2547,53 +2509,48 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
-        if (_isIOS) {
-          try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
-          await TrackPlayer.updateOptions({
-            capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-            compactCapabilities: [Capability.Play, Capability.Pause],
-          });
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            id: station.id,
-            url: streamUrl,
-            title: station.name,
-            artist: 'Radio in diretta',
-            artwork: station.logoUrl,
-          });
-          await TrackPlayer.play();
-        } else {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            shouldDuckAndroid: true,
-          });
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: streamUrl },
-            { shouldPlay: true },
-            (status: any) => {
-              if (mounted) {
-                setIsPlaying(status.isPlaying || false);
-                setIsBufferingStream(status.isBuffering || false);
-                if (status.didJustFinish) setIsPlaying(false);
-              }
-            }
-          );
-          soundRef.current = sound;
-          showRadioNotification(station, 'Radio in diretta'); // Notifica all'avvio
+        // Configurazione unificata TrackPlayer (iOS & Android)
+        try { 
+          await TrackPlayer.setupPlayer({ 
+            autoHandleInterruptions: true,
+            waitForBuffer: true
+          }); 
+        } catch (e) {
+          // Player già inizializzato, va bene così
         }
+
+        await TrackPlayer.updateOptions({
+          capabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.Stop,
+          ],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+          // Supporto per i tasti nelle notifiche Android
+          android: {
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+          },
+        });
+
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          id: station.id,
+          url: streamUrl,
+          title: station.name,
+          artist: nowPlaying?.djName || 'Radio in diretta',
+          artwork: nowPlaying?.djImageUrl || station.logoUrl,
+        });
+
+        await TrackPlayer.play();
         if (mounted) setLoading(false);
       } catch (e) {
-        console.warn('OfflineStation error:', station.searchName, e);
+        console.warn('RadioPlayer error:', station.searchName, e);
         if (mounted) { setLoading(false); setError(true); }
       }
     })();
     return () => {
       mounted = false;
-      hideRadioNotification(); // Togli notifica alla chiusura
-      if (_isIOS) TrackPlayer.reset().catch(() => {});
-      else soundRef.current?.unloadAsync().catch(() => {});
+      TrackPlayer.reset().catch(() => {});
     };
   }, []);
 
@@ -2668,18 +2625,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, []);
 
   const togglePlay = async () => {
-    if (_isIOS) {
-      if (isPlaying) await TrackPlayer.pause();
-      else await TrackPlayer.play();
-    } else {
-      if (isPlaying) {
-        await soundRef.current?.pauseAsync();
-        hideRadioNotification();
-      } else {
-        await soundRef.current?.playAsync();
-        showRadioNotification(station, effectiveDjName);
-      }
-    }
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
