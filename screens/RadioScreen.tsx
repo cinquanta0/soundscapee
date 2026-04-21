@@ -491,11 +491,22 @@ const RADIO_URL_CACHE_PREFIX = 'radio_url_cache_';
 async function showRadioNotification(stationName: string, djName: string) {
   if (Platform.OS === 'ios') return;
   try {
+    Alert.alert("Notifica", "Esecuzione showRadioNotification...");
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Notifications.requestPermissionsAsync();
+      if (newStatus !== 'granted') {
+        // Alert.alert("Permessi", "Notifiche negate dall'utente");
+        return;
+      }
+    }
+
     await Notifications.setNotificationChannelAsync('radio-playback', {
       name: 'Radio Playback',
       importance: Notifications.AndroidImportance.MAX,
       showBadge: false,
     });
+
     await Notifications.scheduleNotificationAsync({
       identifier: 'radio-status',
       content: {
@@ -506,8 +517,9 @@ async function showRadioNotification(stationName: string, djName: string) {
       },
       trigger: null,
     });
+    Alert.alert("Successo", "Comando inviato al sistema");
   } catch (err) {
-    console.error("Errore helper notifica:", err);
+    Alert.alert("Errore Notifica", JSON.stringify(err));
   }
 }
 
