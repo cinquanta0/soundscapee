@@ -2370,43 +2370,46 @@ if (loading) {
               </TouchableOpacity>
             </View>
 
-          {/* Comments List */}
+            {/* Comments List */}
             {loadingComments ? (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#06b6d4" />
               </View>
             ) : (
               <ScrollView style={{ flex: 1, padding: 16 }}>
-               {comments.length === 0 ? (
-  <View style={styles.emptyState}>
-    <Text style={styles.emptyIcon}>💬</Text>
-    <Text style={styles.emptyText}>{t('comments.noComments')}</Text>
-    <Text style={styles.emptySubtext}>{t('comments.noCommentsHint')}</Text>
-  </View>
-) : (
-  comments.map(comment => (
-    <View key={comment.id} style={styles.commentItem}>
-      <View style={styles.commentHeader}>
-        <TouchableOpacity
-          onPress={() => openUserProfile(comment.userId)}
-          style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
-        >
-          <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} />
-          <View style={{ flex: 1, marginLeft: 8 }}>
-            <Text style={styles.userName}>{comment.username}</Text>
-            <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
-          </View>
-        </TouchableOpacity>
-        {comment.userId === auth.currentUser?.uid && (
-          <TouchableOpacity onPress={() => handleDeleteComment(comment)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 16, paddingLeft: 8 }}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      <Text style={styles.commentText}>{comment.text}</Text>
-    </View>
-  ))
-)}  {/* ⬅️ AGGIUNTA PARENTESI QUI */}
+               {(!comments || comments.length === 0) ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyIcon}>💬</Text>
+                    <Text style={styles.emptyText}>{t('comments.noComments')}</Text>
+                    <Text style={styles.emptySubtext}>{t('comments.noCommentsHint')}</Text>
+                  </View>
+                ) : (
+                  comments.map((comment, idx) => {
+                    if (!comment || !comment.id) return null;
+                    return (
+                      <View key={comment.id || `comment-${idx}`} style={styles.commentItem}>
+                        <View style={styles.commentHeader}>
+                          <TouchableOpacity
+                            onPress={() => comment.userId && openUserProfile(comment.userId)}
+                            style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                          >
+                            <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} />
+                            <View style={{ flex: 1, marginLeft: 8 }}>
+                              <Text style={styles.userName}>{comment.username || 'Anonimo'}</Text>
+                              <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                          {comment.userId === auth.currentUser?.uid && (
+                            <TouchableOpacity onPress={() => handleDeleteComment(comment)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 16, paddingLeft: 8 }}>✕</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <Text style={styles.commentText}>{comment.text}</Text>
+                      </View>
+                    );
+                  })
+                )}
               </ScrollView>
             )}
 
