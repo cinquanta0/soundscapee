@@ -2732,11 +2732,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           }
         };
 
-        if (notificationId) {
-          await Notifications.dismissNotificationAsync(notificationId);
-        }
-        
-        notificationId = await Notifications.presentNotificationAsync(content);
+        // Usiamo un ID fisso per sovrascrivere sempre la stessa notifica invece di crearne nuove
+        await Notifications.scheduleNotificationAsync({
+          identifier: 'radio-status',
+          content,
+          trigger: null,
+        });
+        notificationId = 'radio-status';
       } catch (err) {
         console.error("Errore notifica radio Android:", err);
       }
@@ -2746,7 +2748,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
     return () => {
       if (notificationId) {
-        Notifications.dismissNotificationAsync(notificationId);
+        Notifications.dismissNotificationAsync(notificationId).catch(() => {});
       }
     };
   }, [isPlaying, loading, effectiveDjName, station.name]);
