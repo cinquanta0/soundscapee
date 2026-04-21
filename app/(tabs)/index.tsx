@@ -2651,7 +2651,7 @@ if (loading) {
               )}
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
 
