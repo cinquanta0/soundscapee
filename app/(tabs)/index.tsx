@@ -2564,9 +2564,13 @@ if (loading) {
         onRequestClose={() => setShowNotificationsModal(false)}
         statusBarTranslucent={true}
       >
-        <TouchableWithoutFeedback onPress={() => setShowNotificationsModal(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-            {/* Pannello Notifiche — blocca la propagazione dei touch verso il backdrop */}
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
+            onPress={() => setShowNotificationsModal(false)}
+            activeOpacity={1}
+          />
+            {/* Pannello Notifiche */}
             <View
               style={{
                 width: '100%',
@@ -2578,7 +2582,6 @@ if (loading) {
                 overflow: 'hidden',
                 elevation: 25,
               }}
-              onStartShouldSetResponder={() => true}
             >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
@@ -2643,8 +2646,7 @@ if (loading) {
                 )}
               </ScrollView>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
+        </View>
       </Modal>
 
 
