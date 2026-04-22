@@ -1,3 +1,48 @@
+diff --git a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+index b2409a0..e7a79e6 100644
+--- a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
++++ b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+@@ -340,7 +340,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             } else {
+                 val context: ReactContext = context
+                 val track = musicService.tracks[index]
+-                track.setMetadata(context, Arguments.toBundle(map), musicService.ratingType)
++                track.setMetadata(context, Arguments.toBundle(map) ?: Bundle(), musicService.ratingType)
+                 musicService.updateMetadataForTrack(index, track)
+  
+                 callback.resolve(null)
+@@ -355,10 +355,9 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             callback.reject("no_current_item", "There is no current item in the player")
+  
+         val context: ReactContext = context
+-        Arguments.toBundle(map)?.let {
+-            val track = bundleToTrack(it)
+-            musicService.updateNowPlayingMetadata(track)
+-        }
++        val bundle = Arguments.toBundle(map) ?: Bundle()
++        val track = bundleToTrack(bundle)
++        musicService.updateNowPlayingMetadata(track)
+  
+         callback.resolve(null)
+     }
+@@ -545,7 +544,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+         if (verifyServiceBoundOrReject(callback)) return@launch
+  
+         if (index >= 0 && index < musicService.tracks.size) {
+-            callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem))
++            callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem ?: Bundle()))
+         } else {
+             callback.resolve(null)
+         }
+@@ -585,7 +584,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+         callback.resolve(
+             if (musicService.tracks.isEmpty()) null
+             else Arguments.fromBundle(
+-                musicService.tracks[musicService.getCurrentTrackIndex()].originalItem
++                musicService.tracks[musicService.getCurrentTrackIndex()].originalItem ?: Bundle()
+             )
+         )
+     }
 diff --git a/node_modules/react-native-track-player/lib/src/TrackPlayerModule.js b/node_modules/react-native-track-player/lib/src/TrackPlayerModule.js
 index 56ebacd..246e05f 100644
 --- a/node_modules/react-native-track-player/lib/src/TrackPlayerModule.js
