@@ -22,10 +22,8 @@ import {
     View,
     AppState,
 } from 'react-native';
-const _isIOS = Platform.OS === 'ios';
-const TrackPlayer = _isIOS ? require('react-native-track-player').default : null;
-const TrackPlayerLibrary = _isIOS ? require('react-native-track-player') : {};
-const { Event, State, Capability } = TrackPlayerLibrary;
+const TrackPlayer = require('react-native-track-player').default;
+const { Event, State, Capability } = require('react-native-track-player');
 
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance, AndroidPriority } from 'expo-notifications';
@@ -2528,7 +2526,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
-    if (!_isIOS || !TrackPlayer) return;
     const sub = TrackPlayer.addEventListener(Event.PlaybackState, async () => {
       const state = await TrackPlayer.getState();
       setIsPlaying(state === State.Playing);
@@ -2549,47 +2546,25 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
-        if (Platform.OS === 'ios') {
-          try { 
-            await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); 
-          } catch (e) {}
+        try {
+          await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
+        } catch (e) {}
 
-          await TrackPlayer.updateOptions({
-            capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-            compactCapabilities: [Capability.Play, Capability.Pause],
-          });
+        await TrackPlayer.updateOptions({
+          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+        });
 
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            id: station.id,
-            url: streamUrl,
-            title: station.name,
-            artist: nowPlaying?.djName || 'Radio in diretta',
-            artwork: nowPlaying?.djImageUrl || station.logoUrl,
-          });
-          await TrackPlayer.play();
-        } else {
-          // Android: Torna a expo-av per stabilità immediata
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            shouldDuckAndroid: true,
-          });
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: streamUrl },
-            { shouldPlay: true },
-            (status: any) => {
-              if (mounted) {
-                setIsPlaying(status.isPlaying || false);
-                setIsBufferingStream(status.isBuffering || false);
-                if (status.didJustFinish) setIsPlaying(false);
-              }
-            }
-          );
-          soundRef.current = sound;
-          showRadioNotification(station, nowPlaying?.djName || 'Radio in diretta');
-        }
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          id: station.id,
+          url: streamUrl,
+          title: station.name,
+          artist: nowPlaying?.djName || 'Radio in diretta',
+          artwork: nowPlaying?.djImageUrl || station.logoUrl,
+          isLiveStream: true,
+        });
+        await TrackPlayer.play();
         if (mounted) setLoading(false);
       } catch (e) {
         console.warn('RadioPlayer error:', e);
@@ -2598,11 +2573,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
-      hideRadioNotification();
-      if (Platform.OS === 'ios') TrackPlayer.reset().catch(() => {});
-      else soundRef.current?.unloadAsync().catch(() => {});
+      TrackPlayer.reset().catch(() => {});
     };
   }, []);
+
+  // Aggiorna metadati widget lock screen quando cambia il DJ
+  useEffect(() => {
+    if (!nowPlaying) return;
+    TrackPlayer.updateMetadataForTrack(0, {
+      artist: nowPlaying.djName || station.name,
+      artwork: nowPlaying.djImageUrl || station.logoUrl,
+    }).catch(() => {});
+  }, [nowPlaying]);
 
   // Fetch "Ora in onda" — al mount e ogni 15 min
   useEffect(() => {
@@ -2675,18 +2657,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, []);
 
   const togglePlay = async () => {
-    if (Platform.OS === 'ios') {
-      if (isPlaying) await TrackPlayer.pause();
-      else await TrackPlayer.play();
-    } else {
-      if (isPlaying) {
-        await soundRef.current?.pauseAsync();
-        hideRadioNotification();
-      } else {
-        await soundRef.current?.playAsync();
-        showRadioNotification(station, effectiveDjName);
-      }
-    }
+    if (isPlaying) await TrackPlayer.pause();
+    else await TrackPlayer.play();
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
