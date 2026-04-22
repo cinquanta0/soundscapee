@@ -188,22 +188,25 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const loadAudio = async () => {
     if (!TrackPlayer) { setLoading(false); return; }
     try {
-      // setupPlayer: ignora player_already_initialized (normale se già in uso)
-      // ma rilancia android_cannot_setup_player_in_background (app in background)
+      // setupPlayer: catch totale — e?.code non funziona su Android RN bridge
       try {
         await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
-      } catch (e: any) {
-        if (e?.code !== 'player_already_initialized') throw e;
-      }
-      await TrackPlayer.updateOptions({
-        android: {
-          appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 1,
-        },
-        capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
-        compactCapabilities: [Capability.Play, Capability.Pause],
-        forwardJumpInterval: 15,
-        backwardJumpInterval: 15,
-      });
+      } catch (_setupErr) { /* player già inizializzato o non disponibile — continua */ }
+
+      // updateOptions in try/catch separato: non blocca la riproduzione
+      try {
+        await TrackPlayer.updateOptions({
+          android: {
+            appKilledPlaybackBehavior:
+              AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
+          },
+          capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
+          compactCapabilities: [Capability.Play, Capability.Pause],
+          forwardJumpInterval: 15,
+          backwardJumpInterval: 15,
+        });
+      } catch (_optErr) { /* updateOptions opzionale: continua comunque */ }
+
       await TrackPlayer.reset();
       await TrackPlayer.add({
         id: podcast.id,

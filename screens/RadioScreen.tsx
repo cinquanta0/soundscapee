@@ -2564,33 +2564,33 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
 
-        // setupPlayer: ignora player_already_initialized (normale se già in uso)
-        // ma rilancia android_cannot_setup_player_in_background (app in background)
+        // setupPlayer: ignora qualsiasi errore — se già inizializzato va bene,
+        // se fallisce per altri motivi i comandi successivi gestiranno il caso.
+        // NOTA: e?.code non funziona su Android RN bridge, non fare re-throw selettivi.
         try {
           await TrackPlayer.setupPlayer({
             autoHandleInterruptions: true,
-            // Buffer ottimizzato per streaming radio live
             minBuffer: 15,
             maxBuffer: 50,
             playBuffer: 2,
             backBuffer: 0,
           });
-        } catch (e: any) {
-          if (e?.code !== 'player_already_initialized') {
-            // Errore reale (es. android_cannot_setup_player_in_background)
-            throw e;
-          }
-          // player_already_initialized è normale: il player era già pronto
-        }
+        } catch (_setupErr) { /* player già inizializzato o non disponibile — continua */ }
 
-        await TrackPlayer.updateOptions({
-          android: {
-            // La notifica rimane anche quando l'app viene swipata dai recenti
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 1,
-          },
-          capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-          compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-        });
+        // updateOptions in try/catch separato: un fallimento qui non deve
+        // bloccare la riproduzione (es. AppKilledPlaybackBehavior non supportato)
+        try {
+          await TrackPlayer.updateOptions({
+            android: {
+              // stringa diretta — enum AppKilledPlaybackBehavior potrebbe non essere
+              // disponibile su tutte le versioni RNTP, usiamo il valore raw
+              appKilledPlaybackBehavior:
+                AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
+            },
+            capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+            compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+          });
+        } catch (_optErr) { /* updateOptions opzionale: continua comunque */ }
 
         await TrackPlayer.reset();
         await TrackPlayer.add({

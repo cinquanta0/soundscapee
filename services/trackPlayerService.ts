@@ -12,7 +12,7 @@ export async function PlaybackService() {
   try {
     await TrackPlayer.updateOptions({
       android: {
-        appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 1,
+        appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
       },
       capabilities: [
         Capability.Play,
