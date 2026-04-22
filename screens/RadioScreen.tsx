@@ -2822,7 +2822,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         )}
 
         {/* Android battery tip for Xiaomi/Huawei */}
-        {!_isIOS && isPlaying && (
+        {Platform.OS !== 'ios' && isPlaying && (
           <View style={osp.androidTip}>
             <Text style={osp.androidTipIcon}>💡</Text>
             <Text style={osp.androidTipTxt}>
