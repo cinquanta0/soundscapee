@@ -67,6 +67,7 @@ module.exports = ({ config }) => ({
   plugins: [
     "expo-router",
     "expo-notifications",
+    "react-native-track-player",
     [
       "expo-splash-screen",
       {
