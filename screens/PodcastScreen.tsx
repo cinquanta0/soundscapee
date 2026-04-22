@@ -7,8 +7,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-const TrackPlayer = require('react-native-track-player').default;
-const { Event, State, Capability } = require('react-native-track-player');
+const { NativeModules: _NM } = require('react-native');
+const _rntp = _NM.TrackPlayerModule || _NM.TrackPlayer;
+let TrackPlayer: any = null;
+let Event: any = {};
+let State: any = {};
+let Capability: any = {};
+if (_rntp) {
+  TrackPlayer = require('react-native-track-player').default;
+  ({ Event, State, Capability } = require('react-native-track-player'));
+}
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
@@ -95,6 +103,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
   useEffect(() => {
     loadAudio();
+    if (!TrackPlayer) return;
     const s1 = TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e: any) => {
       setPosition(e.position);
       if (podcast.duration <= 0 && e.duration > 0) setDuration(e.duration);
@@ -171,6 +180,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   };
 
   const loadAudio = async () => {
+    if (!TrackPlayer) { setLoading(false); return; }
     try {
       try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
       await TrackPlayer.updateOptions({
@@ -198,20 +208,23 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   };
 
   const togglePlay = async () => {
+    if (!TrackPlayer) return;
     if (isPlaying) await TrackPlayer.pause(); else await TrackPlayer.play();
   };
 
   const seekTo = async (ratio: number) => {
-    if (!duration) return;
+    if (!TrackPlayer || !duration) return;
     await TrackPlayer.seekTo(ratio * duration);
   };
 
   const changeSpeed = async (s: number) => {
     setSpeed(s);
+    if (!TrackPlayer) return;
     await TrackPlayer.setRate(s);
   };
 
   const skip = async (secs: number) => {
+    if (!TrackPlayer) return;
     await TrackPlayer.seekBy(secs);
   };
 

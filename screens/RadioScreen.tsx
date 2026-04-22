@@ -22,8 +22,16 @@ import {
     View,
     AppState,
 } from 'react-native';
-const TrackPlayer = require('react-native-track-player').default;
-const { Event, State, Capability } = require('react-native-track-player');
+const { NativeModules: _NM } = require('react-native');
+const _rntp = _NM.TrackPlayerModule || _NM.TrackPlayer;
+let TrackPlayer: any = null;
+let Event: any = {};
+let State: any = {};
+let Capability: any = {};
+if (_rntp) {
+  TrackPlayer = require('react-native-track-player').default;
+  ({ Event, State, Capability } = require('react-native-track-player'));
+}
 
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance, AndroidPriority } from 'expo-notifications';
@@ -2524,6 +2532,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const [timeUpdate, setTimeUpdate] = useState(0);
 
   useEffect(() => {
+    if (!TrackPlayer) return;
     const sub = TrackPlayer.addEventListener(Event.PlaybackState, async () => {
       const state = await TrackPlayer.getState();
       setIsPlaying(state === State.Playing);
@@ -2544,6 +2553,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
 
+        if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
         try {
           await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
         } catch (e) {}
@@ -2570,7 +2580,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
-      TrackPlayer.reset().catch(() => {});
+      TrackPlayer?.reset().catch(() => {});
     };
   }, []);
 
@@ -2645,6 +2655,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   }, []);
 
   const togglePlay = async () => {
+    if (!TrackPlayer) return;
     if (isPlaying) await TrackPlayer.pause();
     else await TrackPlayer.play();
   };
