@@ -2564,12 +2564,13 @@ if (loading) {
         onRequestClose={() => setShowNotificationsModal(false)}
         statusBarTranslucent={true}
       >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <View style={StyleSheet.absoluteFill}>
           <TouchableOpacity
             style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
             onPress={() => setShowNotificationsModal(false)}
             activeOpacity={1}
           />
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16, pointerEvents: 'box-none' }}>
             {/* Pannello Notifiche */}
             <View
               style={{
@@ -2646,6 +2647,7 @@ if (loading) {
                 )}
               </ScrollView>
             </View>
+          </View>
         </View>
       </Modal>
 
