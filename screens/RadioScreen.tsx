@@ -22,15 +22,24 @@ import {
     View,
     AppState,
 } from 'react-native';
-const { NativeModules: _NM } = require('react-native');
-const _rntp = _NM.TrackPlayerModule || _NM.TrackPlayer;
+// ── React Native Track Player — import robusto per Old Arch Android ────────────
+// Il check manuale su NativeModules può fallire su Android Old Arch se il modulo
+// non è ancora stato registrato al momento dell'esecuzione del modulo JS.
+// Usiamo un try/catch diretto che è più affidabile.
 let TrackPlayer: any = null;
 let Event: any = {};
 let State: any = {};
 let Capability: any = {};
-if (_rntp) {
-  TrackPlayer = require('react-native-track-player').default;
-  ({ Event, State, Capability } = require('react-native-track-player'));
+let AppKilledPlaybackBehavior: any = {};
+try {
+  const rntp = require('react-native-track-player');
+  const rntpDefault = rntp.default;
+  if (rntpDefault) {
+    TrackPlayer = rntpDefault;
+    ({ Event, State, Capability, AppKilledPlaybackBehavior } = rntp);
+  }
+} catch (_e) {
+  // RNTP non disponibile (web o build senza native module)
 }
 
 import * as Notifications from 'expo-notifications';
@@ -2554,13 +2563,33 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!mounted) return;
 
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
+
+        // setupPlayer: ignora player_already_initialized (normale se già in uso)
+        // ma rilancia android_cannot_setup_player_in_background (app in background)
         try {
-          await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
-        } catch (e) {}
+          await TrackPlayer.setupPlayer({
+            autoHandleInterruptions: true,
+            // Buffer ottimizzato per streaming radio live
+            minBuffer: 15,
+            maxBuffer: 50,
+            playBuffer: 2,
+            backBuffer: 0,
+          });
+        } catch (e: any) {
+          if (e?.code !== 'player_already_initialized') {
+            // Errore reale (es. android_cannot_setup_player_in_background)
+            throw e;
+          }
+          // player_already_initialized è normale: il player era già pronto
+        }
 
         await TrackPlayer.updateOptions({
+          android: {
+            // La notifica rimane anche quando l'app viene swipata dai recenti
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 1,
+          },
           capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-          compactCapabilities: [Capability.Play, Capability.Pause],
+          compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
         });
 
         await TrackPlayer.reset();

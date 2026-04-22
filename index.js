@@ -1,9 +1,16 @@
+// ─── React Native Track Player — registrazione servizio background ─────────────
+// DEVE essere la prima cosa eseguita, prima di expo-router.
+// Su Android, il MusicService viene avviato come ForegroundService e
+// registerPlaybackService collega il thread JS al servizio nativo.
 try {
   const TrackPlayer = require('react-native-track-player').default;
-  const { PlaybackService } = require('./services/trackPlayerService');
-  TrackPlayer.registerPlaybackService(() => PlaybackService);
+  if (TrackPlayer) {
+    const { PlaybackService } = require('./services/trackPlayerService');
+    TrackPlayer.registerPlaybackService(() => PlaybackService);
+  }
 } catch (e) {
-  console.warn('TrackPlayer init failed', e);
+  // RNTP non disponibile (simulatore web o build senza native)
+  console.warn('[RNTP] registerPlaybackService skipped:', e?.message);
 }
 
 require('expo-router/entry');

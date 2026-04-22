@@ -17,6 +17,9 @@ const withRNTPManifest = (config) => {
           'android:name': 'com.doublesymmetry.trackplayer.service.MusicService',
           'android:exported': 'false',
           'android:foregroundServiceType': 'mediaPlayback',
+          // CRITICO: senza stopWithTask="false" il servizio viene killato
+          // quando l'app viene swipata dai recenti, perdendo audio e notifica.
+          'android:stopWithTask': 'false',
         },
       });
     }

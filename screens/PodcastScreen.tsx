@@ -7,15 +7,21 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
-const { NativeModules: _NM } = require('react-native');
-const _rntp = _NM.TrackPlayerModule || _NM.TrackPlayer;
+// ── React Native Track Player — import robusto per Old Arch Android ────────────
 let TrackPlayer: any = null;
 let Event: any = {};
 let State: any = {};
 let Capability: any = {};
-if (_rntp) {
-  TrackPlayer = require('react-native-track-player').default;
-  ({ Event, State, Capability } = require('react-native-track-player'));
+let AppKilledPlaybackBehavior: any = {};
+try {
+  const rntp = require('react-native-track-player');
+  const rntpDefault = rntp.default;
+  if (rntpDefault) {
+    TrackPlayer = rntpDefault;
+    ({ Event, State, Capability, AppKilledPlaybackBehavior } = rntp);
+  }
+} catch (_e) {
+  // RNTP non disponibile (web o build senza native module)
 }
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -182,8 +188,17 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const loadAudio = async () => {
     if (!TrackPlayer) { setLoading(false); return; }
     try {
-      try { await TrackPlayer.setupPlayer({ autoHandleInterruptions: true }); } catch {}
+      // setupPlayer: ignora player_already_initialized (normale se già in uso)
+      // ma rilancia android_cannot_setup_player_in_background (app in background)
+      try {
+        await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
+      } catch (e: any) {
+        if (e?.code !== 'player_already_initialized') throw e;
+      }
       await TrackPlayer.updateOptions({
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 1,
+        },
         capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
         compactCapabilities: [Capability.Play, Capability.Pause],
         forwardJumpInterval: 15,
