@@ -7,6 +7,9 @@ const withRNTPManifest = (config) => {
 
     if (!application.service) application.service = [];
 
+    if (!manifest.$) manifest.$ = {};
+    manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+
     const exists = application.service.some(
       (s) => s.$?.['android:name'] === 'com.doublesymmetry.trackplayer.service.MusicService'
     );
@@ -15,13 +18,24 @@ const withRNTPManifest = (config) => {
       application.service.push({
         $: {
           'android:name': 'com.doublesymmetry.trackplayer.service.MusicService',
-          'android:exported': 'false',
+          'android:enabled': 'true',
+          'android:exported': 'true',
           'android:foregroundServiceType': 'mediaPlayback',
           // CRITICO: senza stopWithTask="false" il servizio viene killato
           // quando l'app viene swipata dai recenti, perdendo audio e notifica.
           'android:stopWithTask': 'false',
+          'tools:replace': 'android:exported,android:enabled',
         },
       });
+    } else {
+      // Se esiste già (es. da prebuild successive), aggiorniamo stopWithTask e assicuriamoci che exported sia corretto.
+      const service = application.service.find(
+        (s) => s.$?.['android:name'] === 'com.doublesymmetry.trackplayer.service.MusicService'
+      );
+      service.$['android:stopWithTask'] = 'false';
+      service.$['android:exported'] = 'true';
+      service.$['android:enabled'] = 'true';
+      service.$['tools:replace'] = 'android:exported,android:enabled,android:stopWithTask';
     }
 
     return config;
