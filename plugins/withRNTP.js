@@ -1,6 +1,6 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest, withMainApplication } = require('@expo/config-plugins');
 
-const withRNTP = (config) => {
+const withRNTPManifest = (config) => {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     const application = manifest.application[0];
@@ -23,6 +23,37 @@ const withRNTP = (config) => {
 
     return config;
   });
+};
+
+const withRNTPMainApplication = (config) => {
+  return withMainApplication(config, (config) => {
+    let contents = config.modResults.contents;
+
+    if (contents.includes('com.doublesymmetry.trackplayer.TrackPlayerPackage')) {
+      return config;
+    }
+
+    // Aggiunge il package manualmente nella lista, usando nome fully-qualified
+    // per evitare import (più robusto contro variazioni del template)
+    contents = contents.replace(
+      /val packages = PackageList\(this\)\.packages/,
+      [
+        'val packages = PackageList(this).packages',
+        '          if (packages.none { it is com.doublesymmetry.trackplayer.TrackPlayerPackage }) {',
+        '            packages.add(com.doublesymmetry.trackplayer.TrackPlayerPackage())',
+        '          }',
+      ].join('\n')
+    );
+
+    config.modResults.contents = contents;
+    return config;
+  });
+};
+
+const withRNTP = (config) => {
+  config = withRNTPManifest(config);
+  config = withRNTPMainApplication(config);
+  return config;
 };
 
 module.exports = withRNTP;
