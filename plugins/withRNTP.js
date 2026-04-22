@@ -29,20 +29,15 @@ const withRNTPMainApplication = (config) => {
   return withMainApplication(config, (config) => {
     let contents = config.modResults.contents;
 
-    if (contents.includes('com.doublesymmetry.trackplayer.TrackPlayerPackage')) {
+    if (contents.includes('TrackPlayerPackage')) {
       return config;
     }
 
-    // Aggiunge il package manualmente nella lista, usando nome fully-qualified
-    // per evitare import (più robusto contro variazioni del template)
+    // Sostituisce "return packages" con una versione che aggiunge il pacchetto.
+    // Usa .also{} di Kotlin — compatibile con qualsiasi indentazione.
     contents = contents.replace(
-      /val packages = PackageList\(this\)\.packages/,
-      [
-        'val packages = PackageList(this).packages',
-        '          if (packages.none { it is com.doublesymmetry.trackplayer.TrackPlayerPackage }) {',
-        '            packages.add(com.doublesymmetry.trackplayer.TrackPlayerPackage())',
-        '          }',
-      ].join('\n')
+      /return packages/,
+      'packages.add(com.doublesymmetry.trackplayer.TrackPlayerPackage())\n          return packages'
     );
 
     config.modResults.contents = contents;
