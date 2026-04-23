@@ -2685,7 +2685,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               appKilledPlaybackBehavior:
                 AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
             },
-            capabilities: [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous],
+            capabilities: Platform.OS === 'ios'
+              ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
+              : [Capability.Play, Capability.Pause, Capability.Stop],
             notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
             compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
           });

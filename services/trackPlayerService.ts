@@ -2,6 +2,8 @@
 const TrackPlayer = require('react-native-track-player').default;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Event, AppKilledPlaybackBehavior, Capability } = require('react-native-track-player');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Platform } = require('react-native');
 
 // Questo file viene eseguito in un thread separato in background da React Native Track Player.
 // È obbligatorio registrarlo tramite TrackPlayer.registerPlaybackService().
@@ -11,17 +13,12 @@ export async function PlaybackService() {
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
       },
-      // iOS 16+: Apple mostra sempre ◀◀ ▶▶ nel widget lock screen indipendentemente
-      // dalle capabilities. Se Next/Previous sono disabilitati i tasti appaiono ma non
-      // rispondono, e in certi casi bloccano anche Play/Pause/Stop nello stesso
-      // MPRemoteCommandCenter. Soluzione: abilitarli e gestirli come "restart stream"
-      // per i live (radio); per i podcast (isLiveStream=false) li ignoriamo.
-      capabilities: [
-        Capability.Play, Capability.Pause, Capability.Stop,
-        Capability.Next, Capability.Previous,
-      ],
-      // notificationCapabilities controlla solo la notifica Android — qui teniamo
-      // solo Play/Pause/Stop per non mostrare ◀◀ ▶▶ nella barra Android.
+      // iOS 16+: Next/Previous sempre visibili nel widget — li abilitiamo per renderli
+      // funzionali (restart stream). Su Android causano crash nel MediaSession nativo
+      // se non presenti anche in notificationCapabilities, quindi li escludiamo.
+      capabilities: Platform.OS === 'ios'
+        ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
+        : [Capability.Play, Capability.Pause, Capability.Stop],
       notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
       compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
     });
