@@ -115,8 +115,11 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       if (podcast.duration <= 0 && e.duration > 0) setDuration(e.duration);
     });
     const s2 = TrackPlayer.addEventListener(Event.PlaybackState, (e: any) => {
-      setIsPlaying(e.state === State.Playing);
-      setIsBuffering(e.state === State.Buffering || e.state === State.Loading);
+      const st = e.state ?? e;
+      setIsPlaying(st === State.Playing);
+      setIsBuffering(
+        st === State.Buffering || st === State.Loading || st === State.Connecting
+      );
     });
     const pollInterval = setInterval(async () => {
       try {
@@ -188,9 +191,11 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const loadAudio = async () => {
     if (!TrackPlayer) { setLoading(false); return; }
     try {
-      // setupPlayer: catch totale — e?.code non funziona su Android RN bridge
-      try {
-        await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
+        await TrackPlayer.setupPlayer({
+          autoHandleInterruptions: true,
+          iosCategory: 'playback',
+          iosCategoryMode: 'default',
+        });
       } catch (_setupErr) { /* player già inizializzato o non disponibile — continua */ }
 
       // updateOptions in try/catch separato: non blocca la riproduzione

@@ -2540,16 +2540,53 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const livePulse = useRef(new Animated.Value(1)).current;
   const [timeUpdate, setTimeUpdate] = useState(0);
   const hasStartedPlayingRef = useRef(false);
+  const streamUrlRef = useRef<string | null>(null);
+  const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!TrackPlayer) return;
-    const sub = TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
+
+    const subState = TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
       const state = data?.state ?? data;
-      if (state === State.Playing) hasStartedPlayingRef.current = true;
-      setIsPlaying(state === State.Playing);
-      setIsBufferingStream(state === State.Buffering || state === State.Connecting);
+      if (state === State.Playing) {
+        hasStartedPlayingRef.current = true;
+        setIsPlaying(true);
+        setIsBufferingStream(false);
+        setError(false);
+      } else if (
+        state === State.Buffering ||
+        state === State.Connecting ||
+        state === State.Loading
+      ) {
+        setIsPlaying(false);
+        setIsBufferingStream(true);
+      } else if (state === State.Error) {
+        // Stream morto / URL non raggiungibile
+        setIsPlaying(false);
+        setIsBufferingStream(false);
+        setError(true);
+        setLoading(false);
+      } else {
+        // Paused, Stopped, Ready, Ended, None
+        setIsPlaying(false);
+        setIsBufferingStream(false);
+      }
     });
-    return () => sub.remove();
+
+    // PlaybackError — fired da RNTP quando ExoPlayer/AVPlayer non riesce a caricare lo stream
+    const subErr = Event.PlaybackError
+      ? TrackPlayer.addEventListener(Event.PlaybackError, () => {
+          setIsPlaying(false);
+          setIsBufferingStream(false);
+          setError(true);
+          setLoading(false);
+        })
+      : null;
+
+    return () => {
+      subState.remove();
+      subErr?.remove();
+    };
   }, []);
 
   // Fetch audio stream
@@ -2569,15 +2606,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
 
         if (Platform.OS === 'ios') {
-          // Cede la sessione expo-av a RNTP — il delay lascia a iOS il tempo
-          // di processare il rilascio prima che setupPlayer prenda il controllo
+          // Deattiva esplicitamente la sessione expo-av prima di cedere il controllo a RNTP.
+          // playsInSilentModeIOS: false → iOS interpreta questo come "sessione non più attiva"
+          // consentendo a RNTP di acquisire l'AVAudioSession senza conflitti.
+          // Senza questo, RNTP parte (State.Playing) ma l'audio va nel vuoto.
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
+            playsInSilentModeIOS: false,
             staysActiveInBackground: false,
             shouldDuckAndroid: false,
           }).catch(() => {});
-          await new Promise(r => setTimeout(r, 300));
+          // 500ms: tempo sufficiente a iOS per rilasciare la sessione audio
+          await new Promise(r => setTimeout(r, 500));
         }
 
         try {
@@ -2587,6 +2627,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             maxBuffer: 50,
             playBuffer: 2,
             backBuffer: 0,
+            // iOS: forza categoria AVAudioSession .playback per background audio corretto
+            iosCategory: 'playback',
+            iosCategoryMode: 'default',
           });
         } catch (_setupErr) { /* player già inizializzato — continua */ }
 
@@ -2613,14 +2656,37 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             isLiveStream: true,
           });
           await TrackPlayer.play();
+          streamUrlRef.current = url;
+        };
+
+        // Espone la funzione di ricarica stream per togglePlay (usata quando lo stream è morto)
+        reloadStreamRef.current = async () => {
+          const url = streamUrlRef.current;
+          if (!url || !TrackPlayer) return;
+          setError(false);
+          setIsBufferingStream(true);
+          await startStream(url).catch(() => {});
         };
 
         await startStream(streamUrl);
 
         if (mounted) {
           setLoading(false);
-          setIsPlaying(true);
-          setIsBufferingStream(false);
+          // Non forziamo isPlaying=true qui: ci pensa il PlaybackState listener.
+          // Forzarlo prima causa race condition con lo stato Buffering/Connecting.
+        }
+
+        // iOS: "nudge" — se dopo 2s lo stato è ancora fermo (sessione non ceduta
+        // correttamente), esegue pause+play per sbloccare l'audio.
+        if (Platform.OS === 'ios') {
+          setTimeout(async () => {
+            if (!mounted || hasStartedPlayingRef.current) return;
+            try {
+              await TrackPlayer.pause();
+              await new Promise(r => setTimeout(r, 150));
+              await TrackPlayer.play();
+            } catch {}
+          }, 2000);
         }
 
         // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen
@@ -2635,20 +2701,24 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           }, 800);
         }
 
-        // Android: se lo stream non parte entro 10s, svuota la cache e riprova
-        // con l'URL di fallback hardcoded (radio-browser può restituire URL morti)
+        // Android: se lo stream non parte entro 10s, svuota la cache e riprova.
+        // Il retry scatta SEMPRE su Android (indipendentemente dall'URL) perché
+        // ExoPlayer può bloccarsi in Buffering/Paused su stream morti senza emettere Error.
         if (Platform.OS === 'android') {
           const fallbackUrl = FALLBACK_STREAM_URLS[station.searchName];
-          if (fallbackUrl && fallbackUrl !== streamUrl) {
-            fallbackTimer = setTimeout(async () => {
-              if (!mounted || hasStartedPlayingRef.current) return;
-              console.log('[Radio] stream non partito, retry fallback:', station.searchName);
-              await AsyncStorage.removeItem(
-                RADIO_URL_CACHE_PREFIX + station.searchName
-              ).catch(() => {});
-              await startStream(fallbackUrl).catch(() => {});
-            }, 10000);
-          }
+          fallbackTimer = setTimeout(async () => {
+            if (!mounted || hasStartedPlayingRef.current) return;
+            console.log('[Radio] stream non partito entro 10s, retry:', station.searchName);
+            // Se abbiamo un fallback diverso dall'URL attuale, proviamo quello
+            const retryUrl = fallbackUrl && fallbackUrl !== streamUrlRef.current
+              ? fallbackUrl
+              : streamUrlRef.current;
+            if (!retryUrl) return;
+            await AsyncStorage.removeItem(
+              RADIO_URL_CACHE_PREFIX + station.searchName
+            ).catch(() => {});
+            await startStream(retryUrl).catch(() => {});
+          }, 10000);
         }
 
       } catch (e: any) {
@@ -2744,8 +2814,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   const togglePlay = async () => {
     if (!TrackPlayer) return;
-    if (isPlaying) await TrackPlayer.pause();
-    else await TrackPlayer.play();
+    if (isPlaying) {
+      await TrackPlayer.pause();
+    } else if (error && reloadStreamRef.current) {
+      // Stream morto (State.Error o PlaybackError): ricarica invece di semplice play()
+      await reloadStreamRef.current();
+    } else {
+      await TrackPlayer.play();
+    }
   };
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
