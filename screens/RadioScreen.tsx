@@ -155,12 +155,12 @@ const OFFLINE_STATIONS: OfflineStation[] = [
 const FALLBACK_STREAM_URLS: Record<string, string> = {
   'RTL 102.5':        'https://streamingv2.shoutcast.com/rtl-1025',
   'Radio 105':        'https://icecast.unitedradio.it/Radio105.mp3',
-  'Radio DeeJay':     'https://icecast.unitedradio.it/Deejay.mp3',
+  'Radio DeeJay':     'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiodeejay/radiodeejay/master_ma.m3u8',
   'Radio Italia':     'https://icecast.unitedradio.it/RadioItalia.mp3',
   'RDS':              'https://icecast.unitedradio.it/RDS.mp3',
   'Virgin Radio Italy': 'https://icecast.unitedradio.it/VirginRadio.mp3',
-  'm2o':              'https://icecast.unitedradio.it/m2o.mp3',
-  'Radio Capital':    'https://icecast.unitedradio.it/Capital.mp3',
+  'm2o':              'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiom2o/radiom2o/master_ma.m3u8',
+  'Radio Capital':    'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiocapital/radiocapital/master_ma.m3u8',
 };
 
 // ─── Palinsesto static schedules ──────────────────────────────────────────────
@@ -2653,6 +2653,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             artist: nowPlaying?.djName || 'Radio in diretta',
             artwork: nowPlaying?.djImageUrl || station.logoUrl,
             isLiveStream: true,
+            type: url.includes('.m3u8') ? 'hls' : 'default', // Cruciale per Android ExoPlayer per gestire flussi HLS
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)', // Evita blocchi 403 da server Icecast (es. m2o)
           });
           await TrackPlayer.play();
