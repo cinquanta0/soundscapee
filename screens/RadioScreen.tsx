@@ -2605,20 +2605,19 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
 
-        if (Platform.OS === 'ios') {
-          // Deattiva esplicitamente la sessione expo-av prima di cedere il controllo a RNTP.
-          // playsInSilentModeIOS: false → iOS interpreta questo come "sessione non più attiva"
-          // consentendo a RNTP di acquisire l'AVAudioSession senza conflitti.
-          // Senza questo, RNTP parte (State.Playing) ma l'audio va nel vuoto.
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: false,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: false,
-          }).catch(() => {});
-          // 500ms: tempo sufficiente a iOS per rilasciare la sessione audio
-          await new Promise(r => setTimeout(r, 500));
-        }
+        // Deattiva esplicitamente la sessione expo-av prima di cedere il controllo a RNTP.
+        // Android: Se expo-av mantiene il focus, RNTP rileva un'interruzione (autoHandleInterruptions)
+        // e va subito in pausa (ecco perché alcune radio escono "in pausa").
+        // iOS: playsInSilentModeIOS: false cede l'AVAudioSession, evitando che RNTP vada nel vuoto.
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+        }).catch(() => {});
+        // Tempo per OS di rilasciare l'audio focus (cruciale per Android)
+        await new Promise(r => setTimeout(r, 600));
 
         try {
           await TrackPlayer.setupPlayer({
@@ -2676,11 +2675,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           // Forzarlo prima causa race condition con lo stato Buffering/Connecting.
         }
 
-        // iOS: "nudge" — se dopo 2s lo stato è ancora fermo (sessione non ceduta
-        // correttamente), esegue pause+play per sbloccare l'audio.
+        // iOS: "nudge" — esegue pause+play per sbloccare l'audio. Spesso iOS parte
+        // in State.Playing ma muto se la transizione audio focus non è stata perfetta.
+        // Lo eseguiamo incondizionatamente per sicurezza (il microscatto è inavvertibile).
         if (Platform.OS === 'ios') {
           setTimeout(async () => {
-            if (!mounted || hasStartedPlayingRef.current) return;
+            if (!mounted) return;
             try {
               await TrackPlayer.pause();
               await new Promise(r => setTimeout(r, 150));
