@@ -191,6 +191,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const loadAudio = async () => {
     if (!TrackPlayer) { setLoading(false); return; }
     try {
+      try {
         await TrackPlayer.setupPlayer({
           autoHandleInterruptions: true,
           iosCategory: 'playback',
