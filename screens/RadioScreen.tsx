@@ -2599,11 +2599,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           title: station.name,
           artist: nowPlaying?.djName || 'Radio in diretta',
           artwork: nowPlaying?.djImageUrl || station.logoUrl,
+          isLiveStream: true,
         });
         await TrackPlayer.play();
         if (mounted) setLoading(false);
       } catch (e: any) {
-        Alert.alert('Debug Radio', `TrackPlayer: ${!!TrackPlayer}\nError: ${e?.message || e}`);
         console.warn('RadioPlayer error:', e);
         if (mounted) { setLoading(false); setError(true); }
       }
