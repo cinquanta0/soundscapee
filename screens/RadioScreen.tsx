@@ -156,9 +156,9 @@ const FALLBACK_STREAM_URLS: Record<string, string> = {
   'RTL 102.5':        'https://streamingv2.shoutcast.com/rtl-1025',
   'Radio 105':        'https://icecast.unitedradio.it/Radio105.mp3',
   'Radio DeeJay':     'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiodeejay/radiodeejay/master_ma.m3u8',
-  'Radio Italia':     'https://icecast.unitedradio.it/RadioItalia.mp3',
-  'RDS':              'https://icecast.unitedradio.it/RDS.mp3',
-  'Virgin Radio Italy': 'https://icecast.unitedradio.it/VirginRadio.mp3',
+  'Radio Italia':     'https://radioitaliasmi.akamaized.net/hls/live/2093120/RISMI/stream01/streamPlaylist.m3u8',
+  'RDS':              'https://stream.rds.radio/audio/rds.stream_aac64/chunklist.m3u8',
+  'Virgin Radio Italy': 'https://icy.unitedradio.it/Virgin.mp3',
   'm2o':              'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiom2o/radiom2o/master_ma.m3u8',
   'Radio Capital':    'https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiocapital/radiocapital/master_ma.m3u8',
 };
