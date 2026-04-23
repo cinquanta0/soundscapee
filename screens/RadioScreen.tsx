@@ -2731,15 +2731,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       mounted = false;
       if (fallbackTimer) clearTimeout(fallbackTimer);
       TrackPlayer?.reset().catch(() => {});
-      // iOS: ripristina la sessione expo-av quando RNTP smette di usarla
-      if (Platform.OS === 'ios') {
-        Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: false,
-        }).catch(() => {});
-      }
     };
   }, []);
 
