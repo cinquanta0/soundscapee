@@ -2653,6 +2653,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             artist: nowPlaying?.djName || 'Radio in diretta',
             artwork: nowPlaying?.djImageUrl || station.logoUrl,
             isLiveStream: true,
+            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)', // Evita blocchi 403 da server Icecast (es. m2o)
           });
           await TrackPlayer.play();
           streamUrlRef.current = url;
