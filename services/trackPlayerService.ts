@@ -54,7 +54,7 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemoteSeek,          ({ position }: { position: number }) =>
     TrackPlayer.seekTo(position),
   );
-  // Gestione next/prev per compatibilità con tasti hardware Android (cuffie BT)
-  TrackPlayer.addEventListener(Event.RemoteNext,          () => TrackPlayer.skipToNext().catch(() => {}));
-  TrackPlayer.addEventListener(Event.RemotePrevious,      () => TrackPlayer.skipToPrevious().catch(() => {}));
+  // NON registriamo RemoteNext/RemotePrevious: su iOS registrarli abilita
+  // previousTrackCommand/nextTrackCommand nell'MPRemoteCommandCenter, che fa
+  // apparire ◀◀ ▶▶ nel widget lock screen anche per i live stream radio.
 }

@@ -2743,14 +2743,16 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           }, 2000);
         }
 
-        // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen
+        // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen.
+        // nowPlaying è quasi certamente null a 800ms → usiamo station.logoUrl come artwork
+        // di fallback. Il useEffect su nowPlaying aggiornerà con la foto DJ appena arriva.
         if (Platform.OS === 'ios') {
           setTimeout(() => {
             if (!mounted) return;
             TrackPlayer?.updateNowPlayingMetadata?.({
               title: station.name,
-              artist: nowPlaying?.djName || 'Radio in diretta',
-              artwork: nowPlaying?.djImageUrl || station.logoUrl,
+              artist: 'Radio in diretta',
+              artwork: station.logoUrl,
             }).catch(() => {});
           }, 800);
         }
@@ -2823,6 +2825,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       sub.remove();
     };
   }, [station.id]);
+
+  // iOS: aggiorna artwork lock screen quando nowPlaying arriva dopo l'avvio dello stream.
+  // TrackPlayer.add() viene chiamato prima che fetchNowPlaying risponda, quindi artwork
+  // è undefined al momento dell'add. Questo effect lo aggiorna non appena i dati arrivano.
+  useEffect(() => {
+    if (!TrackPlayer || !nowPlaying) return;
+    TrackPlayer.updateNowPlayingMetadata?.({
+      title: station.name,
+      artist: nowPlaying.djName || 'Radio in diretta',
+      artwork: nowPlaying.djImageUrl || station.logoUrl,
+    }).catch?.(() => {});
+  }, [nowPlaying?.djImageUrl, nowPlaying?.djName]);
 
   // Update time exactly at slot changes and every minute for precision
   useEffect(() => {
