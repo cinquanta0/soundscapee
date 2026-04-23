@@ -2542,8 +2542,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   useEffect(() => {
     if (!TrackPlayer) return;
-    const sub = TrackPlayer.addEventListener(Event.PlaybackState, async () => {
-      const state = await TrackPlayer.getState();
+    // In RNTP v4 il nuovo stato arriva direttamente nell'evento — non serve getState()
+    const sub = TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
+      const state = data?.state ?? data;
       setIsPlaying(state === State.Playing);
       setIsBufferingStream(state === State.Buffering || state === State.Connecting);
     });
@@ -2590,12 +2591,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         try {
           await TrackPlayer.updateOptions({
             android: {
-              // stringa diretta — enum AppKilledPlaybackBehavior potrebbe non essere
-              // disponibile su tutte le versioni RNTP, usiamo il valore raw
               appKilledPlaybackBehavior:
                 AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
             },
             capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+            // iOS: notificationCapabilities necessario per registrare i controlli
+            // lock screen senza dover fare stop+play manuale
+            notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
             compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
           });
         } catch (_optErr) { /* updateOptions opzionale: continua comunque */ }
@@ -2610,7 +2612,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           isLiveStream: true,
         });
         await TrackPlayer.play();
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setIsPlaying(true);
+          setIsBufferingStream(false);
+        }
       } catch (e: any) {
         console.warn('RadioPlayer error:', e);
         if (mounted) { setLoading(false); setError(true); }
