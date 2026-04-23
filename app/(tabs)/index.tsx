@@ -352,6 +352,13 @@ useEffect(() => {
       handleNotificationNavigation(data);
     });
 
+    // App killed: controlla se c'era una notifica pendente al lancio
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response?.notification?.request?.content?.data) {
+        handleNotificationNavigation(response.notification.request.content.data);
+      }
+    }).catch(() => {});
+
     return () => {
       subscription.remove();
       responseSubscription.remove();

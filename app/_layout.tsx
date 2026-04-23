@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { auth, db, functions } from '../firebaseConfig';
 import { initI18n } from '../i18n';
@@ -47,6 +48,7 @@ export default function RootLayout() {
 
   const router = useRouter();
   const segments = useSegments();
+  const pendingNotificationData = useRef<any>(null);
 
   // Initialise i18n as early as possible
   useEffect(() => {
@@ -82,6 +84,15 @@ export default function RootLayout() {
     });
 
     return unsubscribe;
+  }, []);
+
+  // App lanciata da notifica con app killed — salva i dati per passarli a index.tsx
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response?.notification?.request?.content?.data) {
+        pendingNotificationData.current = response.notification.request.content.data;
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
