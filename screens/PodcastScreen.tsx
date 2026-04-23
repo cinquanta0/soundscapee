@@ -6,6 +6,7 @@ import {
   Dimensions, Alert, Platform, ScrollView, KeyboardAvoidingView, PanResponder
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 // ── React Native Track Player — import robusto per Old Arch Android ────────────
 let TrackPlayer: any = null;
@@ -648,6 +649,74 @@ function SoundSearchView({
   );
 }
 
+const PODCAST_TUTORIAL_KEY = '@soundscape/podcast_tutorial_seen';
+
+const TUTORIAL_STEPS = [
+  { emoji: '✏️', title: 'Titolo & Descrizione', body: 'Dai un nome al tuo podcast e spiega di cosa parla. Il titolo è obbligatorio.' },
+  { emoji: '🎙', title: 'Registra la tua voce', body: 'Premi il pulsante rosso per registrare direttamente dal microfono. Toccalo di nuovo per fermarti.' },
+  { emoji: '📂', title: 'Oppure importa un file', body: 'Scegli un audio dal dispositivo o cerca un suono già caricato su SoundScape.' },
+  { emoji: '🚀', title: 'Copertina & Pubblica', body: 'Aggiungi una copertina opzionale, poi premi Pubblica per condividere il tuo podcast con tutti.' },
+];
+
+function TutorialCard({ step, total, onNext, onSkip }: { step: number; total: number; onNext: () => void; onSkip: () => void }) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [step]);
+
+  const info = TUTORIAL_STEPS[step - 1];
+  const isLast = step === total;
+  return (
+    <View style={tc.card}>
+      <View style={tc.header}>
+        <Animated.Text style={[tc.emoji, { opacity: pulse }]}>{info.emoji}</Animated.Text>
+        <Text style={tc.stepLabel}>Guida · {step}/{total}</Text>
+        <TouchableOpacity onPress={onSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={tc.skip}>Salta</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={tc.title}>{info.title}</Text>
+      <Text style={tc.body}>{info.body}</Text>
+      <TouchableOpacity style={tc.nextBtn} onPress={onNext}>
+        <Text style={tc.nextTxt}>{isLast ? 'Ho capito ✓' : 'Avanti →'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const tc = StyleSheet.create({
+  card: {
+    backgroundColor: 'rgba(6,182,212,0.12)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(6,182,212,0.4)',
+    padding: 14,
+    marginBottom: 14,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 },
+  emoji: { fontSize: 22 },
+  stepLabel: { flex: 1, color: 'rgba(6,182,212,0.9)', fontSize: 11, fontFamily: 'monospace', fontWeight: '700' },
+  skip: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontFamily: 'monospace' },
+  title: { color: '#fff', fontSize: 14, fontWeight: '700', fontFamily: 'monospace', marginBottom: 4 },
+  body: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'monospace', lineHeight: 18 },
+  nextBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 10,
+    backgroundColor: '#06b6d4',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+  },
+  nextTxt: { color: '#fff', fontWeight: '700', fontSize: 13, fontFamily: 'monospace' },
+});
+
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { t } = useTranslation();
@@ -667,6 +736,22 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const recordSecondsRef = useRef(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Tutorial interattivo — mostrato solo la prima volta
+  const [tutorialStep, setTutorialStep] = useState(0); // 0 = non attivo
+  useEffect(() => {
+    AsyncStorage.getItem(PODCAST_TUTORIAL_KEY).then(v => {
+      if (!v) setTutorialStep(1);
+    }).catch(() => {});
+  }, []);
+  const advanceTutorial = () => {
+    if (tutorialStep >= TUTORIAL_STEPS.length) completeTutorial();
+    else setTutorialStep(s => s + 1);
+  };
+  const completeTutorial = () => {
+    setTutorialStep(0);
+    AsyncStorage.setItem(PODCAST_TUTORIAL_KEY, '1').catch(() => {});
+  };
 
   // Cleanup registrazione su chiusura modal
   useEffect(() => {
@@ -821,24 +906,37 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
               onBack={() => setShowSearch(false)}
             />
           ) : (
-          <>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={pm.sheetTitle}>{t('podcast.publishTitle')}</Text>
 
-          <TextInput
-            style={pm.input}
-            placeholder={t('podcast.titlePlaceholderLong')}
-            placeholderTextColor="#4A4D56"
-            value={title}
-            onChangeText={setTitle}
-          />
-          <TextInput
-            style={[pm.input, { height: 72, textAlignVertical: 'top' }]}
-            placeholder={t('podcast.descriptionPlaceholder')}
-            placeholderTextColor="#4A4D56"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-          />
+          {/* Tutorial interattivo — mostrato solo la prima volta */}
+          {tutorialStep > 0 && (
+            <TutorialCard
+              step={tutorialStep}
+              total={TUTORIAL_STEPS.length}
+              onNext={advanceTutorial}
+              onSkip={completeTutorial}
+            />
+          )}
+
+          {/* Step 1: Titolo & Descrizione */}
+          <View style={tutorialStep === 1 ? pm.tutorialHighlight : undefined}>
+            <TextInput
+              style={pm.input}
+              placeholder={t('podcast.titlePlaceholderLong')}
+              placeholderTextColor="#4A4D56"
+              value={title}
+              onChangeText={setTitle}
+            />
+            <TextInput
+              style={[pm.input, { height: 72, textAlignVertical: 'top' }]}
+              placeholder={t('podcast.descriptionPlaceholder')}
+              placeholderTextColor="#4A4D56"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
+          </View>
 
           <View style={pm.itsRow}>
             <TouchableOpacity
@@ -859,56 +957,63 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
             />
           </View>
 
-          {/* Registra subito */}
-          {isRecording ? (
-            <TouchableOpacity
-              style={[pm.pickBtn, { borderColor: '#FF3B30', backgroundColor: 'rgba(255,59,48,0.08)' }]}
-              onPress={stopRecording}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' }} />
-                <Text style={{ color: '#FF3B30', fontWeight: '800', fontFamily: 'monospace', fontSize: 13 }}>
-                  {fmtRecSecs(recordSeconds)} — Tocca per fermare
-                </Text>
-              </View>
+          {/* Step 2: Registra subito */}
+          <View style={tutorialStep === 2 ? pm.tutorialHighlight : undefined}>
+            {isRecording ? (
+              <TouchableOpacity
+                style={[pm.pickBtn, { borderColor: '#FF3B30', backgroundColor: 'rgba(255,59,48,0.08)' }]}
+                onPress={stopRecording}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' }} />
+                  <Text style={{ color: '#FF3B30', fontWeight: '800', fontFamily: 'monospace', fontSize: 13 }}>
+                    {fmtRecSecs(recordSeconds)} — Tocca per fermare
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[pm.pickBtn, { borderColor: 'rgba(255,59,48,0.4)', marginBottom: 2 }]}
+                onPress={startRecording}
+              >
+                <Text style={pm.pickBtnTxt}>🎙 Registra ora</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Step 3: Scegli da file / SoundScape */}
+          <View style={tutorialStep === 3 ? pm.tutorialHighlight : undefined}>
+            <TouchableOpacity style={[pm.pickBtn, { marginTop: 6 }]} onPress={pickAudio}>
+              <Text style={pm.pickBtnTxt}>
+                {audioUri && !isRecording ? `✅ ${audioName}` : t('podcast.chooseFile')}
+              </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[pm.pickBtn, { borderColor: 'rgba(255,59,48,0.4)', marginBottom: 2 }]}
-              onPress={startRecording}
-            >
-              <Text style={pm.pickBtnTxt}>🎙 Registra ora</Text>
-            </TouchableOpacity>
-          )}
 
-          {/* Oppure scegli file */}
-          <TouchableOpacity style={[pm.pickBtn, { marginTop: 6 }]} onPress={pickAudio}>
-            <Text style={pm.pickBtnTxt}>
-              {audioUri && !isRecording ? `✅ ${audioName}` : t('podcast.chooseFile')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[pm.pickBtn, { marginTop: 6, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
-            <Text style={[pm.pickBtnTxt, soundscapeAudioUrl && { color: '#00FF9C' }]}>
-              {soundscapeAudioUrl ? `✅ ${audioName}` : `🔍 ${t('podcast.searchSoundScape')}`}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[pm.pickBtn, { marginTop: 8 }]} onPress={pickCover}>
-            <Text style={pm.pickBtnTxt}>
-              {coverUri ? t('podcast.coverSelectedLabel') : t('podcast.addCoverOptional')}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={pm.actions}>
-            <TouchableOpacity style={pm.cancelBtn} onPress={onClose}>
-              <Text style={pm.cancelTxt}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={pm.publishBtn} onPress={handlePublish} disabled={loading}>
-              {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>{t('podcast.publish').replace(' 🎙', '')}</Text>}
+            <TouchableOpacity style={[pm.pickBtn, { marginTop: 6, borderColor: 'rgba(0,255,156,0.4)' }]} onPress={() => setShowSearch(true)}>
+              <Text style={[pm.pickBtnTxt, soundscapeAudioUrl && { color: '#00FF9C' }]}>
+                {soundscapeAudioUrl ? `✅ ${audioName}` : `🔍 ${t('podcast.searchSoundScape')}`}
+              </Text>
             </TouchableOpacity>
           </View>
-          </>
+
+          {/* Step 4: Copertina & Pubblica */}
+          <View style={tutorialStep === 4 ? pm.tutorialHighlight : undefined}>
+            <TouchableOpacity style={[pm.pickBtn, { marginTop: 8 }]} onPress={pickCover}>
+              <Text style={pm.pickBtnTxt}>
+                {coverUri ? t('podcast.coverSelectedLabel') : t('podcast.addCoverOptional')}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={pm.actions}>
+              <TouchableOpacity style={pm.cancelBtn} onPress={onClose}>
+                <Text style={pm.cancelTxt}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={pm.publishBtn} onPress={handlePublish} disabled={loading}>
+                {loading ? <ActivityIndicator color="#050508" /> : <Text style={pm.publishTxt}>{t('podcast.publish').replace(' 🎙', '')}</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+          </ScrollView>
           )}
         </View>
       </View>
@@ -1220,7 +1325,7 @@ const sc = StyleSheet.create({
 
 const pm = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, overflow: 'hidden' },
+  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, overflow: 'hidden', maxHeight: '92%' },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 20, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 20 },
   input: { backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, color: '#fff', fontSize: 15, marginBottom: 12, borderWidth: 1, borderColor: '#334155' },
@@ -1241,6 +1346,14 @@ const pm = StyleSheet.create({
   coverThumb: { width: 72, height: 72, borderRadius: 10 },
   coverThumbEmpty: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' },
   coverBtns: { flex: 1 },
+  tutorialHighlight: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(6,182,212,0.6)',
+    backgroundColor: 'rgba(6,182,212,0.04)',
+    padding: 6,
+    marginBottom: 4,
+  },
 });
 
 const ss = StyleSheet.create({

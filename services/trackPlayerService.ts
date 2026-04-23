@@ -14,17 +14,12 @@ export async function PlaybackService() {
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
       },
-      capabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.Stop,
-        Capability.SeekTo,
-        Capability.JumpForward,
-        Capability.JumpBackward,
-      ],
+      // Per stream live (radio) non servono seek/jump — solo play/pause/stop.
+      // notificationCapabilities controlla i bottoni nel widget iOS lock screen;
+      // senza questo campo cadrebbe il fallback a "tutte le capabilities" mostrando ◀◀ ▶▶.
+      capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+      notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
       compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-      forwardJumpInterval: 15,
-      backwardJumpInterval: 15,
     });
   } catch (e) {
     console.warn('[RNTP PlaybackService] updateOptions error:', e);

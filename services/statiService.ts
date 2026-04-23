@@ -28,6 +28,17 @@ export interface StatiGroup {
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
+// Feather icon names → emoji equivalents (for story circles which render plain text)
+const FEATHER_TO_EMOJI: Record<string, string> = {
+  music: '🎵', headphones: '🎧', radio: '📻', mic: '🎤', speaker: '🔊',
+  disc: '💿', 'volume-2': '🔊', 'play-circle': '▶️', star: '⭐', zap: '⚡',
+  heart: '❤️', sun: '☀️', moon: '🌙', cloud: '☁️', wind: '💨', droplet: '💧',
+};
+function resolveAvatarEmoji(avatar: string | undefined): string {
+  if (!avatar) return '🎵';
+  return FEATHER_TO_EMOJI[avatar] ?? avatar;
+}
+
 /**
  * Carica tutti gli stati degli ultimi 24h (esclusi i tutorial hardcoded).
  */
@@ -50,7 +61,7 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
       byUser[uid] = {
         id: `user_${uid}`,
         label: data.username || 'Utente',
-        icon: data.avatar || '🎵',
+        icon: resolveAvatarEmoji(data.avatar),
         screens: [],
         userId: uid,
         createdAt: data.createdAt?.toDate() ?? new Date(),
@@ -78,7 +89,7 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
         if (snap.exists()) {
           const p = snap.data();
           if (p.username) byUser[uid].label = p.username;
-          if (p.avatar) byUser[uid].icon = p.avatar;
+          if (p.avatar) byUser[uid].icon = resolveAvatarEmoji(p.avatar);
         }
       } catch {
         // profilo non disponibile — usa il valore denormalizzato già presente

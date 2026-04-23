@@ -2555,6 +2555,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsPlaying(true);
         setIsBufferingStream(false);
         setError(false);
+        // iOS: forza sincronizzazione lock screen — senza questo il widget può
+        // restare bloccato su ▶ (play) anche mentre l'audio sta suonando.
+        if (Platform.OS === 'ios') {
+          TrackPlayer.updateNowPlayingMetadata?.({}).catch?.(() => {});
+        }
       } else if (
         state === State.Buffering ||
         state === State.Connecting ||
