@@ -2654,6 +2654,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             // iOS: forza categoria AVAudioSession .playback per background audio corretto
             iosCategory: 'playback',
             iosCategoryMode: 'default',
+            // iOS: essenziale per non perdere i controlli lock screen quando
+            // l'utente passa a cuffie BT, AirPlay o cambia uscita audio
+            iosCategoryOptions: ['allowBluetooth', 'allowAirPlay', 'allowBluetoothA2DP'],
           });
         } catch (_setupErr) { /* player già inizializzato — continua */ }
 
@@ -2706,13 +2709,23 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         // iOS: "nudge" — esegue pause+play per sbloccare l'audio. Spesso iOS parte
         // in State.Playing ma muto se la transizione audio focus non è stata perfetta.
-        // Lo eseguiamo incondizionatamente per sicurezza (il microscatto è inavvertibile).
+        // IMPORTANTE: verificare lo stato prima del nudge: se l'utente ha già messo
+        // in pausa dal lock screen, non dobbiamo riprendere la riproduzione.
         if (Platform.OS === 'ios') {
           setTimeout(async () => {
             if (!mounted) return;
             try {
+              const ps = await TrackPlayer.getPlaybackState();
+              const s = ps?.state ?? ps;
+              // Nudge solo se ancora in play — non interrompere pausa intenzionale
+              if (s !== State.Playing) return;
               await TrackPlayer.pause();
-              await new Promise(r => setTimeout(r, 150));
+              await new Promise(r => setTimeout(r, 200));
+              if (!mounted) return;
+              // Ricontrolliamo: non riprendere se nel frattempo l'utente ha interagito
+              const ps2 = await TrackPlayer.getPlaybackState();
+              const s2 = ps2?.state ?? ps2;
+              if (s2 !== State.Paused) return;
               await TrackPlayer.play();
             } catch {}
           }, 2000);
