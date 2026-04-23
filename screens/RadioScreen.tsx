@@ -2564,9 +2564,17 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
 
-        // setupPlayer: ignora qualsiasi errore — se già inizializzato va bene,
-        // se fallisce per altri motivi i comandi successivi gestiranno il caso.
-        // NOTA: e?.code non funziona su Android RN bridge, non fare re-throw selettivi.
+        // iOS: rilascia la sessione expo-av prima che RNTP la prenda —
+        // senza questo expo-av e RNTP competono per AVAudioSession e l'audio "suona strano"
+        if (Platform.OS === 'ios') {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: false,
+          }).catch(() => {});
+        }
+
         try {
           await TrackPlayer.setupPlayer({
             autoHandleInterruptions: true,
@@ -2575,7 +2583,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             playBuffer: 2,
             backBuffer: 0,
           });
-        } catch (_setupErr) { /* player già inizializzato o non disponibile — continua */ }
+        } catch (_setupErr) { /* player già inizializzato — continua */ }
 
         // updateOptions in try/catch separato: un fallimento qui non deve
         // bloccare la riproduzione (es. AppKilledPlaybackBehavior non supportato)
@@ -2611,6 +2619,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     return () => {
       mounted = false;
       TrackPlayer?.reset().catch(() => {});
+      // iOS: ripristina la sessione expo-av quando RNTP smette di usarla
+      if (Platform.OS === 'ios') {
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+        }).catch(() => {});
+      }
     };
   }, []);
 
