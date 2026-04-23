@@ -2602,7 +2602,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         });
         await TrackPlayer.play();
         if (mounted) setLoading(false);
-      } catch (e) {
+      } catch (e: any) {
+        Alert.alert('Debug Radio', `TrackPlayer: ${!!TrackPlayer}\nError: ${e?.message || e}`);
         console.warn('RadioPlayer error:', e);
         if (mounted) { setLoading(false); setError(true); }
       }
