@@ -48,7 +48,10 @@ export async function PlaybackService() {
     try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-  TrackPlayer.addEventListener(Event.RemoteStop,  () => TrackPlayer.stop());
+  // reset() invece di stop(): su iOS HLS live, stop() chiama [AVPlayer pause] e
+  // lascia la sessione audio attiva — lo stream non si ferma davvero. reset() svuota
+  // la coda e chiude la sessione, rimuovendo anche il widget lock screen.
+  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.reset().catch(() => {}));
 
   // ◀◀ ▶▶: su iOS 16+ compaiono sempre — li colleghiamo al restart dello stream live.
   // Per i podcast (isLiveStream=false) non fanno nulla (nessuna traccia precedente/successiva).
