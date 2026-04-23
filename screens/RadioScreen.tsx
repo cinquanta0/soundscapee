@@ -2544,6 +2544,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const hasStartedPlayingRef = useRef(false);
   const streamUrlRef = useRef<string | null>(null);
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
+  const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
+  useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
   useEffect(() => {
     if (!TrackPlayer) return;
@@ -2555,10 +2557,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsPlaying(true);
         setIsBufferingStream(false);
         setError(false);
-        // iOS: forza sincronizzazione lock screen — senza questo il widget può
-        // restare bloccato su ▶ (play) anche mentre l'audio sta suonando.
+        // iOS: forza sincronizzazione lock screen con metadati completi — passare {}
+        // cancellerebbe l'artwork. Usiamo nowPlayingRef per evitare stale closure.
         if (Platform.OS === 'ios') {
-          TrackPlayer.updateNowPlayingMetadata?.({}).catch?.(() => {});
+          const np = nowPlayingRef.current;
+          TrackPlayer.updateNowPlayingMetadata?.({
+            title: station.name,
+            artist: np?.djName || 'Radio in diretta',
+            artwork: np?.djImageUrl || station.logoUrl,
+          }).catch?.(() => {});
         }
       } else if (
         state === State.Buffering ||
