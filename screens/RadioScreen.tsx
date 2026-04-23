@@ -2563,7 +2563,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           const np = nowPlayingRef.current;
           TrackPlayer.updateNowPlayingMetadata?.({
             title: station.name,
-            artist: np?.djName || 'Radio in diretta',
+            artist: np?.djName || station.genre,
+            album: np?.showName || station.genre,
             artwork: np?.djImageUrl || station.logoUrl,
           }).catch?.(() => {});
         }
@@ -2699,7 +2700,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             id: station.id,
             url,
             title: station.name,
-            artist: nowPlaying?.djName || 'Radio in diretta',
+            artist: station.genre,
+            album: '🔴 In diretta',
             artwork: nowPlaying?.djImageUrl || station.logoUrl,
             isLiveStream: true,
             type: url.includes('.m3u8') ? 'hls' : 'default', // Cruciale per Android ExoPlayer per gestire flussi HLS
@@ -2760,7 +2762,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             if (!mounted) return;
             TrackPlayer?.updateNowPlayingMetadata?.({
               title: station.name,
-              artist: 'Radio in diretta',
+              artist: station.genre,
+              album: '🔴 In diretta',
               artwork: station.logoUrl,
             }).catch(() => {});
           }, 800);
@@ -2842,10 +2845,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     if (!TrackPlayer || !nowPlaying) return;
     TrackPlayer.updateNowPlayingMetadata?.({
       title: station.name,
-      artist: nowPlaying.djName || 'Radio in diretta',
+      artist: nowPlaying.djName || station.genre,
+      album: nowPlaying.showName || station.genre,
       artwork: nowPlaying.djImageUrl || station.logoUrl,
     }).catch?.(() => {});
-  }, [nowPlaying?.djImageUrl, nowPlaying?.djName]);
+  }, [nowPlaying?.djImageUrl, nowPlaying?.djName, nowPlaying?.showName]);
 
   // Update time exactly at slot changes and every minute for precision
   useEffect(() => {
