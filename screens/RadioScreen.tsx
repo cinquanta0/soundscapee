@@ -2644,6 +2644,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (mounted) setStatusLabel(
           FALLBACK_STREAM_URLS[station.searchName] ? 'Connessione...' : 'Ricerca stream...'
         );
+        // Avvia fetchNowPlaying subito in parallelo con tutto il setup del player.
+        // Il setup richiede ~1s+ (fetchRadioBrowserUrl + 600ms sleep + setupPlayer):
+        // quando arriviamo a TrackPlayer.add() il risultato è quasi sempre già pronto,
+        // così Android riceve la foto DJ subito invece del logo stazione.
+        const npPreloadPromise = fetchNowPlaying(station.id).catch(() => null);
         const streamUrl = await fetchRadioBrowserUrl(station.searchName);
         if (!streamUrl) throw new Error('Nessun stream trovato');
         if (!mounted) return;
@@ -2695,21 +2700,26 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         } catch (_optErr) {}
 
         const startStream = async (url: string) => {
+          // Aspetta il preload nowPlaying (già in corso); 200ms extra per sicurezza.
+          // A questo punto il setup ha già impiegato ~1s+, quindi è quasi sempre già risolto.
+          const preNp = await Promise.race([
+            npPreloadPromise,
+            new Promise<null>(r => setTimeout(() => r(null), 200)),
+          ]) as typeof nowPlaying;
           await TrackPlayer.reset();
           await TrackPlayer.add({
             id: station.id,
             url,
             title: station.name,
-            artist: station.genre,
-            album: '🔴 In diretta',
-            artwork: nowPlaying?.djImageUrl || station.logoUrl,
+            artist: preNp?.djName || station.genre,
+            album: preNp?.showName || station.genre,
+            artwork: preNp?.djImageUrl || station.logoUrl,
             isLiveStream: true,
-            type: url.includes('.m3u8') ? 'hls' : 'default', // Cruciale per Android ExoPlayer per gestire flussi HLS
-            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)', // Evita blocchi 403 da server Icecast (es. m2o)
+            type: url.includes('.m3u8') ? 'hls' : 'default',
+            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
           });
           await TrackPlayer.play();
           streamUrlRef.current = url;
-          // Salva sessione: permette il ripristino se Android killa il processo
           AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
         };
 
