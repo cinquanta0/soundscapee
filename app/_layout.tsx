@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
+import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -9,6 +11,9 @@ import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Tex
 import { auth, db, functions } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
+
+// Mantieni lo splash screen visibile mentre i font caricano
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.cucucucucuione.soundscapemobile';
 const STORE_URL_IOS = 'https://apps.apple.com/app/soundscape/id0'; // aggiorna con l'ID reale
@@ -46,9 +51,20 @@ export default function RootLayout() {
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
 
+  // Precarica font vettoriali — fondamentale su Android per evitare icone trasparenti
+  const [fontsLoaded] = useFonts({
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    'Feather': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+  });
+
   const router = useRouter();
   const segments = useSegments();
   const pendingNotificationData = useRef<any>(null);
+
+  // Nascondi lo splash screen non appena i font sono pronti
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
 
   // Initialise i18n as early as possible
   useEffect(() => {
@@ -111,7 +127,7 @@ export default function RootLayout() {
 
   if (forceUpdate) return <ForceUpdateScreen />;
 
-  if (loading || !i18nReady) {
+  if (loading || !i18nReady || !fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
         <ActivityIndicator size="large" color="#a855f7" />
