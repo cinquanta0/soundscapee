@@ -1,4 +1,5 @@
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
     collection,
@@ -27,6 +28,11 @@ import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
 import { Battle, cancelBattle, finalizeBattle, listenToActiveBattles } from '../../services/battleService';
 import { incrementListens } from '../../services/firebaseService';
+
+// RNTP lazy import — stesso pattern di RadioScreen per evitare crash su web
+let _TP: any = null; let _S: any = {};
+try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
+const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 
 const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
 
@@ -90,6 +96,25 @@ export default function ExploreScreen() {
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-ripristino sessione RNTP: se l'app è ripartita dopo un kill
+  // (notifica Android toccata), naviga direttamente alla sezione corretta.
+  useEffect(() => {
+    (async () => {
+      if (!_TP) return;
+      try {
+        const sessionStr = await AsyncStorage.getItem(RNTP_SESSION_KEY);
+        if (!sessionStr) return;
+        const session = JSON.parse(sessionStr);
+        const ps = await _TP.getPlaybackState().catch(() => null);
+        const state = ps?.state ?? ps;
+        if (state !== _S.Playing && state !== _S.Buffering && state !== _S.Loading) return;
+        if (session.type === 'radio') setSection('radio');
+        else if (session.type === 'podcast') setSection('podcast');
+      } catch {}
+    })();
+  }, []);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {

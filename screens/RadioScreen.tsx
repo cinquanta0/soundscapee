@@ -140,6 +140,8 @@ interface NowPlayingInfo {
   djImageUrl?: string;
 }
 
+const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+
 const OFFLINE_STATIONS: OfflineStation[] = [
   { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
   { id: 'r105',       name: 'Radio 105',    genre: 'Rock · Pop',          color: '#FF5722', searchName: 'Radio 105',           logoUrl: 'https://www.google.com/s2/favicons?domain=105.net&sz=128' },
@@ -2596,6 +2598,29 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
     (async () => {
       try {
+        // ── Ripristino sessione: se RNTP sta già suonando questa stazione
+        // (app riavviata dopo kill da Android, notifica RNTP toccata),
+        // non riavviare lo stream — mostra solo la UI aggiornata.
+        if (TrackPlayer) {
+          try {
+            const [activeTrack, ps] = await Promise.all([
+              TrackPlayer.getActiveTrack(),
+              TrackPlayer.getPlaybackState(),
+            ]);
+            const activeState = ps?.state ?? ps;
+            if (
+              activeTrack?.id === station.id &&
+              (activeState === State.Playing || activeState === State.Buffering || activeState === State.Loading)
+            ) {
+              if (mounted) {
+                setLoading(false);
+                setStatusLabel('In onda');
+                streamUrlRef.current = activeTrack.url as string;
+              }
+              return; // Già in riproduzione — non riavviare
+            }
+          } catch {}
+        }
         if (mounted) setStatusLabel(
           FALLBACK_STREAM_URLS[station.searchName] ? 'Connessione...' : 'Ricerca stream...'
         );
@@ -2658,6 +2683,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           });
           await TrackPlayer.play();
           streamUrlRef.current = url;
+          // Salva sessione: permette il ripristino se Android killa il processo
+          AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
         };
 
         // Espone la funzione di ricarica stream per togglePlay (usata quando lo stream è morto)
@@ -2732,6 +2759,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       mounted = false;
       if (fallbackTimer) clearTimeout(fallbackTimer);
       TrackPlayer?.reset().catch(() => {});
+      // Cancella sessione salvata: l'utente ha chiuso il player
+      AsyncStorage.removeItem(RNTP_SESSION_KEY).catch(() => {});
     };
   }, []);
 
@@ -3326,6 +3355,25 @@ export default function RadioScreen() {
     } catch { Alert.alert(t('common.error'), 'Impossibile avviare la trasmissione.'); }
     finally { setStartingRoom(null); }
   };
+
+  // Auto-ripristino: se RNTP sta suonando al boot (es. notifica Android toccata
+  // dopo kill del processo), auto-seleziona la stazione che era in play.
+  useEffect(() => {
+    (async () => {
+      if (!TrackPlayer) return;
+      try {
+        const sessionStr = await AsyncStorage.getItem(RNTP_SESSION_KEY);
+        if (!sessionStr) return;
+        const session = JSON.parse(sessionStr);
+        if (session.type !== 'radio' || !session.stationId) return;
+        const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+        const s = ps?.state ?? ps;
+        if (s !== State.Playing && s !== State.Buffering && s !== State.Loading) return;
+        const station = OFFLINE_STATIONS.find(st => st.id === session.stationId);
+        if (station) setSelectedStation(station);
+      } catch {}
+    })();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
