@@ -31,8 +31,24 @@ export async function PlaybackService() {
   }
 
   // ── Remote control events ───────────────────────────────────────────
-  TrackPlayer.addEventListener(Event.RemotePlay,          () => TrackPlayer.play());
-  TrackPlayer.addEventListener(Event.RemotePause,         () => TrackPlayer.pause());
+  // Per i live stream HLS (radio), dopo una pausa la finestra HLS si sposta avanti.
+  // Un semplice play() fallisce silenziosamente su iOS → serve un vero restart.
+  TrackPlayer.addEventListener(Event.RemotePlay, async () => {
+    try {
+      const track = await TrackPlayer.getActiveTrack();
+      if (track?.isLiveStream) {
+        // Restart live stream: reset + re-add stessa traccia + play
+        await TrackPlayer.reset();
+        await TrackPlayer.add(track);
+        await TrackPlayer.play();
+      } else {
+        await TrackPlayer.play();
+      }
+    } catch {
+      await TrackPlayer.play().catch(() => {});
+    }
+  });
+  TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
   TrackPlayer.addEventListener(Event.RemoteStop,          () => TrackPlayer.stop());
   TrackPlayer.addEventListener(Event.RemoteJumpForward,   ({ interval }: { interval: number }) =>
     TrackPlayer.seekBy(interval),

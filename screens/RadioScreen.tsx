@@ -2612,6 +2612,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               activeTrack?.id === station.id &&
               (activeState === State.Playing || activeState === State.Buffering || activeState === State.Loading)
             ) {
+              // Anche nel ripristino, sovrascriviamo le capability del PlaybackService
+              // per rimuovere i tasti << >> dal lock screen iOS (non ha senso per radio live)
+              TrackPlayer.updateOptions({
+                capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+                notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+                compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+              }).catch(() => {});
               if (mounted) {
                 setLoading(false);
                 setStatusLabel('In onda');
