@@ -2539,12 +2539,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const scheduleScrollRef = useRef<any>(null);
   const livePulse = useRef(new Animated.Value(1)).current;
   const [timeUpdate, setTimeUpdate] = useState(0);
+  const hasStartedPlayingRef = useRef(false);
 
   useEffect(() => {
     if (!TrackPlayer) return;
-    // In RNTP v4 il nuovo stato arriva direttamente nell'evento — non serve getState()
     const sub = TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
       const state = data?.state ?? data;
+      if (state === State.Playing) hasStartedPlayingRef.current = true;
       setIsPlaying(state === State.Playing);
       setIsBufferingStream(state === State.Buffering || state === State.Connecting);
     });
@@ -2554,6 +2555,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   // Fetch audio stream
   useEffect(() => {
     let mounted = true;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       try {
         if (mounted) setStatusLabel(
@@ -2565,15 +2568,16 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         if (!TrackPlayer) throw new Error('TrackPlayer non disponibile su questo dispositivo');
 
-        // iOS: rilascia la sessione expo-av prima che RNTP la prenda —
-        // senza questo expo-av e RNTP competono per AVAudioSession e l'audio "suona strano"
         if (Platform.OS === 'ios') {
+          // Cede la sessione expo-av a RNTP — il delay lascia a iOS il tempo
+          // di processare il rilascio prima che setupPlayer prenda il controllo
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
             staysActiveInBackground: false,
             shouldDuckAndroid: false,
           }).catch(() => {});
+          await new Promise(r => setTimeout(r, 300));
         }
 
         try {
@@ -2586,8 +2590,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           });
         } catch (_setupErr) { /* player già inizializzato — continua */ }
 
-        // updateOptions in try/catch separato: un fallimento qui non deve
-        // bloccare la riproduzione (es. AppKilledPlaybackBehavior non supportato)
         try {
           await TrackPlayer.updateOptions({
             android: {
@@ -2595,28 +2597,60 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
                 AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
             },
             capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-            // iOS: notificationCapabilities necessario per registrare i controlli
-            // lock screen senza dover fare stop+play manuale
             notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
             compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
           });
-        } catch (_optErr) { /* updateOptions opzionale: continua comunque */ }
+        } catch (_optErr) {}
 
-        await TrackPlayer.reset();
-        await TrackPlayer.add({
-          id: station.id,
-          url: streamUrl,
-          title: station.name,
-          artist: nowPlaying?.djName || 'Radio in diretta',
-          artwork: nowPlaying?.djImageUrl || station.logoUrl,
-          isLiveStream: true,
-        });
-        await TrackPlayer.play();
+        const startStream = async (url: string) => {
+          await TrackPlayer.reset();
+          await TrackPlayer.add({
+            id: station.id,
+            url,
+            title: station.name,
+            artist: nowPlaying?.djName || 'Radio in diretta',
+            artwork: nowPlaying?.djImageUrl || station.logoUrl,
+            isLiveStream: true,
+          });
+          await TrackPlayer.play();
+        };
+
+        await startStream(streamUrl);
+
         if (mounted) {
           setLoading(false);
           setIsPlaying(true);
           setIsBufferingStream(false);
         }
+
+        // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen
+        if (Platform.OS === 'ios') {
+          setTimeout(() => {
+            if (!mounted) return;
+            TrackPlayer?.updateNowPlayingMetadata?.({
+              title: station.name,
+              artist: nowPlaying?.djName || 'Radio in diretta',
+              artwork: nowPlaying?.djImageUrl || station.logoUrl,
+            }).catch(() => {});
+          }, 800);
+        }
+
+        // Android: se lo stream non parte entro 10s, svuota la cache e riprova
+        // con l'URL di fallback hardcoded (radio-browser può restituire URL morti)
+        if (Platform.OS === 'android') {
+          const fallbackUrl = FALLBACK_STREAM_URLS[station.searchName];
+          if (fallbackUrl && fallbackUrl !== streamUrl) {
+            fallbackTimer = setTimeout(async () => {
+              if (!mounted || hasStartedPlayingRef.current) return;
+              console.log('[Radio] stream non partito, retry fallback:', station.searchName);
+              await AsyncStorage.removeItem(
+                RADIO_URL_CACHE_PREFIX + station.searchName
+              ).catch(() => {});
+              await startStream(fallbackUrl).catch(() => {});
+            }, 10000);
+          }
+        }
+
       } catch (e: any) {
         console.warn('RadioPlayer error:', e);
         if (mounted) { setLoading(false); setError(true); }
@@ -2624,6 +2658,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     })();
     return () => {
       mounted = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       TrackPlayer?.reset().catch(() => {});
       // iOS: ripristina la sessione expo-av quando RNTP smette di usarla
       if (Platform.OS === 'ios') {
