@@ -208,6 +208,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
               AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
           },
           capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
+          notificationCapabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
           compactCapabilities: [Capability.Play, Capability.Pause],
           forwardJumpInterval: 15,
           backwardJumpInterval: 15,
