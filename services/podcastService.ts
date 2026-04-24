@@ -163,6 +163,24 @@ export async function getPodcasts(limitN = 30): Promise<Podcast[]> {
     .slice(0, limitN);
 }
 
+export async function getPodcastById(id: string): Promise<Podcast | null> {
+  try {
+    const snap = await getDoc(doc(db, 'podcast', id));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      id: snap.id,
+      ...(d as Omit<Podcast, 'id'>),
+      createdAt: d.createdAt?.toDate() ?? new Date(),
+      likesCount: d.likesCount ?? 0,
+      dislikesCount: d.dislikesCount ?? 0,
+      commentsCount: d.commentsCount ?? 0,
+      isITS: d.isITS ?? false,
+      category: d.category,
+    };
+  } catch { return null; }
+}
+
 export async function getSchoolAccessStatus(): Promise<SchoolAccessStatus> {
   const user = auth.currentUser;
   if (!user) {

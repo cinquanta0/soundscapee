@@ -240,15 +240,15 @@ export default function App() {
         const sessionStr = await AsyncStorage.getItem('@soundscape/rntp_session');
         if (!sessionStr) return;
         const session = JSON.parse(sessionStr);
-        if (session.type !== 'radio') return;
+        if (session.type !== 'radio' && session.type !== 'podcast') return;
         let TP: any = null;
         let S: any = {};
         try { const r = require('react-native-track-player'); TP = r.default; S = r; } catch {}
         if (!TP) return;
         const ps = await TP.getPlaybackState().catch(() => null);
         const st = ps?.state ?? ps;
-        if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading) {
-          setActiveTab('radio');
+        if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Paused) {
+          setActiveTab(session.type === 'podcast' ? 'explore' : 'radio');
         }
       } catch {}
     })();

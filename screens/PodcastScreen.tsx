@@ -28,7 +28,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
 import {
-  getPodcasts, publishPodcast, updatePodcast, deletePodcast, searchSounds,
+  getPodcasts, getPodcastById, publishPodcast, updatePodcast, deletePodcast, searchSounds,
   togglePodcastLike, togglePodcastDislike, getPodcastVotes,
   listenPodcastComments, addPodcastComment, deletePodcastComment,
   getUserPlaylists, addPodcastToPlaylist, createPlaylist,
@@ -135,6 +135,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       s2.remove();
       clearInterval(pollInterval);
       TrackPlayer.reset().catch(() => {});
+      AsyncStorage.removeItem('@soundscape/rntp_session').catch(() => {});
     };
   }, []);
 
@@ -225,6 +226,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         duration: podcast.duration > 0 ? podcast.duration : undefined,
       });
       await TrackPlayer.play();
+      AsyncStorage.setItem('@soundscape/rntp_session', JSON.stringify({ type: 'podcast', podcastId: podcast.id })).catch(() => {});
       if (podcast.duration > 0) setDuration(podcast.duration);
     } catch (e) {
       console.error('Podcast load error', e);
@@ -1051,6 +1053,23 @@ export default function PodcastScreen() {
         });
       });
     }
+    // Ripristino sessione: se RNTP stava suonando un podcast al boot, apri il player
+    (async () => {
+      try {
+        const sessionStr = await AsyncStorage.getItem('@soundscape/rntp_session');
+        if (!sessionStr) return;
+        const session = JSON.parse(sessionStr);
+        if (session.type !== 'podcast' || !session.podcastId) return;
+        let TP: any = null; let S: any = {};
+        try { const r = require('react-native-track-player'); TP = r.default; S = r; } catch {}
+        if (!TP) return;
+        const ps = await TP.getPlaybackState().catch(() => null);
+        const st = ps?.state ?? ps;
+        if (st !== S.State?.Playing && st !== S.State?.Paused && st !== S.State?.Buffering) return;
+        const podcast = await getPodcastById(session.podcastId);
+        if (podcast) setSelected(podcast);
+      } catch {}
+    })();
   }, []);
 
   const load = async () => {
