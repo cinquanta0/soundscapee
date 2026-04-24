@@ -2644,6 +2644,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               if (mounted) {
                 setLoading(false);
                 setStatusLabel('In onda');
+                setIsPlaying(activeState === State.Playing);
+                setIsBufferingStream(activeState === State.Buffering || activeState === State.Loading);
                 streamUrlRef.current = activeTrack.url as string;
               }
               return; // Già in riproduzione — non riavviare
