@@ -15,6 +15,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Image,
+  AppState,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
