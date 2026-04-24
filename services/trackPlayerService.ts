@@ -19,8 +19,14 @@ export async function PlaybackService() {
       capabilities: Platform.OS === 'ios'
         ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
         : [Capability.Play, Capability.Pause, Capability.Stop],
-      notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-      compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+      // Android: no Stop nella notifica — alcuni ROM (Xiaomi/OPPO/Samsung) inviano
+      // RemoteStop automaticamente quando si va in background/si blocca lo schermo;
+      // con reset() la notifica sparisce. Senza Stop button non si rischia.
+      // iOS: Stop necessario per chiudere il widget lock screen.
+      notificationCapabilities: Platform.OS === 'ios'
+        ? [Capability.Play, Capability.Pause, Capability.Stop]
+        : [Capability.Play, Capability.Pause],
+      compactCapabilities: [Capability.Play, Capability.Pause],
     });
   } catch (e) {
     console.warn('[RNTP PlaybackService] updateOptions error:', e);
@@ -45,10 +51,17 @@ export async function PlaybackService() {
     try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-  // reset() invece di stop(): su iOS HLS live, stop() chiama [AVPlayer pause] e
-  // lascia la sessione audio attiva — lo stream non si ferma davvero. reset() svuota
-  // la coda e chiude la sessione, rimuovendo anche il widget lock screen.
-  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.reset().catch(() => {}));
+  // iOS: reset() per chiudere correttamente la sessione HLS (stop() lascia lo stream attivo).
+  // Android: stop() invece di reset() — reset() distrugge il ForegroundService e la notifica
+  // sparisce; alcuni ROM inviano RemoteStop automaticamente quando si va in background.
+  // Con stop() la notifica rimane (mostra Play) e l'utente può riprendere dalla notifica.
+  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+    if (Platform.OS === 'ios') {
+      TrackPlayer.reset().catch(() => {});
+    } else {
+      TrackPlayer.stop().catch(() => {});
+    }
+  });
 
   // ◀◀ ▶▶: su iOS 16+ compaiono sempre — li colleghiamo al restart dello stream live.
   // Per i podcast (isLiveStream=false) non fanno nulla (nessuna traccia precedente/successiva).

@@ -2628,9 +2628,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               // Anche nel ripristino, sovrascriviamo le capability del PlaybackService
               // per rimuovere i tasti << >> dal lock screen iOS (non ha senso per radio live)
               TrackPlayer.updateOptions({
-                capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-                notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-                compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+                capabilities: Platform.OS === 'ios'
+                  ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
+                  : [Capability.Play, Capability.Pause, Capability.Stop],
+                notificationCapabilities: Platform.OS === 'ios'
+                  ? [Capability.Play, Capability.Pause, Capability.Stop]
+                  : [Capability.Play, Capability.Pause],
+                compactCapabilities: [Capability.Play, Capability.Pause],
               }).catch(() => {});
               if (mounted) {
                 setLoading(false);
@@ -2694,8 +2698,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             capabilities: Platform.OS === 'ios'
               ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
               : [Capability.Play, Capability.Pause, Capability.Stop],
-            notificationCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
-            compactCapabilities: [Capability.Play, Capability.Pause, Capability.Stop],
+            notificationCapabilities: Platform.OS === 'ios'
+              ? [Capability.Play, Capability.Pause, Capability.Stop]
+              : [Capability.Play, Capability.Pause],
+            compactCapabilities: [Capability.Play, Capability.Pause],
           });
         } catch (_optErr) {}
 
