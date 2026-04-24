@@ -1931,7 +1931,7 @@ if (loading) {
           onClose={async () => {
             try {
               const TP = require('react-native-track-player').default;
-              await TP.reset();
+              await TP.stop();
               await AsyncStorage.removeItem('@soundscape/rntp_session');
             } catch {}
             setMiniPlayerData(null);
