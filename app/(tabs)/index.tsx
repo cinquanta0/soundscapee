@@ -1349,7 +1349,9 @@ if (loading) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
-      {showOnboarding && <OnboardingScreen onComplete={() => setShowOnboarding(false)} />}
+      <Modal visible={showOnboarding} animationType="fade" statusBarTranslucent>
+        <OnboardingScreen onComplete={() => setShowOnboarding(false)} />
+      </Modal>
 
       {/* Header — nascosto sui tab full-screen che hanno il proprio layout */}
       {!isFullScreen && <View style={styles.header}>

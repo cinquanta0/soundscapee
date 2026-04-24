@@ -713,5 +713,16 @@
       "cannotSend": "Impossible d'envoyer le message.",
       "cannotDelete": "Impossible de supprimer le message."
     }
+  },
+  "onboarding": {
+    "slide1_title": "SoundScape — Le Monde Sonne",
+    "slide1_subtitle": "Le réseau social des sons du monde réel",
+    "slide2_title": "Capturez des sons en direct",
+    "slide2_subtitle": "Enregistrez ce que vous entendez autour de vous et partagez-le avec la communauté",
+    "slide3_title": "Explorez le monde sonore",
+    "slide3_subtitle": "Écoutez les sons de personnes du monde entier sur la carte",
+    "skip": "Passer",
+    "next": "Suivant →",
+    "start": "Commencer 🎵"
   }
 }

@@ -713,5 +713,16 @@
       "cannotSend": "Nachricht konnte nicht gesendet werden.",
       "cannotDelete": "Nachricht konnte nicht gelöscht werden."
     }
+  },
+  "onboarding": {
+    "slide1_title": "SoundScape — Die Welt klingt",
+    "slide1_subtitle": "Das soziale Netzwerk für Klänge aus der echten Welt",
+    "slide2_title": "Klänge live aufnehmen",
+    "slide2_subtitle": "Nehme auf, was du um dich herum hörst, und teile es mit der Community",
+    "slide3_title": "Die Klangwelt erkunden",
+    "slide3_subtitle": "Höre Klänge von Menschen aus aller Welt auf der Karte",
+    "skip": "Überspringen",
+    "next": "Weiter →",
+    "start": "Loslegen 🎵"
   }
 }

@@ -1,40 +1,42 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Dimensions,
-  ScrollView, Animated,
+  View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
-
-const SLIDES = [
-  {
-    icon: '🎧',
-    title: 'SoundScape — Il Mondo Suona',
-    subtitle: 'Il social network dei suoni del mondo reale',
-    color: '#F59E0B',
-  },
-  {
-    icon: '🎙️',
-    title: 'Cattura suoni dal vivo',
-    subtitle: 'Registra quello che senti intorno a te e condividilo con la community',
-    color: '#06b6d4',
-  },
-  {
-    icon: '🗺️',
-    title: 'Esplora il mondo sonoro',
-    subtitle: 'Ascolta i suoni di persone da tutto il mondo sulla mappa',
-    color: '#8B5CF6',
-  },
-];
 
 interface Props {
   onComplete: () => void;
 }
 
 export default function OnboardingScreen({ onComplete }: Props) {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+
+  const SLIDES = [
+    {
+      icon: '🎧',
+      title: t('onboarding.slide1_title'),
+      subtitle: t('onboarding.slide1_subtitle'),
+      color: '#F59E0B',
+    },
+    {
+      icon: '🎙️',
+      title: t('onboarding.slide2_title'),
+      subtitle: t('onboarding.slide2_subtitle'),
+      color: '#06b6d4',
+    },
+    {
+      icon: '🗺️',
+      title: t('onboarding.slide3_title'),
+      subtitle: t('onboarding.slide3_subtitle'),
+      color: '#8B5CF6',
+    },
+  ];
 
   const goTo = (index: number) => {
     setCurrent(index);
@@ -57,7 +59,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const slide = SLIDES[current];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -77,7 +79,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
         ))}
       </ScrollView>
 
-      {/* Dots */}
       <View style={styles.dots}>
         {SLIDES.map((_, i) => (
           <TouchableOpacity
@@ -93,15 +94,14 @@ export default function OnboardingScreen({ onComplete }: Props) {
         ))}
       </View>
 
-      {/* Actions */}
       <View style={styles.actions}>
         {current < SLIDES.length - 1 ? (
           <>
             <TouchableOpacity style={styles.skipBtn} onPress={handleComplete}>
-              <Text style={styles.skipText}>Salta</Text>
+              <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-              <Text style={styles.nextText}>Avanti →</Text>
+              <Text style={styles.nextText}>{t('onboarding.next')}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -109,22 +109,19 @@ export default function OnboardingScreen({ onComplete }: Props) {
             style={[styles.startBtn, { backgroundColor: slide.color }]}
             onPress={handleComplete}
           >
-            <Text style={styles.startText}>Inizia 🎵</Text>
+            <Text style={styles.startText}>{t('onboarding.start')}</Text>
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: '#080808',
-    zIndex: 9999,
     flex: 1,
-    paddingBottom: 48,
+    backgroundColor: '#080808',
+    paddingBottom: 16,
   },
   slide: {
     flex: 1,
@@ -175,6 +172,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 28,
     gap: 12,
+    marginBottom: 8,
   },
   skipBtn: {
     padding: 8,

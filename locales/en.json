@@ -713,5 +713,16 @@
       "cannotSend": "Cannot send the message.",
       "cannotDelete": "Cannot delete the message."
     }
+  },
+  "onboarding": {
+    "slide1_title": "SoundScape — The World Sounds",
+    "slide1_subtitle": "The social network for real-world sounds",
+    "slide2_title": "Capture sounds live",
+    "slide2_subtitle": "Record what you hear around you and share it with the community",
+    "slide3_title": "Explore the sound world",
+    "slide3_subtitle": "Listen to sounds from people all over the world on the map",
+    "skip": "Skip",
+    "next": "Next →",
+    "start": "Start 🎵"
   }
 }

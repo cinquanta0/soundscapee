@@ -713,5 +713,16 @@
       "cannotSend": "Não é possível enviar a mensagem.",
       "cannotDelete": "Não é possível excluir a mensagem."
     }
+  },
+  "onboarding": {
+    "slide1_title": "SoundScape — O Mundo Soa",
+    "slide1_subtitle": "A rede social dos sons do mundo real",
+    "slide2_title": "Capture sons ao vivo",
+    "slide2_subtitle": "Grave o que ouve ao seu redor e compartilhe com a comunidade",
+    "slide3_title": "Explore o mundo sonoro",
+    "slide3_subtitle": "Ouça os sons de pessoas de todo o mundo no mapa",
+    "skip": "Pular",
+    "next": "Próximo →",
+    "start": "Começar 🎵"
   }
 }
