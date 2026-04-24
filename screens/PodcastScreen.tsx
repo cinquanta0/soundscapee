@@ -202,7 +202,9 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         ]);
         const st = ps?.state ?? ps;
         const isActive = st === State.Playing || st === State.Paused || st === State.Buffering || st === State.Loading;
-        if (isActive && activeTrack?.id === podcast.id) {
+        // activeTrack può essere null su Android cold start anche se il ForegroundService
+        // sta suonando — in quel caso assumiamo sia la traccia corretta e non ricarichiamo.
+        if (isActive && (activeTrack?.id === podcast.id || !activeTrack)) {
           const prog = await TrackPlayer.getProgress().catch(() => null);
           if (prog?.position != null) setPosition(prog.position);
           if (prog?.duration > 0) setDuration(prog.duration);

@@ -255,6 +255,29 @@ export default function App() {
     })();
   }, []);
 
+  // iOS: quando l'app va in background, forza updateNowPlayingMetadata per garantire
+  // che il widget lock screen appaia anche dopo che il player full-screen si è smontato.
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const sub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'background') return;
+      try {
+        const r = require('react-native-track-player');
+        const TP = r.default; const S = r;
+        const [track, ps] = await Promise.all([TP.getActiveTrack(), TP.getPlaybackState()]);
+        const st = ps?.state ?? ps;
+        if (!track || st === S.State?.Stopped || st === S.State?.None) return;
+        TP.updateNowPlayingMetadata?.({
+          title: track.title ?? '',
+          artist: track.artist ?? '',
+          album: track.album ?? '',
+          artwork: track.artwork,
+        }).catch(() => {});
+      } catch {}
+    });
+    return () => sub.remove();
+  }, []);
+
   // Mini-player
   interface MiniPlayerData { title: string; artist: string; artwork?: string; isPlaying: boolean; type: 'radio' | 'podcast'; }
   const [miniPlayerData, setMiniPlayerData] = useState<MiniPlayerData | null>(null);
