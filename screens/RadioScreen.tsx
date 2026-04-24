@@ -2852,9 +2852,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     return () => {
       mounted = false;
       if (fallbackTimer) clearTimeout(fallbackTimer);
-      TrackPlayer?.reset().catch(() => {});
-      // Cancella sessione salvata: l'utente ha chiuso il player
-      AsyncStorage.removeItem(RNTP_SESSION_KEY).catch(() => {});
+      // NON resettare RNTP: l'audio continua nel mini-player quando si naviga altrove.
+      // Il reset avviene solo quando l'utente preme X nel mini-player.
     };
   }, []);
 

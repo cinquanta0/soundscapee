@@ -134,8 +134,8 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       s1.remove();
       s2.remove();
       clearInterval(pollInterval);
-      TrackPlayer.reset().catch(() => {});
-      AsyncStorage.removeItem('@soundscape/rntp_session').catch(() => {});
+      // NON resettare RNTP: l'audio continua nel mini-player quando si naviga altrove.
+      // Il reset avviene solo quando l'utente preme X nel mini-player.
     };
   }, []);
 
@@ -193,6 +193,25 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   const loadAudio = async () => {
     if (!TrackPlayer) { setLoading(false); return; }
     try {
+      // Se RNTP sta già suonando questo podcast (es. mini-player → tap → torna qui),
+      // non ricaricare: sincronizza solo la UI con lo stato corrente.
+      try {
+        const [activeTrack, ps] = await Promise.all([
+          TrackPlayer.getActiveTrack(),
+          TrackPlayer.getPlaybackState(),
+        ]);
+        const st = ps?.state ?? ps;
+        const isActive = st === State.Playing || st === State.Paused || st === State.Buffering || st === State.Loading;
+        if (isActive && activeTrack?.id === podcast.id) {
+          const prog = await TrackPlayer.getProgress().catch(() => null);
+          if (prog?.position != null) setPosition(prog.position);
+          if (prog?.duration > 0) setDuration(prog.duration);
+          setIsPlaying(st === State.Playing || st === State.Buffering);
+          setLoading(false);
+          return;
+        }
+      } catch {}
+
       try {
         await TrackPlayer.setupPlayer({
           autoHandleInterruptions: true,
