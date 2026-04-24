@@ -232,6 +232,28 @@ export default function App() {
     });
   }, []);
 
+  // Se RNTP sta suonando una stazione radio al boot (app riavviata da Xiaomi/Android
+  // dopo tap sulla notifica), naviga direttamente alla tab radio invece del feed.
+  useEffect(() => {
+    (async () => {
+      try {
+        const sessionStr = await AsyncStorage.getItem('@soundscape/rntp_session');
+        if (!sessionStr) return;
+        const session = JSON.parse(sessionStr);
+        if (session.type !== 'radio') return;
+        let TP: any = null;
+        let S: any = {};
+        try { const r = require('react-native-track-player'); TP = r.default; S = r; } catch {}
+        if (!TP) return;
+        const ps = await TP.getPlaybackState().catch(() => null);
+        const st = ps?.state ?? ps;
+        if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading) {
+          setActiveTab('radio');
+        }
+      } catch {}
+    })();
+  }, []);
+
   // UI States
   const [showSettings, setShowSettings] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
