@@ -2561,11 +2561,16 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         // cancellerebbe l'artwork. Usiamo nowPlayingRef per evitare stale closure.
         if (Platform.OS === 'ios') {
           const np = nowPlayingRef.current;
+          const sSlot = (() => {
+            const slots = getScheduleSlots(station.id);
+            const idx = getCurrentSlotIndex(slots);
+            return idx >= 0 ? slots[idx] : null;
+          })();
           TrackPlayer.updateNowPlayingMetadata?.({
             title: station.name,
-            artist: np?.djName || station.genre,
-            album: np?.showName || station.genre,
-            artwork: np?.djImageUrl || station.logoUrl,
+            artist: np?.djName || sSlot?.djName || station.genre,
+            album: np?.showName || sSlot?.showName || station.genre,
+            artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
           }).catch?.(() => {});
         }
       } else if (
@@ -2783,16 +2788,22 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         }
 
         // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen.
-        // nowPlaying è quasi certamente null a 800ms → usiamo station.logoUrl come artwork
-        // di fallback. Il useEffect su nowPlaying aggiornerà con la foto DJ appena arriva.
+        // A 800ms nowPlaying potrebbe non essere ancora arrivato → usa palinsesto statico
+        // come fallback (stesso calcolo dell'add). useEffect su nowPlaying aggiorna se API live risponde.
         if (Platform.OS === 'ios') {
           setTimeout(() => {
             if (!mounted) return;
+            const np = nowPlayingRef.current;
+            const sSlot = (() => {
+              const slots = getScheduleSlots(station.id);
+              const idx = getCurrentSlotIndex(slots);
+              return idx >= 0 ? slots[idx] : null;
+            })();
             TrackPlayer?.updateNowPlayingMetadata?.({
               title: station.name,
-              artist: station.genre,
-              album: '🔴 In diretta',
-              artwork: station.logoUrl,
+              artist: np?.djName || sSlot?.djName || station.genre,
+              album: np?.showName || sSlot?.showName || '🔴 In diretta',
+              artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
             }).catch(() => {});
           }, 800);
         }
