@@ -11,7 +11,7 @@ export async function PlaybackService() {
   try {
     await TrackPlayer.updateOptions({
       android: {
-        appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
+        appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
       },
       // iOS 16+: Next/Previous sempre visibili nel widget — li abilitiamo per renderli
       // funzionali (restart stream). Su Android causano crash nel MediaSession nativo
