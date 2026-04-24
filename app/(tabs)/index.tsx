@@ -115,6 +115,7 @@ import { createBattle, listenToIncomingBattle, Battle } from '../../services/bat
 import MessagesScreen from '../../screens/MessagesScreen';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
+import MiniPlayer from '../../components/MiniPlayer';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import StoriesRow from '../../components/StoriesRow';
 import BackstageViewer from '../../components/BackstageViewer';
@@ -252,6 +253,42 @@ export default function App() {
         }
       } catch {}
     })();
+  }, []);
+
+  // Mini-player
+  interface MiniPlayerData { title: string; artist: string; artwork?: string; isPlaying: boolean; type: 'radio' | 'podcast'; }
+  const [miniPlayerData, setMiniPlayerData] = useState<MiniPlayerData | null>(null);
+
+  useEffect(() => {
+    let TP: any = null; let S: any = {};
+    try { const r = require('react-native-track-player'); TP = r.default; S = r; } catch {}
+    if (!TP) return;
+
+    const syncMiniPlayer = async () => {
+      try {
+        const [track, ps, sessionStr] = await Promise.all([
+          TP.getActiveTrack(),
+          TP.getPlaybackState(),
+          AsyncStorage.getItem('@soundscape/rntp_session'),
+        ]);
+        const st = ps?.state ?? ps;
+        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading;
+        if (!isActive || !track || !sessionStr) { setMiniPlayerData(null); return; }
+        const session = JSON.parse(sessionStr);
+        if (session.type !== 'radio' && session.type !== 'podcast') { setMiniPlayerData(null); return; }
+        setMiniPlayerData({
+          title: track.title ?? '',
+          artist: track.artist ?? '',
+          artwork: track.artwork as string | undefined,
+          isPlaying: st === S.State?.Playing || st === S.State?.Buffering,
+          type: session.type,
+        });
+      } catch { setMiniPlayerData(null); }
+    };
+
+    syncMiniPlayer();
+    const sub = TP.addEventListener(S.Event?.PlaybackState, () => syncMiniPlayer());
+    return () => sub?.remove?.();
   }, []);
 
   // UI States
@@ -1394,7 +1431,7 @@ if (loading) {
       </View>}
 
       {/* Main Content — nascosto sui tab full-screen */}
-      {!isFullScreen && <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + 16 }} showsVerticalScrollIndicator={false}>
+      {!isFullScreen && <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
           <View style={styles.content}>
             {/* Quick Record */}
@@ -1831,7 +1868,7 @@ if (loading) {
 
       {/* Schermate full-screen — occupano tutto lo spazio disponibile sopra il nav bar */}
       {isFullScreen && (
-        <View style={[styles.fullScreenContainer, { paddingBottom: navBarHeight }]}>
+        <View style={[styles.fullScreenContainer, { paddingBottom: navBarHeight + (miniPlayerData ? 68 : 0) }]}>
           {activeTab === 'communities' && <CommunitiesScreen />}
           {activeTab === 'map' && <MapScreen />}
           {activeTab === 'timemachine' && <TimeMachineScreen />}
@@ -1847,6 +1884,36 @@ if (loading) {
         </View>
       )}
 
+
+      {/* Mini-player alla Spotify — visibile su tutti i tab tranne quello del player full-screen */}
+      {miniPlayerData && !(miniPlayerData.type === 'radio' && activeTab === 'radio') && !(miniPlayerData.type === 'podcast' && activeTab === 'explore') && (
+        <MiniPlayer
+          title={miniPlayerData.title}
+          artist={miniPlayerData.artist}
+          artwork={miniPlayerData.artwork}
+          isPlaying={miniPlayerData.isPlaying}
+          bottomOffset={navBarHeight}
+          onPress={() => setActiveTab(miniPlayerData.type === 'podcast' ? 'explore' : 'radio')}
+          onPlayPause={async () => {
+            try {
+              const r = require('react-native-track-player');
+              const TP = r.default; const S = r;
+              const ps = await TP.getPlaybackState();
+              const st = ps?.state ?? ps;
+              if (st === S.State?.Playing) await TP.pause(); else await TP.play();
+              setMiniPlayerData(prev => prev ? { ...prev, isPlaying: st !== S.State?.Playing } : null);
+            } catch {}
+          }}
+          onClose={async () => {
+            try {
+              const TP = require('react-native-track-player').default;
+              await TP.reset();
+              await AsyncStorage.removeItem('@soundscape/rntp_session');
+            } catch {}
+            setMiniPlayerData(null);
+          }}
+        />
+      )}
 
       {/* Bottom Navigation — componente professionale senza emoji */}
       <BottomNavBar
