@@ -2742,6 +2742,17 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
           });
           await TrackPlayer.play();
+          // iOS: pre-registra subito MPNowPlayingInfoCenter senza aspettare State.Playing.
+          // Se l'utente va in background durante il buffering (che può durare secondi),
+          // iOS non riceve mai il segnale dal PlaybackState listener e il widget non appare.
+          if (Platform.OS === 'ios') {
+            TrackPlayer.updateNowPlayingMetadata?.({
+              title: station.name,
+              artist: artistName,
+              album: albumName,
+              artwork: artworkUrl,
+            }).catch?.(() => {});
+          }
           streamUrlRef.current = url;
           AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
         };
@@ -2770,6 +2781,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (Platform.OS === 'ios') {
           setTimeout(async () => {
             if (!mounted) return;
+            // Non fare il nudge in background: la pausa farebbe scomparire il widget
+            // e iOS potrebbe non riregistrarlo al play() successivo.
+            if (AppState.currentState !== 'active') return;
             try {
               const ps = await TrackPlayer.getPlaybackState();
               const s = ps?.state ?? ps;
