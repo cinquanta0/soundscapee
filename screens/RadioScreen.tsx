@@ -2707,19 +2707,33 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
         const startStream = async (url: string) => {
           // Aspetta il preload nowPlaying (già in corso); 200ms extra per sicurezza.
-          // A questo punto il setup ha già impiegato ~1s+, quindi è quasi sempre già risolto.
           const preNp = await Promise.race([
             npPreloadPromise,
             new Promise<null>(r => setTimeout(() => r(null), 200)),
           ]) as typeof nowPlaying;
+
+          // Se l'API live non ha risposto, usa il palinsesto statico come fallback.
+          // getScheduleSlots/getCurrentSlotIndex sono disponibili nel closure.
+          const staticSlot = (() => {
+            const slots = getScheduleSlots(station.id);
+            const idx = getCurrentSlotIndex(slots);
+            return idx >= 0 ? slots[idx] : null;
+          })();
+          const artworkUrl = preNp?.djImageUrl
+            ?? staticSlot?.djPhotoUrl
+            ?? getDjPhoto(staticSlot?.djName ?? '')
+            ?? station.logoUrl;
+          const artistName = preNp?.djName || staticSlot?.djName || station.genre;
+          const albumName  = preNp?.showName || staticSlot?.showName || station.genre;
+
           await TrackPlayer.reset();
           await TrackPlayer.add({
             id: station.id,
             url,
             title: station.name,
-            artist: preNp?.djName || station.genre,
-            album: preNp?.showName || station.genre,
-            artwork: preNp?.djImageUrl || station.logoUrl,
+            artist: artistName,
+            album: albumName,
+            artwork: artworkUrl,
             isLiveStream: true,
             type: url.includes('.m3u8') ? 'hls' : 'default',
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
