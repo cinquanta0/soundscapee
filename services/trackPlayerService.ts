@@ -19,13 +19,11 @@ export async function PlaybackService() {
       capabilities: Platform.OS === 'ios'
         ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
         : [Capability.Play, Capability.Pause, Capability.Stop],
-      // Android: no Stop nella notifica — alcuni ROM (Xiaomi/OPPO/Samsung) inviano
-      // RemoteStop automaticamente quando si va in background/si blocca lo schermo;
-      // con reset() la notifica sparisce. Senza Stop button non si rischia.
-      // iOS: Stop necessario per chiudere il widget lock screen.
-      notificationCapabilities: Platform.OS === 'ios'
-        ? [Capability.Play, Capability.Pause, Capability.Stop]
-        : [Capability.Play, Capability.Pause],
+      // Nessuna piattaforma espone il tasto Stop nella notifica/widget:
+      // alcuni ROM Android e iOS inviano RemoteStop automaticamente in background,
+      // e qualsiasi stop aggressivo (reset/stop) rimuove notifica o widget.
+      // Il vero reset avviene solo quando l'utente chiude il player dalla UI.
+      notificationCapabilities: [Capability.Play, Capability.Pause],
       compactCapabilities: [Capability.Play, Capability.Pause],
     });
   } catch (e) {
@@ -51,17 +49,12 @@ export async function PlaybackService() {
     try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-  // iOS: reset() per chiudere correttamente la sessione HLS (stop() lascia lo stream attivo).
-  // Android: stop() invece di reset() — reset() distrugge il ForegroundService e la notifica
-  // sparisce; alcuni ROM inviano RemoteStop automaticamente quando si va in background.
-  // Con stop() la notifica rimane (mostra Play) e l'utente può riprendere dalla notifica.
-  TrackPlayer.addEventListener(Event.RemoteStop, () => {
-    if (Platform.OS === 'ios') {
-      TrackPlayer.reset().catch(() => {});
-    } else {
-      TrackPlayer.stop().catch(() => {});
-    }
-  });
+  // RemoteStop → pause() su entrambe le piattaforme.
+  // reset() è troppo aggressivo: su Android distrugge il ForegroundService (notifica sparisce),
+  // su iOS rimuove il widget lock screen. Alcuni ROM/iOS inviano RemoteStop automaticamente
+  // quando si va in background o si blocca lo schermo.
+  // Il vero reset avviene solo quando l'utente chiude il player dalla UI (cleanup → reset()).
+  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.pause().catch(() => {}));
 
   // ◀◀ ▶▶: su iOS 16+ compaiono sempre — li colleghiamo al restart dello stream live.
   // Per i podcast (isLiveStream=false) non fanno nulla (nessuna traccia precedente/successiva).

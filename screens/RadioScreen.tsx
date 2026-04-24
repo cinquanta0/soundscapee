@@ -2698,9 +2698,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             capabilities: Platform.OS === 'ios'
               ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
               : [Capability.Play, Capability.Pause, Capability.Stop],
-            notificationCapabilities: Platform.OS === 'ios'
-              ? [Capability.Play, Capability.Pause, Capability.Stop]
-              : [Capability.Play, Capability.Pause],
+            notificationCapabilities: [Capability.Play, Capability.Pause],
             compactCapabilities: [Capability.Play, Capability.Pause],
           });
         } catch (_optErr) {}
