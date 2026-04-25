@@ -241,10 +241,23 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   // 🎵 GESTIONE TRACCE
   // ═══════════════════════════════════════════════════════
 
-  const addTrack = (sound) => {
+  const addTrack = async (sound) => {
     if (!sound.audioUrl || sound.audioUrl === '') {
       Alert.alert(t('remix.errors.noAudioUrl'), t('remix.errors.noAudioUrlMsg'));
       return;
+    }
+
+    // Se la durata è 0 o mancante (dati legacy), la leggiamo dall'audio reale
+    let resolvedDuration = sound.duration || 0;
+    if (!resolvedDuration) {
+      try {
+        const { sound: tmpSound } = await Audio.Sound.createAsync({ uri: sound.audioUrl });
+        const st = await tmpSound.getStatusAsync();
+        if (st.isLoaded && st.durationMillis) {
+          resolvedDuration = Math.round(st.durationMillis / 1000);
+        }
+        await tmpSound.unloadAsync();
+      } catch {}
     }
 
     const newTrack = {
@@ -253,15 +266,15 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       title: sound.title,
       audioUrl: sound.audioUrl,
       startTime: 0,
-      endTime: sound.duration,
+      endTime: resolvedDuration,
       offsetStart: 0,
-      offsetEnd: sound.duration,
+      offsetEnd: resolvedDuration,
       volume: 1.0,
       effects: { reverb: 0, echo: 0, pitch: 0 },
-      duration: sound.duration,
+      duration: resolvedDuration,
       color: getRandomColor(),
     };
-    
+
     setTracks([...tracks, newTrack]);
     setShowSoundPicker(false);
     Alert.alert(t('remix.trackAdded'), t('remix.trackAddedMsg', { title: sound.title }));

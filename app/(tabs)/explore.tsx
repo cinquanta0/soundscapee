@@ -255,7 +255,7 @@ export default function ExploreScreen() {
         <View style={styles.soundInfo}>
           <Text style={styles.soundTitle} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.soundMeta}>
-            {item.username} · {item.duration}s · {item.mood}
+            {item.username} · {item.duration > 0 ? `${item.duration}s` : '?s'} · {item.mood}
           </Text>
           <View style={styles.soundStats}>
             <Text style={styles.statText}>❤️ {item.likes || 0}</Text>

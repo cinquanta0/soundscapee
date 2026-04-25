@@ -77,7 +77,7 @@ import {
 
 
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, getDoc, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, writeBatch, doc as firestoreDoc, addDoc, serverTimestamp, getCountFromServer, updateDoc } from 'firebase/firestore';
 import { db as firestoreDb } from '../../firebaseConfig';
 import {
   subscribeToSoundsFeed,
@@ -656,14 +656,21 @@ const loadSoundsForRemix = async () => {
       setIsRecording(false);
 
       const uri = recording.getURI();
-      // Leggo la durata PRIMA di stopAndUnloadAsync — dopo l'unload durationMillis torna 0
-      const status = await recording.getStatusAsync();
       await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-      });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
 
-      const durationSec = Math.floor((status.durationMillis || capturedTime * 1000) / 1000) || capturedTime;
+      // Leggo la durata dal file audio scritto su disco — unico modo affidabile
+      // su Android (durationMillis durante la registrazione può essere 0).
+      let durationSec = capturedTime;
+      try {
+        const { sound: tmpSound } = await Audio.Sound.createAsync({ uri: uri! });
+        const st = await tmpSound.getStatusAsync();
+        if (st.isLoaded && st.durationMillis) {
+          durationSec = Math.round(st.durationMillis / 1000);
+        }
+        await tmpSound.unloadAsync();
+      } catch {}
+      if (!durationSec) durationSec = capturedTime;
 
       setRecordedSound({
         uri,
@@ -937,6 +944,22 @@ const handlePlay = async (item) => {
     soundObjRef.current = newSound;
     setSound(newSound);
     setPlayingId(item.id);
+
+    // Se la durata era 0 (dati legacy), la aggiorniamo dal file caricato
+    if (item.duration === 0 || !item.duration) {
+      try {
+        const st = await newSound.getStatusAsync();
+        if (st.isLoaded && st.durationMillis) {
+          const actualDuration = Math.round(st.durationMillis / 1000);
+          setSounds(prev => prev.map(s => s.id === item.id ? { ...s, duration: actualDuration } : s));
+          setMySounds(prev => prev.map(s => s.id === item.id ? { ...s, duration: actualDuration } : s));
+          // Persiste in Firestore solo se sei il proprietario
+          if (auth.currentUser?.uid === item.userId) {
+            updateDoc(firestoreDoc(firestoreDb, 'sounds', item.id), { duration: actualDuration }).catch(() => {});
+          }
+        }
+      } catch {}
+    }
 
     await incrementListens(item.id);
   } catch (err) {
@@ -1646,7 +1669,7 @@ if (loading) {
 />
                     </View>
                     <Text style={styles.duration}>
-                      {playingId === post.id ? `${playPosition}s / ` : ''}{post.duration}s
+                      {playingId === post.id ? `${playPosition}s / ` : ''}{post.duration > 0 ? `${post.duration}s` : '?s'}
                     </Text>
                   </View>
 
@@ -1879,7 +1902,7 @@ if (loading) {
             <View style={styles.recordingInfo}>
               <Text style={styles.recordingTitle}>{rec.title}</Text>
               <Text style={styles.recordingMeta}>
-                {rec.duration}s · {timeAgo(rec.createdAt)} · ❤️ {rec.likes}
+                {rec.duration > 0 ? `${rec.duration}s` : '?s'} · {timeAgo(rec.createdAt)} · ❤️ {rec.likes}
               </Text>
             </View>
             <View style={styles.recordingActions}>
