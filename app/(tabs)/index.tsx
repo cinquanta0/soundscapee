@@ -448,7 +448,24 @@ useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    // Registra dispositivo
+    // PRIMA di tutto: gestisci notifica pendente al cold-start.
+    // Deve stare PRIMA di registerForPushNotifications (lenta: ~1-5 sec di rete)
+    // altrimenti getLastNotificationResponseAsync verrebbe chiamata in ritardo e
+    // causerebbe un secondo caricamento della radio/podcast "dopo qualche secondo".
+    try {
+      const pendingResponse = await Notifications.getLastNotificationResponseAsync();
+      if (pendingResponse?.notification?.request?.content?.data) {
+        const notifId = pendingResponse.notification.request.identifier;
+        const prevId = await AsyncStorage.getItem('@soundscape/last_handled_notif').catch(() => null);
+        if (prevId !== notifId && lastHandledNotifId.current !== notifId) {
+          lastHandledNotifId.current = notifId;
+          AsyncStorage.setItem('@soundscape/last_handled_notif', notifId).catch(() => {});
+          handleNotificationNavigation(pendingResponse.notification.request.content.data);
+        }
+      }
+    } catch {}
+
+    // Registra dispositivo (lento: chiamata di rete + Firestore)
     await registerForPushNotifications(user.uid);
 
     // Carica notifiche esistenti
@@ -457,35 +474,19 @@ useEffect(() => {
     setUnreadCount(userNotifications.filter(n => !n.read).length);
 
     // Listener per notifiche in tempo reale
-    const subscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('🔔 Notifica ricevuta:', notification);
+    const subscription = Notifications.addNotificationReceivedListener(() => {
       loadNotifications();
     });
 
+    // Background → foreground: l'utente tocca la notifica mentre l'app è in background.
+    // Salviamo l'ID in AsyncStorage così la sessione successiva non la riprocessa.
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
       const notifId = response.notification.request.identifier;
       if (lastHandledNotifId.current === notifId) return;
       lastHandledNotifId.current = notifId;
-      handleNotificationNavigation(response.notification.request.content.data);
-    });
-
-    // App killed: controlla se c'era una notifica pendente al lancio.
-    // Su Android getLastNotificationResponseAsync può restituire la STESSA notifica
-    // dell'ultimo avvio (sessione precedente) — verifichiamo con AsyncStorage che
-    // non sia già stata gestita in una sessione precedente, oltre alla dedup in-memory.
-    Notifications.getLastNotificationResponseAsync().then(async response => {
-      if (!response?.notification?.request?.content?.data) return;
-      const notifId = response.notification.request.identifier;
-      if (lastHandledNotifId.current === notifId) return;
-      // Controlla se questa notifica è già stata gestita in una sessione precedente
-      try {
-        const prevId = await AsyncStorage.getItem('@soundscape/last_handled_notif');
-        if (prevId === notifId) return; // Stale: già gestita la sessione scorsa
-      } catch {}
-      lastHandledNotifId.current = notifId;
       AsyncStorage.setItem('@soundscape/last_handled_notif', notifId).catch(() => {});
       handleNotificationNavigation(response.notification.request.content.data);
-    }).catch(() => {});
+    });
 
     return () => {
       subscription.remove();
