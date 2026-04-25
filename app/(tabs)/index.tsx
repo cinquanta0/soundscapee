@@ -279,6 +279,34 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
+  // Android: quando l'app torna in foreground (o al boot), se RNTP è ancora attivo
+  // ma non esiste una sessione valida in AsyncStorage (es. app killata dal task manager
+  // senza che il ForegroundService si sia fermato), resetta completamente il player.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const cleanStaleRNTP = async () => {
+      try {
+        const r = require('react-native-track-player');
+        const TP = r.default; const S = r;
+        const [track, ps, sessionStr] = await Promise.all([
+          TP.getActiveTrack(),
+          TP.getPlaybackState(),
+          AsyncStorage.getItem('@soundscape/rntp_session'),
+        ]);
+        const st = ps?.state ?? ps;
+        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading;
+        if (isActive && !sessionStr) {
+          await TP.reset();
+        }
+      } catch {}
+    };
+    cleanStaleRNTP();
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') cleanStaleRNTP();
+    });
+    return () => sub.remove();
+  }, []);
+
   // Mini-player
   interface MiniPlayerData { title: string; artist: string; artwork?: string; isPlaying: boolean; type: 'radio' | 'podcast'; }
   const [miniPlayerData, setMiniPlayerData] = useState<MiniPlayerData | null>(null);
@@ -615,20 +643,25 @@ const loadSoundsForRemix = async () => {
     if (!recording) return;
 
     try {
+      // Cattura subito il tempo corrente prima che setIsRecording(false) resetti il timer
+      const capturedTime = recordingTime;
       setIsRecording(false);
+
+      const uri = recording.getURI();
+      // Leggo la durata PRIMA di stopAndUnloadAsync — dopo l'unload durationMillis torna 0
+      const status = await recording.getStatusAsync();
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
       });
 
-      const uri = recording.getURI();
-      const status = await recording.getStatusAsync();
-      
+      const durationSec = Math.floor((status.durationMillis || capturedTime * 1000) / 1000) || capturedTime;
+
       setRecordedSound({
         uri,
-        duration: Math.floor(status.durationMillis / 1000),
+        duration: durationSec,
       });
-      
+
       setRecording(null);
       setShowRecordModal(true);
     } catch (err) {
@@ -1228,8 +1261,9 @@ const handleSaveProfile = async () => {
 
   // Filter sounds
   const filteredPosts = sounds.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = (post.title ?? '').toLowerCase().includes(q) ||
+      (post.description ?? '').toLowerCase().includes(q);
     const matchesMood = filterMood === 'all' || post.mood === filterMood;
     return matchesSearch && matchesMood;
   });
@@ -1931,9 +1965,10 @@ if (loading) {
           onClose={async () => {
             try {
               const TP = require('react-native-track-player').default;
-              await TP.stop();
-              await AsyncStorage.removeItem('@soundscape/rntp_session');
+              // reset() termina il ForegroundService Android e rimuove il widget iOS
+              await TP.reset();
             } catch {}
+            try { await AsyncStorage.removeItem('@soundscape/rntp_session'); } catch {}
             setMiniPlayerData(null);
           }}
         />
@@ -1949,6 +1984,8 @@ if (loading) {
             if (me) {
               const myProfile = await getUserProfile(me.uid);
               setUserProfile(myProfile);
+              // Resetta i follow stats col proprio UID — potrebbero essere dell'ultimo profilo visitato
+              getFollowStats(me.uid).then(setFollowStats);
             }
           }
         }}

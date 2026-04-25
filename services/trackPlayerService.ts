@@ -49,12 +49,15 @@ export async function PlaybackService() {
     try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-  // RemoteStop → pause() su entrambe le piattaforme.
-  // reset() è troppo aggressivo: su Android distrugge il ForegroundService (notifica sparisce),
-  // su iOS rimuove il widget lock screen. Alcuni ROM/iOS inviano RemoteStop automaticamente
-  // quando si va in background o si blocca lo schermo.
-  // Il vero reset avviene solo quando l'utente chiude il player dalla UI (cleanup → reset()).
-  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.pause().catch(() => {}));
+  // RemoteStop → solo pause(), mai reset().
+  // reset() distrugge il ForegroundService Android e rimuove il widget iOS.
+  // Alcuni ROM (Xiaomi/Samsung/OPPO) e iOS inviano RemoteStop automaticamente
+  // quando l'app va in background o lo schermo si blocca — reset() causerebbe
+  // la scomparsa della notifica/widget senza che l'utente abbia fatto nulla.
+  // Il vero reset avviene quando l'utente chiude il player dalla UI (onClose → reset()).
+  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+    TrackPlayer.pause().catch(() => {});
+  });
 
   // ◀◀ ▶▶: su iOS 16+ compaiono sempre — li colleghiamo al restart dello stream live.
   // Per i podcast (isLiveStream=false) non fanno nulla (nessuna traccia precedente/successiva).
