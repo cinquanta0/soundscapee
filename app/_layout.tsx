@@ -6,17 +6,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db, functions } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
-
-// RNTP lazy import — stesso pattern di RadioScreen per evitare crash su web
-let _TP: any = null; let _S: any = {};
-try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 
 // Mantieni lo splash screen visibile mentre i font caricano
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -65,7 +59,6 @@ export default function RootLayout() {
 
   const router = useRouter();
   const segments = useSegments();
-  const pendingNotificationData = useRef<any>(null);
 
   // Nascondi lo splash screen non appena i font sono pronti
   useEffect(() => {
@@ -108,14 +101,6 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  // App lanciata da notifica con app killed — salva i dati per passarli a index.tsx
-  useEffect(() => {
-    Notifications.getLastNotificationResponseAsync().then(response => {
-      if (response?.notification?.request?.content?.data) {
-        pendingNotificationData.current = response.notification.request.content.data;
-      }
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -125,28 +110,12 @@ export default function RootLayout() {
     if (!user && inAuthGroup) {
       router.replace('/login');
     } else if (user && !inAuthGroup && segments[0] !== 'login') {
-      // Controlla se c'era una sessione RNTP attiva (notifica radio/podcast toccata):
-      // in quel caso naviga a explore invece che a home, così l'auto-ripristino funziona.
-      (async () => {
-        try {
-          if (_TP) {
-            const [sessionStr, ps] = await Promise.all([
-              AsyncStorage.getItem(RNTP_SESSION_KEY),
-              _TP.getPlaybackState().catch(() => null),
-            ]);
-            const state = ps?.state ?? ps;
-            const isPlaying = state === _S.Playing || state === _S.Buffering || state === _S.Loading;
-            if (sessionStr && isPlaying) {
-              const session = JSON.parse(sessionStr);
-              if (session.type === 'radio' || session.type === 'podcast') {
-                router.replace('/(tabs)/explore');
-                return;
-              }
-            }
-          }
-        } catch {}
-        router.replace('/(tabs)');
-      })();
+      // Naviga sempre a /(tabs) — il session restore in index.tsx gestisce già
+      // il redirect a 'explore' quando RNTP è attivo. Navigare direttamente a
+      // /(tabs)/explore attiverebbe explore.tsx come tab Expo Router separato,
+      // creando una seconda istanza di ExploreScreen che apre un secondo Modal
+      // contemporaneamente a quello di index.tsx (due "schermate" stacked).
+      router.replace('/(tabs)');
     } else if (!user && segments[0] !== 'login') {
       router.replace('/login');
     }
