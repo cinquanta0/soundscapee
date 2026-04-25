@@ -187,6 +187,9 @@ export default function App() {
   const [sound, setSound] = useState(null);
   const soundObjRef = useRef<any>(null); // ref per evitare closure stale
   const isLoadingSound = useRef(false);  // guard contro tap multipli
+  // Deduplication notifiche: su Android, getLastNotificationResponseAsync e
+  // addNotificationResponseReceivedListener possono sparare per la stessa notifica.
+  const lastHandledNotifId = useRef<string | null>(null);
   const [playPosition, setPlayPosition] = useState(0); // secondi correnti
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [recordedSound, setRecordedSound] = useState(null);
@@ -459,15 +462,20 @@ useEffect(() => {
     });
 
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      handleNotificationNavigation(data);
+      const notifId = response.notification.request.identifier;
+      if (lastHandledNotifId.current === notifId) return;
+      lastHandledNotifId.current = notifId;
+      handleNotificationNavigation(response.notification.request.content.data);
     });
 
-    // App killed: controlla se c'era una notifica pendente al lancio
+    // App killed: controlla se c'era una notifica pendente al lancio.
+    // Su Android può sparare per la stessa notifica del listener sopra — deduplicare con lastHandledNotifId.
     Notifications.getLastNotificationResponseAsync().then(response => {
-      if (response?.notification?.request?.content?.data) {
-        handleNotificationNavigation(response.notification.request.content.data);
-      }
+      if (!response?.notification?.request?.content?.data) return;
+      const notifId = response.notification.request.identifier;
+      if (lastHandledNotifId.current === notifId) return;
+      lastHandledNotifId.current = notifId;
+      handleNotificationNavigation(response.notification.request.content.data);
     }).catch(() => {});
 
     return () => {
