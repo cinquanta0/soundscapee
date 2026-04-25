@@ -238,7 +238,8 @@ export default function App() {
   }, []);
 
   // Se RNTP sta suonando una stazione radio al boot (app riavviata da Xiaomi/Android
-  // dopo tap sulla notifica), naviga direttamente alla tab radio invece del feed.
+  // dopo tap sulla notifica), naviga direttamente alla tab explore invece del feed.
+  // NOTA: sia radio che podcast vivono nel tab 'explore' — mai usare 'radio' che non è un tab valido.
   useEffect(() => {
     (async () => {
       try {
@@ -253,7 +254,7 @@ export default function App() {
         const ps = await TP.getPlaybackState().catch(() => null);
         const st = ps?.state ?? ps;
         if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Paused) {
-          setActiveTab(session.type === 'podcast' ? 'explore' : 'radio');
+          setActiveTab('explore');
         }
       } catch {}
     })();

@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Modal, Animated, Image, StatusBar,
   Dimensions, Alert, Platform, ScrollView, KeyboardAvoidingView, PanResponder
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
@@ -47,6 +48,7 @@ function fmtTime(secs: number) {
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [position, setPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -288,8 +290,8 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : undefined}
       >
         {/* Contenuto superiore scrollabile */}
         <ScrollView
@@ -415,7 +417,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
                 ))
               )}
             </ScrollView>
-            <View style={pl.commentInput}>
+            <View style={[pl.commentInput, insets.bottom > 0 && { paddingBottom: insets.bottom + 4 }]}>
               <TextInput
                 style={pl.commentField}
                 placeholder={t('podcast.writeComment')}
