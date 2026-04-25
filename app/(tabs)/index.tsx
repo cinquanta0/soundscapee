@@ -1974,15 +1974,16 @@ if (loading) {
       )}
 
 
-      {/* Mini-player alla Spotify — visibile su tutti i tab tranne quello del player full-screen */}
-      {miniPlayerData && !(miniPlayerData.type === 'radio' && activeTab === 'radio') && !(miniPlayerData.type === 'podcast' && activeTab === 'explore') && (
+      {/* Mini-player alla Spotify — visibile su tutti i tab tranne quello del player full-screen.
+          Sia radio che podcast vivono nel tab 'explore' → nascondi su explore per entrambi. */}
+      {miniPlayerData && !(activeTab === 'explore') && (
         <MiniPlayer
           title={miniPlayerData.title}
           artist={miniPlayerData.artist}
           artwork={miniPlayerData.artwork}
           isPlaying={miniPlayerData.isPlaying}
           bottomOffset={navBarHeight}
-          onPress={() => setActiveTab(miniPlayerData.type === 'podcast' ? 'explore' : 'radio')}
+          onPress={() => setActiveTab('explore')}
           onPlayPause={async () => {
             try {
               const r = require('react-native-track-player');

@@ -2626,10 +2626,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               TrackPlayer.getPlaybackState(),
             ]);
             const activeState = ps?.state ?? ps;
-            if (
-              activeTrack?.id === station.id &&
-              (activeState === State.Playing || activeState === State.Buffering || activeState === State.Loading)
-            ) {
+            const isActiveOrPaused =
+              activeState === State.Playing ||
+              activeState === State.Paused ||
+              activeState === State.Buffering ||
+              activeState === State.Loading;
+            if (activeTrack?.id === station.id && isActiveOrPaused) {
               // Anche nel ripristino, sovrascriviamo le capability del PlaybackService
               // per rimuovere i tasti << >> dal lock screen iOS (non ha senso per radio live)
               TrackPlayer.updateOptions({
@@ -2643,12 +2645,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               }).catch(() => {});
               if (mounted) {
                 setLoading(false);
-                setStatusLabel('In onda');
-                setIsPlaying(activeState === State.Playing);
+                setIsPlaying(activeState === State.Playing || activeState === State.Buffering);
                 setIsBufferingStream(activeState === State.Buffering || activeState === State.Loading);
+                setStatusLabel(activeState === State.Paused ? 'In pausa' : 'In onda');
                 streamUrlRef.current = activeTrack.url as string;
               }
-              return; // Già in riproduzione — non riavviare
+              return; // Sessione ripristinata — non riavviare lo stream
             }
           } catch {}
         }
@@ -3474,7 +3476,7 @@ export default function RadioScreen() {
         if (session.type !== 'radio' || !session.stationId) return;
         const ps = await TrackPlayer.getPlaybackState().catch(() => null);
         const s = ps?.state ?? ps;
-        if (s !== State.Playing && s !== State.Buffering && s !== State.Loading) return;
+        if (s !== State.Playing && s !== State.Buffering && s !== State.Loading && s !== State.Paused) return;
         const station = OFFLINE_STATIONS.find(st => st.id === session.stationId);
         if (station) setSelectedStation(station);
       } catch {}
