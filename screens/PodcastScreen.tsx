@@ -227,7 +227,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         await TrackPlayer.updateOptions({
           android: {
             appKilledPlaybackBehavior:
-              AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
+              AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
           },
           capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
           notificationCapabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],

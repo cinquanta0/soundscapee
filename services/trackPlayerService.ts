@@ -1,9 +1,11 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const TrackPlayer = require('react-native-track-player').default;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Event, AppKilledPlaybackBehavior, Capability } = require('react-native-track-player');
+const { Event, AppKilledPlaybackBehavior, Capability, State } = require('react-native-track-player');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Platform } = require('react-native');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
 // Questo file viene eseguito in un thread separato in background da React Native Track Player.
 // È obbligatorio registrarlo tramite TrackPlayer.registerPlaybackService().
@@ -83,4 +85,14 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemoteSeek,         ({ position }: { position: number }) =>
     TrackPlayer.seekTo(position),
   );
+
+  // Quando RNTP si ferma completamente (kill da task manager con StopPlaybackAndRemoveNotification,
+  // o reset() manuale), svuota la sessione AsyncStorage. Così al prossimo avvio
+  // dell'app il mini player non riappare e cleanStaleRNTP non trova una sessione stale.
+  TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
+    const state = data?.state ?? data;
+    if (state === State?.Stopped || state === State?.None) {
+      AsyncStorage.removeItem('@soundscape/rntp_session').catch(() => {});
+    }
+  });
 }

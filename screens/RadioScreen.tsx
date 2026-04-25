@@ -2702,7 +2702,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await TrackPlayer.updateOptions({
             android: {
               appKilledPlaybackBehavior:
-                AppKilledPlaybackBehavior?.ContinuePlayback ?? 'continue-playback',
+                AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
             },
             capabilities: Platform.OS === 'ios'
               ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
