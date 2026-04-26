@@ -2546,6 +2546,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
   const wasPlayingOnBgRef = useRef(false);
+  const isNudgingRef = useRef(false);   // suppress UI during silent pause+play nudge
+  const bgEntryTimeRef = useRef(0);     // timestamp when app went to background
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
   useEffect(() => {
@@ -2606,8 +2608,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setLoading(false);
       } else {
         // Paused, Stopped, Ready, Ended, None
-        setIsPlaying(false);
-        setIsBufferingStream(false);
+        // Skip UI update during the silent nudge (pause+play to fix iOS muted audio)
+        if (!isNudgingRef.current) {
+          setIsPlaying(false);
+          setIsBufferingStream(false);
+        }
       }
     });
 
@@ -2636,13 +2641,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
     const sub = AppState.addEventListener('change', async (nextState) => {
       if (nextState === 'background' || nextState === 'inactive') {
-        // Registra se stavamo riproducendo quando siamo andati in background
+        bgEntryTimeRef.current = Date.now();
         try {
           const ps = await TrackPlayer.getPlaybackState();
           const s = ps?.state ?? ps;
           wasPlayingOnBgRef.current =
             s === State.Playing || s === State.Buffering || s === State.Loading;
-          // Rinforza il widget con metadati aggiornati prima di andare in background
           if (wasPlayingOnBgRef.current) {
             const np = nowPlayingRef.current;
             const sSlot = (() => {
@@ -2659,15 +2663,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           }
         } catch {}
       } else if (nextState === 'active' && wasPlayingOnBgRef.current) {
-        // Torna in foreground dopo aver riprodotto:
-        // riavvia lo stream HLS per evitare audio silenzioso (finestra HLS scaduta
-        // dopo interruzioni gestite da autoHandleInterruptions senza chiamare RemotePlay).
+        const bgDuration = Date.now() - bgEntryTimeRef.current;
         wasPlayingOnBgRef.current = false;
+        // Skip restart for quick foreground returns (notification taps, < 15s).
+        // Only restart after real interruptions (phone calls, other apps) where
+        // the HLS window may have expired.
+        if (bgDuration < 15_000) return;
         try {
           const ps = await TrackPlayer.getPlaybackState();
           const s = ps?.state ?? ps;
-          // Riavvia solo se ancora in play — non toccare se l'utente ha messo in pausa
-          // dal lock screen durante la sessione in background
           if (
             (s === State.Playing || s === State.Buffering || s === State.Loading) &&
             reloadStreamRef.current
@@ -2857,23 +2861,26 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (Platform.OS === 'ios') {
           setTimeout(async () => {
             if (!mounted) return;
-            // Non fare il nudge in background: la pausa farebbe scomparire il widget
-            // e iOS potrebbe non riregistrarlo al play() successivo.
             if (AppState.currentState !== 'active') return;
             try {
               const ps = await TrackPlayer.getPlaybackState();
               const s = ps?.state ?? ps;
-              // Nudge solo se ancora in play — non interrompere pausa intenzionale
               if (s !== State.Playing) return;
+              // Silent nudge: suppress PlaybackState UI updates during pause+play
+              isNudgingRef.current = true;
               await TrackPlayer.pause();
-              await new Promise(r => setTimeout(r, 200));
-              if (!mounted) return;
-              // Ricontrolliamo: non riprendere se nel frattempo l'utente ha interagito
+              await new Promise(r => setTimeout(r, 150));
+              if (!mounted) { isNudgingRef.current = false; return; }
               const ps2 = await TrackPlayer.getPlaybackState();
               const s2 = ps2?.state ?? ps2;
-              if (s2 !== State.Paused) return;
+              if (s2 !== State.Paused) { isNudgingRef.current = false; return; }
               await TrackPlayer.play();
-            } catch {}
+              // Wait for State.Playing to confirm before lifting suppression
+              await new Promise(r => setTimeout(r, 400));
+              isNudgingRef.current = false;
+            } catch {
+              isNudgingRef.current = false;
+            }
           }, 2000);
         }
 
