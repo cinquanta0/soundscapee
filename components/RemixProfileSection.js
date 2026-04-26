@@ -64,7 +64,13 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
   const getLocalUri = async (uri, remixId) => {
     if (Platform.OS !== 'android' || !uri.startsWith('http')) return uri;
     try {
-      const localPath = `${FileSystem.cacheDirectory}remix_play_${remixId}.m4a`;
+      // 🔧 FIX: estrai l'estensione reale dall'URL invece di forzare .m4a
+      const urlPath = uri.split('?')[0];
+      const rawExt = urlPath.split('.').pop().toLowerCase();
+      const ext = ['webm', 'ogg', 'm4a', 'mp3', 'mp4', 'aac', 'wav'].includes(rawExt)
+        ? rawExt
+        : 'm4a';
+      const localPath = `${FileSystem.cacheDirectory}remix_play_${remixId}.${ext}`;
       const info = await FileSystem.getInfoAsync(localPath);
       if (info.exists && info.size > 100) return localPath;
       const dl = await FileSystem.downloadAsync(uri, localPath);

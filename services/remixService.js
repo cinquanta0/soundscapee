@@ -242,6 +242,10 @@ export const getUserRemixStats = async (userId = null) => {
     totalShares: remixes.reduce((s, r) => s + (r.shares || 0), 0),
     processedRemixes: remixes.filter((r) => r.isProcessed).length,
     publicRemixes: remixes.filter((r) => r.isPublic).length,
+    // 🔧 FIX: campo mancante — RemixProfileSection leggeva questo valore e mostrava sempre 0.0
+    avgTracksPerRemix: remixes.length > 0
+      ? remixes.reduce((s, r) => s + (r.tracksCount || 0), 0) / remixes.length
+      : 0,
   };
 };
 

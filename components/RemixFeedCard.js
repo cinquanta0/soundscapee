@@ -1,5 +1,5 @@
 // components/RemixFeedCard.js
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -21,6 +21,14 @@ export default function RemixFeedCard({ remix, onPlay }) {
   const [isLiked, setIsLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(remix.likes || 0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // 🔧 FIX: calcolati una volta sola con useMemo.
+  //         Prima erano dentro il render con Math.random() → la waveform
+  //         cambiava valori ad ogni re-render (es. dopo un like) causando flickering.
+  const waveHeights = useMemo(
+    () => Array.from({ length: 20 }, () => Math.random() * 30 + 10),
+    []
+  );
 
   const handleLike = async () => {
     try {
@@ -162,13 +170,13 @@ export default function RemixFeedCard({ remix, onPlay }) {
           </TouchableOpacity>
 
           <View style={styles.waveform}>
-            {Array.from({ length: 20 }).map((_, i) => (
+            {waveHeights.map((h, i) => (
               <View
                 key={i}
                 style={[
                   styles.waveBar,
                   {
-                    height: Math.random() * 100 + 20,
+                    height: h,
                     backgroundColor: remix.isProcessed ? '#8b5cf6' : '#334155',
                   },
                 ]}

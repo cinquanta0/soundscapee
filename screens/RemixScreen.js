@@ -54,6 +54,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   const soundObjects = useRef({});
   const playbackInterval = useRef(null);
   const startTimeRef = useRef(null);
+  const playbackTimeouts = useRef([]); // 🔧 FIX: traccia tutti i timeout per poterli cancellare
 
   // 📥 Carica remix salvati all'avvio
   useEffect(() => {
@@ -336,31 +337,34 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   };
 
   // 🎯 SEEK - Sposta il cursore manualmente
-  const seekTo = (newTime) => {
+  const seekTo = async (newTime) => {
     const validTime = Math.max(0, Math.min(newTime, totalDuration));
     setCurrentTime(validTime);
-    
+
     if (isPlaying) {
-      // Se sta suonando, riavvia dal nuovo punto
-      stopPlayback().then(() => {
-        setCurrentTime(validTime);
-        startPlayback();
-      });
+      // Riavvia dal nuovo punto in modo pulito
+      await stopPlayback();
+      setCurrentTime(validTime);
+      await startPlayback();
     }
   };
 
   const stopPlayback = async () => {
-    
-    // 1. Ferma l'interval
+
+    // 1. Cancella TUTTI i timeout attivi (pause schedulati sulle tracce)
+    playbackTimeouts.current.forEach(id => clearTimeout(id));
+    playbackTimeouts.current = [];
+
+    // 2. Ferma l'interval del cursore
     if (playbackInterval.current) {
       clearInterval(playbackInterval.current);
       playbackInterval.current = null;
     }
 
-    // 2. Ferma tutti i suoni
+    // 3. Ferma tutti i suoni
     await stopAllSounds();
 
-    // 3. Reset stati
+    // 4. Reset stati
     setIsPlaying(false);
     startTimeRef.current = null;
   };
@@ -409,6 +413,8 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       setIsPlaying(true);
 
       // Fase 3: avvia ogni traccia al momento giusto
+      // 🔧 FIX: tutti i setTimeout vengono registrati in playbackTimeouts
+      //         così stopPlayback() può cancellarli e non fermano il playback successivo
       for (const item of loadedSounds) {
         if (!item) continue;
         const { sound, track } = item;
@@ -417,23 +423,31 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         const trimmedDurationMs = (track.endTime - track.startTime) * 1000;
 
         if (playStartTime >= trackStart && playStartTime < trackEnd) {
+          // La traccia deve partire subito da una posizione intermedia
           const seekMs = (playStartTime - trackStart) * 1000 + track.startTime * 1000;
           const remainingMs = trimmedDurationMs - (playStartTime - trackStart) * 1000;
           sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
-          setTimeout(async () => {
-            try { await sound.pauseAsync(); } catch (_) {}
-          }, Math.max(0, remainingMs));
+          if (remainingMs > 0) {
+            const tid = setTimeout(async () => {
+              try { await sound.stopAsync(); } catch (_) {}
+            }, Math.max(0, remainingMs));
+            playbackTimeouts.current.push(tid);
+          }
         } else if (playStartTime < trackStart) {
+          // La traccia parte in futuro
           const delayMs = (trackStart - playStartTime) * 1000;
-          setTimeout(async () => {
+          const outerTid = setTimeout(async () => {
             try {
               await sound.setStatusAsync({ shouldPlay: true, positionMillis: track.startTime * 1000 });
-              setTimeout(async () => {
-                try { await sound.pauseAsync(); } catch (_) {}
+              const innerTid = setTimeout(async () => {
+                try { await sound.stopAsync(); } catch (_) {}
               }, trimmedDurationMs);
+              playbackTimeouts.current.push(innerTid);
             } catch (_) {}
           }, Math.max(0, delayMs));
+          playbackTimeouts.current.push(outerTid);
         }
+        // Se playStartTime >= trackEnd la traccia è già terminata, non va avviata
       }
 
       // Fase 4: aggiorna il cursore
@@ -1370,19 +1384,31 @@ function TrackComponent({
   const dragStartX = useRef(0);
   const initialOffset = useRef(0);
 
+  // 🔧 FIX: ref aggiornati ad ogni render così i handler del PanResponder
+  //         (creati una volta sola) leggono sempre i valori correnti
+  const trackRef = useRef(track);
+  const canvasWidthRef = useRef(canvasWidth);
+  const totalDurationRef = useRef(totalDuration);
+  const onMoveRef = useRef(onMove);
+  trackRef.current = track;
+  canvasWidthRef.current = canvasWidth;
+  totalDurationRef.current = totalDuration;
+  onMoveRef.current = onMove;
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
         setIsDragging(true);
         dragStartX.current = evt.nativeEvent.pageX;
-        initialOffset.current = track.offsetStart;
+        // Legge offsetStart aggiornato tramite ref, non da closure
+        initialOffset.current = trackRef.current.offsetStart;
       },
       onPanResponderMove: (evt) => {
         const deltaX = evt.nativeEvent.pageX - dragStartX.current;
-        const deltaTime = (deltaX / canvasWidth) * totalDuration;
+        const deltaTime = (deltaX / canvasWidthRef.current) * totalDurationRef.current;
         const newOffset = initialOffset.current + deltaTime;
-        onMove(newOffset);
+        onMoveRef.current(newOffset);
       },
       onPanResponderRelease: () => {
         setIsDragging(false);
