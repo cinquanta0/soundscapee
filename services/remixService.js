@@ -85,19 +85,29 @@ export const getUserRemixes = async (userId = null) => {
   const uid = userId || auth.currentUser?.uid;
   if (!uid) throw new Error('User not authenticated');
 
-  const q = query(
-    collection(db, 'remixes'),
-    where('userId', '==', uid),
-    orderBy('createdAt', 'desc')
-  );
+  const isOwnProfile = !userId || uid === auth.currentUser?.uid;
+
+  // When viewing another user's remixes, Firestore rules require all results to be
+  // public (the rule is userId==me OR isPublic==true — a query can't guarantee the OR).
+  // We add isPublic==true to satisfy the rule, and skip orderBy to avoid a composite index.
+  const q = isOwnProfile
+    ? query(collection(db, 'remixes'), where('userId', '==', uid), orderBy('createdAt', 'desc'))
+    : query(collection(db, 'remixes'), where('userId', '==', uid), where('isPublic', '==', true));
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({
+  const docs = snapshot.docs.map((d) => ({
     id: d.id,
     ...d.data(),
     createdAt: d.data().createdAt?.toDate() || new Date(),
     updatedAt: d.data().updatedAt?.toDate() || new Date(),
   }));
+
+  // Sort client-side for other users (no orderBy to avoid composite index requirement)
+  if (!isOwnProfile) {
+    docs.sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  return docs;
 };
 
 export const getRemix = async (remixId) => {
