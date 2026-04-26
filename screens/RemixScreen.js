@@ -195,25 +195,13 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   };
 
   const loadRemix = (remix) => {
-    Alert.alert(
-      t('remix.confirmDeleteTitle'),
-      `${t('remix.confirmDeleteMsg')} "${remix.name}"?`,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.confirm'),
-          onPress: () => {
-            stopAllSounds();
-            setTracks(remix.tracks);
-            setTotalDuration(remix.totalDuration);
-            setCurrentTime(0);
-            setSelectedTrack(null);
-            setShowLoadModal(false);
-            Alert.alert(t('remix.loaded'), t('remix.loadedMsg', { name: remix.name }));
-          },
-        },
-      ]
-    );
+    stopAllSounds();
+    setTracks(remix.tracks);
+    setTotalDuration(remix.totalDuration);
+    setCurrentTime(0);
+    setSelectedTrack(null);
+    setShowLoadModal(false);
+    Alert.alert(t('remix.loaded'), t('remix.loadedMsg', { name: remix.name }));
   };
 
   const deleteRemix = async (remixId) => {
@@ -397,83 +385,71 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
         playThroughEarpieceAndroid: false,
       });
 
-      setIsPlaying(true);
-      startTimeRef.current = Date.now() - (currentTime * 1000);
-
-      // Carica e avvia tracce
-      const loadPromises = tracks.map(async (track) => {
+      // Fase 1: carica tutti i suoni PRIMA di avviare il timer
+      const loadedSounds = await Promise.all(tracks.map(async (track) => {
         try {
           if (soundObjects.current[track.id]) {
-            await soundObjects.current[track.id].unloadAsync();
+            await soundObjects.current[track.id].unloadAsync().catch(() => {});
           }
-
-          // Su Android scarica localmente per evitare 412 da Firebase Storage
           const localUri = await getLocalUri(track.audioUrl, track.id);
-
           const { sound } = await Audio.Sound.createAsync(
             { uri: localUri },
-            {
-              shouldPlay: false,
-              volume: track.volume,
-              isLooping: false,
-            }
+            { shouldPlay: false, volume: track.volume, isLooping: false }
           );
-
           soundObjects.current[track.id] = sound;
-
-          // Calcola quando avviare questa traccia
-          const trackStart = track.offsetStart;
-          const trackEnd = track.offsetEnd;
-          const trimmedDurationMs = (track.endTime - track.startTime) * 1000;
-
-          if (currentTime >= trackStart && currentTime < trackEnd) {
-            // Siamo già dentro la traccia: seek al punto giusto e avvia
-            const seekMs = (currentTime - trackStart) * 1000 + track.startTime * 1000;
-            const remainingMs = trimmedDurationMs - (currentTime - trackStart) * 1000;
-            await sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
-            // Stoppa al termine del segmento trimmed
-            setTimeout(async () => {
-              try { await sound.pauseAsync(); } catch (_) {}
-            }, Math.max(0, remainingMs));
-          } else if (currentTime < trackStart) {
-            // Traccia futura: avvia con delay
-            const delayMs = (trackStart - currentTime) * 1000;
-            setTimeout(async () => {
-              try {
-                await sound.setStatusAsync({ shouldPlay: true, positionMillis: track.startTime * 1000 });
-                setTimeout(async () => {
-                  try { await sound.pauseAsync(); } catch (_) {}
-                }, trimmedDurationMs);
-              } catch (_) {}
-            }, Math.max(0, delayMs));
-          }
-
-          return { success: true, track };
-        } catch (err) {
-          return { success: false, track };
+          return { sound, track };
+        } catch (_) {
+          return null;
         }
-      });
+      }));
 
-      await Promise.all(loadPromises);
+      // Fase 2: timer parte ADESSO, dopo che tutto è pronto
+      const playStartTime = currentTime;
+      startTimeRef.current = Date.now() - (playStartTime * 1000);
+      setIsPlaying(true);
 
-      // Avvia timeline updater con controllo migliorato
+      // Fase 3: avvia ogni traccia al momento giusto
+      for (const item of loadedSounds) {
+        if (!item) continue;
+        const { sound, track } = item;
+        const trackStart = track.offsetStart;
+        const trackEnd = track.offsetEnd;
+        const trimmedDurationMs = (track.endTime - track.startTime) * 1000;
+
+        if (playStartTime >= trackStart && playStartTime < trackEnd) {
+          const seekMs = (playStartTime - trackStart) * 1000 + track.startTime * 1000;
+          const remainingMs = trimmedDurationMs - (playStartTime - trackStart) * 1000;
+          sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
+          setTimeout(async () => {
+            try { await sound.pauseAsync(); } catch (_) {}
+          }, Math.max(0, remainingMs));
+        } else if (playStartTime < trackStart) {
+          const delayMs = (trackStart - playStartTime) * 1000;
+          setTimeout(async () => {
+            try {
+              await sound.setStatusAsync({ shouldPlay: true, positionMillis: track.startTime * 1000 });
+              setTimeout(async () => {
+                try { await sound.pauseAsync(); } catch (_) {}
+              }, trimmedDurationMs);
+            } catch (_) {}
+          }, Math.max(0, delayMs));
+        }
+      }
+
+      // Fase 4: aggiorna il cursore
       playbackInterval.current = setInterval(() => {
         if (!startTimeRef.current) {
-          // Se non c'è startTime, ferma
           stopPlayback();
           return;
         }
-
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        
         if (elapsed >= totalDuration) {
-          // Fine del remix
           stopPlayback();
           setCurrentTime(0);
         } else {
           setCurrentTime(elapsed);
         }
-      }, 50); // Aggiornamento più frequente per fluidità
+      }, 50);
 
     } catch (error) {
       Alert.alert(t('remix.errors.cannotPlay'), t('remix.errors.cannotPlayMsg'));
