@@ -90,7 +90,10 @@ async function downloadFile(url, destPath) {
   }
 
   const contentType = response.headers.get('content-type') || '';
-  if (!contentType.startsWith('audio/') && !contentType.startsWith('video/')) {
+  // Accetta audio, video e application/octet-stream (comune per file Firebase Storage
+  // caricati senza Content-Type esplicito)
+  const allowedMime = ['audio/', 'video/', 'application/octet-stream'];
+  if (!allowedMime.some((t) => contentType.startsWith(t))) {
     throw new Error(`Tipo MIME non consentito: ${contentType}`);
   }
 
@@ -139,34 +142,38 @@ exports.processRemix = onCall(
     if (!quotaResult) {
       throw new HttpsError('resource-exhausted', 'Limite giornaliero di remix raggiunto (max 10)');
     }
-    const bucket = admin.storage().bucket();
-
-    // 1. Carica il documento remix
-    const remixDoc = await db.collection('remixes').doc(remixId).get();
-    if (!remixDoc.exists) {
-      throw new HttpsError('not-found', 'Remix non trovato');
-    }
-
-    const remix = remixDoc.data();
-    if (remix.userId !== uid) {
-      throw new HttpsError('permission-denied', 'Non autorizzato');
-    }
-
-    if (!remix.tracks || remix.tracks.length === 0) {
-      throw new HttpsError('invalid-argument', 'Il remix non ha tracce');
-    }
-
-    // Marca come "in elaborazione"
-    await db.collection('remixes').doc(remixId).update({
-      processingStatus: 'processing',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
 
     const tmpDir = os.tmpdir();
     const inputFiles = [];
-    const outputFile = path.join(tmpDir, `remix_${remixId}_${Date.now()}.m4a`);
+    let outputFile;
 
     try {
+      // Inizializza bucket e carica il documento remix
+      // (erano fuori dal try-catch — qualsiasi errore qui dava "internal" generico)
+      const bucket = admin.storage().bucket();
+      outputFile = path.join(tmpDir, `remix_${remixId}_${Date.now()}.m4a`);
+
+      // 1. Carica il documento remix
+      const remixDoc = await db.collection('remixes').doc(remixId).get();
+      if (!remixDoc.exists) {
+        throw new HttpsError('not-found', 'Remix non trovato');
+      }
+
+      const remix = remixDoc.data();
+      if (remix.userId !== uid) {
+        throw new HttpsError('permission-denied', 'Non autorizzato');
+      }
+
+      if (!remix.tracks || remix.tracks.length === 0) {
+        throw new HttpsError('invalid-argument', 'Il remix non ha tracce');
+      }
+
+      // Marca come "in elaborazione"
+      await db.collection('remixes').doc(remixId).update({
+        processingStatus: 'processing',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
       // 2. Scarica tutte le tracce preservando l'estensione reale
       for (let i = 0; i < remix.tracks.length; i++) {
         const track = remix.tracks[i];
@@ -255,19 +262,23 @@ exports.processRemix = onCall(
       return { success: true, audioUrl };
 
     } catch (error) {
-      // In caso di errore, aggiorna lo stato su Firestore
+      // Ri-lancia gli HttpsError (not-found, permission-denied, ecc.) senza modificarli
+      if (error instanceof HttpsError) throw error;
+
+      // Per errori inaspettati: aggiorna Firestore e restituisce il messaggio reale
+      // (prima questo blocco mancava per bucket/Firestore fuori dal try — dava "internal" generico)
       await db.collection('remixes').doc(remixId).update({
         processingStatus: 'error',
         processingError: error.message,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }).catch(() => {}); // ignora se anche questo fallisce
 
       throw new HttpsError('internal', `Errore durante il processing: ${error.message}`);
 
     } finally {
       // Pulizia file temporanei
       inputFiles.forEach((f) => { try { fs.unlinkSync(f); } catch (_) {} });
-      try { fs.unlinkSync(outputFile); } catch (_) {}
+      if (outputFile) { try { fs.unlinkSync(outputFile); } catch (_) {} }
     }
   }
 );

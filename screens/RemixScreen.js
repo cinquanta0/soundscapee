@@ -191,7 +191,12 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     } catch (error) {
       setIsPublishing(false);
       setProcessingStatus('error');
-      Alert.alert(t('remix.errors.cannotPublish'), t('remix.errors.cannotPublishMsg') + ': ' + error.message);
+      // Firebase callable errors: error.message contiene il messaggio reale dalla function.
+      // Se è solo il codice generico "internal", mostriamo un messaggio più chiaro.
+      const detail = (error?.message && error.message !== 'internal' && error.message !== 'INTERNAL')
+        ? error.message
+        : 'Errore interno del server. Riprova o controlla i log Firebase.';
+      Alert.alert('❌ ' + t('remix.errors.cannotPublish'), detail);
     }
   };
 
@@ -413,36 +418,36 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       setIsPlaying(true);
 
       // Fase 3: avvia ogni traccia al momento giusto
-      // 🔧 FIX: tutti i setTimeout vengono registrati in playbackTimeouts
-      //         così stopPlayback() può cancellarli e non fermano il playback successivo
+      // 🔧 FIX DEFINITIVO: usa setOnPlaybackStatusUpdate invece di setTimeout
+      //    per fermare la traccia al punto di trim con precisione al ms.
+      //    Il setTimeout precedente partiva dal momento della CHIAMATA a setStatusAsync,
+      //    non da quando l'audio iniziava davvero → tagliava la parte finale.
       for (const item of loadedSounds) {
         if (!item) continue;
         const { sound, track } = item;
         const trackStart = track.offsetStart;
         const trackEnd = track.offsetEnd;
-        const trimmedDurationMs = (track.endTime - track.startTime) * 1000;
+        const trimEndMs = track.endTime * 1000; // posizione in ms nel file audio
+
+        // Callback preciso: si ferma esattamente quando positionMillis raggiunge il trim
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (!status.isLoaded || !status.isPlaying) return;
+          if (status.positionMillis >= trimEndMs - 50) {
+            sound.setOnPlaybackStatusUpdate(null);
+            sound.stopAsync().catch(() => {});
+          }
+        });
 
         if (playStartTime >= trackStart && playStartTime < trackEnd) {
           // La traccia deve partire subito da una posizione intermedia
           const seekMs = (playStartTime - trackStart) * 1000 + track.startTime * 1000;
-          const remainingMs = trimmedDurationMs - (playStartTime - trackStart) * 1000;
-          sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
-          if (remainingMs > 0) {
-            const tid = setTimeout(async () => {
-              try { await sound.stopAsync(); } catch (_) {}
-            }, Math.max(0, remainingMs));
-            playbackTimeouts.current.push(tid);
-          }
+          await sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
         } else if (playStartTime < trackStart) {
-          // La traccia parte in futuro
+          // La traccia parte in futuro: solo il delay, lo stop lo gestisce il callback
           const delayMs = (trackStart - playStartTime) * 1000;
           const outerTid = setTimeout(async () => {
             try {
               await sound.setStatusAsync({ shouldPlay: true, positionMillis: track.startTime * 1000 });
-              const innerTid = setTimeout(async () => {
-                try { await sound.stopAsync(); } catch (_) {}
-              }, trimmedDurationMs);
-              playbackTimeouts.current.push(innerTid);
             } catch (_) {}
           }, Math.max(0, delayMs));
           playbackTimeouts.current.push(outerTid);
@@ -474,12 +479,12 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   const stopAllSounds = async () => {
     const promises = Object.keys(soundObjects.current).map(async (key) => {
       try {
+        // Rimuovi il callback PRIMA di unload per evitare chiamate su sound già scaricato
+        soundObjects.current[key].setOnPlaybackStatusUpdate(null);
         await soundObjects.current[key].stopAsync();
         await soundObjects.current[key].unloadAsync();
-      } catch (e) {
-      }
+      } catch (e) {}
     });
-    
     await Promise.all(promises);
     soundObjects.current = {};
   };
