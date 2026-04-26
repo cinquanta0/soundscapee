@@ -557,9 +557,9 @@ useEffect(() => {
     if (isRecording) {
       interval = setInterval(() => {
         setRecordingTime(prev => {
-          if (prev >= 30) {
+          if (prev >= 600) {
             stopRecording();
-            return 30;
+            return 600;
           }
           return prev + 1;
         });
