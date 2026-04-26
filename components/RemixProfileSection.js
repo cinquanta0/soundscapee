@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Feather } from '@expo/vector-icons';
 import {
   getUserRemixes,
   deleteRemix,
@@ -278,9 +279,11 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
                     {loadingAudioId === selectedRemix.id ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={styles.playerPlayIcon}>
-                        {playingId === selectedRemix.id ? '⏹' : '▶️'}
-                      </Text>
+                      <Feather
+                        name={playingId === selectedRemix.id ? 'square' : 'play'}
+                        size={20}
+                        color="#fff"
+                      />
                     )}
                   </TouchableOpacity>
                   <View style={styles.playerProgress}>
@@ -339,15 +342,15 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
 
               <View style={styles.detailsStats}>
                 <View style={styles.detailsStat}>
-                  <Text style={styles.detailsStatIcon}>▶️</Text>
+                  <Feather name="play-circle" size={20} color="#06b6d4" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.plays || 0}</Text>
                 </View>
                 <View style={styles.detailsStat}>
-                  <Text style={styles.detailsStatIcon}>❤️</Text>
+                  <Feather name="heart" size={20} color="#ef4444" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.likes || 0}</Text>
                 </View>
                 <View style={styles.detailsStat}>
-                  <Text style={styles.detailsStatIcon}>🔗</Text>
+                  <Feather name="share-2" size={20} color="#a855f7" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.shares || 0}</Text>
                 </View>
               </View>
@@ -389,7 +392,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
               {isLoadingAudio ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.remixPlayIcon}>{isPlaying ? '⏹' : '▶'}</Text>
+                <Feather name={isPlaying ? 'square' : 'play'} size={16} color="#fff" />
               )}
             </TouchableOpacity>
           ) : (
@@ -401,7 +404,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
             style={styles.remixDeleteButton}
             onPress={(e) => { e.stopPropagation(); onDelete(); }}
           >
-            <Text style={styles.remixDeleteIcon}>🗑️</Text>
+            <Feather name="trash-2" size={13} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -415,11 +418,11 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
 
         <View style={styles.remixCardStats}>
           <View style={styles.remixCardStat}>
-            <Text style={styles.remixCardStatIcon}>▶️</Text>
+            <Feather name="play-circle" size={12} color="#06b6d4" />
             <Text style={styles.remixCardStatText}>{remix.plays || 0}</Text>
           </View>
           <View style={styles.remixCardStat}>
-            <Text style={styles.remixCardStatIcon}>❤️</Text>
+            <Feather name="heart" size={12} color="#ef4444" />
             <Text style={styles.remixCardStatText}>{remix.likes || 0}</Text>
           </View>
         </View>

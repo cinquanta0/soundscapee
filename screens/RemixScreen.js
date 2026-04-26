@@ -19,6 +19,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather } from '@expo/vector-icons';
 import { createRemix, requestRemixRendering, subscribeToRemix } from '../services/remixService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -605,7 +606,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               style={styles.backButton}
               onPress={onClose}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Feather name="arrow-left" size={20} color="#06b6d4" />
             </TouchableOpacity>
           )}
           <Text style={styles.title} numberOfLines={1}>{t('remix.title')}</Text>
@@ -615,25 +616,25 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     style={styles.headerButton}
     onPress={() => setShowLoadModal(true)}
   >
-    <Text style={styles.headerButtonText}>📂</Text>
+    <Feather name="folder" size={18} color="#fff" />
   </TouchableOpacity>
-  <TouchableOpacity 
+  <TouchableOpacity
     style={styles.headerButton}
     onPress={() => setShowSaveModal(true)}
   >
-    <Text style={styles.headerButtonText}>💾</Text>
+    <Feather name="save" size={18} color="#fff" />
   </TouchableOpacity>
-  <TouchableOpacity 
+  <TouchableOpacity
     style={styles.headerButton}
     onPress={() => setShowSoundPicker(true)}
   >
-    <Text style={styles.headerButtonText}>➕</Text>
+    <Feather name="plus" size={18} color="#fff" />
   </TouchableOpacity>
-  <TouchableOpacity 
+  <TouchableOpacity
     style={styles.headerButton}
     onPress={clearAll}
   >
-    <Text style={styles.headerButtonText}>🗑️</Text>
+    <Feather name="trash-2" size={18} color="#ef4444" />
   </TouchableOpacity>
 </View>
       </View>
@@ -696,7 +697,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 ✂️ {selectedTrack.title}
               </Text>
               <TouchableOpacity onPress={() => setSelectedTrack(null)}>
-                <Text style={styles.editorClose}>✕</Text>
+                <Feather name="x" size={20} color="#94a3b8" />
               </TouchableOpacity>
             </View>
 
@@ -772,7 +773,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             style={styles.transportButton}
             onPress={resetPlayback}
           >
-            <Text style={styles.transportIcon}>⏹</Text>
+            <Feather name="square" size={22} color="#fff" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -780,19 +781,14 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             onPress={handlePlayPause}
             disabled={tracks.length === 0}
           >
-            <Text style={styles.transportIcon}>
-              {isPlaying ? '⏸' : '▶️'}
-            </Text>
+            <Feather name={isPlaying ? 'pause' : 'play'} size={28} color="#fff" />
           </TouchableOpacity>
           
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.transportButton}
-            onPress={() => {
-              const newDuration = totalDuration + 10;
-              setTotalDuration(newDuration);
-            }}
+            onPress={() => setTotalDuration(totalDuration + 10)}
           >
-            <Text style={styles.transportIcon}>➕</Text>
+            <Feather name="plus" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -809,7 +805,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>📚 {t('remix.yourSounds')}</Text>
               <TouchableOpacity onPress={() => setShowSoundPicker(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.soundList}>
@@ -835,7 +831,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                       </Text>
                     </View>
                     <View style={styles.soundPickerAction}>
-                      <Text style={styles.soundPickerIcon}>➕</Text>
+                      <Feather name="plus-circle" size={22} color="#fff" />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -899,7 +895,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>📂 {t('remix.loadTitle')}</Text>
               <TouchableOpacity onPress={() => setShowLoadModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.soundList}>
@@ -932,7 +928,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                       style={styles.remixDeleteButton}
                       onPress={() => deleteRemix(remix.id)}
                     >
-                      <Text style={styles.remixDeleteIcon}>🗑️</Text>
+                      <Feather name="trash-2" size={18} color="#fff" />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -1455,13 +1451,13 @@ function TrackComponent({
             style={styles.trackActionButton}
             onPress={onDuplicate}
           >
-            <Text style={styles.trackActionIcon}>📋</Text>
+            <Feather name="copy" size={11} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.trackActionButton}
             onPress={onRemove}
           >
-            <Text style={styles.trackActionIcon}>🗑️</Text>
+            <Feather name="trash-2" size={11} color="#fff" />
           </TouchableOpacity>
         </View>
       )}

@@ -1524,7 +1524,7 @@ if (loading) {
       loadNotifications();
     }}
   >
-    <Text style={styles.headerButtonText}>🔔</Text>
+    <Feather name="bell" size={18} color="#fff" />
     {unreadCount > 0 && (
       <View style={styles.notificationBadge}>
         <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
@@ -1536,7 +1536,7 @@ if (loading) {
     style={styles.headerButton}
     onPress={() => setShowSettings(true)}
   >
-    <Text style={styles.headerButtonText}>⚙️</Text>
+    <Feather name="settings" size={18} color="#fff" />
   </TouchableOpacity>
 </View>
       </View>}
@@ -1550,7 +1550,7 @@ if (loading) {
               colors={['#0891b2', '#3b82f6']}
               style={styles.recordCard}
             >
-              <Text style={styles.recordIcon}>🎤</Text>
+              <Feather name="mic" size={32} color="rgba(255,255,255,0.9)" style={{ marginBottom: 12 }} />
               <TouchableOpacity
                 style={[
                   styles.recordButton,
@@ -1678,9 +1678,11 @@ if (loading) {
                       style={styles.playButton}
                       onPress={() => handlePlay(post)}
                     >
-                      <Text style={styles.playButtonIcon}>
-                        {playingId === post.id ? '⏸' : '▶️'}
-                      </Text>
+                      <Feather
+                        name={playingId === post.id ? 'pause' : 'play'}
+                        size={20}
+                        color="#fff"
+                      />
                     </TouchableOpacity>
                     <View style={styles.progressBar}>
                       <View 
@@ -1749,7 +1751,7 @@ if (loading) {
                         style={styles.deleteButton}
                         onPress={() => handleDelete(post.id)}
                       >
-                        <Text style={styles.deleteButtonText}>🗑️</Text>
+                        <Feather name="trash-2" size={14} color="#94a3b8" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1946,7 +1948,7 @@ if (loading) {
                 style={styles.recordingDeleteButton}
                 onPress={() => handleDelete(rec.id)}
               >
-                <Text style={styles.recordingDeleteIcon}>🗑️</Text>
+                <Feather name="trash-2" size={14} color="#ef4444" />
               </TouchableOpacity>
             </View>
           </View>
@@ -2173,7 +2175,7 @@ if (loading) {
                     onPress={() => { setBackstageUri(null); setBackstageTipo(null); }}
                     style={{ padding: 8 }}
                   >
-                    <Text style={{ color: '#ef4444', fontSize: 18 }}>✕</Text>
+                    <Feather name="x" size={18} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -2260,7 +2262,7 @@ if (loading) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('upload.whatToPublish')}</Text>
               <TouchableOpacity onPress={() => setShowPublishTypeModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             {[
@@ -2308,7 +2310,7 @@ if (loading) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('profile.friendRequestsTitle')}</Text>
               <TouchableOpacity onPress={() => setShowFriendRequestsModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -2365,7 +2367,7 @@ if (loading) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('settings.title')}</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.settingsScroll}>
@@ -2454,7 +2456,7 @@ if (loading) {
                 {reportSent ? (
                   <View style={{ alignItems: 'center', padding: 20, gap: 12 }}>
                     <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 22, color: '#10b981' }}>✓</Text>
+                      <Feather name="check" size={22} color="#10b981" />
                     </View>
                     <Text style={{ color: '#F8F4EF', fontSize: 15, fontWeight: '600' }}>{t('report.sent')}</Text>
                     <TouchableOpacity
@@ -2469,7 +2471,7 @@ if (loading) {
                     <View style={styles.modalHeader}>
                       <Text style={styles.modalTitle}>{t('report.title')}</Text>
                       <TouchableOpacity onPress={() => setShowReportModal(false)}>
-                        <Text style={styles.modalClose}>✕</Text>
+                        <Feather name="x" size={22} color="#94a3b8" />
                       </TouchableOpacity>
                     </View>
                     <Text style={{ color: '#8A8D96', fontSize: 12, marginBottom: 14 }}>{t('report.selectReason')}</Text>
@@ -2529,7 +2531,7 @@ if (loading) {
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={[styles.modalContent, { padding: 28, alignItems: 'center' }]}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>🗑️</Text>
+                <Feather name="trash-2" size={36} color="#ef4444" style={{ marginBottom: 12 }} />
                 <Text style={[styles.modalTitle, { marginBottom: 8 }]}>{t('settings.deleteConfirmTitle')}</Text>
                 <Text style={{ color: '#8A8D96', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
                   {t('settings.deleteConfirmMsg')}
@@ -2586,7 +2588,7 @@ if (loading) {
                   setNewComment('');
                 }}
               >
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
 
@@ -2621,7 +2623,7 @@ if (loading) {
                           </TouchableOpacity>
                           {comment.userId === auth.currentUser?.uid && (
                             <TouchableOpacity onPress={() => handleDeleteComment(comment)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 16, paddingLeft: 8 }}>✕</Text>
+                              <Feather name="x" size={14} color="rgba(255,255,255,0.35)" style={{ paddingLeft: 8 }} />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -2686,7 +2688,7 @@ if (loading) {
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>{t('profile.editProfile')}</Text>
         <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
-          <Text style={styles.modalClose}>✕</Text>
+          <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
       </View>
 
@@ -2807,7 +2809,7 @@ if (loading) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
                 <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
-                  <Text style={styles.modalClose}>✕</Text>
+                  <Feather name="x" size={22} color="#94a3b8" />
                 </TouchableOpacity>
               </View>
 
@@ -2885,7 +2887,7 @@ if (loading) {
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>{t('profile.followers')}</Text>
         <TouchableOpacity onPress={() => setShowFollowersModal(false)}>
-          <Text style={styles.modalClose}>✕</Text>
+          <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
       </View>
       
@@ -2935,7 +2937,7 @@ if (loading) {
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>{t('profile.following')}</Text>
         <TouchableOpacity onPress={() => setShowFollowingModal(false)}>
-          <Text style={styles.modalClose}>✕</Text>
+          <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
       </View>
       
