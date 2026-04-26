@@ -2058,9 +2058,8 @@ if (loading) {
       )}
 
 
-      {/* Mini-player alla Spotify — visibile su tutti i tab tranne quello del player full-screen.
-          Sia radio che podcast vivono nel tab 'explore' → nascondi su explore per entrambi. */}
-      {miniPlayerData && !(activeTab === 'explore') && (
+      {/* Mini-player alla Spotify — visibile su tutti i tab incluso explore. */}
+      {miniPlayerData && (
         <MiniPlayer
           title={miniPlayerData.title}
           artist={miniPlayerData.artist}
