@@ -194,6 +194,10 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   }, [userSearchText, section]);
 
   const loadUsers = async () => {
+    if (!userSearchText.trim()) {
+      setUsers([]);
+      return;
+    }
     setUsersLoading(true);
     try {
       const results = await searchUsers(userSearchText);
@@ -372,6 +376,12 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
             <View style={styles.center}>
               <ActivityIndicator size="large" color="#06b6d4" />
             </View>
+          ) : !userSearchText.trim() ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>Cerca un utente</Text>
+              <Text style={styles.emptySubtext}>Digita un username per trovarlo</Text>
+            </View>
           ) : users.length === 0 ? (
             <View style={styles.center}>
               <Text style={styles.emptyIcon}>👤</Text>
@@ -398,10 +408,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
                     {u.bio ? (
                       <Text style={styles.userBio} numberOfLines={1}>{u.bio}</Text>
                     ) : null}
-                    <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
-                      <Text style={styles.userStat}>🎵 {u.recordingsCount || 0}</Text>
-                      <Text style={styles.userStat}>👥 {u.followersCount || 0}</Text>
-                    </View>
                   </View>
                   <Feather name="chevron-right" size={18} color="#334155" />
                 </TouchableOpacity>
