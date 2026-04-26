@@ -278,6 +278,12 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
     };
 
     setTracks([...tracks, newTrack]);
+
+    // Estendi la timeline se la traccia è più lunga della durata corrente
+    if (resolvedDuration > totalDuration) {
+      setTotalDuration(Math.ceil(resolvedDuration) + 2); // +2s di margine
+    }
+
     setShowSoundPicker(false);
     Alert.alert(t('remix.trackAdded'), t('remix.trackAddedMsg', { title: sound.title }));
   };
