@@ -113,6 +113,16 @@ export default function MapScreen() {
     try {
       const allSounds = await getSoundsForMap(200);
       setSounds(allSounds);
+      if (allSounds.length > 0 && mapRef.current) {
+        const coordinates = allSounds.map(s => ({
+          latitude: s.location.latitude,
+          longitude: s.location.longitude,
+        }));
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 80, right: 40, bottom: 120, left: 40 },
+          animated: true,
+        });
+      }
     } catch (error) {
       Alert.alert(t('common.error'), t('map.errors.cannotLoad'));
     }

@@ -21,7 +21,8 @@ import {
   incrementRemixPlays,
 } from '../services/remixService';
 
-export default function RemixProfileSection({ onOpenRemixStudio }) {
+export default function RemixProfileSection({ onOpenRemixStudio, userId = null }) {
+  const isOwnProfile = !userId;
   const [remixes, setRemixes] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,14 +39,14 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
   useEffect(() => {
     loadData();
     return () => { stopAudio(); };
-  }, []);
+  }, [userId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [remixesData, statsData] = await Promise.all([
-        getUserRemixes(),
-        getUserRemixStats(),
+        getUserRemixes(userId),
+        getUserRemixStats(userId),
       ]);
       setRemixes(remixesData);
       setStats(statsData);
@@ -230,10 +231,12 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>🎛️ I Miei Remix ({remixes.length})</Text>
-        <TouchableOpacity style={styles.createButton} onPress={onOpenRemixStudio}>
-          <Text style={styles.createButtonText}>➕ Nuovo</Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>🎛️ {isOwnProfile ? 'I Miei Remix' : 'Remix'} ({remixes.length})</Text>
+        {isOwnProfile && (
+          <TouchableOpacity style={styles.createButton} onPress={onOpenRemixStudio}>
+            <Text style={styles.createButtonText}>➕ Nuovo</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Empty State */}
@@ -241,10 +244,14 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🎛️</Text>
           <Text style={styles.emptyText}>Nessun remix ancora</Text>
-          <Text style={styles.emptySubtext}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={onOpenRemixStudio}>
-            <Text style={styles.emptyButtonText}>🎵 Inizia a Remixare</Text>
-          </TouchableOpacity>
+          {isOwnProfile && (
+            <>
+              <Text style={styles.emptySubtext}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={onOpenRemixStudio}>
+                <Text style={styles.emptyButtonText}>🎵 Inizia a Remixare</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       ) : (
         <>
@@ -257,6 +264,7 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
                 isSelected={selectedRemix?.id === remix.id}
                 isPlaying={playingId === remix.id}
                 isLoadingAudio={loadingAudioId === remix.id}
+                canDelete={isOwnProfile}
                 onPress={() => setSelectedRemix(remix)}
                 onPlay={() => togglePlay(remix)}
                 onDelete={() => handleDelete(remix.id)}
@@ -378,7 +386,7 @@ export default function RemixProfileSection({ onOpenRemixStudio }) {
 // REMIX CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
 
-function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, isLoadingAudio }) {
+function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, isLoadingAudio, canDelete }) {
   return (
     <TouchableOpacity
       style={[styles.remixCard, isSelected && styles.remixCardSelected]}
@@ -406,12 +414,14 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
               <Text style={styles.remixIcon}>🎛️</Text>
             </View>
           )}
-          <TouchableOpacity
-            style={styles.remixDeleteButton}
-            onPress={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <Feather name="trash-2" size={13} color="#fff" />
-          </TouchableOpacity>
+          {canDelete && (
+            <TouchableOpacity
+              style={styles.remixDeleteButton}
+              onPress={(e) => { e.stopPropagation(); onDelete(); }}
+            >
+              <Feather name="trash-2" size={13} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={styles.remixCardTitle} numberOfLines={2}>{remix.title}</Text>

@@ -193,48 +193,51 @@ exports.processRemix = onCall(
         inputFiles.forEach((f) => cmd.input(f));
 
         // Costruisci i filtri per ogni traccia
+        const nTracks = remix.tracks.length;
         const filterParts = remix.tracks.map((track, i) => {
           const trimStart = Math.max(0, track.trimStart || 0);
-          // || is falsy for 0 — use explicit null/undefined check
           const rawTrimEnd = (track.trimEnd != null && track.trimEnd > 0)
             ? track.trimEnd
             : (track.duration || 30);
-          // Ensure trimEnd > trimStart to avoid empty interval error
           const trimEnd = rawTrimEnd > trimStart ? rawTrimEnd : trimStart + 0.1;
-          const volume = Math.max(0.01, Math.min(2, track.volume || 1));
-          const offsetMs = Math.round((track.offsetStart || 0) * 1000);
+          // Compensate for amix normalization (divides by nTracks) by pre-scaling volume
+          const volume = Math.max(0.01, Math.min(2, track.volume || 1)) * nTracks;
+          const offsetSec = Math.max(0, track.offsetStart || 0);
 
-          // Trim first (reduce data), then resample/convert, then volume/delay
+          // FFmpeg 4.1 compatible chain — no aformat, no adelay `all` option
           let chain =
             `[${i}:a]` +
             `atrim=start=${trimStart}:end=${trimEnd},` +
             `asetpts=PTS-STARTPTS,` +
             `aresample=44100,` +
-            `aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
             `volume=${volume}`;
 
-          // adelay solo se c'è un offset reale (evita artefatti a 0ms)
-          if (offsetMs > 0) {
-            chain += `,adelay=delays=${offsetMs}:all=1`;
+          if (offsetSec > 0) {
+            // adelay takes ms per channel; repeat for L and R
+            const offsetMs = Math.round(offsetSec * 1000);
+            chain += `,adelay=${offsetMs}|${offsetMs}`;
           }
 
           chain += `[t${i}]`;
           return chain;
         });
 
-        // Mixa tutte le tracce in una sola
+        // amix without normalize= option (added only in FFmpeg 4.3+)
         const mixInputs = remix.tracks.map((_, i) => `[t${i}]`).join('');
-        const mixFilter =
-          `${mixInputs}amix=inputs=${remix.tracks.length}:duration=longest:normalize=0[out]`;
+        const mixFilter = `${mixInputs}amix=inputs=${nTracks}:duration=longest[out]`;
 
         const filterComplex = [...filterParts, mixFilter].join(';');
+        console.log('[processRemix] filter_complex:', filterComplex);
 
         cmd
           .complexFilter(filterComplex)
-          .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100'])
+          .outputOptions(['-map', '[out]', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2'])
           .output(outputFile)
           .on('end', resolve)
-          .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
+          .on('error', (err) => {
+            console.error('[processRemix] FFmpeg error:', err.message);
+            reject(new Error(`FFmpeg error: ${err.message}`));
+          })
           .run();
       });
 

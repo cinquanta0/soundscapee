@@ -399,6 +399,7 @@ export default function App() {
   const [incomingBattle, setIncomingBattle] = useState<Battle | null>(null);
   const [showBattleThemePicker, setShowBattleThemePicker] = useState(false);
   const [mySounds, setMySounds] = useState([]);
+  const [viewedUserSounds, setViewedUserSounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [likedSounds, setLikedSounds] = useState(new Set());
@@ -1420,11 +1421,15 @@ const fetchAndShowFollowing = async () => {
 // per evitare che setActiveTab('profile') sovrascriva una navigazione successiva dell'utente
 const openUserProfile = async (userId) => {
   setActiveTab('profile');
-  setUserProfile(null); // stato di caricamento
+  setUserProfile(null);
+  setViewedUserSounds([]);
   try {
     const profile = await getUserProfile(userId);
     setUserProfile(profile);
     getFollowStats(userId).then(setFollowStats);
+    if (userId !== auth.currentUser?.uid) {
+      getUserSounds(userId).then(setViewedUserSounds).catch(() => {});
+    }
   } catch (error) {
     console.error('Error opening user profile:', error);
     Alert.alert(t('common.error'), t('profile.errors.cannotOpen'));
@@ -1801,7 +1806,10 @@ if (loading) {
       </View>
     )}
 
-    {activeTab === 'profile' && userProfile && (
+    {activeTab === 'profile' && userProfile && (() => {
+  const isOwnProfile = userProfile.id === auth.currentUser?.uid;
+  const profileSounds = isOwnProfile ? mySounds : viewedUserSounds;
+  return (
   <View style={styles.content}>
     {/* Profile Card */}
     <LinearGradient
@@ -1826,7 +1834,7 @@ if (loading) {
 
       <View style={styles.profileStats}>
   <View style={styles.profileStat}>
-    <Text style={styles.profileStatNumber}>{mySounds.length}</Text>
+    <Text style={styles.profileStatNumber}>{profileSounds.length}</Text>
     <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
   </View>
   {/* Followers cliccabile */}
@@ -1959,17 +1967,17 @@ if (loading) {
       )}
     </LinearGradient>
 
-    {/* My Recordings */}
+    {/* Recordings */}
     <View style={styles.recordingsSection}>
-      <Text style={styles.sectionTitle}>{t('profile.mySounds', { count: mySounds.length })}</Text>
-      {mySounds.length === 0 ? (
+      <Text style={styles.sectionTitle}>{t('profile.mySounds', { count: profileSounds.length })}</Text>
+      {profileSounds.length === 0 ? (
         <View style={styles.emptyRecordings}>
           <Text style={styles.emptyIcon}>🎤</Text>
           <Text style={styles.emptyText}>{t('profile.noRecordings')}</Text>
-          <Text style={styles.emptySubtext}>{t('profile.noRecordingsHint')}</Text>
+          <Text style={styles.emptySubtext}>{isOwnProfile ? t('profile.noRecordingsHint') : ''}</Text>
         </View>
       ) : (
-        mySounds.map(rec => (
+        profileSounds.map(rec => (
           <View key={rec.id} style={styles.recordingItem}>
             <View style={styles.recordingInfo}>
               <Text style={styles.recordingTitle}>{rec.title}</Text>
@@ -1986,12 +1994,14 @@ if (loading) {
                   {playingId === rec.id ? '⏸' : '▶️'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.recordingDeleteButton}
-                onPress={() => handleDelete(rec.id)}
-              >
-                <Feather name="trash-2" size={14} color="#ef4444" />
-              </TouchableOpacity>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={styles.recordingDeleteButton}
+                  onPress={() => handleDelete(rec.id)}
+                >
+                  <Feather name="trash-2" size={14} color="#ef4444" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ))
@@ -1999,14 +2009,16 @@ if (loading) {
     </View>
 
     {/* 🎛️ SEZIONE REMIX - DEVE STARE QUI DENTRO! */}
-    <RemixProfileSection 
-      onOpenRemixStudio={() => {
+    <RemixProfileSection
+      userId={isOwnProfile ? null : userProfile.id}
+      onOpenRemixStudio={isOwnProfile ? () => {
         setShowRemixStudio(true);
         setActiveTab('remix');
-      }}
+      } : null}
     />
   </View>
-)}
+  );
+})()}
 
 {/* 🎛️ TAB REMIX - DEVE STARE QUI FUORI, ALLO STESSO LIVELLO! */}
 {activeTab === 'remix' && (
