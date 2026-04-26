@@ -194,17 +194,23 @@ exports.processRemix = onCall(
 
         // Costruisci i filtri per ogni traccia
         const filterParts = remix.tracks.map((track, i) => {
-          const trimStart = track.trimStart || 0;
-          const trimEnd = track.trimEnd || track.duration || 30;
+          const trimStart = Math.max(0, track.trimStart || 0);
+          // || is falsy for 0 — use explicit null/undefined check
+          const rawTrimEnd = (track.trimEnd != null && track.trimEnd > 0)
+            ? track.trimEnd
+            : (track.duration || 30);
+          // Ensure trimEnd > trimStart to avoid empty interval error
+          const trimEnd = rawTrimEnd > trimStart ? rawTrimEnd : trimStart + 0.1;
           const volume = Math.max(0.01, Math.min(2, track.volume || 1));
           const offsetMs = Math.round((track.offsetStart || 0) * 1000);
 
-          // Normalizza a stereo 44100Hz, poi taglia, regola volume, aggiunge offset
+          // Trim first (reduce data), then resample/convert, then volume/delay
           let chain =
             `[${i}:a]` +
-            `aresample=44100,aformat=channel_layouts=stereo,` +
             `atrim=start=${trimStart}:end=${trimEnd},` +
             `asetpts=PTS-STARTPTS,` +
+            `aresample=44100,` +
+            `aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
             `volume=${volume}`;
 
           // adelay solo se c'è un offset reale (evita artefatti a 0ms)

@@ -9,6 +9,7 @@ import {
     query,
     where,
 } from 'firebase/firestore';
+import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -42,6 +43,25 @@ const MOOD_COLORS: Record<string, string> = {
   Gioioso: '#eab308',
   Nostalgico: '#a855f7',
 };
+
+async function searchUsers(searchText: string) {
+  const lower = searchText.trim().toLowerCase();
+  if (!lower) {
+    // No query — return a few recent users
+    const q = query(collection(db, 'users'), orderBy('username'), limit(20));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+  }
+  // Firestore prefix range trick for username search
+  const q = query(
+    collection(db, 'users'),
+    where('username', '>=', lower),
+    where('username', '<=', lower + ''),
+    limit(20)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+}
 
 async function searchSounds(searchText: string, mood: string, sortBy: string) {
   const constraints: any[] = [orderBy('createdAt', 'desc'), limit(30)];
@@ -77,9 +97,13 @@ async function searchSounds(searchText: string, mood: string, sortBy: string) {
   return results;
 }
 
-type Section = 'suoni' | 'podcast' | 'radio' | 'battles';
+type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti';
 
-export default function ExploreScreen() {
+type ExploreScreenProps = {
+  onOpenUserProfile?: (userId: string) => void;
+};
+
+export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps) {
   const { t } = useTranslation();
   const [section, setSection] = useState<Section>('suoni');
   const [searchText, setSearchText] = useState('');
@@ -93,9 +117,13 @@ export default function ExploreScreen() {
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [cancelingBattleId, setCancelingBattleId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid);
+  const [userSearchText, setUserSearchText] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-ripristino sessione RNTP: se l'app è ripartita dopo un kill
   // (notifica Android toccata), naviga direttamente alla sezione corretta.
@@ -156,6 +184,26 @@ export default function ExploreScreen() {
       loadSounds();
     }, 400);
   }, [searchText]);
+
+  useEffect(() => {
+    if (section !== 'utenti') return;
+    if (userSearchTimeout.current) clearTimeout(userSearchTimeout.current);
+    userSearchTimeout.current = setTimeout(() => {
+      loadUsers();
+    }, 400);
+  }, [userSearchText, section]);
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const results = await searchUsers(userSearchText);
+      setUsers(results);
+    } catch {
+      Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
+    } finally {
+      setUsersLoading(false);
+    }
+  };
 
   const loadSounds = async () => {
     setLoading(true);
@@ -280,6 +328,7 @@ export default function ExploreScreen() {
       <View style={styles.subTabs}>
         {([
           { id: 'suoni', label: '🎵 Suoni' },
+          { id: 'utenti', label: '👤 Utenti' },
           { id: 'podcast', label: '🎙 Podcast' },
           { id: 'radio', label: '📻 Radio' },
           { id: 'battles', label: '⚔️ Battles' },
@@ -298,6 +347,69 @@ export default function ExploreScreen() {
 
       {section === 'podcast' && <PodcastHubScreen />}
       {section === 'radio' && <RadioScreen />}
+
+      {section === 'utenti' && (
+        <View style={{ flex: 1 }}>
+          <View style={styles.searchBar}>
+            <Feather name="search" size={16} color="#64748b" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Cerca utenti per username…"
+              placeholderTextColor="#64748b"
+              value={userSearchText}
+              onChangeText={setUserSearchText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {userSearchText.length > 0 && (
+              <TouchableOpacity onPress={() => setUserSearchText('')}>
+                <Text style={styles.clearBtn}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {usersLoading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#06b6d4" />
+            </View>
+          ) : users.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyIcon}>👤</Text>
+              <Text style={styles.emptyText}>Nessun utente trovato</Text>
+              <Text style={styles.emptySubtext}>Prova con un altro username</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={users}
+              keyExtractor={u => u.id}
+              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: u }) => (
+                <TouchableOpacity
+                  style={styles.userCard}
+                  onPress={() => onOpenUserProfile?.(u.id)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.userAvatarWrap}>
+                    <Text style={{ fontSize: 28 }}>{u.avatar || '🎧'}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={styles.userUsername}>@{u.username || 'utente'}</Text>
+                    {u.bio ? (
+                      <Text style={styles.userBio} numberOfLines={1}>{u.bio}</Text>
+                    ) : null}
+                    <View style={{ flexDirection: 'row', gap: 14, marginTop: 4 }}>
+                      <Text style={styles.userStat}>🎵 {u.recordingsCount || 0}</Text>
+                      <Text style={styles.userStat}>👥 {u.followersCount || 0}</Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color="#334155" />
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      )}
 
       {section === 'battles' && (
         <FlatList
@@ -480,7 +592,7 @@ const styles = StyleSheet.create({
   },
   subTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 6,
     alignItems: 'center',
     borderRadius: 10,
   },
@@ -490,7 +602,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,255,156,0.3)',
   },
   subTabTxt: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#475569',
     fontFamily: 'monospace',
     fontWeight: '600',
@@ -662,5 +774,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  userAvatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#0f172a',
+    borderWidth: 1.5,
+    borderColor: '#334155',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userUsername: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  userBio: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  userStat: {
+    color: '#64748b',
+    fontSize: 12,
   },
 });

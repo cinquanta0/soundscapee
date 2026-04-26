@@ -171,6 +171,28 @@ function AppAvatar({ avatar, username, size = 36 }: { avatar?: string; username?
   );
 }
 
+// ─── Profile themes ──────────────────────────────────────────────────────────
+
+const PROFILE_THEMES = [
+  { id: 'default',  name: 'Default',     colors: ['#1e293b', '#0f172a'] as const },
+  { id: 'neon',     name: 'Neon Night',  colors: ['#0d0221', '#4a0080', '#00ff9c'] as const },
+  { id: 'sunset',   name: 'Sunset',      colors: ['#7c2d12', '#c2410c', '#ec4899'] as const },
+  { id: 'ocean',    name: 'Ocean',       colors: ['#164e63', '#0891b2', '#06b6d4'] as const },
+  { id: 'aurora',   name: 'Aurora',      colors: ['#064e3b', '#1e3a5f', '#4c1d95'] as const },
+  { id: 'fire',     name: 'Fire',        colors: ['#7f1d1d', '#c2410c', '#f59e0b'] as const },
+  { id: 'galaxy',   name: 'Galaxy',      colors: ['#0f0728', '#312e81', '#6d28d9'] as const },
+  { id: 'gold',     name: 'Gold',        colors: ['#422006', '#92400e', '#d97706'] as const },
+  { id: 'rose',     name: 'Rose',        colors: ['#4c0519', '#9f1239', '#e11d48'] as const },
+  { id: 'matrix',   name: 'Matrix',      colors: ['#001a00', '#052e16', '#16a34a'] as const },
+  { id: 'midnight', name: 'Midnight',    colors: ['#0f172a', '#1e1b4b', '#312e81'] as const },
+  { id: 'cherry',   name: 'Cherry',      colors: ['#1a0010', '#831843', '#db2777'] as const },
+];
+
+function getProfileThemeColors(themeId?: string): readonly [string, string, ...string[]] {
+  const theme = PROFILE_THEMES.find(t => t.id === themeId) ?? PROFILE_THEMES[0];
+  return theme.colors;
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -398,6 +420,9 @@ export default function App() {
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Profile background theme
+  const [showThemeModal, setShowThemeModal] = useState(false);
   
   // 🎛️ STATI PER REMIX
   const [showRemixStudio, setShowRemixStudio] = useState(false);
@@ -1779,7 +1804,22 @@ if (loading) {
     {activeTab === 'profile' && userProfile && (
   <View style={styles.content}>
     {/* Profile Card */}
-    <View style={styles.profileCard}>
+    <LinearGradient
+      colors={getProfileThemeColors(userProfile?.profileTheme)}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.profileCard}
+    >
+      {/* Change background button — own profile only */}
+      {userProfile?.id === auth.currentUser?.uid && (
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}
+          onPress={() => setShowThemeModal(true)}
+        >
+          <Feather name="image" size={13} color="rgba(255,255,255,0.7)" />
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>Sfondo</Text>
+        </TouchableOpacity>
+      )}
       <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} />
       <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
@@ -1917,7 +1957,7 @@ if (loading) {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </LinearGradient>
 
     {/* My Recordings */}
     <View style={styles.recordingsSection}>
@@ -1994,7 +2034,7 @@ if (loading) {
           {activeTab === 'map' && <MapScreen />}
           {activeTab === 'timemachine' && <TimeMachineScreen />}
           {activeTab === 'challenges' && <ChallengesScreen />}
-          {activeTab === 'explore' && <ExploreScreen />}
+          {activeTab === 'explore' && <ExploreScreen onOpenUserProfile={openUserProfile} />}
           {activeTab === 'messages' && (
             <MessagesScreen
               initialChat={pendingChat}
@@ -3016,6 +3056,52 @@ if (loading) {
               onPress={() => setShowBattleThemePicker(false)}
             >
               <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>Annulla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Profile theme picker */}
+      <Modal visible={showThemeModal} transparent animationType="slide" onRequestClose={() => setShowThemeModal(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
+          <View style={{ backgroundColor: '#0f172a', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: '#334155' }}>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
+              {PROFILE_THEMES.map(theme => {
+                const isActive = (userProfile?.profileTheme ?? 'default') === theme.id;
+                return (
+                  <TouchableOpacity
+                    key={theme.id}
+                    onPress={async () => {
+                      setShowThemeModal(false);
+                      const uid = auth.currentUser?.uid;
+                      if (!uid) return;
+                      try {
+                        await updateUserProfile(uid, { profileTheme: theme.id });
+                        setUserProfile((p: any) => ({ ...p, profileTheme: theme.id }));
+                      } catch {}
+                    }}
+                    style={{ alignItems: 'center', gap: 5 }}
+                  >
+                    <LinearGradient
+                      colors={theme.colors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{ width: 60, height: 60, borderRadius: 16, borderWidth: isActive ? 2.5 : 1, borderColor: isActive ? '#00FF9C' : 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Text style={{ color: isActive ? '#00FF9C' : 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: isActive ? '700' : '400' }}>
+                      {theme.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity
+              style={{ paddingVertical: 14, alignItems: 'center' }}
+              onPress={() => setShowThemeModal(false)}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>Chiudi</Text>
             </TouchableOpacity>
           </View>
         </View>

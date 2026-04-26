@@ -500,6 +500,7 @@ service cloud.firestore {
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.teacherId)
                     && isSchoolTeacher()
+                    && isSchoolVerified()
                     && validString(request.resource.data.name, 120)
                     && validString(request.resource.data.code, 12);
       allow update: if isOwner(resource.data.teacherId)
@@ -535,6 +536,7 @@ service cloud.firestore {
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.teacherId)
                     && isSchoolTeacher()
+                    && isSchoolVerified()
                     && validString(request.resource.data.title, 200)
                     && validString(request.resource.data.classId, 80);
       allow update: if isOwner(resource.data.teacherId)
@@ -550,7 +552,7 @@ service cloud.firestore {
                   && (
                     isOwner(resource.data.studentId)
                     || isOwner(resource.data.teacherId)
-                    || exists(/databases/$(database)/documents/classes/$(resource.data.classId)/members/$(request.auth.uid))
+                    || hasApprovedClassMembership(resource.data.classId)
                   );
       // Lo studente crea la propria consegna in pending
       allow create: if isNotAnonymous()

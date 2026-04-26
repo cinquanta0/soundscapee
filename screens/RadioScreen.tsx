@@ -2545,6 +2545,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const streamUrlRef = useRef<string | null>(null);
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
+  const wasPlayingOnBgRef = useRef(false);
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
   useEffect(() => {
@@ -2580,6 +2581,23 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       ) {
         setIsPlaying(false);
         setIsBufferingStream(true);
+        // iOS: registra subito MPNowPlayingInfoCenter durante il buffering.
+        // Se l'utente va in background prima che lo stato raggiunga Playing,
+        // il widget deve già essere registrato altrimenti non appare.
+        if (Platform.OS === 'ios') {
+          const np = nowPlayingRef.current;
+          const sSlot = (() => {
+            const slots = getScheduleSlots(station.id);
+            const idx = getCurrentSlotIndex(slots);
+            return idx >= 0 ? slots[idx] : null;
+          })();
+          TrackPlayer.updateNowPlayingMetadata?.({
+            title: station.name,
+            artist: np?.djName || sSlot?.djName || station.genre,
+            album: np?.showName || sSlot?.showName || station.genre,
+            artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
+          }).catch?.(() => {});
+        }
       } else if (state === State.Error) {
         // Stream morto / URL non raggiungibile
         setIsPlaying(false);
@@ -2608,6 +2626,60 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       subErr?.remove();
     };
   }, []);
+
+  // iOS: gestisce foreground restore per widget e silent audio
+  // autoHandleInterruptions bypassa RemotePlay, quindi la restartIfLive del PlaybackService
+  // non viene mai chiamata. Quando l'app torna in foreground dopo una interruzione
+  // (telefonata, Siri, altra app), lo stream HLS risulta silenzioso o il widget è sparito.
+  useEffect(() => {
+    if (!TrackPlayer || Platform.OS !== 'ios') return;
+
+    const sub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        // Registra se stavamo riproducendo quando siamo andati in background
+        try {
+          const ps = await TrackPlayer.getPlaybackState();
+          const s = ps?.state ?? ps;
+          wasPlayingOnBgRef.current =
+            s === State.Playing || s === State.Buffering || s === State.Loading;
+          // Rinforza il widget con metadati aggiornati prima di andare in background
+          if (wasPlayingOnBgRef.current) {
+            const np = nowPlayingRef.current;
+            const sSlot = (() => {
+              const slots = getScheduleSlots(station.id);
+              const idx = getCurrentSlotIndex(slots);
+              return idx >= 0 ? slots[idx] : null;
+            })();
+            TrackPlayer.updateNowPlayingMetadata?.({
+              title: station.name,
+              artist: np?.djName || sSlot?.djName || station.genre,
+              album: np?.showName || sSlot?.showName || station.genre,
+              artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
+            }).catch(() => {});
+          }
+        } catch {}
+      } else if (nextState === 'active' && wasPlayingOnBgRef.current) {
+        // Torna in foreground dopo aver riprodotto:
+        // riavvia lo stream HLS per evitare audio silenzioso (finestra HLS scaduta
+        // dopo interruzioni gestite da autoHandleInterruptions senza chiamare RemotePlay).
+        wasPlayingOnBgRef.current = false;
+        try {
+          const ps = await TrackPlayer.getPlaybackState();
+          const s = ps?.state ?? ps;
+          // Riavvia solo se ancora in play — non toccare se l'utente ha messo in pausa
+          // dal lock screen durante la sessione in background
+          if (
+            (s === State.Playing || s === State.Buffering || s === State.Loading) &&
+            reloadStreamRef.current
+          ) {
+            await reloadStreamRef.current();
+          }
+        } catch {}
+      }
+    });
+
+    return () => sub.remove();
+  }, [station.id]);
 
   // Fetch audio stream
   useEffect(() => {
@@ -2946,8 +3018,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     if (!TrackPlayer) return;
     if (isPlaying) {
       await TrackPlayer.pause();
-    } else if (error && reloadStreamRef.current) {
-      // Stream morto (State.Error o PlaybackError): ricarica invece di semplice play()
+    } else if (reloadStreamRef.current) {
+      // Per stream live HLS: sempre un restart completo invece di play().
+      // play() su iOS fallisce silenziosamente se la finestra HLS è scaduta
+      // (dopo pausa, interruzione telefonica, Siri, ecc.).
       await reloadStreamRef.current();
     } else {
       await TrackPlayer.play();

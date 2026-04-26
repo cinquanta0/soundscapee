@@ -40,7 +40,7 @@ export const createRemix = async (remixData) => {
       volume: track.volume || 1,
       offsetStart: track.offsetStart || 0,
       trimStart: track.startTime || 0,
-      trimEnd: track.endTime || track.duration,
+      trimEnd: (track.endTime != null && track.endTime > 0) ? track.endTime : track.duration,
     })),
     tracksCount: remixData.tracks.length,
     totalDuration: remixData.totalDuration,
