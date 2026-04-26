@@ -17,7 +17,7 @@ import {
   Image,
   AppState,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -1662,7 +1662,7 @@ if (loading) {
                   {post.isCollab && post.collaboratorName && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                       <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(168,85,247,0.35)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Text style={{ fontSize: 11 }}>🎙</Text>
+                        <Feather name="mic" size={10} color="#a855f7" />
                         <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }}>Collab ft. {post.collaboratorName}</Text>
                       </View>
                     </View>
@@ -1729,20 +1729,22 @@ if (loading) {
                         style={styles.actionButton}
                         onPress={() => handleLike(post.id)}
                       >
-                        <Text style={styles.actionIcon}>
-                          {likedSounds.has(post.id) ? '❤️' : '🤍'}
-                        </Text>
+                        <Ionicons
+                          name={likedSounds.has(post.id) ? 'heart' : 'heart-outline'}
+                          size={16}
+                          color={likedSounds.has(post.id) ? '#ef4444' : '#94a3b8'}
+                        />
                         <Text style={styles.actionText}>{post.likes}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => openCommentsModal(post.id)}
                       >
-                        <Text style={styles.actionIcon}>💬</Text>
+                        <Feather name="message-circle" size={15} color="#94a3b8" />
                         <Text style={styles.actionText}>{post.comments}</Text>
                       </TouchableOpacity>
                       <View style={styles.actionButton}>
-                        <Text style={styles.actionIcon}>🎧</Text>
+                        <Feather name="headphones" size={15} color="#94a3b8" />
                         <Text style={styles.actionText}>{post.listens}</Text>
                       </View>
                     </View>
