@@ -187,6 +187,7 @@ export default function App() {
   const [sound, setSound] = useState(null);
   const soundObjRef = useRef<any>(null); // ref per evitare closure stale
   const isLoadingSound = useRef(false);  // guard contro tap multipli
+  const mainScrollViewRef = useRef<any>(null);
   // Deduplication notifiche: su Android, getLastNotificationResponseAsync e
   // addNotificationResponseReceivedListener possono sparare per la stessa notifica.
   const lastHandledNotifId = useRef<string | null>(null);
@@ -369,6 +370,7 @@ export default function App() {
   const [sounds, setSounds] = useState([]);
   const [totalSoundsCount, setTotalSoundsCount] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [myStreakCount, setMyStreakCount] = useState(0);
   const [activeCollabSessionId, setActiveCollabSessionId] = useState<string | null>(null);
   const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
@@ -441,6 +443,11 @@ export default function App() {
     const unsub = listenToIncomingBattle((b) => setIncomingBattle(b));
     return () => unsub();
   }, []);
+
+  // Scroll to top quando si cambia tab
+  useEffect(() => {
+    mainScrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, [activeTab]);
 
   // Setup notifiche push
 useEffect(() => {
@@ -552,6 +559,7 @@ useEffect(() => {
       // Get user profile
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
+      setMyStreakCount(profile?.streakCount || 0);
       getFollowStats(user.uid).then(setFollowStats);
 
       // Garantisce il salvataggio del push token anche per nuovi utenti
@@ -791,6 +799,7 @@ const handlePublish = async () => {
       const newStreak = await updatePublishStreak(currentUser.uid);
       if (newStreak) {
         setUserProfile((prev: any) => prev ? { ...prev, streakCount: newStreak } : prev);
+        setMyStreakCount(newStreak);
       }
     }
 
@@ -1278,6 +1287,7 @@ const handleSaveProfile = async () => {
     // Ricarica profilo
     const newProfile = await getUserProfile(user.uid);
     setUserProfile(newProfile);
+    setMyStreakCount(newProfile?.streakCount || 0);
     getFollowStats(user.uid).then(setFollowStats);
 
     setShowEditProfileModal(false);
@@ -1381,13 +1391,15 @@ const fetchAndShowFollowing = async () => {
 }; 
 
 
-// Aggiungi questa funzione PRIMA del return
+// Apre il profilo di un utente — il tab cambia immediatamente (non dopo l'await)
+// per evitare che setActiveTab('profile') sovrascriva una navigazione successiva dell'utente
 const openUserProfile = async (userId) => {
+  setActiveTab('profile');
+  setUserProfile(null); // stato di caricamento
   try {
     const profile = await getUserProfile(userId);
     setUserProfile(profile);
     getFollowStats(userId).then(setFollowStats);
-    setActiveTab('profile');
   } catch (error) {
     console.error('Error opening user profile:', error);
     Alert.alert(t('common.error'), t('profile.errors.cannotOpen'));
@@ -1500,7 +1512,7 @@ if (loading) {
           <View style={styles.headerSubtitle}>
             <Text style={styles.liveIndicator}>{t('home.live')} ✦</Text>
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
-            <Text style={styles.streakText}>🔥 {userProfile?.streakCount || 0}</Text>
+            <Text style={styles.streakText}>🔥 {myStreakCount}</Text>
           </View>
         </View>
         <View style={styles.headerButtons}>
@@ -1530,7 +1542,7 @@ if (loading) {
       </View>}
 
       {/* Main Content — nascosto sui tab full-screen */}
-      {!isFullScreen && <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
+      {!isFullScreen && <ScrollView ref={mainScrollViewRef} style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
           <View style={styles.content}>
             {/* Quick Record */}
@@ -1754,7 +1766,13 @@ if (loading) {
           </View>
         )}
 
-    {activeTab === 'profile' && (
+    {activeTab === 'profile' && !userProfile && (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
+        <ActivityIndicator size="large" color="#06b6d4" />
+      </View>
+    )}
+
+    {activeTab === 'profile' && userProfile && (
   <View style={styles.content}>
     {/* Profile Card */}
     <View style={styles.profileCard}>
@@ -2026,6 +2044,7 @@ if (loading) {
             if (me) {
               const myProfile = await getUserProfile(me.uid);
               setUserProfile(myProfile);
+              setMyStreakCount(myProfile?.streakCount || 0);
               // Resetta i follow stats col proprio UID — potrebbero essere dell'ultimo profilo visitato
               getFollowStats(me.uid).then(setFollowStats);
             }

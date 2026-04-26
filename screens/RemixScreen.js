@@ -12,9 +12,11 @@ import {
   Dimensions,
   PanResponder,
   TextInput,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createRemix, requestRemixRendering, subscribeToRemix } from '../services/remixService';
@@ -307,6 +309,26 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   };
 
   // ═══════════════════════════════════════════════════════
+  // 📥 DOWNLOAD LOCALE (fix Android 412)
+  // ═══════════════════════════════════════════════════════
+
+  const getLocalUri = async (uri, trackId) => {
+    if (Platform.OS !== 'android' || !uri.startsWith('http')) return uri;
+    try {
+      const urlPath = uri.split('?')[0];
+      const rawExt = urlPath.split('.').pop().toLowerCase();
+      const ext = ['webm', 'ogg', 'm4a', 'mp3', 'mp4', 'aac'].includes(rawExt) ? rawExt : 'm4a';
+      const localPath = `${FileSystem.cacheDirectory}remix_preview_${trackId}.${ext}`;
+      const info = await FileSystem.getInfoAsync(localPath);
+      if (info.exists && info.size > 100) return localPath;
+      const dl = await FileSystem.downloadAsync(uri, localPath);
+      return dl.uri;
+    } catch {
+      return uri;
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════
   // 🎮 PLAYBACK SYSTEM (FIXED!)
   // ═══════════════════════════════════════════════════════
 
@@ -378,8 +400,11 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
             await soundObjects.current[track.id].unloadAsync();
           }
 
+          // Su Android scarica localmente per evitare 412 da Firebase Storage
+          const localUri = await getLocalUri(track.audioUrl, track.id);
+
           const { sound } = await Audio.Sound.createAsync(
-            { uri: track.audioUrl },
+            { uri: localUri },
             {
               shouldPlay: false,
               volume: track.volume,
@@ -388,40 +413,32 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
           );
 
           soundObjects.current[track.id] = sound;
-          
+
           // Calcola quando avviare questa traccia
           const trackStart = track.offsetStart;
           const trackEnd = track.offsetEnd;
-          const trackDuration = (track.endTime - track.startTime) * 1000;
+          const trimmedDurationMs = (track.endTime - track.startTime) * 1000;
 
           if (currentTime >= trackStart && currentTime < trackEnd) {
-            // Se siamo già dentro la traccia
-            const position = (currentTime - trackStart) * 1000 + track.startTime * 1000;
-            await sound.setPositionAsync(position);
-            await sound.playAsync();
-            
-            // Stoppa alla fine
-            const remainingTime = trackDuration - (currentTime - trackStart) * 1000;
+            // Siamo già dentro la traccia: seek al punto giusto e avvia
+            const seekMs = (currentTime - trackStart) * 1000 + track.startTime * 1000;
+            const remainingMs = trimmedDurationMs - (currentTime - trackStart) * 1000;
+            await sound.setStatusAsync({ shouldPlay: true, positionMillis: Math.max(0, seekMs) });
+            // Stoppa al termine del segmento trimmed
             setTimeout(async () => {
-              try {
-                await sound.pauseAsync();
-              } catch (e) {}
-            }, remainingTime);
+              try { await sound.pauseAsync(); } catch (_) {}
+            }, Math.max(0, remainingMs));
           } else if (currentTime < trackStart) {
-            // Avvia nel futuro
-            const delay = (trackStart - currentTime) * 1000;
+            // Traccia futura: avvia con delay
+            const delayMs = (trackStart - currentTime) * 1000;
             setTimeout(async () => {
               try {
-                await sound.setPositionAsync(track.startTime * 1000);
-                await sound.playAsync();
-                
+                await sound.setStatusAsync({ shouldPlay: true, positionMillis: track.startTime * 1000 });
                 setTimeout(async () => {
-                  try {
-                    await sound.pauseAsync();
-                  } catch (e) {}
-                }, trackDuration);
-              } catch (e) {}
-            }, delay);
+                  try { await sound.pauseAsync(); } catch (_) {}
+                }, trimmedDurationMs);
+              } catch (_) {}
+            }, Math.max(0, delayMs));
           }
 
           return { success: true, track };

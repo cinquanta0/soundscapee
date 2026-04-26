@@ -167,10 +167,13 @@ exports.processRemix = onCall(
     const outputFile = path.join(tmpDir, `remix_${remixId}_${Date.now()}.m4a`);
 
     try {
-      // 2. Scarica tutte le tracce
+      // 2. Scarica tutte le tracce preservando l'estensione reale
       for (let i = 0; i < remix.tracks.length; i++) {
         const track = remix.tracks[i];
-        const tmpFile = path.join(tmpDir, `track_${i}_${Date.now()}.m4a`);
+        const urlPath = (track.audioUrl || '').split('?')[0];
+        const rawExt = urlPath.split('.').pop().toLowerCase();
+        const ext = ['webm', 'ogg', 'm4a', 'mp3', 'mp4', 'aac'].includes(rawExt) ? rawExt : 'm4a';
+        const tmpFile = path.join(tmpDir, `track_${i}_${Date.now()}.${ext}`);
         await downloadFile(track.audioUrl, tmpFile);
         inputFiles.push(tmpFile);
       }
@@ -189,18 +192,21 @@ exports.processRemix = onCall(
           const volume = Math.max(0.01, Math.min(2, track.volume || 1));
           const offsetMs = Math.round((track.offsetStart || 0) * 1000);
 
-          // atrim taglia la porzione di audio
-          // asetpts resetta i timestamp dopo il trim
-          // volume regola il volume
-          // adelay aggiunge il ritardo iniziale (offset sulla timeline)
-          return (
+          // Normalizza a stereo 44100Hz, poi taglia, regola volume, aggiunge offset
+          let chain =
             `[${i}:a]` +
+            `aresample=44100,aformat=channel_layouts=stereo,` +
             `atrim=start=${trimStart}:end=${trimEnd},` +
             `asetpts=PTS-STARTPTS,` +
-            `volume=${volume},` +
-            `adelay=${offsetMs}|${offsetMs}` +
-            `[t${i}]`
-          );
+            `volume=${volume}`;
+
+          // adelay solo se c'è un offset reale (evita artefatti a 0ms)
+          if (offsetMs > 0) {
+            chain += `,adelay=delays=${offsetMs}:all=1`;
+          }
+
+          chain += `[t${i}]`;
+          return chain;
         });
 
         // Mixa tutte le tracce in una sola
