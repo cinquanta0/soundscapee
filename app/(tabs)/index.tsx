@@ -1534,66 +1534,73 @@ if (loading) {
         <OnboardingScreen onComplete={() => setShowOnboarding(false)} />
       </Modal>
 
-      {/* Header — nascosto sui tab full-screen che hanno il proprio layout */}
+      {/* Header */}
       {!isFullScreen && <View style={styles.header}>
         <View>
           <View style={styles.headerTitle}>
-            <Text style={styles.logo}>🎧</Text>
+            {/* Waveform logo bars */}
+            <View style={styles.logoBars}>
+              {[5, 10, 7, 14, 9, 12, 6].map((h, i) => (
+                <View key={i} style={[styles.logoBar, { height: h }]} />
+              ))}
+            </View>
             <Text style={styles.title}>SoundScape</Text>
-            {userProfile?.isPremium && <Text style={styles.premiumBadge}>👑</Text>}
           </View>
           <View style={styles.headerSubtitle}>
-            <Text style={styles.liveIndicator}>{t('home.live')} ✦</Text>
+            <View style={styles.livePill}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
             <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
             <Text style={styles.streakText}>🔥 {myStreakCount}</Text>
           </View>
         </View>
         <View style={styles.headerButtons}>
-  {/* Bottone notifiche */}
-  <TouchableOpacity
-    style={styles.headerButton}
-    onPress={() => {
-      setShowNotificationsModal(true);
-      loadNotifications();
-    }}
-  >
-    <Feather name="bell" size={18} color="#fff" />
-    {unreadCount > 0 && (
-      <View style={styles.notificationBadge}>
-        <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
-      </View>
-    )}
-  </TouchableOpacity>
-  
-  <TouchableOpacity
-    style={styles.headerButton}
-    onPress={() => setShowSettings(true)}
-  >
-    <Feather name="settings" size={18} color="#fff" />
-  </TouchableOpacity>
-</View>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => { setShowNotificationsModal(true); loadNotifications(); }}
+          >
+            <Feather name="bell" size={18} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowSettings(true)}>
+            <View style={styles.headerAvatarRing}>
+              <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={32} />
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>}
 
       {/* Main Content — nascosto sui tab full-screen */}
       {!isFullScreen && <ScrollView ref={mainScrollViewRef} style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
           <View style={styles.content}>
-            {/* Quick Record */}
-            <LinearGradient
-              colors={['#0B3B28', '#0C1320', '#11131A']}
-              style={styles.recordCard}
-            >
-              <View style={styles.recordCardGlow} />
-              <Feather name="mic" size={32} color="rgba(255,255,255,0.9)" style={{ marginBottom: 12 }} />
+            {/* Hero card — Share a sound */}
+            <LinearGradient colors={['#0A1F12', '#0C1320', '#080A10']} style={styles.heroCard}>
+              {/* Decorative background bars */}
+              <View style={styles.heroBgBars}>
+                {[10, 18, 26, 14, 34, 22, 16, 30, 20, 12, 36, 24, 18, 28, 16, 22, 10, 20].map((h, i) => (
+                  <View key={i} style={[styles.heroBgBar, { height: h }]} />
+                ))}
+              </View>
+              <View style={styles.heroGlowOrb} />
+              {/* Content */}
+              <View style={styles.heroMicCircle}>
+                <Feather name="mic" size={22} color="#00FF9C" />
+              </View>
+              <Text style={styles.heroTitle}>Share a sound</Text>
+              <Text style={styles.heroSubtitle}>Let the world hear you</Text>
               <TouchableOpacity
-                style={[
-                  styles.recordButton,
-                  isRecording && styles.recordButtonActive,
-                ]}
+                style={[styles.heroBtn, isRecording && styles.heroBtnRecording]}
                 onPress={isRecording ? handleRecord : () => setShowPublishTypeModal(true)}
               >
-                <Text style={styles.recordButtonText}>
-                  {isRecording ? t('home.recording', { time: recordingTime }) : t('home.publish')}
+                <Feather name="radio" size={14} color="#001A0D" style={{ marginRight: 6 }} />
+                <Text style={styles.heroBtnText}>
+                  {isRecording ? t('home.recording', { time: recordingTime }) : 'Go Live'}
                 </Text>
               </TouchableOpacity>
               {isRecording && recordingTime >= 3 && (
@@ -1603,10 +1610,11 @@ if (loading) {
 
             {/* Search */}
             <View style={styles.searchContainer}>
+              <Feather name="search" size={15} color="rgba(255,255,255,0.3)" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder={t('home.searchPlaceholder')}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="rgba(255,255,255,0.28)"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -1617,76 +1625,98 @@ if (loading) {
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.filterScroll}
+              contentContainerStyle={{ paddingRight: 8 }}
             >
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  filterMood === 'all' && styles.filterChipActive,
-                ]}
-                onPress={() => setFilterMood('all')}
-              >
-                <Text style={styles.filterChipText}>{t('moods.all')}</Text>
-              </TouchableOpacity>
-              {['Energico', 'Rilassante', 'Gioioso', 'Nostalgico'].map(mood => (
+              {[{ id: 'all', label: t('moods.all') }, { id: 'Energico', label: 'Energetic' }, { id: 'Rilassante', label: 'Relaxing' }, { id: 'Gioioso', label: 'Happy' }, { id: 'Nostalgico', label: 'Chill' }].map(m => (
                 <TouchableOpacity
-                  key={mood}
-                  style={[
-                    styles.filterChip,
-                    { backgroundColor: filterMood === mood ? getMoodColor(mood) : 'rgba(255,255,255,0.08)' },
-                  ]}
-                  onPress={() => setFilterMood(mood)}
+                  key={m.id}
+                  style={[styles.filterChip, filterMood === m.id && styles.filterChipActive]}
+                  onPress={() => setFilterMood(m.id)}
                 >
-                  <Text style={styles.filterChipText}>{mood}</Text>
+                  <Text style={[styles.filterChipText, filterMood === m.id && styles.filterChipTextActive]}>{m.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            
-          
-            
-            
             {/* Stories row */}
             <StoriesRow userProfile={userProfile} />
 
+            {/* Quick actions */}
+            <Text style={styles.sectionLabel}>Quick actions</Text>
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity style={styles.quickActionCard}>
+                <View style={styles.quickActionIconWrap}>
+                  <Feather name="help-circle" size={20} color="rgba(255,255,255,0.5)" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.quickActionTitle}>How it works</Text>
+                  <Text style={styles.quickActionSub}>Learn the basics</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowPublishTypeModal(true)}>
+                <View style={[styles.quickActionIconWrap, styles.quickActionIconDashed]}>
+                  <Feather name="plus" size={20} color="rgba(255,255,255,0.5)" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.quickActionTitle}>New state</Text>
+                  <Text style={styles.quickActionSub}>Share what's happening</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Live now header */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Live now</Text>
+              <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
+            </View>
+
             {/* Sound Feed */}
-            {filteredPosts.map(post => (
+            {filteredPosts.map(post => {
+              const WF_COUNT = 30;
+              const wfHeights = Array.from({ length: WF_COUNT }, (_, i) => {
+                let h = 0;
+                const s = post.id || 'x';
+                for (let j = 0; j < s.length; j++) h += s.charCodeAt(j) * (i + 1);
+                return 4 + (h % 26);
+              });
+              return (
               <View key={post.id} style={styles.soundCard}>
                 {/* User Header */}
                 <View style={styles.soundHeader}>
                   <View style={styles.soundUserInfo}>
-  <TouchableOpacity 
-    style={{ flexDirection: 'row', alignItems: 'center' }}
-    onPress={() => openUserProfile(post.userId)}
-  >
-    <AppAvatar avatar={post.userAvatar} username={post.username} size={36} />
-    <View>
-      <Text style={styles.userName}>{post.username}</Text>
-      <Text style={styles.soundLocation}>
-        {timeAgo(post.createdAt)}
-        {post.location ? ' • 📍' : ''}
-      </Text>
-    </View>
-  </TouchableOpacity>
-</View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View
-                      style={[styles.moodBadge, { backgroundColor: getMoodColor(post.mood) }]}
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                      onPress={() => openUserProfile(post.userId)}
                     >
-                      <Text style={styles.moodText}>{post.mood}</Text>
+                      <View style={styles.avatarRing}>
+                        <AppAvatar avatar={post.userAvatar} username={post.username} size={38} />
+                      </View>
+                      <View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Text style={styles.userName}>{post.username}</Text>
+                          <View style={styles.verifiedBadge}>
+                            <Feather name="check" size={8} color="#001A0D" />
+                          </View>
+                        </View>
+                        <Text style={styles.soundLocation}>
+                          {timeAgo(post.createdAt)}{post.location ? ' • 📍' : ''}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={[styles.moodBadge, { borderColor: getMoodColor(post.mood) + '55' }]}>
+                      <Text style={[styles.moodText, { color: getMoodColor(post.mood) }]}>{post.mood}</Text>
                     </View>
                     <TouchableOpacity
-                      style={{ padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' }}
-                      onPress={() => Alert.alert(
-                        t('home.options'),
-                        '',
-                        [
-                          { text: t('home.reportContent'), onPress: () => openReport(post.id) },
-                          { text: t('home.copyLink'), onPress: () => {} },
-                          { text: t('common.cancel'), style: 'cancel' },
-                        ]
-                      )}
+                      style={styles.optionsBtn}
+                      onPress={() => Alert.alert(t('home.options'), '', [
+                        { text: t('home.reportContent'), onPress: () => openReport(post.id) },
+                        { text: t('home.copyLink'), onPress: () => {} },
+                        { text: t('common.cancel'), style: 'cancel' },
+                      ])}
                     >
-                      <Text style={{ color: '#8A8D96', fontSize: 16 }}>⋯</Text>
+                      <Feather name="more-horizontal" size={16} color="rgba(255,255,255,0.35)" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1694,7 +1724,7 @@ if (loading) {
                 {/* Sound Content */}
                 <View style={styles.soundContent}>
                   {post.isCollab && post.collaboratorName && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                       <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(168,85,247,0.35)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Feather name="mic" size={10} color="#a855f7" />
                         <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }}>Collab ft. {post.collaboratorName}</Text>
@@ -1702,46 +1732,36 @@ if (loading) {
                     </View>
                   )}
                   <Text style={styles.soundTitle}>{post.title}</Text>
-                  {post.description && (
-                    <Text style={styles.soundDescription}>{post.description}</Text>
-                  )}
+                  {post.description && <Text style={styles.soundDescription}>{post.description}</Text>}
 
-                  {/* Player */}
+                  {/* Player with waveform */}
                   <View style={styles.player}>
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={() => handlePlay(post)}
-                    >
-                      <Feather
-                        name={playingId === post.id ? 'pause' : 'play'}
-                        size={20}
-                        color="#001A0D"
-                      />
+                    <TouchableOpacity style={styles.playButton} onPress={() => handlePlay(post)}>
+                      <Feather name={playingId === post.id ? 'pause' : 'play'} size={22} color="#001A0D" />
                     </TouchableOpacity>
-                    <View style={styles.progressBar}>
-                      <View 
-  style={[
-    styles.progressFill, 
-    { width: playingId === post.id ? `${playProgress}%` : '0%' }  // ✅ NUOVO
-  ]} 
-/>
+                    <View style={styles.waveformWrap}>
+                      {wfHeights.map((h, i) => {
+                        const isPast = playingId === post.id && (i / WF_COUNT) < (playProgress / 100);
+                        return (
+                          <View
+                            key={i}
+                            style={[styles.waveBar, {
+                              height: h,
+                              backgroundColor: isPast ? '#00FF9C' : 'rgba(255,255,255,0.14)',
+                            }]}
+                          />
+                        );
+                      })}
                     </View>
                     <Text style={styles.duration}>
-                      {playingId === post.id ? `${playPosition}s / ` : ''}{post.duration > 0 ? `${post.duration}s` : '?s'}
+                      {playingId === post.id ? `${playPosition}s` : (post.duration > 0 ? `${post.duration}s` : '?s')}
                     </Text>
                   </View>
 
                   {/* Backstage button */}
                   {post.backstageUrl && (
                     <TouchableOpacity
-                      style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 6,
-                        alignSelf: 'flex-start', marginTop: 8, marginBottom: 4,
-                        paddingHorizontal: 12, paddingVertical: 6,
-                        borderRadius: 20, borderWidth: 1,
-                        borderColor: 'rgba(0,255,156,0.3)',
-                        backgroundColor: 'rgba(0,255,156,0.07)',
-                      }}
+                      style={styles.backstageBtn}
                       onPress={() => {
                         setBackstageViewerUrl(post.backstageUrl);
                         setBackstageViewerTipo(post.backstageTipo || 'foto');
@@ -1749,55 +1769,51 @@ if (loading) {
                         setShowBackstageViewer(true);
                       }}
                     >
-                      <Feather name="video" size={13} color="#00FF9C" />
-                      <Text style={{ color: '#00FF9C', fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.5 }}>
-                        backstage
-                      </Text>
+                      <Feather name="video" size={12} color="#00FF9C" />
+                      <Text style={styles.backstageBtnText}>backstage</Text>
                     </TouchableOpacity>
                   )}
 
                   {/* Actions */}
                   <View style={styles.actions}>
                     <View style={styles.actionsLeft}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleLike(post.id)}
-                      >
+                      <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(post.id)}>
                         <Ionicons
                           name={likedSounds.has(post.id) ? 'heart' : 'heart-outline'}
                           size={16}
-                          color={likedSounds.has(post.id) ? '#ef4444' : '#94a3b8'}
+                          color={likedSounds.has(post.id) ? '#ef4444' : 'rgba(255,255,255,0.4)'}
                         />
                         <Text style={styles.actionText}>{post.likes}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => openCommentsModal(post.id)}
-                      >
-                        <Feather name="message-circle" size={15} color="#94a3b8" />
+                      <TouchableOpacity style={styles.actionButton} onPress={() => openCommentsModal(post.id)}>
+                        <Feather name="message-circle" size={15} color="rgba(255,255,255,0.4)" />
                         <Text style={styles.actionText}>{post.comments}</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionButton}>
+                        <Feather name="repeat" size={15} color="rgba(255,255,255,0.4)" />
+                        <Text style={styles.actionText}>0</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <View style={styles.actionButton}>
-                        <Feather name="headphones" size={15} color="#94a3b8" />
+                        <Feather name="headphones" size={14} color="rgba(255,255,255,0.35)" />
                         <Text style={styles.actionText}>{post.listens}</Text>
                       </View>
+                      {post.userId === auth.currentUser?.uid && (
+                        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(post.id)}>
+                          <Feather name="trash-2" size={14} color="rgba(255,255,255,0.3)" />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    {post.userId === auth.currentUser?.uid && (
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => handleDelete(post.id)}
-                      >
-                        <Feather name="trash-2" size={14} color="#94a3b8" />
-                      </TouchableOpacity>
-                    )}
                   </View>
                 </View>
               </View>
-            ))}
+              );
+            })}
 
             {filteredPosts.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>🔍</Text>
+                <Feather name="mic-off" size={40} color="rgba(255,255,255,0.1)" />
                 <Text style={styles.emptyText}>{t('home.noSoundsFound')}</Text>
               </View>
             )}
@@ -3225,28 +3241,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     marginTop: 6,
-    padding: 16,
-    paddingTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.14)',
-    borderRadius: 24,
-    backgroundColor: 'rgba(7,10,18,0.72)',
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   headerTitle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  logo: {
-    fontSize: 24,
+  logoBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 2.5,
+  },
+  logoBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#00FF9C',
   },
   title: {
     fontSize: 20,
     fontWeight: '800',
     color: '#fff',
-  },
-  premiumBadge: {
-    fontSize: 14,
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
     flexDirection: 'row',
@@ -3254,177 +3271,335 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  liveIndicator: {
-    fontSize: 8,
-    color: '#ef4444',
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#00FF9C',
+  },
+  liveText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#00FF9C',
+    letterSpacing: 1,
   },
   subtitleText: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: 'rgba(255,255,255,0.35)',
   },
   streakText: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: 'rgba(255,255,255,0.35)',
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
   },
   headerButton: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 20,
     width: 36,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  headerButtonText: {
-    fontSize: 16,
+  headerAvatarRing: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: '#00FF9C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  recordCard: {
+  // ── Hero card ────────────────────────────────────────────────────────────────
+  heroCard: {
     overflow: 'hidden',
     borderRadius: 24,
-    padding: 18,
-    alignItems: 'center',
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
+    borderColor: 'rgba(0,255,156,0.15)',
+    minHeight: 180,
+    justifyContent: 'flex-end',
   },
-  recordCardGlow: {
+  heroBgBars: {
     position: 'absolute',
-    top: -30,
-    right: -20,
-    width: 140,
-    height: 140,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,255,156,0.14)',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+    opacity: 0.18,
   },
-  recordIcon: {
-    fontSize: 32,
+  heroBgBar: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: '#00FF9C',
+  },
+  heroGlowOrb: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(0,255,156,0.07)',
+    top: -60,
+    right: -40,
+  },
+  heroMicCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  recordButton: {
-    backgroundColor: '#D7FF64',
-    paddingHorizontal: 24,
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: 18,
+  },
+  heroBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#00FF9C',
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 999,
+    shadowColor: '#00FF9C',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  recordButtonActive: {
+  heroBtnRecording: {
     backgroundColor: '#ef4444',
+    shadowColor: '#ef4444',
   },
-  recordButtonText: {
+  heroBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#07110B',
+    fontWeight: '800',
+    color: '#001A0D',
+    letterSpacing: 0.2,
   },
   recordHint: {
     fontSize: 11,
-    color: '#fff',
-    opacity: 0.7,
+    color: 'rgba(255,255,255,0.5)',
     marginTop: 8,
   },
+  // ── Search ───────────────────────────────────────────────────────────────────
   searchContainer: {
-    marginBottom: 12,
-  },
-  searchInput: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#161616',
+    borderRadius: 28,
+    paddingHorizontal: 14,
     paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    gap: 10,
+  },
+  searchIcon: {},
+  searchInput: {
+    flex: 1,
     color: '#fff',
     fontSize: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.14)',
+    padding: 0,
   },
+  // ── Filter chips ─────────────────────────────────────────────────────────────
   filterScroll: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   filterChip: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 16,
+    backgroundColor: '#161616',
+    paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 999,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   filterChipActive: {
-    backgroundColor: '#D7FF64',
+    backgroundColor: '#00FF9C',
+    borderColor: '#00FF9C',
   },
   filterChipText: {
-    color: '#fff',
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: '#001A0D',
     fontWeight: '700',
   },
-  soundCard: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 24,
-    marginBottom: 14,
+  // ── Quick actions ─────────────────────────────────────────────────────────────
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.3,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 22,
+  },
+  quickActionCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#161616',
+    borderRadius: 18,
+    padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.14)',
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  quickActionIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionIconDashed: {
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  quickActionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F5F5F5',
+    marginBottom: 2,
+  },
+  quickActionSub: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.35)',
+  },
+  // ── Section header ────────────────────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.3,
+  },
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#00FF9C',
+  },
+  // ── Sound cards ───────────────────────────────────────────────────────────────
+  soundCard: {
+    backgroundColor: '#161616',
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden',
-    // Tinted shadow — depth without pure black
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 5,
   },
   soundHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   soundUserInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     flex: 1,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  avatarRing: {
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#00FF9C',
+    padding: 1.5,
+  },
+  verifiedBadge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
+  optionsBtn: {
+    padding: 6,
   },
   userName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#F5F5F5',
     letterSpacing: -0.1,
   },
   soundLocation: {
     fontSize: 11,
-    color: '#5A5A5A',
+    color: 'rgba(255,255,255,0.3)',
     marginTop: 1,
-    letterSpacing: 0.1,
   },
   moodBadge: {
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
   },
   moodText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   soundContent: {
     padding: 14,
   },
   soundTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#F5F5F5',
     marginBottom: 4,
     letterSpacing: -0.3,
@@ -3432,32 +3607,40 @@ const styles = StyleSheet.create({
   },
   soundDescription: {
     fontSize: 13,
-    color: '#7A7A7A',
+    color: 'rgba(255,255,255,0.38)',
     marginBottom: 14,
     lineHeight: 19,
   },
+  // ── Player ────────────────────────────────────────────────────────────────────
   player: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     marginBottom: 14,
   },
   playButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#D7FF64',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
-    // Accent glow
-    shadowColor: '#D7FF64',
+    shadowColor: '#00FF9C',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  playButtonIcon: {
-    fontSize: 16,
+  waveformWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    height: 36,
+  },
+  waveBar: {
+    width: 3,
+    borderRadius: 2,
   },
   progressBar: {
     flex: 1,
@@ -3468,60 +3651,75 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#D7FF64',
+    backgroundColor: '#00FF9C',
     borderRadius: 2,
   },
   duration: {
     fontSize: 11,
-    color: '#5A5A5A',
+    color: 'rgba(255,255,255,0.35)',
     fontVariant: ['tabular-nums'] as any,
+    minWidth: 28,
   },
+  backstageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.25)',
+    backgroundColor: 'rgba(0,255,156,0.06)',
+  },
+  backstageBtnText: {
+    color: '#00FF9C',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  // ── Actions ───────────────────────────────────────────────────────────────────
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.07)',
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
   actionsLeft: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 18,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  actionIcon: {
-    fontSize: 14,
+    gap: 5,
   },
   actionText: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: 'rgba(255,255,255,0.4)',
+    fontVariant: ['tabular-nums'] as any,
   },
   deleteButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    gap: 12,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.25)',
+    fontWeight: '500',
   },
   profileCard: {
     overflow: 'hidden',

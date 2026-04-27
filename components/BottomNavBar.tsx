@@ -26,8 +26,8 @@ interface BottomNavBarProps {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const TAB_ICONS: Record<TabId, React.ComponentProps<typeof Feather>['name']> = {
-  home:        'radio',
-  explore:     'search',
+  home:        'activity',
+  explore:     'compass',
   map:         'map-pin',
   challenges:  'award',
   communities: 'users',
@@ -104,10 +104,11 @@ function NavItem({
           {tab.label}
         </Text>
 
-        {/* Active dot */}
+        {/* Active underline */}
         <Animated.View
           style={[styles.activeDot, { opacity: pillOpacity, transform: [{ scaleX: pillScaleX }] }]}
         />
+
 
       </Animated.View>
     </TouchableOpacity>
@@ -121,13 +122,12 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
   const { t } = useTranslation();
 
   const TABS: Tab[] = [
-    { id: 'home',        label: t('nav.home'),        icon: TAB_ICONS.home        },
-    { id: 'explore',     label: t('nav.explore'),     icon: TAB_ICONS.explore     },
-    { id: 'map',         label: t('nav.map'),         icon: TAB_ICONS.map         },
-    { id: 'challenges',  label: t('nav.challenges'),  icon: TAB_ICONS.challenges  },
-    { id: 'communities', label: t('nav.communities'), icon: TAB_ICONS.communities },
-    { id: 'messages',    label: t('nav.messages'),    icon: TAB_ICONS.messages    },
-    { id: 'profile',     label: t('nav.profile'),     icon: TAB_ICONS.profile     },
+    { id: 'home',       label: 'Feed',       icon: TAB_ICONS.home       },
+    { id: 'explore',    label: 'Explore',    icon: TAB_ICONS.explore    },
+    { id: 'map',        label: 'Map',        icon: TAB_ICONS.map        },
+    { id: 'challenges', label: 'Challenges', icon: TAB_ICONS.challenges },
+    { id: 'messages',   label: 'Messages',   icon: TAB_ICONS.messages   },
+    { id: 'profile',    label: 'Profile',    icon: TAB_ICONS.profile    },
   ];
 
   return (
