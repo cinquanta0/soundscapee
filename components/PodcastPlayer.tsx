@@ -1,17 +1,12 @@
-/**
- * PodcastPlayer — componente riutilizzabile standalone
- *
- * Usa expo-av (react-native-track-player incompatibile con New Architecture).
- * Robusto contro: memory leak, doppio caricamento, timer in pausa,
- * sovrapposizione tra episodi, crash su unmount asincrono.
- */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet,
+  View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions,
 } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { C } from '../constants/design';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,14 +15,12 @@ export interface PodcastPlayerItem {
   title: string;
   coverUrl?: string | null;
   audioUrl: string;
-  duration?: number; // secondi
+  duration?: number;
 }
 
 interface Props {
   podcast: PodcastPlayerItem;
-  /** Chiamato quando la traccia finisce — usato per la riproduzione sequenziale */
   onFinish?: () => void;
-  /** Se true, avvia la riproduzione subito dopo il caricamento */
   autoPlay?: boolean;
 }
 
@@ -48,42 +41,40 @@ function extFromUrl(url: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const { width: SW } = Dimensions.get('window');
+const COVER = SW - 48;
+
 export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: Props) {
   const { t } = useTranslation();
   const [isPlaying, setIsPlaying]   = useState(false);
-  const [position, setPosition]     = useState(0);     // secondi
+  const [position, setPosition]     = useState(0);
   const [duration, setDuration]     = useState(podcast.duration ?? 0);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
   const [imgError, setImgError]     = useState(false);
-  const [barWidth, setBarWidth]     = useState(1);     // larghezza reale della seek bar in px
+  const [barWidth, setBarWidth]     = useState(1);
 
   const soundRef      = useRef<Audio.Sound | null>(null);
   const isMountedRef  = useRef(true);
-  const isLoadingRef  = useRef(false); // guard: impedisce caricamenti concorrenti
-  const onFinishRef   = useRef(onFinish); // ref per evitare re-render nei callback
+  const isLoadingRef  = useRef(false);
+  const onFinishRef   = useRef(onFinish);
   const autoPlayRef   = useRef(autoPlay);
   useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
   useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
 
-  // ── Smonta il suono corrente in modo sicuro ──────────────────────────────
   const stopAndUnload = useCallback(async () => {
     const s = soundRef.current;
     if (!s) return;
     soundRef.current = null;
-    s.setOnPlaybackStatusUpdate(null); // rimuove callback prima di stop/unload
+    s.setOnPlaybackStatusUpdate(null);
     try { await s.stopAsync(); }   catch {}
     try { await s.unloadAsync(); } catch {}
   }, []);
 
-  // ── Carica e avvia l'audio ───────────────────────────────────────────────
   const loadAudio = useCallback(async (pod: PodcastPlayerItem) => {
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
-
-    // Smonta il suono precedente prima di tutto
     await stopAndUnload();
-
     if (!isMountedRef.current) { isLoadingRef.current = false; return; }
 
     setLoading(true);
@@ -93,8 +84,6 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
     setDuration(pod.duration ?? 0);
 
     try {
-      // Prende il controllo della sessione audio — interrompe qualsiasi
-      // altro suono expo-av attivo (es. tracce radio) in modo nativo
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
@@ -102,8 +91,6 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
         shouldDuckAndroid: false,
       });
 
-      // Scarica in cache locale per affidabilità su Android
-      // (ExoPlayer su Android gestisce male le range requests di Firebase)
       const ext      = extFromUrl(pod.audioUrl);
       const localUri = `${FileSystem.cacheDirectory}pod_${pod.id}.${ext}`;
       let sourceUri  = pod.audioUrl;
@@ -117,7 +104,6 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
         }
         sourceUri = localUri;
       } catch {
-        // fallback: streaming diretto se il download fallisce
         sourceUri = pod.audioUrl;
       }
 
@@ -128,7 +114,6 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
         { shouldPlay: false, volume: 1.0 },
       );
 
-      // Controllo post-await: component potrebbe essere già smontato
       if (!isMountedRef.current) {
         sound.setOnPlaybackStatusUpdate(null);
         sound.stopAsync().catch(() => {});
@@ -137,55 +122,41 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
         return;
       }
 
-      // Callback di stato — unica fonte di verità per posizione e play/pause
       sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
         if (!isMountedRef.current || !status.isLoaded) return;
-
-        // Timer: guidato da positionMillis reale → non avanza mai se in pausa
         setPosition(status.positionMillis / 1000);
         if (status.durationMillis) setDuration(status.durationMillis / 1000);
         setIsPlaying(status.isPlaying);
-
         if (status.didJustFinish) {
-          // Fine traccia: porta il timer esattamente alla durata, non ricominciare
           setIsPlaying(false);
           if (status.durationMillis) setPosition(status.durationMillis / 1000);
           sound.stopAsync().catch(() => {});
-          // Notifica il parent (es. PlaylistDetailScreen per auto-advance)
           onFinishRef.current?.();
         }
       });
 
       soundRef.current = sound;
-
-      // autoPlay: avvia subito dopo il caricamento
       if (autoPlayRef.current) {
         await sound.playAsync().catch(() => {});
       }
 
     } catch {
-      if (isMountedRef.current) {
-        setError(t('podcast.cannotLoad'));
-      }
+      if (isMountedRef.current) setError(t('podcast.cannotLoad'));
     } finally {
       if (isMountedRef.current) setLoading(false);
       isLoadingRef.current = false;
     }
   }, [stopAndUnload]);
 
-  // ── Monta / cambia episodio ──────────────────────────────────────────────
   useEffect(() => {
     isMountedRef.current = true;
     setImgError(false);
     loadAudio(podcast);
-
     return () => {
       isMountedRef.current = false;
       stopAndUnload();
     };
   }, [podcast.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Controlli ────────────────────────────────────────────────────────────
 
   const togglePlay = useCallback(async () => {
     if (!soundRef.current || loading) return;
@@ -208,8 +179,6 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
     await soundRef.current.setPositionAsync(ms).catch(() => {});
   }, [duration]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   const progress    = duration > 0 ? Math.min(position / duration, 1) : 0;
   const progressPct = `${(progress * 100).toFixed(2)}%`;
   const showCover   = !!podcast.coverUrl && !imgError;
@@ -217,7 +186,7 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
   return (
     <View style={s.root}>
 
-      {/* Copertina */}
+      {/* ── Album art ─────────────────────────────────────────────────── */}
       <View style={s.coverWrap}>
         {showCover ? (
           <Image
@@ -228,20 +197,22 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
           />
         ) : (
           <View style={[s.cover, s.coverFallback]}>
-            <Text style={s.coverIcon}>🎙</Text>
+            <Feather name="mic" size={64} color={C.accent} />
           </View>
         )}
       </View>
 
-      {/* Titolo */}
-      <Text style={s.title} numberOfLines={2} ellipsizeMode="tail">
-        {podcast.title}
-      </Text>
+      {/* ── Track title ───────────────────────────────────────────────── */}
+      <View style={s.trackInfo}>
+        <Text style={s.title} numberOfLines={2} ellipsizeMode="tail">
+          {podcast.title}
+        </Text>
+      </View>
 
-      {/* ── Errore ─────────────────────────────────────────────────────── */}
+      {/* ── Error state ───────────────────────────────────────────────── */}
       {error ? (
         <View style={s.errorWrap}>
-          <Text style={s.errorIcon}>⚠️</Text>
+          <Feather name="alert-circle" size={28} color="rgba(255,100,100,0.8)" />
           <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={() => loadAudio(podcast)}>
             <Text style={s.retryTxt}>{t('common.ok')}</Text>
@@ -249,64 +220,71 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
         </View>
       ) : (
         <>
-          {/* ── Seek bar ─────────────────────────────────────────────────── */}
-          <TouchableOpacity
-            activeOpacity={1}
-            style={s.seekTrack}
-            onLayout={(e) => setBarWidth(e.nativeEvent.layout.width || 1)}
-            onPress={(e) => seekToRatio(e.nativeEvent.locationX / barWidth)}
-          >
-            {/* Riempimento */}
-            <View style={[s.seekFill, { width: progressPct }]} />
-            {/* Thumb */}
-            <View style={[s.seekThumb, { left: progressPct }]} />
-          </TouchableOpacity>
-
-          {/* ── Timer ────────────────────────────────────────────────────── */}
-          <View style={s.timerRow}>
-            <Text style={s.timerTxt}>{fmtTime(position)}</Text>
-            <Text style={s.timerTxt}>{fmtTime(duration)}</Text>
+          {/* ── Seek bar ──────────────────────────────────────────────── */}
+          <View style={s.seekContainer}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={s.seekTrack}
+              onLayout={(e) => setBarWidth(e.nativeEvent.layout.width || 1)}
+              onPress={(e) => seekToRatio(e.nativeEvent.locationX / barWidth)}
+            >
+              <View style={s.seekRail} />
+              <View style={[s.seekFill, { width: progressPct }]} />
+              <View style={[s.seekThumb, { left: progressPct }]} />
+            </TouchableOpacity>
+            <View style={s.timeRow}>
+              <Text style={s.timeTxt}>{fmtTime(position)}</Text>
+              <Text style={s.timeTxt}>{fmtTime(duration)}</Text>
+            </View>
           </View>
 
-          {/* ── Controlli ────────────────────────────────────────────────── */}
+          {/* ── Controls ──────────────────────────────────────────────── */}
           <View style={s.controls}>
-
-            {/* -15s */}
             <TouchableOpacity
               style={s.skipBtn}
               onPress={() => skip(-15)}
               disabled={loading}
               activeOpacity={0.7}
             >
-              <Text style={s.skipArrow}>↺</Text>
+              <Feather
+                name="rotate-ccw"
+                size={26}
+                color={loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.8)'}
+              />
               <Text style={s.skipLbl}>15</Text>
             </TouchableOpacity>
 
-            {/* Play / Pausa */}
             <TouchableOpacity
-              style={[s.playBtn, loading && s.playBtnLoading]}
+              style={[s.playBtn, loading && s.playBtnDisabled]}
               onPress={togglePlay}
               disabled={loading}
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#050508" size="small" />
+                <ActivityIndicator color={C.textOnAccent} size="small" />
               ) : (
-                <Text style={s.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                <Feather
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={30}
+                  color={C.textOnAccent}
+                  style={isPlaying ? undefined : { marginLeft: 3 }}
+                />
               )}
             </TouchableOpacity>
 
-            {/* +15s */}
             <TouchableOpacity
               style={s.skipBtn}
               onPress={() => skip(15)}
               disabled={loading}
               activeOpacity={0.7}
             >
-              <Text style={s.skipArrow}>↻</Text>
+              <Feather
+                name="rotate-cw"
+                size={26}
+                color={loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.8)'}
+              />
               <Text style={s.skipLbl}>15</Text>
             </TouchableOpacity>
-
           </View>
         </>
       )}
@@ -316,146 +294,141 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const COVER = 200;
-
 const s = StyleSheet.create({
   root: {
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    gap: 16,
+    paddingBottom: 8,
   },
 
   // ── Cover ──
   coverWrap: {
+    width: COVER,
+    height: COVER,
+    marginBottom: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.65,
+    shadowRadius: 24,
+    elevation: 16,
   },
   cover: {
     width: COVER,
     height: COVER,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   coverFallback: {
-    backgroundColor: '#1A0A2E',
+    backgroundColor: C.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.2)',
+    borderColor: C.borderAccent,
   },
-  coverIcon: { fontSize: 64 },
 
-  // ── Titolo ──
+  // ── Track info ──
+  trackInfo: {
+    width: '100%',
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
   title: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
-    lineHeight: 23,
-    fontStyle: 'italic',
+    lineHeight: 26,
+    letterSpacing: -0.3,
   },
 
   // ── Seek bar ──
-  seekTrack: {
+  seekContainer: {
     width: '100%',
-    height: 28,               // area di tap generosa
+    paddingHorizontal: 24,
+    marginBottom: 28,
+  },
+  seekTrack: {
+    height: 40,
     justifyContent: 'center',
+  },
+  seekRail: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 18,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
   },
   seekFill: {
     position: 'absolute',
     left: 0,
-    top: 11,
+    top: 18,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#00FF9C',
+    backgroundColor: C.accent,
   },
   seekThumb: {
     position: 'absolute',
-    top: 5,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#00FF9C',
-    marginLeft: -7,            // centra il thumb sul punto di progresso
-    shadowColor: '#00FF9C',
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
-    elevation: 3,
+    top: 12,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginLeft: -8,
+    shadowColor: C.accent,
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 4,
   },
-
-  // ── Timer ──
-  timerRow: {
+  timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    marginTop: -8,
+    marginTop: 4,
   },
-  timerTxt: {
+  timeTxt: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    fontFamily: 'monospace',
+    color: 'rgba(255,255,255,0.35)',
+    fontVariant: ['tabular-nums'],
   },
 
-  // ── Controlli ──
+  // ── Controls ──
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 28,
-    marginTop: 4,
+    gap: 36,
+    marginBottom: 8,
   },
   skipBtn: {
     alignItems: 'center',
-    justifyContent: 'center',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  skipArrow: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.7)',
-    lineHeight: 20,
+    gap: 4,
+    minWidth: 48,
   },
   skipLbl: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'monospace',
-    lineHeight: 12,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.35)',
   },
   playBtn: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#00FF9C',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00FF9C',
+    shadowColor: C.accent,
     shadowOpacity: 0.45,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 18,
+    elevation: 10,
   },
-  playBtnLoading: {
+  playBtnDisabled: {
     opacity: 0.7,
   },
-  playIcon: {
-    fontSize: 24,
-    color: '#050508',
-    marginLeft: 3, // compensa ottica del ▶
-  },
 
-  // ── Errore ──
+  // ── Error ──
   errorWrap: {
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
   },
-  errorIcon: { fontSize: 36 },
   errorTxt: {
     fontSize: 13,
     color: 'rgba(255,100,100,0.9)',
@@ -467,11 +440,11 @@ const s = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.4)',
-    backgroundColor: 'rgba(0,255,156,0.1)',
+    borderColor: C.borderAccent,
+    backgroundColor: C.accentDim,
   },
   retryTxt: {
-    color: '#00FF9C',
+    color: C.accent,
     fontSize: 13,
     fontWeight: '600',
   },

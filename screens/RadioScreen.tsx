@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -2759,13 +2760,25 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       } else if (nextState === 'active' && wasPlayingOnBgRef.current) {
         const bgDuration = Date.now() - bgEntryTimeRef.current;
         wasPlayingOnBgRef.current = false;
-        // Skip restart for quick foreground returns (notification taps, < 15s).
-        // Only restart after real interruptions (phone calls, other apps) where
-        // the HLS window may have expired.
-        if (bgDuration < 15_000) return;
         try {
           const ps = await TrackPlayer.getPlaybackState();
           const s = ps?.state ?? ps;
+          if (bgDuration < 15_000) {
+            // Short return (notification tap): nudge to unblock any muted HLS stream.
+            // autoHandleInterruptions may have silently paused audio during notification interaction.
+            if (s === State.Playing && !isNudgingRef.current) {
+              isNudgingRef.current = true;
+              await TrackPlayer.pause();
+              await new Promise(r => setTimeout(r, 150));
+              await TrackPlayer.play();
+              await new Promise(r => setTimeout(r, 300));
+              isNudgingRef.current = false;
+            } else if (s === State.Paused) {
+              await TrackPlayer.play();
+            }
+            return;
+          }
+          // Long background (>15s): full stream restart — HLS window may have expired.
           if (
             (s === State.Playing || s === State.Buffering || s === State.Loading) &&
             reloadStreamRef.current
@@ -2904,6 +2917,17 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           const albumName  = preNp?.showName || staticSlot?.showName || station.genre;
 
           await TrackPlayer.reset();
+          // iOS: registra MPNowPlayingInfoCenter PRIMA di play() — appena l'audio session
+          // è attiva (dopo setupPlayer) il widget deve già avere i metadati, altrimenti
+          // se l'utente va in background durante il buffering il widget non appare mai.
+          if (Platform.OS === 'ios') {
+            TrackPlayer.updateNowPlayingMetadata?.({
+              title: station.name,
+              artist: artistName,
+              album: albumName,
+              artwork: artworkUrl,
+            }).catch?.(() => {});
+          }
           await TrackPlayer.add({
             id: station.id,
             url,
@@ -2916,17 +2940,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
           });
           await TrackPlayer.play();
-          // iOS: pre-registra subito MPNowPlayingInfoCenter senza aspettare State.Playing.
-          // Se l'utente va in background durante il buffering (che può durare secondi),
-          // iOS non riceve mai il segnale dal PlaybackState listener e il widget non appare.
-          if (Platform.OS === 'ios') {
-            TrackPlayer.updateNowPlayingMetadata?.({
-              title: station.name,
-              artist: artistName,
-              album: albumName,
-              artwork: artworkUrl,
-            }).catch?.(() => {});
-          }
           streamUrlRef.current = url;
           AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
         };
@@ -3198,9 +3211,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       {/* Header */}
       <View style={osp.header}>
         <TouchableOpacity onPress={onClose} style={osp.closeBtn} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
-          <Text style={osp.closeTxt}>✕</Text>
+          <Feather name="chevron-down" size={22} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
-        <Text style={osp.headerLabel}>📻 RADIO</Text>
+        <Text style={osp.headerLabel}>RADIO</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -3210,13 +3223,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           style={[osp.tab, !showPalinsesto && { borderBottomColor: station.color }]}
           onPress={() => setShowPalinsesto(false)}
         >
-          <Text style={[osp.tabTxt, !showPalinsesto && { color: station.color }]}>▶ ORA IN ONDA</Text>
+          <Text style={[osp.tabTxt, !showPalinsesto && { color: '#fff', opacity: 1 }]}>ORA IN ONDA</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[osp.tab, showPalinsesto && { borderBottomColor: station.color }]}
           onPress={() => setShowPalinsesto(true)}
         >
-          <Text style={[osp.tabTxt, showPalinsesto && { color: station.color }]}>📋 PALINSESTO</Text>
+          <Text style={[osp.tabTxt, showPalinsesto && { color: '#fff', opacity: 1 }]}>PALINSESTO</Text>
         </TouchableOpacity>
       </View>
 
@@ -3224,69 +3237,85 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       <View style={osp.body}>
 
         <>
-          {hasDjPhoto ? (
-            /* ── Foto DJ vera disponibile ── */
-            <View style={[osp.djPhotoWrap, { borderColor: station.color, shadowColor: station.color }]}>
+          {/* ── Artwork hero: foto DJ quadrata o logo stazione ── */}
+          <View style={[osp.artworkWrap, { shadowColor: station.color }]}>
+            {hasDjPhoto ? (
               <Image
                 source={{ uri: resolvedDjPhoto! }}
-                style={osp.djPhoto}
+                style={osp.artwork}
+                resizeMode="cover"
                 onError={() => setDjImgError(true)}
               />
-            </View>
-          ) : (
-            /* ── Nessuna foto DJ: cerchio con logo stazione + waveform ── */
-            <View style={[osp.circle, { borderColor: station.color + '55', shadowColor: station.color }]}>
-              <LinearGradient
-                colors={[station.color + '30', station.color + '10']}
-                style={StyleSheet.absoluteFill}
-                borderRadius={80}
-              />
-              <Image
-                source={{ uri: station.logoUrl }}
-                style={{ width: 52, height: 52, opacity: 0.85 }}
-                resizeMode="contain"
-              />
-            </View>
-          )}
+            ) : (
+              <View style={[osp.artworkFallback, { borderColor: station.color + '40' }]}>
+                <LinearGradient
+                  colors={[station.color + '28', station.color + '08']}
+                  style={StyleSheet.absoluteFill}
+                  borderRadius={20}
+                />
+                <Image
+                  source={{ uri: station.logoUrl }}
+                  style={{ width: 72, height: 72, opacity: 0.9 }}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            {/* Live pulse badge sovrapposto */}
+            {isPlaying && !loading && (
+              <Animated.View style={[osp.liveBadgeOverlay, { opacity: livePulse }]}>
+                <View style={[osp.liveDotOverlay, { backgroundColor: station.color }]} />
+                <Text style={[osp.liveTxtOverlay, { color: station.color }]}>LIVE</Text>
+              </Animated.View>
+            )}
+          </View>
 
-          {/* ORA IN ONDA label */}
+          {/* Info: "ORA IN ONDA", DJ, show, stazione */}
           <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
           <Text style={osp.djName} numberOfLines={2}>{effectiveDjName}</Text>
           {effectiveShowName && effectiveShowName !== effectiveDjName ? (
             <Text style={osp.showName} numberOfLines={1}>{effectiveShowName}</Text>
           ) : null}
 
-          {/* Nome stazione + waveform */}
           <View style={osp.stationRowNp}>
-            <Text style={[osp.stationDot, { color: station.color }]}>●</Text>
+            <View style={[osp.stationDot, { backgroundColor: station.color }]} />
             <Text style={osp.stationNameNp}>{station.name}</Text>
             <Text style={osp.genreNp}> · {station.genre}</Text>
           </View>
+
           <WaveformAnim active={isPlaying && !loading} color={station.color} />
         </>
 
-        {/* Badge stato */}
-        <View style={[osp.statusBadge, { backgroundColor: station.color + '20', borderColor: station.color + '50' }]}>
-          <View style={[osp.statusDot, { backgroundColor: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.25)' }]} />
-          <Text style={[osp.statusTxt, { color: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.4)' }]}>
-            {statusText}
-          </Text>
+        {/* Controlli: status + play */}
+        <View style={osp.controlsRow}>
+          {/* Status pill */}
+          <View style={[osp.statusBadge, {
+            backgroundColor: (isPlaying && !loading) ? station.color + '18' : 'rgba(255,255,255,0.05)',
+            borderColor: (isPlaying && !loading) ? station.color + '55' : 'rgba(255,255,255,0.1)',
+          }]}>
+            <View style={[osp.statusDot, { backgroundColor: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.2)' }]} />
+            <Text style={[osp.statusTxt, { color: (isPlaying && !loading) ? station.color : 'rgba(255,255,255,0.35)' }]}>
+              {statusText}
+            </Text>
+          </View>
+
+          {/* Play/Pause */}
+          <TouchableOpacity
+            style={[osp.playBtn, { backgroundColor: station.color, shadowColor: station.color, opacity: error ? 0.4 : 1 }]}
+            onPress={togglePlay}
+            disabled={loading || error}
+            activeOpacity={0.8}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Feather name={isPlaying ? 'pause' : 'play'} size={30} color="#fff" style={isPlaying ? undefined : { marginLeft: 3 }} />}
+          </TouchableOpacity>
         </View>
 
-        {/* Play/Pause */}
-        <TouchableOpacity
-          style={[osp.playBtn, { backgroundColor: station.color, shadowColor: station.color, opacity: error ? 0.4 : 1 }]}
-          onPress={togglePlay}
-          disabled={loading || error}
-          activeOpacity={0.8}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={osp.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>}
-        </TouchableOpacity>
-
         {error && (
-          <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
+          <View style={osp.errorBox}>
+            <Feather name="wifi-off" size={14} color="rgba(255,255,255,0.3)" />
+            <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
+          </View>
         )}
 
         {/* Android battery tip for Xiaomi/Huawei */}
@@ -3423,75 +3452,216 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
 const palSt = StyleSheet.create({
   // Navigazione giorno
-  dayNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  dayArrowBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  dayArrowTxt: { fontSize: 20, fontWeight: '700' },
-  dayLabelMain: { fontSize: 13, fontWeight: '800', letterSpacing: 2, fontFamily: 'monospace' },
-  dayLabelSub: { fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: 2, fontFamily: 'monospace', marginTop: 2 },
+  dayNav: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 24, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  dayArrowBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  dayArrowTxt: { fontSize: 22, fontWeight: '700' },
+  dayLabelMain: { fontSize: 14, fontWeight: '700', letterSpacing: 1.5 },
+  dayLabelSub: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginTop: 2, textAlign: 'center' },
+
   // Lista slot
-  scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 48 },
   slotRow: { flexDirection: 'row', marginBottom: 4 },
+
   // Timeline
-  timelineCol: { width: 20, alignItems: 'center', paddingTop: 18 },
+  timelineCol: { width: 20, alignItems: 'center', paddingTop: 22 },
   timelineDot: { marginBottom: 0 },
-  timelineLine: { flex: 1, width: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 4, minHeight: 32 },
+  timelineLine: { flex: 1, width: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: 4, minHeight: 32 },
+
   // Card slot
-  slot: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, marginLeft: 6, marginBottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)', gap: 10 },
-  time: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', width: 42 },
+  slot: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 14, marginLeft: 8, marginBottom: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.02)', gap: 12,
+  },
+  time: { fontSize: 12, color: 'rgba(255,255,255,0.3)', width: 42, fontVariant: ['tabular-nums'] },
+
   // Foto avatar
-  avatarWrap: { width: 44, height: 44 },
-  avatarWrapLg: { width: 54, height: 54 },
-  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5 },
-  avatarBg: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarBgLg: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  avatarWrap: { width: 46, height: 46 },
+  avatarWrapLg: { width: 56, height: 56 },
+  avatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 1.5 },
+  avatarBg: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  avatarBgLg: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { fontWeight: '800' },
+
   // Testi
   info: { flex: 1, minWidth: 0 },
-  showNameBold: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.6)', marginBottom: 2 },
-  djNameSmall: { fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2 },
-  durTxt: { fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' },
+  showNameBold: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.65)', marginBottom: 2 },
+  djNameSmall: { fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 2 },
+  durTxt: { fontSize: 10, color: 'rgba(255,255,255,0.2)' },
+
   // Badge LIVE ORA
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  liveBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
   liveDot: { width: 6, height: 6, borderRadius: 3 },
-  liveTxt: { fontSize: 8, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'monospace' },
+  liveTxt: { fontSize: 8, fontWeight: '800', letterSpacing: 1.5 },
 });
 
+const ARTWORK_SIZE = Math.round(220 * scale);
+
 const osp = StyleSheet.create({
-  orb: { position: 'absolute', width: 300 * scale, height: 300 * scale, borderRadius: 150 * scale, top: -80, alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 36 : 56, paddingBottom: 12 },
-  tabBar: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabTxt: { fontSize: Math.round(10 * scale), fontFamily: 'monospace', letterSpacing: 1.5, color: 'rgba(255,255,255,0.3)', fontWeight: '700' },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  headerLabel: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: 2 },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Math.round(32 * scale), paddingBottom: Math.round(40 * scale) },
-  // Fallback: cerchio waveform (quando non ci sono info DJ)
-  circle: { width: 192, height: 192, borderRadius: 96, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Math.round(24 * scale), overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
+  orb: {
+    position: 'absolute',
+    width: 360 * scale, height: 360 * scale, borderRadius: 180 * scale,
+    top: -100, alignSelf: 'center', opacity: 0.6,
+  },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 40 : 58,
+    paddingBottom: 8,
+  },
+  closeBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerLabel: {
+    fontSize: 12, color: 'rgba(255,255,255,0.5)',
+    fontWeight: '700', letterSpacing: 2.5,
+  },
+
+  tabBar: {
+    flexDirection: 'row', marginHorizontal: 20, marginBottom: 8,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  tab: {
+    flex: 1, paddingVertical: 10, alignItems: 'center',
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  tabTxt: {
+    fontSize: 11, letterSpacing: 1.5, color: 'rgba(255,255,255,0.3)',
+    fontWeight: '700',
+  },
+
+  body: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: Math.round(28 * scale),
+    paddingBottom: Math.round(36 * scale),
+    gap: 0,
+  },
+
+  // ── Artwork hero (quadrato con angoli arrotondati) ──
+  artworkWrap: {
+    width: ARTWORK_SIZE, height: ARTWORK_SIZE,
+    borderRadius: 20,
+    marginBottom: Math.round(28 * scale),
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 14,
+  },
+  artwork: {
+    width: ARTWORK_SIZE, height: ARTWORK_SIZE,
+    borderRadius: 20,
+    resizeMode: 'cover',
+  } as any,
+  artworkFallback: {
+    width: ARTWORK_SIZE, height: ARTWORK_SIZE,
+    borderRadius: 20, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden', backgroundColor: '#0D0D1A',
+  },
+
+  // Badge LIVE sovrapposto sull'artwork
+  liveBadgeOverlay: {
+    position: 'absolute', top: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  liveDotOverlay: { width: 6, height: 6, borderRadius: 3 },
+  liveTxtOverlay: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+
+  // ── Testi info ──
+  oraInOnda: {
+    fontSize: 10, color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 2.5, marginBottom: 6, fontWeight: '600',
+  },
+  djName: {
+    fontSize: Math.round(28 * scale), fontWeight: '800', color: '#fff',
+    textAlign: 'center', marginBottom: 4, letterSpacing: -0.5,
+  },
+  showName: {
+    fontSize: Math.round(13 * scale), color: 'rgba(255,255,255,0.45)',
+    marginBottom: Math.round(12 * scale), textAlign: 'center', fontStyle: 'italic',
+  },
+  stationRowNp: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: 4, gap: 6,
+  },
+  stationDot: { width: 6, height: 6, borderRadius: 3 },
+  stationNameNp: {
+    fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.6)', fontWeight: '700',
+  },
+  genreNp: {
+    fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.3)',
+  },
+
+  // ── Controlli ──
+  controlsRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: Math.round(20 * scale),
+    marginTop: Math.round(18 * scale),
+  },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusTxt: {
+    fontSize: Math.round(11 * scale), fontWeight: '700', letterSpacing: 1.5,
+  },
+  playBtn: {
+    width: Math.round(72 * scale), height: Math.round(72 * scale),
+    borderRadius: Math.round(36 * scale),
+    alignItems: 'center', justifyContent: 'center',
+    shadowOpacity: 0.55, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+  },
+
+  // ── Error ──
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 12, paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  errorTxt: {
+    fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.3)', textAlign: 'center',
+  },
+
+  // ── Android tip ──
+  androidTip: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    marginTop: 16, marginHorizontal: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 12, backgroundColor: 'rgba(255,200,50,0.07)',
+    borderWidth: 1, borderColor: 'rgba(255,200,50,0.18)',
+  },
+  androidTipIcon: { fontSize: Math.round(14 * scale), marginTop: 1 },
+  androidTipTxt: {
+    flex: 1, fontSize: Math.round(11 * scale),
+    color: 'rgba(255,255,255,0.45)', lineHeight: Math.round(16 * scale),
+  },
+
+  // ── Stili legacy (usati in altri punti del file) ──
   stationName: { fontSize: Math.round(24 * scale), fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 6, textAlign: 'center' },
-  genre: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', marginBottom: Math.round(18 * scale), textAlign: 'center' },
-  // Stili "Ora in onda"
+  genre: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.45)', marginBottom: Math.round(18 * scale), textAlign: 'center' },
+  circle: { width: 192, height: 192, borderRadius: 96, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: Math.round(24 * scale), overflow: 'hidden', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
   djPhotoWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2.5, marginBottom: Math.round(18 * scale), overflow: 'hidden', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
   djPhoto: { width: '100%', height: '100%', resizeMode: 'cover' } as any,
   djInitialsWrap: { width: 192, height: 192, borderRadius: 96, borderWidth: 2, marginBottom: Math.round(18 * scale), alignItems: 'center', justifyContent: 'center' },
   djInitialsTxt: { fontSize: 52, fontWeight: '800', fontStyle: 'italic' },
-  oraInOnda: { fontSize: Math.round(10 * scale), color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: 2.5, marginBottom: 4, textTransform: 'uppercase' },
-  djName: { fontSize: Math.round(26 * scale), fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4, letterSpacing: -0.5 },
-  showName: { fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.45)', marginBottom: Math.round(16 * scale), textAlign: 'center', fontStyle: 'italic' },
-  stationRowNp: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  stationDot: { fontSize: 8, marginRight: 6 },
-  stationNameNp: { fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.6)', fontWeight: '700', fontFamily: 'monospace' },
-  genreNp: { fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' },
-  // Comuni
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, marginBottom: Math.round(28 * scale), marginTop: 6 },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusTxt: { fontSize: Math.round(11 * scale), fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1.5 },
-  playBtn: { width: Math.round(64 * scale), height: Math.round(64 * scale), borderRadius: Math.round(32 * scale), alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
-  playIcon: { fontSize: Math.round(26 * scale), color: '#fff' },
-  errorTxt: { marginTop: 16, fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', textAlign: 'center' },
-  androidTip: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 16, marginHorizontal: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,200,50,0.08)', borderWidth: 1, borderColor: 'rgba(255,200,50,0.2)' },
-  androidTipIcon: { fontSize: Math.round(14 * scale), marginTop: 1 },
-  androidTipTxt: { flex: 1, fontSize: Math.round(11 * scale), color: 'rgba(255,255,255,0.5)', lineHeight: Math.round(16 * scale) },
 });
 
 
@@ -3521,22 +3691,35 @@ function OfflineStationCard({ station, onPress }: { station: OfflineStation; onP
       </View>
       <Text style={osc.name} numberOfLines={1}>{station.name}</Text>
       <Text style={osc.genre} numberOfLines={1}>{station.genre}</Text>
-      <View style={[osc.playPill, { backgroundColor: station.color + '30', borderColor: station.color + '70' }]}>
-        <Text style={[osc.playPillTxt, { color: station.color }]}>▶ Live</Text>
+      <View style={[osc.playPill, { backgroundColor: station.color + '25', borderColor: station.color + '60' }]}>
+        <Feather name="play" size={8} color={station.color} />
+        <Text style={[osc.playPillTxt, { color: station.color }]}>Live</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 const osc = StyleSheet.create({
-  card: { width: 120, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 12, paddingBottom: 14, paddingTop: 14, marginRight: 10, overflow: 'hidden', backgroundColor: '#0D0D1A', alignItems: 'center' },
-  logoWrap: { width: 62, height: 62, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
-  logo: { width: 46, height: 46 },
-  initial: { fontSize: 26, fontWeight: '800', fontStyle: 'italic' },
-  name: { fontSize: 11, fontWeight: '700', color: '#fff', marginBottom: 3, textAlign: 'center' },
-  genre: { fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 10, lineHeight: 12, textAlign: 'center' },
-  playPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, alignSelf: 'center' },
-  playPillTxt: { fontSize: 9, fontWeight: '700', fontFamily: 'monospace' },
+  card: {
+    width: 128, borderRadius: 18, borderWidth: 1,
+    paddingHorizontal: 12, paddingBottom: 14, paddingTop: 16,
+    marginRight: 10, overflow: 'hidden',
+    backgroundColor: '#111115', alignItems: 'center',
+  },
+  logoWrap: {
+    width: 66, height: 66, borderRadius: 18, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 10, overflow: 'hidden',
+  },
+  logo: { width: 48, height: 48 },
+  initial: { fontSize: 28, fontWeight: '800', fontStyle: 'italic' },
+  name: { fontSize: 12, fontWeight: '700', color: '#fff', marginBottom: 3, textAlign: 'center' },
+  genre: { fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 10, lineHeight: 13, textAlign: 'center' },
+  playPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, alignSelf: 'center',
+  },
+  playPillTxt: { fontSize: 10, fontWeight: '700' },
 });
 
 // ─── Room card ────────────────────────────────────────────────────────────────

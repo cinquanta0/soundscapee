@@ -5,8 +5,10 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import PodcastPlayer from '../components/PodcastPlayer';
+import { C } from '../constants/design';
 import {
   getPodcastById, getUserPlaylists, addPodcastToPlaylist, createPlaylist,
   Podcast, Playlist,
@@ -27,16 +29,13 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
 
-  // Stato modal "Aggiungi a playlist"
   const [showModal, setShowModal]         = useState(false);
   const [playlists, setPlaylists]         = useState<Playlist[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
-  const [adding, setAdding]               = useState<string | null>(null); // playlistId in corso
+  const [adding, setAdding]               = useState<string | null>(null);
   const [showNewPlaylist, setShowNewPlaylist] = useState(false);
   const [newName, setNewName]             = useState('');
   const [creating, setCreating]           = useState(false);
-
-  // ── Carica podcast ─────────────────────────────────────────────────────────
 
   useEffect(() => {
     getPodcastById(podcastId)
@@ -47,8 +46,6 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
       .catch(() => setError(t('podcast.podcastDetail.cannotLoad')))
       .finally(() => setLoading(false));
   }, [podcastId]);
-
-  // ── Apri modal playlist ────────────────────────────────────────────────────
 
   const openPlaylistModal = async () => {
     setShowModal(true);
@@ -61,8 +58,6 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
       setLoadingPlaylists(false);
     }
   };
-
-  // ── Aggiungi a playlist ────────────────────────────────────────────────────
 
   const handleAddToPlaylist = async (playlistId: string, playlistName: string) => {
     if (!podcast) return;
@@ -77,8 +72,6 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
       setAdding(null);
     }
   };
-
-  // ── Crea nuova playlist e aggiungi ─────────────────────────────────────────
 
   const handleCreateAndAdd = async () => {
     const name = newName.trim();
@@ -98,13 +91,11 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
       <View style={s.root}>
-        <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
-        <View style={s.centered}><ActivityIndicator color="#00FF9C" size="large" /></View>
+        <LinearGradient colors={['#0A0A0A', '#0D0D12', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+        <View style={s.centered}><ActivityIndicator color={C.accent} size="large" /></View>
       </View>
     );
   }
@@ -112,9 +103,9 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
   if (error || !podcast) {
     return (
       <View style={s.root}>
-        <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#0D0D12', '#0A0A0A']} style={StyleSheet.absoluteFill} />
         <View style={s.centered}>
-          <Text style={s.errorIcon}>⚠️</Text>
+          <Feather name="alert-circle" size={36} color="rgba(255,100,100,0.7)" />
           <Text style={s.errorTxt}>{error ?? t('podcast.podcastDetail.notFound')}</Text>
           <TouchableOpacity style={s.backBtnFull} onPress={onBack}>
             <Text style={s.backBtnTxt}>{t('common.back')}</Text>
@@ -126,33 +117,39 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#0D0D12', '#0A0A0A']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={onBack} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={s.backArrow}>‹</Text>
+          <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
         <Text style={s.headerLabel}>{t('podcast.header')}</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
-        {/* Player */}
+        {/* Player — prende quasi tutto lo schermo */}
         <PodcastPlayer podcast={podcast} />
+
+        {/* Divider */}
+        <View style={s.divider} />
 
         {/* Descrizione */}
         {!!podcast.description && (
-          <View style={s.descSection}>
-            <Text style={s.descLabel}>{t('podcast.descriptionPlaceholder').replace('...', '')}</Text>
+          <View style={s.section}>
+            <Text style={s.sectionLabel}>{t('podcast.descriptionPlaceholder').replace('...', '').trim()}</Text>
             <Text style={s.descTxt}>{podcast.description}</Text>
           </View>
         )}
 
         {/* Meta: autore, categoria, badge Scuola */}
         <View style={s.metaRow}>
-          <Text style={s.metaAuthor}>@{podcast.username}</Text>
+          <View style={s.authorTag}>
+            <Feather name="user" size={11} color={C.accent} />
+            <Text style={s.metaAuthor}>@{podcast.username}</Text>
+          </View>
           {podcast.isITS && (
             <View style={s.itsBadge}>
               <Text style={s.itsBadgeTxt}>{t('podcast.schoolBadge')}</Text>
@@ -165,29 +162,28 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
           ) : null}
         </View>
 
-        {/* Bottone Aggiungi a playlist */}
+        {/* Aggiungi a playlist */}
         <TouchableOpacity style={s.addBtn} onPress={openPlaylistModal} activeOpacity={0.8}>
+          <Feather name="plus" size={18} color={C.textOnAccent} />
           <Text style={s.addBtnTxt}>{t('playlist.addBtn')}</Text>
         </TouchableOpacity>
 
       </ScrollView>
 
-      {/* ── Modal "Aggiungi a playlist" ─────────────────────────────────── */}
+      {/* Modal playlist */}
       <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
           style={s.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={s.modalBox}>
-            {/* Handle */}
             <View style={s.modalHandle} />
             <Text style={s.modalTitle}>{t('podcast.podcastDetail.addToPlaylistTitle')}</Text>
 
             {loadingPlaylists ? (
-              <ActivityIndicator color="#00FF9C" style={{ marginVertical: 24 }} />
+              <ActivityIndicator color={C.accent} style={{ marginVertical: 24 }} />
             ) : (
               <>
-                {/* Lista playlist esistenti */}
                 {playlists.length > 0 ? (
                   <FlatList
                     data={playlists}
@@ -200,10 +196,10 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                         disabled={adding === item.id}
                         activeOpacity={0.8}
                       >
-                        <Text style={s.playlistRowIcon}>🎵</Text>
+                        <Feather name="music" size={16} color={C.accent} />
                         <Text style={s.playlistRowName} numberOfLines={1}>{item.name}</Text>
                         {adding === item.id
-                          ? <ActivityIndicator color="#00FF9C" size="small" />
+                          ? <ActivityIndicator color={C.accent} size="small" />
                           : <Text style={s.playlistRowCount}>{item.podcastIds.length} ep.</Text>
                         }
                       </TouchableOpacity>
@@ -214,13 +210,12 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                   <Text style={s.noPlaylistsTxt}>{t('podcast.podcastDetail.noPlaylists')}</Text>
                 )}
 
-                {/* Crea nuova playlist inline */}
                 {showNewPlaylist ? (
                   <View style={s.newPlaylistRow}>
                     <TextInput
                       style={s.newPlaylistInput}
                       placeholder={t('playlist.namePlaceholder')}
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
                       value={newName}
                       onChangeText={setNewName}
                       autoFocus
@@ -234,23 +229,20 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
                       disabled={!newName.trim() || creating}
                     >
                       {creating
-                        ? <ActivityIndicator color="#050508" size="small" />
-                        : <Text style={s.newPlaylistConfirmTxt}>✓</Text>
+                        ? <ActivityIndicator color={C.textOnAccent} size="small" />
+                        : <Feather name="check" size={18} color={C.textOnAccent} />
                       }
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    style={s.createNewBtn}
-                    onPress={() => setShowNewPlaylist(true)}
-                  >
+                  <TouchableOpacity style={s.createNewBtn} onPress={() => setShowNewPlaylist(true)}>
+                    <Feather name="plus" size={14} color={C.accent} />
                     <Text style={s.createNewTxt}>{t('playlist.newPlaylist')}</Text>
                   </TouchableOpacity>
                 )}
               </>
             )}
 
-            {/* Chiudi */}
             <TouchableOpacity
               style={s.modalCloseBtn}
               onPress={() => { setShowModal(false); setShowNewPlaylist(false); setNewName(''); }}
@@ -268,100 +260,106 @@ export default function PodcastDetailScreen({ podcastId, onBack }: Props) {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  backArrow: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  headerLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', letterSpacing: 2 },
+  headerLabel: {
+    fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: 2, fontWeight: '600',
+  },
 
-  scroll: { paddingBottom: 40, gap: 20 },
+  scroll: { paddingBottom: 48 },
+  divider: { height: 1, backgroundColor: C.border, marginHorizontal: 24, marginVertical: 4 },
 
-  // Descrizione
-  descSection: { paddingHorizontal: 24, gap: 6 },
-  descLabel: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 1 },
-  descTxt: { fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 21 },
+  // Sezione testo
+  section: { paddingHorizontal: 24, paddingVertical: 16, gap: 8 },
+  sectionLabel: { fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, fontWeight: '600' },
+  descTxt: { fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 22 },
 
   // Meta
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, flexWrap: 'wrap' },
-  metaAuthor: { fontSize: 12, color: '#00FF9C', fontFamily: 'monospace' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, flexWrap: 'wrap', marginBottom: 8 },
+  authorTag: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaAuthor: { fontSize: 12, color: C.accent, fontWeight: '600' },
   itsBadge: {
-    backgroundColor: 'rgba(0,255,156,0.15)', borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.4)', borderRadius: 5,
-    paddingHorizontal: 6, paddingVertical: 2,
+    backgroundColor: C.accentDim, borderWidth: 1,
+    borderColor: C.borderAccent, borderRadius: 6,
+    paddingHorizontal: 7, paddingVertical: 3,
   },
-  itsBadgeTxt: { fontSize: 9, fontWeight: '700', color: '#00FF9C', letterSpacing: 1, fontFamily: 'monospace' },
+  itsBadgeTxt: { fontSize: 9, fontWeight: '700', color: C.accent, letterSpacing: 1 },
   categoryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 5,
-    paddingHorizontal: 8, paddingVertical: 2,
+    backgroundColor: C.glass, borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: C.border,
   },
-  categoryTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  categoryTxt: { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 
-  // Bottone aggiungi
+  // Aggiungi a playlist
   addBtn: {
-    marginHorizontal: 24, paddingVertical: 14, borderRadius: 14,
-    backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.35)', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, marginHorizontal: 24, marginTop: 8,
+    paddingVertical: 15, borderRadius: 14,
+    backgroundColor: C.accent,
+    shadowColor: C.accent, shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 6,
   },
-  addBtnTxt: { color: '#00FF9C', fontSize: 15, fontWeight: '700' },
+  addBtnTxt: { color: C.textOnAccent, fontSize: 15, fontWeight: '700' },
 
   // Error
-  errorIcon: { fontSize: 36 },
-  errorTxt: { fontSize: 14, color: 'rgba(255,100,100,0.9)', textAlign: 'center' },
+  errorTxt: { fontSize: 14, color: 'rgba(255,100,100,0.9)', textAlign: 'center', lineHeight: 20 },
   backBtnFull: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.1)',
+    borderWidth: 1, borderColor: C.borderAccent, backgroundColor: C.accentDim,
   },
-  backBtnTxt: { color: '#00FF9C', fontSize: 13, fontWeight: '600' },
+  backBtnTxt: { color: C.accent, fontSize: 13, fontWeight: '600' },
 
   // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
   modalBox: {
-    backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, gap: 12, borderTopWidth: 1, borderColor: 'rgba(0,255,156,0.15)',
-    paddingBottom: 32,
+    backgroundColor: '#111115', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, gap: 12, paddingBottom: 36,
+    borderTopWidth: 1, borderColor: C.border,
   },
   modalHandle: {
     width: 36, height: 4, borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: 4,
   },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center' },
 
   playlistRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13,
   },
-  playlistRowIcon: { fontSize: 18 },
   playlistRowName: { flex: 1, fontSize: 14, color: '#fff', fontWeight: '500' },
-  playlistRowCount: { fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' },
-  separator: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
+  playlistRowCount: { fontSize: 11, color: 'rgba(255,255,255,0.3)' },
+  separator: { height: 1, backgroundColor: C.border },
 
-  noPlaylistsTxt: { fontSize: 13, color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingVertical: 16 },
+  noPlaylistsTxt: { fontSize: 13, color: 'rgba(255,255,255,0.3)', textAlign: 'center', paddingVertical: 16 },
 
   newPlaylistRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   newPlaylistInput: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10, color: '#fff', fontSize: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    flex: 1, backgroundColor: C.bgInput, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 14,
+    borderWidth: 1, borderColor: C.border,
   },
   newPlaylistConfirm: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 10,
+    backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
   },
-  newPlaylistConfirmTxt: { color: '#050508', fontSize: 16, fontWeight: '700' },
 
   createNewBtn: {
-    paddingVertical: 11, borderRadius: 10,
-    backgroundColor: 'rgba(0,255,156,0.08)', borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, borderRadius: 10,
+    backgroundColor: C.accentDim, borderWidth: 1, borderColor: C.borderAccent,
   },
-  createNewTxt: { color: '#00FF9C', fontSize: 13, fontWeight: '600' },
+  createNewTxt: { color: C.accent, fontSize: 13, fontWeight: '600' },
 
-  modalCloseBtn: { paddingVertical: 11, alignItems: 'center' },
-  modalCloseTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  modalCloseBtn: { paddingVertical: 12, alignItems: 'center' },
+  modalCloseTxt: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
 });

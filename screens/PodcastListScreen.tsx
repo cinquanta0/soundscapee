@@ -4,8 +4,10 @@ import {
   TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import PodcastCard from '../components/PodcastCard';
+import { C } from '../constants/design';
 import { getPodcasts, Podcast } from '../services/podcastService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,8 +32,6 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
@@ -49,26 +49,18 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Filtered lists ─────────────────────────────────────────────────────────
-  // I documenti vecchi (senza campo isITS) vengono trattati come isITS = false
-
   const effectiveTab: Tab = hideTabs ? 'scuola' : activeTab;
-
   const lista = effectiveTab === 'scuola'
     ? all.filter((p) => p.isITS === true)
     : all.filter((p) => !p.isITS);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <View style={s.root}>
-      <LinearGradient
-        colors={['#050508', '#0D0D1A', '#1A0A2E']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#0A0A0A', '#0D0D0D', '#0A0A0A']} style={StyleSheet.absoluteFill} />
 
+      {/* Tab selector */}
       {!hideTabs && (
-        <View style={s.tabs}>
+        <View style={s.tabsWrap}>
           <TouchableOpacity
             style={[s.tab, activeTab === 'tutti' && s.tabActive]}
             onPress={() => setActiveTab('tutti')}
@@ -90,17 +82,17 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
         </View>
       )}
 
-      {/* Loading iniziale */}
+      {/* Loading */}
       {loading && (
         <View style={s.centered}>
-          <ActivityIndicator color="#00FF9C" size="large" />
+          <ActivityIndicator color={C.accent} size="large" />
         </View>
       )}
 
-      {/* Errore */}
+      {/* Error */}
       {!loading && error && (
         <View style={s.centered}>
-          <Text style={s.errorIcon}>⚠️</Text>
+          <Feather name="alert-circle" size={36} color="rgba(255,100,100,0.6)" />
           <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity style={s.retryBtn} onPress={() => load()}>
             <Text style={s.retryTxt}>{t('common.ok')}</Text>
@@ -125,13 +117,13 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => load(true)}
-              tintColor="#00FF9C"
-              colors={['#00FF9C']}
+              tintColor={C.accent}
+              colors={[C.accent]}
             />
           }
           ListEmptyComponent={
             <View style={s.centered}>
-              <Text style={s.emptyIcon}>🎙</Text>
+              <Feather name="mic-off" size={40} color="rgba(255,255,255,0.15)" />
               <Text style={s.emptyTxt}>{t('podcast.empty')}</Text>
             </View>
           }
@@ -144,90 +136,38 @@ export default function PodcastListScreen({ onSelectPodcast, initialTab = 'tutti
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
 
-  // ── Tabs ──
-  tabs: {
+  tabsWrap: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 10,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 16, marginTop: 12, marginBottom: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10, padding: 3,
+    borderWidth: 1, borderColor: C.border,
   },
   tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
+    flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: 'rgba(0,255,156,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
+    backgroundColor: C.accentDim,
+    borderWidth: 1, borderColor: C.borderAccent,
   },
-  tabTxt: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.4)',
-  },
-  tabTxtActive: {
-    color: '#00FF9C',
-  },
+  tabTxt: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
+  tabTxtActive: { color: C.accent },
 
-  // ── States ──
   centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 32, gap: 14,
   },
-  emptyContainer: {
-    flexGrow: 1,
-  },
-  listContent: {
-    padding: 16,
-    gap: 12,
-  },
+  emptyContainer: { flexGrow: 1 },
+  listContent: { padding: 16, gap: 12 },
 
-  // ── Empty ──
-  emptyIcon: {
-    fontSize: 48,
-  },
-  emptyTxt: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.35)',
-    textAlign: 'center',
-  },
+  emptyTxt: { fontSize: 15, color: 'rgba(255,255,255,0.3)', textAlign: 'center' },
 
-  // ── Error ──
-  errorIcon: {
-    fontSize: 40,
-  },
-  errorTxt: {
-    fontSize: 14,
-    color: 'rgba(255,100,100,0.9)',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  errorTxt: { fontSize: 14, color: 'rgba(255,100,100,0.85)', textAlign: 'center', lineHeight: 20 },
   retryBtn: {
-    marginTop: 4,
-    paddingHorizontal: 20,
-    paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.4)',
-    backgroundColor: 'rgba(0,255,156,0.1)',
+    paddingHorizontal: 20, paddingVertical: 9, borderRadius: 20,
+    borderWidth: 1, borderColor: C.borderAccent, backgroundColor: C.accentDim,
   },
-  retryTxt: {
-    color: '#00FF9C',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  retryTxt: { color: C.accent, fontSize: 13, fontWeight: '600' },
 });
