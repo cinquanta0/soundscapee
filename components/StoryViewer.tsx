@@ -5,6 +5,7 @@ import {
   Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -398,7 +399,7 @@ export default function StoryViewer({
           )}
         </View>
         <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-          <Text style={styles.closeBtnText}>✕</Text>
+          <Feather name="x" size={16} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
       </View>
 
@@ -553,51 +554,46 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   storyAvatarSmall: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: '#00FF9C',
-    backgroundColor: '#0D0D1A',
+    backgroundColor: '#161616',
     alignItems: 'center',
     justifyContent: 'center',
   },
   storyAvatarEmoji: {
-    fontSize: 16,
+    fontSize: 17,
   },
   storyAuthorName: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
-    fontStyle: 'italic',
+    fontWeight: '700',
+    letterSpacing: -0.1,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   viewedWidget: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,255,156,0.2)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.45)',
+    borderColor: 'rgba(0,255,156,0.35)',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   viewedWidgetText: {
     color: '#00FF9C',
-    fontFamily: 'monospace',
     fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   tapZones: {
     position: 'absolute',
@@ -628,20 +624,19 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   screenTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    fontStyle: 'italic',
+    fontSize: 34,
+    fontWeight: '800',
     color: '#00FF9C',
     textAlign: 'center',
     marginBottom: 20,
-    letterSpacing: 0.5,
+    letterSpacing: -0.5,
+    lineHeight: 40,
   },
   screenBody: {
     fontSize: 18,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.75)',
     textAlign: 'center',
     lineHeight: 28,
-    fontFamily: 'monospace',
   },
   groupDots: {
     flexDirection: 'row',
@@ -667,10 +662,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   hintText: {
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.25)',
     fontSize: 10,
-    fontFamily: 'monospace',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    fontWeight: '500',
   },
   pauseOverlay: {
     position: 'absolute',
@@ -681,28 +676,27 @@ const styles = StyleSheet.create({
   },
   pauseIcon: {
     fontSize: 56,
-    opacity: 0.7,
+    opacity: 0.6,
   },
   audioIndicator: {
     marginTop: 24,
     alignItems: 'center',
-    backgroundColor: 'rgba(0,255,156,0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(0,255,156,0.09)',
+    borderRadius: 14,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
+    borderColor: 'rgba(0,255,156,0.25)',
   },
   audioWave: {
     color: '#00FF9C',
-    fontSize: 14,
-    fontFamily: 'monospace',
-    letterSpacing: 2,
+    fontSize: 13,
+    letterSpacing: 3,
+    fontWeight: '600',
   },
   audioDuration: {
-    color: 'rgba(0,255,156,0.6)',
+    color: 'rgba(0,255,156,0.5)',
     fontSize: 11,
-    fontFamily: 'monospace',
     marginTop: 4,
   },
   storyImage: {
@@ -722,17 +716,18 @@ const styles = StyleSheet.create({
   },
   replyToggle: {
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,255,156,0.15)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.35)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderColor: 'rgba(0,255,156,0.30)',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
   },
   replyToggleText: {
     color: '#00FF9C',
-    fontFamily: 'monospace',
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   deleteBtn: {
     alignSelf: 'center',

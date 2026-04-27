@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { C } from '../constants/design';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -10,6 +12,7 @@ interface Slide {
   icon: string;
   titleKey: string;
   subtitleKey: string;
+  featherIcon: string;
   color: string;
 }
 
@@ -18,19 +21,22 @@ const SLIDES: Slide[] = [
     icon: '🎓',
     titleKey: 'school.onboarding.slide1Title',
     subtitleKey: 'school.onboarding.slide1Subtitle',
+    featherIcon: 'award',
     color: '#F0A500',
   },
   {
     icon: '📋',
     titleKey: 'school.onboarding.slide2Title',
     subtitleKey: 'school.onboarding.slide2Subtitle',
+    featherIcon: 'clipboard',
     color: '#4D8BF5',
   },
   {
     icon: '🎤',
     titleKey: 'school.onboarding.slide3Title',
     subtitleKey: 'school.onboarding.slide3Subtitle',
-    color: '#00C97A',
+    featherIcon: 'mic',
+    color: C.accent,
   },
 ];
 
@@ -45,11 +51,11 @@ export default function SchoolOnboarding({ onComplete }: { onComplete: () => voi
       <View style={s.overlay}>
         <View style={s.card}>
 
-          {/* Top accent line */}
+          {/* Top accent bar */}
           <View style={[s.topAccent, { backgroundColor: slide.color }]} />
 
-          {/* Icon */}
-          <View style={[s.iconWrap, { borderColor: slide.color + '40', backgroundColor: slide.color + '15' }]}>
+          {/* Icon circle */}
+          <View style={[s.iconWrap, { borderColor: slide.color + '40', backgroundColor: slide.color + '12' }]}>
             <Text style={s.icon}>{slide.icon}</Text>
           </View>
 
@@ -62,7 +68,7 @@ export default function SchoolOnboarding({ onComplete }: { onComplete: () => voi
 
           {/* Progress dots */}
           <View style={s.dots}>
-            {SLIDES.map((_, i) => (
+            {SLIDES.map((sl, i) => (
               <View
                 key={i}
                 style={[
@@ -70,8 +76,8 @@ export default function SchoolOnboarding({ onComplete }: { onComplete: () => voi
                   i === current
                     ? { backgroundColor: slide.color, width: 22 }
                     : i < current
-                      ? { backgroundColor: slide.color + '60', width: 8 }
-                      : { backgroundColor: 'rgba(255,255,255,0.12)', width: 8 },
+                      ? { backgroundColor: slide.color + '55', width: 8 }
+                      : { backgroundColor: C.glassMid, width: 8 },
                 ]}
               />
             ))}
@@ -79,15 +85,22 @@ export default function SchoolOnboarding({ onComplete }: { onComplete: () => voi
 
           {/* Actions */}
           <View style={s.actions}>
-            {!isLast ? (
+            {!isLast && (
               <TouchableOpacity onPress={onComplete} style={s.skipBtn}>
                 <Text style={s.skipTxt}>{t('school.onboarding.skip')}</Text>
               </TouchableOpacity>
-            ) : null}
+            )}
             <TouchableOpacity
               style={[s.nextBtn, { backgroundColor: slide.color }]}
               onPress={() => isLast ? onComplete() : setCurrent(c => c + 1)}
+              activeOpacity={0.85}
             >
+              <Feather
+                name={isLast ? 'check' : 'arrow-right'}
+                size={16}
+                color="#050508"
+                style={{ marginRight: 4 }}
+              />
               <Text style={s.nextTxt}>
                 {isLast ? t('school.onboarding.start') : t('school.onboarding.next')}
               </Text>
@@ -103,16 +116,16 @@ export default function SchoolOnboarding({ onComplete }: { onComplete: () => voi
 const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(4,8,18,0.94)',
+    backgroundColor: 'rgba(0,0,0,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#0F1F35',
-    borderRadius: 20,
+    backgroundColor: C.bgCard,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#1A2D4A',
+    borderColor: C.borderStrong,
     width: Math.min(SW - 48, 380),
     alignItems: 'center',
     overflow: 'hidden',
@@ -122,42 +135,41 @@ const s = StyleSheet.create({
     height: 3,
     width: '100%',
     marginBottom: 28,
-    opacity: 0.8,
   },
   iconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   icon: { fontSize: 40 },
   stepLabel: {
     color: 'rgba(255,255,255,0.2)',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 10,
   },
   title: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '800',
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: -0.3,
     paddingHorizontal: 20,
-    lineHeight: 26,
+    lineHeight: 27,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.45)',
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 28,
-    marginBottom: 20,
+    marginBottom: 22,
   },
   dots: {
     flexDirection: 'row',
@@ -177,7 +189,7 @@ const s = StyleSheet.create({
   },
   skipBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   skipTxt: {
     color: 'rgba(255,255,255,0.3)',
@@ -186,12 +198,15 @@ const s = StyleSheet.create({
   },
   nextBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: 12,
+    gap: 4,
   },
   nextTxt: {
-    color: '#060400',
+    color: '#050508',
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.2,
