@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 20,
@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
   optionSelected: { backgroundColor: 'rgba(6, 182, 212, 0.12)' },
   optionFlag: { fontSize: 22 },
   optionLabel: { flex: 1, color: '#e2e8f0', fontSize: 16 },
-  optionLabelSelected: { color: '#06b6d4', fontWeight: '600' },
-  check: { color: '#06b6d4', fontSize: 16, fontWeight: '700' },
+  optionLabelSelected: { color: '#00FF9C', fontWeight: '600' },
+  check: { color: '#00FF9C', fontSize: 16, fontWeight: '700' },
 });

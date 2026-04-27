@@ -197,7 +197,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#00FF9C" />
       </View>
     );
   }
@@ -206,7 +206,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
     <View style={styles.container}>
       {/* Stats Card */}
       {stats && (
-        <LinearGradient colors={['#0891b2', '#3b82f6']} style={styles.statsCard}>
+        <LinearGradient colors={['#00FF9C', '#3b82f6']} style={styles.statsCard}>
           <Text style={styles.statsTitle}>📊 Le Tue Stats Remix</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
@@ -356,7 +356,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
               <View style={styles.detailsStats}>
                 <View style={styles.detailsStat}>
-                  <Feather name="play-circle" size={20} color="#06b6d4" style={{ marginBottom: 4 }} />
+                  <Feather name="play-circle" size={20} color="#00FF9C" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.plays || 0}</Text>
                 </View>
                 <View style={styles.detailsStat}>
@@ -394,7 +394,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
       activeOpacity={0.8}
     >
       <LinearGradient
-        colors={isPlaying ? ['#0e4f66', '#1e6fa0'] : ['#1e293b', '#334155']}
+        colors={isPlaying ? ['#0e4f66', '#1e6fa0'] : ['#161616', 'rgba(255,255,255,0.08)']}
         style={styles.remixCardGradient}
       >
         <View style={styles.remixCardHeader}>
@@ -434,7 +434,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
 
         <View style={styles.remixCardStats}>
           <View style={styles.remixCardStat}>
-            <Feather name="play-circle" size={12} color="#06b6d4" />
+            <Feather name="play-circle" size={12} color="#00FF9C" />
             <Text style={styles.remixCardStatText}>{remix.plays || 0}</Text>
           </View>
           <View style={styles.remixCardStat}>
@@ -471,14 +471,14 @@ const styles = StyleSheet.create({
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  createButton: { backgroundColor: '#0891b2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  createButton: { backgroundColor: '#00FF9C', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   createButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 
-  emptyState: { backgroundColor: '#1e293b', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+  emptyState: { backgroundColor: '#161616', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontSize: 16, color: '#94a3b8', marginBottom: 4 },
   emptySubtext: { fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 20 },
-  emptyButton: { backgroundColor: '#0891b2', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+  emptyButton: { backgroundColor: '#00FF9C', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
   emptyButtonText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 
   remixScroll: { marginBottom: 16 },
@@ -487,10 +487,10 @@ const styles = StyleSheet.create({
   remixCardSelected: { transform: [{ scale: 1.05 }] },
   remixCardGradient: { padding: 16, minHeight: 200 },
   remixCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  remixPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0891b2', justifyContent: 'center', alignItems: 'center' },
+  remixPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00FF9C', justifyContent: 'center', alignItems: 'center' },
   remixPlayBtnActive: { backgroundColor: '#ef4444' },
   remixPlayIcon: { fontSize: 16, color: '#fff' },
-  remixIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#334155', justifyContent: 'center', alignItems: 'center' },
+  remixIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
   remixIcon: { fontSize: 20 },
   remixDeleteButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
   remixDeleteIcon: { fontSize: 12 },
@@ -505,26 +505,26 @@ const styles = StyleSheet.create({
   remixStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
   remixStatusText: { fontSize: 10, color: '#64748b' },
 
-  detailsCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155' },
+  detailsCard: { backgroundColor: '#161616', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   detailsTitle: { fontSize: 18, fontWeight: '700', color: '#fff', flex: 1 },
   detailsClose: { fontSize: 20, color: '#94a3b8' },
 
-  playerBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f172a', borderRadius: 12, padding: 12, marginBottom: 12, gap: 12 },
-  playerPlayBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0891b2', justifyContent: 'center', alignItems: 'center' },
+  playerBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A0A0A', borderRadius: 12, padding: 12, marginBottom: 12, gap: 12 },
+  playerPlayBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#00FF9C', justifyContent: 'center', alignItems: 'center' },
   playerPlayIcon: { fontSize: 20 },
   playerProgress: { flex: 1 },
-  playerProgressBg: { height: 4, backgroundColor: '#334155', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
-  playerProgressFill: { height: '100%', backgroundColor: '#06b6d4', borderRadius: 2 },
+  playerProgressBg: { height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
+  playerProgressFill: { height: '100%', backgroundColor: '#00FF9C', borderRadius: 2 },
   playerTimes: { flexDirection: 'row', justifyContent: 'space-between' },
   playerTime: { fontSize: 11, color: '#64748b' },
 
   detailsDescription: { fontSize: 13, color: '#cbd5e1', marginBottom: 16 },
-  detailsInfo: { backgroundColor: '#0f172a', borderRadius: 12, padding: 12, marginBottom: 12 },
+  detailsInfo: { backgroundColor: '#0A0A0A', borderRadius: 12, padding: 12, marginBottom: 12 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
   infoLabel: { fontSize: 13, color: '#94a3b8' },
   infoValue: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  detailsStats: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12, paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#334155' },
+  detailsStats: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12, paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   detailsStat: { alignItems: 'center' },
   detailsStatIcon: { fontSize: 20, marginBottom: 4 },
   detailsStatNumber: { fontSize: 16, fontWeight: '700', color: '#fff' },

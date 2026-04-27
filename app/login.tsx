@@ -21,6 +21,7 @@ import {
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { useRouter } from 'expo-router';
+import { C, T, S, R } from '../constants/design';
 import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen() {
@@ -102,7 +103,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={styles.content}>
         {/* Logo */}
@@ -218,126 +219,129 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bg,
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: S.xxl,
     justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: S.huge,
   },
   logo: {
     fontSize: 80,
-    marginBottom: 16,
+    marginBottom: S.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 8,
+    ...T.displayL,
+    color: C.textPrimary,
+    marginBottom: S.sm,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#94a3b8',
+    ...T.bodyL,
+    color: C.textSecondary,
     textAlign: 'center',
   },
   form: {
-    marginBottom: 24,
+    marginBottom: S.xxl,
   },
   input: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    backgroundColor: C.bgInput,
+    borderRadius: R.sm,
+    paddingHorizontal: S.lg,
     paddingVertical: 14,
-    color: '#fff',
+    color: C.textPrimary,
     fontSize: 16,
-    marginBottom: 12,
+    marginBottom: S.md,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   primaryButton: {
-    backgroundColor: '#0891b2',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: C.accent,
+    borderRadius: R.sm,
+    paddingVertical: S.lg,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: S.sm,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...T.body,
+    color: C.textOnAccent,
+    fontWeight: '700',
   },
   switchText: {
-    color: '#06b6d4',
-    fontSize: 14,
+    ...T.body,
+    color: C.accent,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: S.lg,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: S.xxl,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: C.border,
   },
   dividerText: {
-    color: '#64748b',
-    fontSize: 12,
-    paddingHorizontal: 16,
+    ...T.label,
+    color: C.textMuted,
+    paddingHorizontal: S.lg,
     fontWeight: '600',
   },
   anonymousButton: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: C.glass,
+    borderRadius: R.sm,
+    paddingVertical: S.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: C.borderStrong,
   },
   anonymousButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    ...T.body,
+    color: C.textPrimary,
     fontWeight: '600',
   },
   infoText: {
-    color: '#64748b',
-    fontSize: 12,
+    ...T.label,
+    color: C.textMuted,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: S.xxl,
     lineHeight: 18,
   },
   forgotLink: {
-    color: '#06b6d4',
-    fontSize: 13,
+    ...T.bodyS,
+    color: C.accent,
     textAlign: 'right',
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: S.xs,
+    marginBottom: S.sm,
   },
   forgotDesc: {
-    color: '#94a3b8',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
+    ...T.body,
+    color: C.textSecondary,
+    marginBottom: S.lg,
     textAlign: 'center',
   },
   successBox: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    backgroundColor: C.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: C.borderAccent,
+    borderRadius: R.sm,
+    padding: S.md,
+    marginBottom: S.lg,
   },
   successText: {
-    color: '#4ade80',
-    fontSize: 14,
-    lineHeight: 20,
+    ...T.body,
+    color: C.accent,
     textAlign: 'center',
   },
 });

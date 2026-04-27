@@ -88,11 +88,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 4,
     marginBottom: 8,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 12,
     padding: 3,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
     gap: 3,
   },
   tab: {

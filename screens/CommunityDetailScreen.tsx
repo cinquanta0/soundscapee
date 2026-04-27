@@ -339,7 +339,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
 
       {/* Modal profilo membro */}
       {selectedMember && (
@@ -419,7 +419,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
           )}
 
           {loading ? (
-            <View style={s.center}><ActivityIndicator color="#06b6d4" /></View>
+            <View style={s.center}><ActivityIndicator color="#00FF9C" /></View>
           ) : (
             <FlatList
               ref={chatListRef}
@@ -547,7 +547,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
 // ─── Stili ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
+  container: { flex: 1, backgroundColor: '#0A0A0A' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 15, fontWeight: '600' },
   emptySubTxt: { color: 'rgba(255,255,255,0.25)', fontSize: 12, marginTop: 4 },
@@ -566,15 +566,15 @@ const s = StyleSheet.create({
   // Tabs
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#06b6d4' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#00FF9C' },
   tabTxt: { color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: '600' },
-  tabTxtActive: { color: '#06b6d4' },
+  tabTxtActive: { color: '#00FF9C' },
   tabBadge: { backgroundColor: '#FF3B30', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabBadgeTxt: { color: '#fff', fontSize: 9, fontWeight: '700' },
 
   // Pinned
-  pinnedBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(6,182,212,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(6,182,212,0.2)', gap: 8 },
-  pinnedLabel: { color: '#06b6d4', fontSize: 11, fontWeight: '700' },
+  pinnedBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(0,255,156,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.2)', gap: 8 },
+  pinnedLabel: { color: '#00FF9C', fontSize: 11, fontWeight: '700' },
   pinnedCaption: { flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: 11 },
 
   // Bubbles
@@ -582,27 +582,27 @@ const s = StyleSheet.create({
   bubbleRowMe: { flexDirection: 'row-reverse' },
   bubbleAvatar: { fontSize: 22, marginBottom: 4 },
   bubble: { maxWidth: '78%', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 16, borderBottomLeftRadius: 4, padding: 10 },
-  bubbleMe: { backgroundColor: 'rgba(6,182,212,0.18)', borderBottomLeftRadius: 16, borderBottomRightRadius: 4 },
-  bubbleSender: { color: '#06b6d4', fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  bubbleMe: { backgroundColor: 'rgba(0,255,156,0.18)', borderBottomLeftRadius: 16, borderBottomRightRadius: 4 },
+  bubbleSender: { color: '#00FF9C', fontSize: 11, fontWeight: '700', marginBottom: 4 },
   bubbleTime: { color: 'rgba(255,255,255,0.25)', fontSize: 9, marginTop: 4, textAlign: 'right' },
   caption: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 4 },
 
   // Player
   player: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 160 },
-  playBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(6,182,212,0.25)', alignItems: 'center', justifyContent: 'center' },
+  playBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
   playIcon: { fontSize: 14 },
   waveBar: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' },
-  waveProgress: { height: 4, backgroundColor: '#06b6d4', borderRadius: 2 },
+  waveProgress: { height: 4, backgroundColor: '#00FF9C', borderRadius: 2 },
   durationTxt: { color: 'rgba(255,255,255,0.45)', fontSize: 10, minWidth: 30, textAlign: 'right' },
 
   // Reactions
   reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
   reactionChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: 'transparent' },
-  reactionChipActive: { borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.15)' },
+  reactionChipActive: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.12)' },
   reactionChipTxt: { fontSize: 11, color: '#fff' },
 
   // Reaction menu
-  reactionMenu: { position: 'absolute', bottom: '100%', left: 44, backgroundColor: '#1e293b', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, elevation: 8, zIndex: 99 },
+  reactionMenu: { position: 'absolute', bottom: '100%', left: 44, backgroundColor: '#161616', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, elevation: 8, zIndex: 99 },
   reactionMenuMe: { left: undefined, right: 0 },
   reactionMenuEmojis: { flexDirection: 'row', gap: 6, marginBottom: 8 },
   reactionMenuEmoji: { padding: 4 },
@@ -612,17 +612,17 @@ const s = StyleSheet.create({
   actionBtnTxt: { color: '#fff', fontSize: 12 },
 
   // Input bar
-  inputBar: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', padding: 12, gap: 8, backgroundColor: '#0f172a' },
+  inputBar: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', padding: 12, gap: 8, backgroundColor: '#0A0A0A' },
   captionInput: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, color: '#fff', fontSize: 13 },
   recorderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  micBtn: { flex: 1, backgroundColor: 'rgba(6,182,212,0.15)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(6,182,212,0.3)' },
-  micIcon: { color: '#06b6d4', fontSize: 14, fontWeight: '600' },
+  micBtn: { flex: 1, backgroundColor: 'rgba(0,255,156,0.12)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
+  micIcon: { color: '#00FF9C', fontSize: 14, fontWeight: '600' },
   recIndicator: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   recDot: { color: '#FF3B30', fontSize: 16 },
   recTime: { color: '#fff', fontSize: 14, fontWeight: '600', fontFamily: 'monospace' },
   discardBtn: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
   discardTxt: { color: '#FF3B30', fontSize: 12, fontWeight: '600' },
-  sendBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#06b6d4' },
+  sendBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#00FF9C' },
   sendBtnDisabled: { opacity: 0.5 },
   sendTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
   notMemberBar: { padding: 14, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
@@ -636,15 +636,15 @@ const s = StyleSheet.create({
   memberJoined: { color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.07)' },
   roleBadgeAdmin: { backgroundColor: 'rgba(255,215,0,0.15)' },
-  roleBadgeMod: { backgroundColor: 'rgba(6,182,212,0.15)' },
+  roleBadgeMod: { backgroundColor: 'rgba(0,255,156,0.12)' },
   roleTxt: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
 
   // Member profile modal
   profileOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
-  profileCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 24, width: '80%', alignItems: 'stretch', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  profileCard: { backgroundColor: '#161616', borderRadius: 20, padding: 24, width: '80%', alignItems: 'stretch', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   profileName: { fontSize: 20, fontWeight: '700', color: '#f8fafc', textAlign: 'center', marginBottom: 8 },
-  adminActionsBtn: { backgroundColor: 'rgba(6,182,212,0.15)', borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(6,182,212,0.3)' },
-  adminActionsTxt: { color: '#06b6d4', fontWeight: '600' },
+  adminActionsBtn: { backgroundColor: 'rgba(0,255,156,0.12)', borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
+  adminActionsTxt: { color: '#00FF9C', fontWeight: '600' },
 
   // Requests
   requestRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },

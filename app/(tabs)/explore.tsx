@@ -24,6 +24,7 @@ import {
     View,
 } from 'react-native';
 import { auth, db } from '../../firebaseConfig';
+import { C, T, S, R } from '../../constants/design';
 import BattleScreen from '../../screens/BattleScreen';
 import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
@@ -374,7 +375,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
           </View>
           {usersLoading ? (
             <View style={styles.center}>
-              <ActivityIndicator size="large" color="#06b6d4" />
+              <ActivityIndicator size="large" color={C.accent} />
             </View>
           ) : !userSearchText.trim() ? (
             <View style={styles.center}>
@@ -409,7 +410,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
                       <Text style={styles.userBio} numberOfLines={1}>{u.bio}</Text>
                     ) : null}
                   </View>
-                  <Feather name="chevron-right" size={18} color="#334155" />
+                  <Feather name="chevron-right" size={18} color={C.textMuted} />
                 </TouchableOpacity>
               )}
             />
@@ -558,7 +559,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       {/* Results */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#06b6d4" />
+          <ActivityIndicator size="large" color={C.accent} />
         </View>
       ) : sounds.length === 0 ? (
         <View style={styles.center}>
@@ -583,138 +584,139 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bg,
   },
   subTabs: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 12,
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    marginHorizontal: S.lg,
+    marginTop: S.md,
+    marginBottom: S.md,
+    backgroundColor: C.bgCard,
+    borderRadius: R.sm,
     padding: 3,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   subTab: {
     flex: 1,
     paddingVertical: 6,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: R.xs,
   },
   subTabActive: {
-    backgroundColor: 'rgba(0,255,156,0.12)',
+    backgroundColor: C.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
+    borderColor: C.borderAccent,
   },
   subTabTxt: {
-    fontSize: 11,
-    color: '#475569',
-    fontFamily: 'monospace',
+    ...T.labelS,
+    color: C.textMuted,
     fontWeight: '600',
   },
   subTabTxtActive: {
-    color: '#00FF9C',
+    color: C.accent,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    marginHorizontal: 16,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    backgroundColor: C.bgCard,
+    marginHorizontal: S.lg,
+    borderRadius: R.md,
+    paddingHorizontal: S.md,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#334155',
-    gap: 10,
+    borderColor: C.border,
+    gap: S.sm + 2,
   },
   searchIcon: {
     fontSize: 16,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: C.textPrimary,
     fontSize: 15,
   },
   clearBtn: {
-    color: '#64748b',
+    color: C.textMuted,
     fontSize: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: S.xs,
   },
   moodList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.md,
+    gap: S.sm,
   },
   moodChip: {
-    paddingHorizontal: 16,
+    paddingHorizontal: S.lg,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#1e293b',
+    borderRadius: R.full,
+    backgroundColor: C.bgCard,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginRight: 8,
+    borderColor: C.border,
+    marginRight: S.sm,
   },
   moodChipActive: {
-    backgroundColor: '#06b6d4',
-    borderColor: '#06b6d4',
+    backgroundColor: C.accentDim,
+    borderColor: C.borderAccent,
   },
   moodChipText: {
-    color: '#94a3b8',
-    fontSize: 13,
+    ...T.bodyS,
+    color: C.textSecondary,
     fontWeight: '600',
   },
   moodChipTextActive: {
-    color: '#fff',
+    color: C.accent,
   },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
+    paddingHorizontal: S.lg,
+    paddingBottom: S.md,
+    gap: S.sm,
   },
   sortLabel: {
-    color: '#64748b',
+    color: C.textMuted,
     fontSize: 13,
-    marginRight: 4,
+    marginRight: S.xs,
   },
   sortBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: S.md,
     paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: '#1e293b',
+    borderRadius: R.sm,
+    backgroundColor: C.bgCard,
   },
   sortBtnActive: {
-    backgroundColor: '#334155',
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
   },
   sortBtnText: {
-    color: '#64748b',
+    color: C.textMuted,
     fontSize: 12,
     fontWeight: '600',
   },
   sortBtnTextActive: {
-    color: '#fff',
+    color: C.textPrimary,
   },
   list: {
-    paddingHorizontal: 16,
+    paddingHorizontal: S.lg,
     paddingBottom: 100,
   },
   soundCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: C.bgCard,
+    borderRadius: R.md,
+    padding: S.md,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   soundCardLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: S.md,
   },
   moodDot: {
     width: 10,
@@ -725,38 +727,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   soundTitle: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    ...T.h4,
+    color: C.textPrimary,
     marginBottom: 3,
   },
   soundMeta: {
-    color: '#94a3b8',
-    fontSize: 12,
+    ...T.bodyS,
+    color: C.textSecondary,
     marginBottom: 5,
   },
   soundStats: {
     flexDirection: 'row',
-    gap: 12,
+    gap: S.md,
   },
   statText: {
-    color: '#64748b',
-    fontSize: 12,
+    ...T.label,
+    color: C.textMuted,
   },
   playBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: '#06b6d4',
+    borderRadius: R.full,
+    backgroundColor: C.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
   },
   playBtnActive: {
-    backgroundColor: '#f97316',
+    backgroundColor: C.warning,
   },
   playBtnText: {
-    color: '#fff',
+    color: C.textOnAccent,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -767,52 +768,50 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: S.md,
   },
   emptyText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 6,
+    ...T.h2,
+    color: C.textPrimary,
+    marginBottom: S.sm - 2,
   },
   emptySubtext: {
-    color: '#64748b',
-    fontSize: 14,
+    ...T.body,
+    color: C.textMuted,
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: S.xxxl,
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: C.bgCard,
+    borderRadius: R.lg,
+    padding: S.md,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   userAvatarWrap: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: '#0f172a',
+    borderRadius: R.full,
+    backgroundColor: C.bg,
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: C.borderStrong,
     justifyContent: 'center',
     alignItems: 'center',
   },
   userUsername: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    ...T.h4,
+    color: C.textPrimary,
   },
   userBio: {
-    color: '#94a3b8',
-    fontSize: 12,
+    ...T.bodyS,
+    color: C.textSecondary,
     marginTop: 2,
   },
   userStat: {
-    color: '#64748b',
-    fontSize: 12,
+    ...T.label,
+    color: C.textMuted,
   },
 });

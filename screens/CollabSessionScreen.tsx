@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { auth } from '../firebaseConfig';
+import { C, S, R } from '../constants/design';
 import {
   CollabSession, CollabMode,
   listenToSession, acceptCollab, rejectCollab, cancelCollab,
@@ -284,7 +285,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   if (session?.status === 'pending' && !isHost) {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <Text style={s.inviteEmoji}>{session.hostAvatar}</Text>
           <Text style={s.inviteTitle}>{session.hostName}</Text>
@@ -313,7 +314,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   if (session?.status === 'rejected' || session?.status === 'cancelled') {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>{session.status === 'rejected' ? '😔' : '❌'}</Text>
           <Text style={s.inviteTitle}>{session.status === 'rejected' ? `${otherName} ha rifiutato` : 'Sessione annullata'}</Text>
@@ -327,7 +328,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
     // Host in attesa che il guest risponda
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <ActivityIndicator color="#a855f7" size="large" style={{ marginBottom: 16 }} />
           <Text style={s.inviteTitle}>In attesa di {session?.guestName ?? '…'}</Text>
@@ -352,7 +353,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={s.header}>
@@ -388,7 +389,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
           <Text style={s.participantAvatar}>{session.guestAvatar}</Text>
           <Text style={s.participantName}>{session.guestName}</Text>
           <Text style={s.participantRole}>Guest</Text>
-          <PulseWave active={isRecording && !isHost} color="#06b6d4" />
+          <PulseWave active={isRecording && !isHost} color="#00FF9C" />
           {session.guestTrackUrl && <Text style={s.trackDone}>✓ Traccia pronta</Text>}
         </View>
       </View>
@@ -484,7 +485,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 
 // ─── Stili ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#0f172a' },
+  overlay: { flex: 1, backgroundColor: C.bg },
 
   // Invite
   inviteCard: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
@@ -534,21 +535,21 @@ const s = StyleSheet.create({
   recBtnIcon: { fontSize: 28 },
   recBtnLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600' },
 
-  actionBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(6,182,212,0.15)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.3)' },
-  actionBtnTxt: { color: '#06b6d4', fontWeight: '700' },
+  actionBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, backgroundColor: C.accentDim, borderWidth: 1, borderColor: C.borderAccent },
+  actionBtnTxt: { color: C.accent, fontWeight: '700' },
   mixBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: '#a855f7' },
   mixBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   // Publish modal
   publishOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  publishCard: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
+  publishCard: { backgroundColor: C.bgCard, borderTopLeftRadius: R.xxl, borderTopRightRadius: R.xxl, padding: S.xxl, gap: S.lg, borderTopWidth: 1, borderColor: C.borderStrong },
   publishTitle: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' },
   previewBtn: { backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
   previewBtnTxt: { color: '#a855f7', fontWeight: '700' },
-  titleInput: { backgroundColor: '#334155', borderRadius: 12, padding: 12, color: '#fff', fontSize: 15 },
+  titleInput: { backgroundColor: C.bgInput, borderRadius: R.sm, borderWidth: 1, borderColor: C.border, padding: S.md, color: '#fff', fontSize: 15 },
   publishHint: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' },
   publishActions: { flexDirection: 'row', gap: 12 },
-  publishCancel: { flex: 1, backgroundColor: '#334155', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  publishCancel: { flex: 1, backgroundColor: C.glass, borderWidth: 1, borderColor: C.border, borderRadius: R.sm, paddingVertical: 14, alignItems: 'center' },
   publishCancelTxt: { color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
   publishBtn: { flex: 2, backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   publishBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },

@@ -230,7 +230,7 @@ const s = StyleSheet.create({
   // Player bottom sheet
   playerWrap: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: 'rgba(0,255,156,0.2)',
     paddingBottom: 16,

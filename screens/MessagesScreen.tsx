@@ -243,14 +243,14 @@ const nm = StyleSheet.create({
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 300 },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 18 },
   title: { color: '#fff', fontSize: 18, fontStyle: 'italic', fontWeight: '600', marginBottom: 14 },
-  input: { backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#334155', marginBottom: 10, fontFamily: 'monospace' },
+  input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 10 },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   resultAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A0A2E', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', alignItems: 'center', justifyContent: 'center' },
   resultAvatarTxt: { color: '#A855F7', fontSize: 16, fontStyle: 'italic' },
   resultName: { color: '#fff', fontSize: 14, fontWeight: '500' },
   resultUser: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontFamily: 'monospace' },
-  cancelBtn: { marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: '#1e293b', alignItems: 'center' },
-  cancelTxt: { color: '#94a3b8', fontSize: 14 },
+  cancelBtn: { marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
+  cancelTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
 });
 
 const ms = StyleSheet.create({

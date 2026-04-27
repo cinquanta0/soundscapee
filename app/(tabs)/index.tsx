@@ -128,7 +128,7 @@ import { useUpdates } from 'expo-updates';
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
-const AVATAR_COLORS = ['#06b6d4','#8b5cf6','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#3b82f6'];
+const AVATAR_COLORS = ['#00FF9C','#8b5cf6','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#3b82f6'];
 
 function getAvatarColor(str: string): string {
   let hash = 0;
@@ -174,17 +174,17 @@ function AppAvatar({ avatar, username, size = 36 }: { avatar?: string; username?
 // ─── Profile themes ──────────────────────────────────────────────────────────
 
 const PROFILE_THEMES = [
-  { id: 'default',  name: 'Default',     colors: ['#1e293b', '#0f172a'] as const },
+  { id: 'default',  name: 'Default',     colors: ['#161616', '#0A0A0A'] as const },
   { id: 'neon',     name: 'Neon Night',  colors: ['#0d0221', '#4a0080', '#00ff9c'] as const },
   { id: 'sunset',   name: 'Sunset',      colors: ['#7c2d12', '#c2410c', '#ec4899'] as const },
-  { id: 'ocean',    name: 'Ocean',       colors: ['#164e63', '#0891b2', '#06b6d4'] as const },
+  { id: 'ocean',    name: 'Ocean',       colors: ['#164e63', '#00FF9C', '#00FF9C'] as const },
   { id: 'aurora',   name: 'Aurora',      colors: ['#064e3b', '#1e3a5f', '#4c1d95'] as const },
   { id: 'fire',     name: 'Fire',        colors: ['#7f1d1d', '#c2410c', '#f59e0b'] as const },
   { id: 'galaxy',   name: 'Galaxy',      colors: ['#0f0728', '#312e81', '#6d28d9'] as const },
   { id: 'gold',     name: 'Gold',        colors: ['#422006', '#92400e', '#d97706'] as const },
   { id: 'rose',     name: 'Rose',        colors: ['#4c0519', '#9f1239', '#e11d48'] as const },
   { id: 'matrix',   name: 'Matrix',      colors: ['#001a00', '#052e16', '#16a34a'] as const },
-  { id: 'midnight', name: 'Midnight',    colors: ['#0f172a', '#1e1b4b', '#312e81'] as const },
+  { id: 'midnight', name: 'Midnight',    colors: ['#0A0A0A', '#1e1b4b', '#312e81'] as const },
   { id: 'cherry',   name: 'Cherry',      colors: ['#1a0010', '#831843', '#db2777'] as const },
 ];
 
@@ -1514,8 +1514,8 @@ const handleNotificationNavigation = async (data: any) => {
 if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <LinearGradient colors={['#0A0A0A', '#111111', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color="#00FF9C" />
         <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
@@ -1526,7 +1526,7 @@ if (loading) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#161616', '#0A0A0A']} style={StyleSheet.absoluteFill} />
       <Modal visible={showOnboarding} animationType="fade" statusBarTranslucent>
         <OnboardingScreen onComplete={() => setShowOnboarding(false)} />
       </Modal>
@@ -1577,7 +1577,7 @@ if (loading) {
           <View style={styles.content}>
             {/* Quick Record */}
             <LinearGradient
-              colors={['#0891b2', '#3b82f6']}
+              colors={['#003D25', '#001A10']}
               style={styles.recordCard}
             >
               <Feather name="mic" size={32} color="rgba(255,255,255,0.9)" style={{ marginBottom: 12 }} />
@@ -1628,7 +1628,7 @@ if (loading) {
                   key={mood}
                   style={[
                     styles.filterChip,
-                    { backgroundColor: filterMood === mood ? getMoodColor(mood) : '#334155' },
+                    { backgroundColor: filterMood === mood ? getMoodColor(mood) : 'rgba(255,255,255,0.08)' },
                   ]}
                   onPress={() => setFilterMood(mood)}
                 >
@@ -1711,7 +1711,7 @@ if (loading) {
                       <Feather
                         name={playingId === post.id ? 'pause' : 'play'}
                         size={20}
-                        color="#fff"
+                        color="#001A0D"
                       />
                     </TouchableOpacity>
                     <View style={styles.progressBar}>
@@ -1802,7 +1802,7 @@ if (loading) {
 
     {activeTab === 'profile' && !userProfile && (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#00FF9C" />
       </View>
     )}
 
@@ -1869,7 +1869,7 @@ if (loading) {
           )}
           {friendStatus === 'pending_sent' && (
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { backgroundColor: '#334155' }, loadingFriend && { opacity: 0.5 }]}
+              style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(255,255,255,0.08)' }, loadingFriend && { opacity: 0.5 }]}
               onPress={() => handleFriendAction('cancel')}
               disabled={loadingFriend}
             >
@@ -1958,7 +1958,7 @@ if (loading) {
             <Text style={styles.profileButtonPrimaryText}>{t('profile.edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#334155' }]}
+            style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }]}
             onPress={() => Alert.alert(t('common.info'), t('profile.featureComingSoon'))}
           >
             <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
@@ -2025,7 +2025,7 @@ if (loading) {
   <View style={styles.content}>
     {loadingRemixSounds ? (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#00FF9C" />
         <Text style={styles.loadingText}>{t('home.loadingSounds')}</Text>
       </View>
     ) : (
@@ -2149,7 +2149,7 @@ if (loading) {
                   key={mood}
                   style={[
                     styles.moodOption,
-                    { backgroundColor: newSoundMood === mood ? getMoodColor(mood) : '#334155' },
+                    { backgroundColor: newSoundMood === mood ? getMoodColor(mood) : 'rgba(255,255,255,0.08)' },
                   ]}
                   onPress={() => setNewSoundMood(mood)}
                   disabled={uploading}
@@ -2172,7 +2172,7 @@ if (loading) {
       <TouchableOpacity
         style={[
           styles.challengeChip, 
-          !selectedChallengeForSubmit && { backgroundColor: '#334155' }
+          !selectedChallengeForSubmit && { backgroundColor: 'rgba(255,255,255,0.08)' }
         ]}
         onPress={() => setSelectedChallengeForSubmit(null)}
         disabled={uploading}
@@ -2185,9 +2185,9 @@ if (loading) {
           style={[
             styles.challengeChip,
             selectedChallengeForSubmit?.id === ch.id && { 
-              backgroundColor: '#0891b2',
+              backgroundColor: '#00FF9C',
               borderWidth: 2,
-              borderColor: '#06b6d4'
+              borderColor: '#00FF9C'
             }
           ]}
           onPress={() => setSelectedChallengeForSubmit(ch)}
@@ -2236,8 +2236,8 @@ if (loading) {
                   <TouchableOpacity
                     style={{
                       flex: 1, padding: 12, borderRadius: 10,
-                      backgroundColor: '#1e293b',
-                      borderWidth: 1, borderColor: '#334155',
+                      backgroundColor: '#161616',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
                       alignItems: 'center', gap: 6,
                     }}
                     onPress={() => selectBackstage('foto')}
@@ -2249,8 +2249,8 @@ if (loading) {
                   <TouchableOpacity
                     style={{
                       flex: 1, padding: 12, borderRadius: 10,
-                      backgroundColor: '#1e293b',
-                      borderWidth: 1, borderColor: '#334155',
+                      backgroundColor: '#161616',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
                       alignItems: 'center', gap: 6,
                     }}
                     onPress={() => selectBackstage('video')}
@@ -2325,7 +2325,7 @@ if (loading) {
             ].map(({ icon, label, sub, action }) => (
               <TouchableOpacity
                 key={label}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', marginBottom: 10 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, backgroundColor: '#161616', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 10 }}
                 onPress={action}
               >
                 <Text style={{ fontSize: 28 }}>{icon}</Text>
@@ -2373,8 +2373,8 @@ if (loading) {
                 </Text>
               ) : (
                 pendingFriendRequests.map((req) => (
-                  <View key={req.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
+                  <View key={req.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: '#161616' }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#161616', alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: '#00ff9c', fontSize: 18 }}>
                         {(req.initiatedBy || '?')[0].toUpperCase()}
                       </Text>
@@ -2465,7 +2465,7 @@ if (loading) {
                   style={[styles.settingsItem, { marginBottom: 8 }]}
                   onPress={handleCheckUpdates}
                 >
-                  <Text style={[styles.settingsItemText, { color: '#06b6d4' }]}>
+                  <Text style={[styles.settingsItemText, { color: '#00FF9C' }]}>
                     ✅ OTA v6 confermato!
                   </Text>
                 </TouchableOpacity>
@@ -2540,12 +2540,12 @@ if (loading) {
                           style={{
                             paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8,
                             borderWidth: 1,
-                            borderColor: reportReason === key ? '#06b6d4' : 'rgba(255,255,255,0.1)',
+                            borderColor: reportReason === key ? '#00FF9C' : 'rgba(255,255,255,0.1)',
                             backgroundColor: reportReason === key ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)',
                           }}
                           onPress={() => setReportReason(key)}
                         >
-                          <Text style={{ color: reportReason === key ? '#06b6d4' : '#8A8D96', fontSize: 13 }}>{label}</Text>
+                          <Text style={{ color: reportReason === key ? '#00FF9C' : '#8A8D96', fontSize: 13 }}>{label}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -2558,7 +2558,7 @@ if (loading) {
                       onChangeText={setReportNote}
                     />
                     <TouchableOpacity
-                      style={{ backgroundColor: reportReason ? '#06b6d4' : 'rgba(6,182,212,0.3)', padding: 13, borderRadius: 10, alignItems: 'center' }}
+                      style={{ backgroundColor: reportReason ? '#00FF9C' : 'rgba(6,182,212,0.3)', padding: 13, borderRadius: 10, alignItems: 'center' }}
                       onPress={handleSendReport}
                       disabled={!reportReason || reportLoading}
                     >
@@ -2648,7 +2648,7 @@ if (loading) {
             {/* Comments List */}
             {loadingComments ? (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#06b6d4" />
+                <ActivityIndicator size="large" color="#00FF9C" />
               </View>
             ) : (
               <ScrollView style={{ flex: 1, padding: 16 }}>
@@ -2765,7 +2765,7 @@ if (loading) {
               style={[styles.avatarOption, editAvatar === icon && styles.avatarOptionSelected]}
               onPress={() => setEditAvatar(icon)}
             >
-              <Feather name={icon as any} size={20} color={editAvatar === icon ? '#06b6d4' : '#94a3b8'} />
+              <Feather name={icon as any} size={20} color={editAvatar === icon ? '#00FF9C' : '#94a3b8'} />
             </TouchableOpacity>
           ))}
         </View>
@@ -2851,7 +2851,7 @@ if (loading) {
               style={{
                 width: '100%',
                 height: '75%',
-                backgroundColor: '#0f172a',
+                backgroundColor: '#0A0A0A',
                 borderRadius: 24,
                 borderWidth: 1,
                 borderColor: 'rgba(0,255,156,0.3)',
@@ -2897,7 +2897,7 @@ if (loading) {
                       key={notif.id}
                       style={[
                         styles.notificationItem,
-                        !notif.read && { backgroundColor: '#1e293b', borderColor: '#00FF9C', borderLeftWidth: 4 }
+                        !notif.read && { backgroundColor: '#161616', borderColor: '#00FF9C', borderLeftWidth: 4 }
                       ]}
                       onPress={async () => {
                         await markNotificationAsRead(notif.id);
@@ -3041,7 +3041,7 @@ if (loading) {
       {/* Battle Theme Picker */}
       <Modal visible={showBattleThemePicker} transparent animationType="slide" onRequestClose={() => setShowBattleThemePicker(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
+          <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
             {['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'].map(theme => (
@@ -3075,7 +3075,7 @@ if (loading) {
       {/* Profile theme picker */}
       <Modal visible={showThemeModal} transparent animationType="slide" onRequestClose={() => setShowThemeModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
-          <View style={{ backgroundColor: '#0f172a', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: '#334155' }}>
+          <View style={{ backgroundColor: '#0A0A0A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
             <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
@@ -3129,7 +3129,7 @@ if (loading) {
       {incomingCollab && !activeCollabSessionId && (
         <Modal visible transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
+            <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
               <Text style={{ fontSize: 36 }}>{incomingCollab.hostAvatar}</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
               <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
@@ -3158,7 +3158,7 @@ if (loading) {
       {incomingBattle && !activeBattleId && (
         <Modal visible transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <View style={{ backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
+            <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
               <Text style={{ fontSize: 40 }}>⚔️</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
               <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
@@ -3193,7 +3193,7 @@ if (loading) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
   },
   loadingContainer: {
     flex: 1,
@@ -3221,7 +3221,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   headerTitle: {
     flexDirection: 'row',
@@ -3262,7 +3262,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 20,
     width: 36,
     height: 36,
@@ -3294,7 +3294,7 @@ const styles = StyleSheet.create({
   recordButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0891b2',
+    color: '#00FF9C',
   },
   recordHint: {
     fontSize: 11,
@@ -3306,27 +3306,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   searchInput: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     color: '#fff',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   filterScroll: {
     marginBottom: 16,
   },
   filterChip: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
   },
   filterChipText: {
     color: '#fff',
@@ -3334,20 +3334,27 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   soundCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: '#161616',
+    borderRadius: 18,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden',
+    // Tinted shadow — depth without pure black
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   soundHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   soundUserInfo: {
     flexDirection: 'row',
@@ -3359,78 +3366,92 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 16,
   },
   userName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#F5F5F5',
+    letterSpacing: -0.1,
   },
   soundLocation: {
     fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 2,
+    color: '#5A5A5A',
+    marginTop: 1,
+    letterSpacing: 0.1,
   },
   moodBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   moodText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  soundContent: {
-    padding: 12,
-  },
-  soundTitle: {
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '700',
     color: '#fff',
+    letterSpacing: 0.3,
+  },
+  soundContent: {
+    padding: 14,
+  },
+  soundTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#F5F5F5',
     marginBottom: 4,
+    letterSpacing: -0.3,
+    lineHeight: 22,
   },
   soundDescription: {
     fontSize: 13,
-    color: '#cbd5e1',
-    marginBottom: 12,
+    color: '#7A7A7A',
+    marginBottom: 14,
+    lineHeight: 19,
   },
   player: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   playButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
+    // Accent glow
+    shadowColor: '#00FF9C',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
   },
   playButtonIcon: {
     fontSize: 16,
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: '#334155',
-    borderRadius: 3,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
+    borderRadius: 2,
   },
   duration: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 11,
+    color: '#5A5A5A',
+    fontVariant: ['tabular-nums'] as any,
   },
   actions: {
     flexDirection: 'row',
@@ -3438,7 +3459,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.07)',
   },
   actionsLeft: {
     flexDirection: 'row',
@@ -3457,7 +3478,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   deleteButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     width: 32,
     height: 32,
     borderRadius: 8,
@@ -3480,19 +3501,19 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   profileCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   profileAvatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -3522,7 +3543,7 @@ const styles = StyleSheet.create({
   profileStatNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#06b6d4',
+    color: '#00FF9C',
   },
   profileStatLabel: {
     fontSize: 11,
@@ -3531,7 +3552,7 @@ const styles = StyleSheet.create({
   },
   profileButtonPrimary: {
     width: '100%',
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -3551,12 +3572,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyRecordings: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   emptySubtext: {
     fontSize: 12,
@@ -3564,7 +3585,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   recordingItem: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -3572,7 +3593,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   recordingInfo: {
     flex: 1,
@@ -3592,7 +3613,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recordingPlayButton: {
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -3603,7 +3624,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   recordingDeleteButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -3620,7 +3641,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -3643,12 +3664,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 24,
     width: '100%',
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -3656,7 +3677,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modalTitle: {
     fontSize: 18,
@@ -3681,7 +3702,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   settingsItem: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
@@ -3691,13 +3712,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   recordModal: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 24,
     padding: 24,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   recordModalTitle: {
     fontSize: 20,
@@ -3707,7 +3728,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -3746,14 +3767,14 @@ const styles = StyleSheet.create({
   recordModalInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
   },
   recordModalInfoText: {
     fontSize: 13,
-    color: '#06b6d4',
+    color: '#00FF9C',
     fontWeight: '600',
   },
   recordModalButtons: {
@@ -3762,7 +3783,7 @@ const styles = StyleSheet.create({
   },
   recordModalButtonCancel: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -3774,7 +3795,7 @@ const styles = StyleSheet.create({
   },
   recordModalButtonPublish: {
     flex: 1,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -3785,12 +3806,12 @@ recordModalButtonPublishText: {
     color: '#fff',
   },
   commentItem: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   commentHeader: {
     flexDirection: 'row',
@@ -3807,25 +3828,25 @@ recordModalButtonPublishText: {
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     gap: 12,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 12,
     color: '#fff',
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   commentSendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -3851,15 +3872,15 @@ avatarOption: {
   width: 50,
   height: 50,
   borderRadius: 25,
-  backgroundColor: '#0f172a',
+  backgroundColor: '#0A0A0A',
   justifyContent: 'center',
   alignItems: 'center',
   borderWidth: 2,
-  borderColor: '#334155',
+  borderColor: 'rgba(255,255,255,0.08)',
 },
 avatarOptionSelected: {
-  borderColor: '#06b6d4',
-  backgroundColor: '#1e293b',
+  borderColor: '#00FF9C',
+  backgroundColor: '#161616',
   transform: [{ scale: 1.1 }],
 },
 avatarOptionText: {
@@ -3885,7 +3906,7 @@ notificationBadge: {
   justifyContent: 'center',
   alignItems: 'center',
   borderWidth: 2,
-  borderColor: '#0f172a',
+  borderColor: '#0A0A0A',
 },
 notificationBadgeText: {
   color: '#fff',
@@ -3893,16 +3914,16 @@ notificationBadgeText: {
   fontWeight: '700',
 },
 notificationItem: {
-  backgroundColor: '#0f172a',
+  backgroundColor: '#0A0A0A',
   borderRadius: 12,
   padding: 14,
   marginBottom: 8,
   borderWidth: 1,
-  borderColor: '#334155',
+  borderColor: 'rgba(255,255,255,0.08)',
 },
 notificationItemUnread: {
-  backgroundColor: '#1e293b',
-  borderColor: '#06b6d4',
+  backgroundColor: '#161616',
+  borderColor: '#00FF9C',
   borderLeftWidth: 4,
 },
 notificationTitle: {
@@ -3923,7 +3944,7 @@ notificationTime: {
 
 
 challengeChip: {
-  backgroundColor: '#334155',
+  backgroundColor: 'rgba(255,255,255,0.08)',
   paddingHorizontal: 16,
   paddingVertical: 10,
   borderRadius: 20,
@@ -3939,11 +3960,11 @@ userListItem: {
   flexDirection: 'row',
   alignItems: 'center',
   padding: 12,
-  backgroundColor: '#0f172a',
+  backgroundColor: '#0A0A0A',
   borderRadius: 12,
   marginBottom: 8,
   borderWidth: 1,
-  borderColor: '#334155',
+  borderColor: 'rgba(255,255,255,0.08)',
 },
 
 

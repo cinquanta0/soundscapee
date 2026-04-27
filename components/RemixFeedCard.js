@@ -177,7 +177,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
                   styles.waveBar,
                   {
                     height: h,
-                    backgroundColor: remix.isProcessed ? '#8b5cf6' : '#334155',
+                    backgroundColor: remix.isProcessed ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
                   },
                 ]}
               />
@@ -227,11 +227,11 @@ export default function RemixFeedCard({ remix, onPlay }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   remixBadge: {
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   trackBubble: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   actionsLeft: {
     flexDirection: 'row',
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },

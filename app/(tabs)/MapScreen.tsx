@@ -220,7 +220,7 @@ export default function MapScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#00FF9C" />
         <Text style={styles.loadingText}>{t('common.loading')}</Text>
         {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
       </View>
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     padding: 20,
   },
   loadingText: {
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 20,
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   controlButtonText: {
     color: '#fff',
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   radiusButton: {
     width: 32,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radiusButtonText: {
-    color: '#06b6d4',
+    color: '#00FF9C',
     fontSize: 20,
     fontWeight: '700',
   },
@@ -537,12 +537,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   detailsCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: rgba(255,255,255,0.08),
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   playButton: {
     flex: 2,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

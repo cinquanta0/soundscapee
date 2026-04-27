@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { C, T, S, R } from '../constants/design';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ export default function PodcastCard({ podcast, onPress }: Props) {
         />
       ) : (
         <View style={[s.cover, s.coverFallback]}>
-          <Text style={s.coverIcon}>🎙</Text>
+          <Feather name="mic" size={26} color={C.accent} />
         </View>
       )}
 
@@ -78,7 +80,7 @@ export default function PodcastCard({ podcast, onPress }: Props) {
 
       {/* Play pill */}
       <View style={s.playPill}>
-        <Text style={s.playPillTxt}>▶</Text>
+        <Feather name="play" size={13} color={C.accent} style={{ marginLeft: 1 }} />
       </View>
     </TouchableOpacity>
   );
@@ -89,77 +91,72 @@ export default function PodcastCard({ podcast, onPress }: Props) {
 const s = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: C.bgCard,
+    borderRadius: R.md,
     borderWidth: 1,
-    borderColor: '#334155',
-    padding: 12,
-    gap: 12,
+    borderColor: C.border,
+    padding: S.md,
+    gap: S.md,
     alignItems: 'center',
-    // Ombra iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    // Ombra Android
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
   },
 
   // ── Cover ──
   cover: {
     width: 72,
     height: 72,
-    borderRadius: 10,
+    borderRadius: R.sm,
   },
   coverFallback: {
-    backgroundColor: '#0f172a',
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
-  },
-  coverIcon: {
-    fontSize: 26,
+    borderColor: C.borderAccent,
   },
 
   // ── Info ──
   info: {
     flex: 1,
-    gap: 4,
+    gap: S.xs,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: S.sm - 2,
     flexWrap: 'nowrap',
   },
   title: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    ...T.h4,
+    color: C.textPrimary,
     fontStyle: 'italic',
-    lineHeight: 20,
   },
   desc: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
-    lineHeight: 17,
+    ...T.bodyS,
+    color: C.textSecondary,
   },
   duration: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.3)',
-    fontFamily: 'monospace',
+    ...T.mono,
+    color: C.textMuted,
     marginTop: 2,
   },
 
   // ── Scuola badge ──
   itsBadge: {
-    backgroundColor: 'rgba(0,255,156,0.15)',
+    backgroundColor: C.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.4)',
-    borderRadius: 5,
-    paddingHorizontal: 6,
+    borderColor: C.borderAccent,
+    borderRadius: R.xs - 1,
+    paddingHorizontal: S.sm - 2,
     paddingVertical: 2,
     alignSelf: 'flex-start',
     marginTop: 1,
@@ -167,24 +164,19 @@ const s = StyleSheet.create({
   itsBadgeTxt: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#00FF9C',
+    color: C.accent,
     letterSpacing: 1,
-    fontFamily: 'monospace',
   },
 
   // ── Play pill ──
   playPill: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderRadius: R.full,
+    backgroundColor: C.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.25)',
+    borderColor: C.borderAccent,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  playPillTxt: {
-    color: '#00FF9C',
-    fontSize: 12,
   },
 });

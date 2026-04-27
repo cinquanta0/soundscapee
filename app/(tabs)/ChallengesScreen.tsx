@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../../firebaseConfig';
+import { C, T, S, R } from '../../constants/design';
 import {
   getActiveChallenges,
   getChallengeSounds,
@@ -237,8 +238,8 @@ export default function ChallengesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={C.accent} />
         <Text style={styles.loadingText}>{t('challenges.loading')}</Text>
       </View>
     );
@@ -246,7 +247,7 @@ export default function ChallengesScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -269,7 +270,7 @@ export default function ChallengesScreen() {
               onPress={() => handleChallengePress(challenge)}
             >
               <LinearGradient
-                colors={['#0891b2', '#3b82f6']}
+                colors={['#003D25', '#001A10']}
                 style={styles.challengeGradient}
               >
                 <View style={styles.challengeHeader}>
@@ -478,7 +479,7 @@ export default function ChallengesScreen() {
 
                 {loadingSounds ? (
                   <View style={styles.loadingModal}>
-                    <ActivityIndicator size="large" color="#06b6d4" />
+                    <ActivityIndicator size="large" color={C.accent} />
                   </View>
                 ) : (
                   <>
@@ -568,74 +569,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94a3b8',
-    marginTop: 16,
-    fontSize: 16,
+    ...T.body,
+    color: C.textSecondary,
+    marginTop: S.lg,
   },
   header: {
-    padding: 20,
+    padding: S.xl,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: C.border,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
+    ...T.displayM,
+    color: C.textPrimary,
+    marginBottom: S.xs,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
+    ...T.body,
+    color: C.textSecondary,
   },
   scrollView: {
     flex: 1,
-    padding: 16,
+    padding: S.lg,
   },
   challengeCard: {
-    marginBottom: 16,
-    borderRadius: 20,
+    marginBottom: S.lg,
+    borderRadius: R.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.borderAccent,
   },
   challengeGradient: {
-    padding: 20,
+    padding: S.xl,
   },
   challengeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: S.md,
   },
   challengeEmoji: {
     fontSize: 48,
   },
   challengeTimer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
+    backgroundColor: C.accentDim,
+    paddingHorizontal: S.md,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: R.full,
+    borderWidth: 1,
+    borderColor: C.borderAccent,
   },
   timerText: {
-    color: '#fff',
-    fontSize: 12,
+    ...T.labelS,
+    color: C.accent,
     fontWeight: '700',
   },
   challengeTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 8,
+    ...T.displayM,
+    color: C.textPrimary,
+    marginBottom: S.sm,
   },
   challengeDescription: {
-    fontSize: 14,
-    color: '#e0f2fe',
-    marginBottom: 16,
-    lineHeight: 20,
+    ...T.body,
+    color: C.textSecondary,
+    marginBottom: S.lg,
   },
   challengeStats: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 16,
+    gap: S.xl,
+    marginBottom: S.lg,
   },
   stat: {
     flexDirection: 'row',
@@ -646,32 +648,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   statText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+    ...T.h3,
+    color: C.textPrimary,
   },
   challengeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: C.accent,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: R.sm,
     alignItems: 'center',
   },
   challengeButtonText: {
-    fontSize: 16,
+    ...T.body,
     fontWeight: '700',
-    color: '#0891b2',
+    color: C.textOnAccent,
   },
   removeChallengeButton: {
-    marginTop: 12,
-    backgroundColor: 'rgba(255,59,48,0.15)',
+    marginTop: S.md,
+    backgroundColor: 'rgba(255,59,48,0.12)',
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: R.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,59,48,0.35)',
+    borderColor: 'rgba(255,59,48,0.3)',
   },
   removeChallengeButtonText: {
-    color: '#FF3B30',
+    color: C.error,
     fontWeight: '800',
     fontSize: 14,
   },
@@ -681,184 +682,182 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: S.lg,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
+    ...T.h2,
+    color: C.textPrimary,
+    marginBottom: S.sm,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#94a3b8',
+    ...T.body,
+    color: C.textSecondary,
   },
-  
-  // 🆕 FAB STYLES
+
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: '#0891b2',
+    borderRadius: R.full,
+    backgroundColor: C.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: C.accent,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     elevation: 8,
   },
   fabIcon: {
     fontSize: 32,
-    color: '#fff',
+    color: C.textOnAccent,
   },
 
-  // 🆕 CREATE MODAL STYLES
   createModalContent: {
-    backgroundColor: '#1e293b',
-    borderRadius: 24,
+    backgroundColor: C.bgCard,
+    borderRadius: R.xxl,
     width: '100%',
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.borderStrong,
   },
   createForm: {
-    padding: 20,
+    padding: S.xl,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94a3b8',
-    marginBottom: 8,
-    marginTop: 16,
+    ...T.label,
+    color: C.textSecondary,
+    marginBottom: S.sm,
+    marginTop: S.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 12,
-    color: '#fff',
+    backgroundColor: C.bg,
+    borderRadius: R.sm,
+    padding: S.md,
+    color: C.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
   charCount: {
-    fontSize: 12,
-    color: '#64748b',
+    ...T.mono,
+    color: C.textMuted,
     textAlign: 'right',
-    marginTop: 4,
+    marginTop: S.xs,
   },
   emojiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: S.sm,
   },
   emojiOption: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: '#0f172a',
+    borderRadius: R.full,
+    backgroundColor: C.bg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   emojiOptionSelected: {
-    borderColor: '#06b6d4',
-    backgroundColor: '#1e293b',
+    borderColor: C.accent,
+    backgroundColor: C.accentDim,
   },
   emojiText: {
     fontSize: 24,
   },
   durationSelector: {
     flexDirection: 'row',
-    gap: 8,
+    gap: S.sm,
   },
   durationOption: {
     flex: 1,
-    backgroundColor: '#0f172a',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: C.bg,
+    paddingVertical: S.md,
+    borderRadius: R.sm,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   durationOptionSelected: {
-    borderColor: '#06b6d4',
-    backgroundColor: '#1e293b',
+    borderColor: C.accent,
+    backgroundColor: C.accentDim,
   },
   durationText: {
-    fontSize: 14,
+    ...T.body,
     fontWeight: '700',
-    color: '#fff',
+    color: C.textPrimary,
   },
   createButton: {
-    backgroundColor: '#0891b2',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: C.accent,
+    paddingVertical: S.lg,
+    borderRadius: R.sm,
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20,
+    marginTop: S.xxl,
+    marginBottom: S.xl,
   },
   createButtonText: {
-    fontSize: 16,
+    ...T.body,
     fontWeight: '700',
-    color: '#fff',
+    color: C.textOnAccent,
   },
 
-  // EXISTING MODAL STYLES
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: C.bgOverlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: S.lg,
   },
   modalContent: {
-    backgroundColor: '#1e293b',
-    borderRadius: 24,
+    backgroundColor: C.bgCard,
+    borderRadius: R.xxl,
     width: '100%',
     height: '85%',
+    borderWidth: 1,
+    borderColor: C.borderStrong,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 20,
+    padding: S.xl,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: C.border,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
+    ...T.h1,
+    color: C.textPrimary,
+    marginBottom: S.xs,
   },
   modalSubtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
+    ...T.bodyS,
+    color: C.textSecondary,
   },
   modalClose: {
     fontSize: 28,
-    color: '#94a3b8',
+    color: C.textSecondary,
   },
   modalRemoveButton: {
-    backgroundColor: 'rgba(255,59,48,0.15)',
+    backgroundColor: 'rgba(255,59,48,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255,59,48,0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: 'rgba(255,59,48,0.3)',
+    borderRadius: R.sm,
+    paddingHorizontal: S.md,
+    paddingVertical: S.sm,
     marginLeft: 10,
   },
   modalRemoveButtonText: {
-    color: '#FF3B30',
+    color: C.error,
     fontWeight: '900',
     fontSize: 12,
   },
@@ -869,30 +868,32 @@ const styles = StyleSheet.create({
   },
   soundsList: {
     flex: 1,
-    padding: 16,
+    padding: S.lg,
   },
   soundItem: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: C.bg,
+    borderRadius: R.lg,
+    padding: S.lg,
+    marginBottom: S.md,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
     flexDirection: 'row',
-    gap: 12,
+    gap: S.md,
   },
   rankBadge: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0891b2',
+    borderRadius: R.full,
+    backgroundColor: C.accentDim,
+    borderWidth: 1,
+    borderColor: C.borderAccent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   rankText: {
-    fontSize: 16,
+    ...T.labelL,
+    color: C.accent,
     fontWeight: '800',
-    color: '#fff',
   },
   soundInfo: {
     flex: 1,
@@ -910,24 +911,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   soundTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    ...T.h4,
+    color: C.textPrimary,
     marginBottom: 2,
   },
   username: {
-    fontSize: 12,
-    color: '#94a3b8',
+    ...T.label,
+    color: C.textSecondary,
   },
   soundActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: S.sm,
   },
   playButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0891b2',
+    borderRadius: R.full,
+    backgroundColor: C.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -937,42 +937,43 @@ const styles = StyleSheet.create({
   voteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#334155',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: S.xs,
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: S.md,
+    paddingVertical: S.sm,
+    borderRadius: R.full,
   },
   voteIcon: {
     fontSize: 16,
   },
   voteCount: {
-    fontSize: 14,
+    ...T.body,
     fontWeight: '700',
-    color: '#fff',
+    color: C.textPrimary,
   },
 
-  // 🆕 PARTICIPATE BUTTON
   participateButton: {
-    backgroundColor: '#0891b2',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
+    backgroundColor: C.accent,
+    marginHorizontal: S.lg,
+    marginTop: S.lg,
+    marginBottom: S.sm,
+    paddingVertical: S.lg,
+    borderRadius: R.lg,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#0891b2',
+    gap: S.sm,
+    shadowColor: C.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
   },
   participateButtonText: {
-    fontSize: 16,
+    ...T.body,
     fontWeight: '800',
-    color: '#fff',
+    color: C.textOnAccent,
   },
 });

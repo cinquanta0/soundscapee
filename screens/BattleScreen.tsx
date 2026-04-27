@@ -227,7 +227,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   if (!battle) {
     return (
       <View style={[s.overlay, { alignItems: 'center', justifyContent: 'center' }]}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <ActivityIndicator color="#f97316" size="large" />
       </View>
     );
@@ -237,7 +237,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   if (battle.status === 'pending' && !isChallenger) {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.card}>
           <Text style={{ fontSize: 60, marginBottom: 8 }}>⚔️</Text>
           <Text style={s.cardTitle}>{battle.challengerName} ti sfida!</Text>
@@ -259,7 +259,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   if (battle.status === 'rejected' || battle.status === 'cancelled') {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.card}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>😔</Text>
           <Text style={s.cardTitle}>{battle.status === 'rejected' ? 'Sfida rifiutata' : 'Sfida annullata'}</Text>
@@ -273,7 +273,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   if (battle.status === 'pending' && isChallenger) {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.card}>
           <ActivityIndicator color="#f97316" size="large" style={{ marginBottom: 16 }} />
           <Text style={s.cardTitle}>In attesa di {battle.opponentName}…</Text>
@@ -302,7 +302,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#0f172a', '#1a0533']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={s.header}>
@@ -511,7 +511,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
 // ─── Stili ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#0f172a' },
+  overlay: { flex: 1, backgroundColor: '#0A0A0A' },
   card: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   cardTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
   cardDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },

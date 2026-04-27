@@ -68,14 +68,14 @@ export const CommunitiesScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#00FF9C" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -169,13 +169,13 @@ export const CommunitiesScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
   },
   header: {
     flexDirection: 'row',
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   headerTitle: {
     fontSize: 24,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   createButton: {
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -205,12 +205,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   communityCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   communityHeader: {
     flexDirection: 'row',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   joinButton: {
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 24,
     padding: 24,
   },
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 12,
     color: '#fff',
@@ -301,14 +301,14 @@ const styles = StyleSheet.create({
   },
   modalButtonCancel: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   modalButtonCreate: {
     flex: 1,
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',

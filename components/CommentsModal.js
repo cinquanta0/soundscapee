@@ -69,7 +69,7 @@ export const CommentsModal = ({ visible, soundId, onClose }) => {
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#06b6d4" />
+              <ActivityIndicator color="#00FF9C" />
             </View>
           ) : (
             <FlatList
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '80%',
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.07)',
   },
   headerTitle: {
     fontSize: 18,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   commentItem: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -213,12 +213,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.07)',
     gap: 12,
   },
   input: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 12,
     color: '#fff',
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },

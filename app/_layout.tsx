@@ -37,11 +37,11 @@ function ForceUpdateScreen() {
 
 
 const fu = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  container: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center', padding: 32 },
   emoji: { fontSize: 64, marginBottom: 16 },
   title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
-  body: { color: '#94a3b8', fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 32 },
-  button: { backgroundColor: '#06b6d4', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
+  body: { color: '#9A9A9A', fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 32 },
+  button: { backgroundColor: '#00FF9C', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
 
@@ -125,7 +125,7 @@ export default function RootLayout() {
 
   if (loading || !i18nReady || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0A0A' }}>
         <ActivityIndicator size="large" color="#a855f7" />
       </View>
     );

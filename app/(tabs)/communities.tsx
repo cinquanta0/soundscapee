@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../firebaseConfig';
+import { C, T, S, R } from '../../constants/design';
 import { doc, getDoc } from 'firebase/firestore';
 import { getCommunities, createCommunity, deleteCommunity } from '../../services/firebaseService';
 import { joinCommunity, leaveCommunity, requestToJoin, cancelJoinRequest, getMyJoinRequest, getMyRole } from '../../services/communityService';
@@ -146,7 +147,7 @@ export default function CommunitiesScreen() {
         {/* Modal profilo utente */}
         <Modal visible={!!viewingProfile} transparent animationType="fade" onRequestClose={() => setViewingProfile(null)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-            <View style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 24, width: '100%', alignItems: 'center', gap: 8 }}>
+            <View style={{ backgroundColor: '#161616', borderRadius: 20, padding: 24, width: '100%', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 56 }}>{viewingProfile?.avatar || '🎵'}</Text>
               <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>{viewingProfile?.username || 'Utente'}</Text>
               {viewingProfile?.bio ? <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>{viewingProfile.bio}</Text> : null}
@@ -177,15 +178,15 @@ export default function CommunitiesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color="#00FF9C" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -281,7 +282,7 @@ export default function CommunitiesScreen() {
               <Switch
                 value={!newCommunity.isPublic}
                 onValueChange={(val) => setNewCommunity({ ...newCommunity, isPublic: !val })}
-                trackColor={{ false: '#334155', true: '#06b6d4' }}
+                trackColor={{ false: rgba(255,255,255,0.08), true: '#00FF9C' }}
                 thumbColor="#fff"
               />
             </View>
@@ -304,75 +305,74 @@ export default function CommunitiesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    paddingTop: 8,
+    padding: S.lg,
+    paddingTop: S.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: C.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
+    ...T.h1,
+    color: C.textPrimary,
   },
   createButton: {
-    backgroundColor: '#06b6d4',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: C.accent,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.sm,
   },
   createButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: C.textOnAccent,
+    fontWeight: '700',
+    fontSize: 13,
   },
   list: {
-    padding: 16,
+    padding: S.lg,
   },
   communityCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: C.bgCard,
+    borderRadius: R.lg,
+    padding: S.lg,
+    marginBottom: S.md,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: C.border,
   },
   communityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: S.md,
   },
   communityAvatar: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: S.md,
   },
   communityInfo: {
     flex: 1,
   },
   communityName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
+    ...T.h3,
+    color: C.textPrimary,
+    marginBottom: S.xs,
   },
   communityStats: {
-    fontSize: 12,
-    color: '#94a3b8',
+    ...T.label,
+    color: C.textSecondary,
   },
   communityDescription: {
-    fontSize: 14,
-    color: '#cbd5e1',
-    marginBottom: 12,
+    ...T.body,
+    color: C.textSecondary,
+    marginBottom: S.md,
   },
   communityFooter: {
     flexDirection: 'row',
@@ -380,49 +380,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
-    backgroundColor: '#334155',
-    paddingHorizontal: 12,
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: S.md,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: R.sm,
   },
   categoryText: {
-    fontSize: 11,
-    color: '#94a3b8',
+    ...T.labelS,
+    color: C.textSecondary,
     fontWeight: '600',
   },
   joinButton: {
-    backgroundColor: '#06b6d4',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: C.accent,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.sm,
   },
   joinButtonMember: {
-    backgroundColor: 'rgba(52,199,89,0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.sm,
     borderWidth: 1,
-    borderColor: 'rgba(52,199,89,0.4)',
+    borderColor: C.borderAccent,
   },
   joinButtonPending: {
-    backgroundColor: 'rgba(255,159,10,0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,159,10,0.12)',
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,159,10,0.4)',
+    borderColor: 'rgba(255,159,10,0.3)',
   },
   joinButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
+    ...T.label,
+    color: C.textOnAccent,
+    fontWeight: '700',
   },
   privateBadge: {
     fontSize: 12,
   },
   deleteCardBtn: {
-    padding: 4,
-    marginLeft: 8,
+    padding: S.xs,
+    marginLeft: S.sm,
   },
   deleteCardTxt: {
     fontSize: 18,
@@ -431,19 +433,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: R.sm,
+    padding: S.md,
+    marginBottom: S.md,
   },
   toggleLabel: {
-    color: '#fff',
-    fontSize: 14,
+    ...T.body,
+    color: C.textPrimary,
     fontWeight: '600',
   },
   toggleSub: {
-    color: '#94a3b8',
-    fontSize: 11,
+    ...T.labelS,
+    color: C.textSecondary,
     marginTop: 2,
   },
   emptyState: {
@@ -452,40 +456,44 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: S.lg,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#94a3b8',
+    ...T.body,
+    color: C.textSecondary,
   },
   emptySubtext: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 4,
+    ...T.label,
+    color: C.textMuted,
+    marginTop: S.xs,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: C.bgOverlay,
     justifyContent: 'center',
-    padding: 16,
+    padding: S.lg,
   },
   modalContent: {
-    backgroundColor: '#1e293b',
-    borderRadius: 24,
-    padding: 24,
+    backgroundColor: C.bgCard,
+    borderRadius: R.xxl,
+    padding: S.xxl,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
+    ...T.h2,
+    color: C.textPrimary,
+    marginBottom: S.lg,
   },
   input: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    padding: 12,
-    color: '#fff',
-    marginBottom: 12,
+    backgroundColor: C.bg,
+    borderRadius: R.sm,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: S.md,
+    color: C.textPrimary,
+    fontSize: 14,
+    marginBottom: S.md,
   },
   textArea: {
     height: 100,
@@ -493,25 +501,28 @@ const styles = StyleSheet.create({
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: S.md,
+    marginTop: S.lg,
   },
   modalButtonCancel: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.border,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: R.sm,
     alignItems: 'center',
   },
   modalButtonCreate: {
     flex: 1,
-    backgroundColor: '#06b6d4',
+    backgroundColor: C.accent,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: R.sm,
     alignItems: 'center',
   },
   modalButtonText: {
-    color: '#fff',
+    ...T.body,
     fontWeight: '600',
+    color: C.textOnAccent,
   },
 });

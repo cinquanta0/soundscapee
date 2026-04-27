@@ -196,8 +196,8 @@ export default function TimeMachineScreen() {
   if (loading && !userLocation) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0f172a', '#1e293b']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color="#00FF9C" />
         <Text style={styles.loadingText}>{t('timeMachine.loading')}</Text>
       </View>
     );
@@ -207,7 +207,7 @@ export default function TimeMachineScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0A0A0A', '#161616', '#0A0A0A']} style={StyleSheet.absoluteFill} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -299,9 +299,9 @@ export default function TimeMachineScreen() {
             step={1}
             value={selectedHour}
             onValueChange={setSelectedHour}
-            minimumTrackTintColor="#06b6d4"
-            maximumTrackTintColor="#334155"
-            thumbTintColor="#06b6d4"
+            minimumTrackTintColor="#00FF9C"
+            maximumTrackTintColor="rgba(255,255,255,0.08)"
+            thumbTintColor="#00FF9C"
           />
 
           <View style={styles.hourMarkers}>
@@ -356,7 +356,7 @@ export default function TimeMachineScreen() {
 
           {loading ? (
             <View style={styles.loadingState}>
-              <ActivityIndicator size="large" color="#06b6d4" />
+              <ActivityIndicator size="large" color="#00FF9C" />
             </View>
           ) : timelineData.length === 0 ? (
             <View style={styles.emptyState}>
@@ -459,7 +459,7 @@ export default function TimeMachineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
   },
   loadingContainer: {
     flex: 1,
@@ -497,13 +497,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
   },
   dateCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   dateHeader: {
     flexDirection: 'row',
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#334155',
+    backgroundColor: rgba(255,255,255,0.08),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -549,24 +549,24 @@ const styles = StyleSheet.create({
   },
   quickJumpButton: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: rgba(255,255,255,0.08),
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
   },
   quickJumpText: {
-    color: '#06b6d4',
+    color: '#00FF9C',
     fontSize: 12,
     fontWeight: '600',
   },
   hourCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   hourHeader: {
     flexDirection: 'row',
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   hourTime: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#06b6d4',
+    color: '#00FF9C',
   },
   slider: {
     width: '100%',
@@ -601,13 +601,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   statsCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   statsTitle: {
     fontSize: 16,
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#06b6d4',
+    color: '#00FF9C',
   },
   statLabel: {
     fontSize: 11,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   compareButton: {
-    backgroundColor: '#334155',
+    backgroundColor: rgba(255,255,255,0.08),
     marginHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -671,12 +671,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyState: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   emptyIcon: {
     fontSize: 64,
@@ -694,12 +694,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   soundCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: rgba(255,255,255,0.08),
   },
   soundHeader: {
     flexDirection: 'row',
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   playButton: {
-    backgroundColor: '#0891b2',
+    backgroundColor: '#00FF9C',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',

@@ -560,7 +560,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   // ═══════════════════════════════════════════════════════
 
   const getRandomColor = () => {
-    const colors = ['#ef4444', '#f97316', '#eab308', '#06b6d4', '#8b5cf6', '#ec4899'];
+    const colors = ['#ef4444', '#f97316', '#eab308', '#00FF9C', '#8b5cf6', '#ec4899'];
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
@@ -577,7 +577,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
   return (
     <View style={styles.container}>
       <LinearGradient 
-        colors={['#0f172a', '#1e293b', '#0f172a']} 
+        colors={['#0A0A0A', '#161616', '#0A0A0A']} 
         style={StyleSheet.absoluteFill} 
       />
 
@@ -601,7 +601,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               style={styles.backButton}
               onPress={onClose}
             >
-              <Feather name="arrow-left" size={20} color="#06b6d4" />
+              <Feather name="arrow-left" size={20} color="#00FF9C" />
             </TouchableOpacity>
           )}
           <Text style={styles.title} numberOfLines={1}>{t('remix.title')}</Text>
@@ -711,9 +711,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                   onValueChange={(val) => 
                     trimTrack(selectedTrack.id, val, selectedTrack.endTime)
                   }
-                  minimumTrackTintColor="#06b6d4"
-                  maximumTrackTintColor="#334155"
-                  thumbTintColor="#06b6d4"
+                  minimumTrackTintColor="#00FF9C"
+                  maximumTrackTintColor="rgba(255,255,255,0.08)"
+                  thumbTintColor="#00FF9C"
                 />
               </View>
               <View style={styles.sliderRow}>
@@ -726,9 +726,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                   onValueChange={(val) => 
                     trimTrack(selectedTrack.id, selectedTrack.startTime, val)
                   }
-                  minimumTrackTintColor="#06b6d4"
-                  maximumTrackTintColor="#334155"
-                  thumbTintColor="#06b6d4"
+                  minimumTrackTintColor="#00FF9C"
+                  maximumTrackTintColor="rgba(255,255,255,0.08)"
+                  thumbTintColor="#00FF9C"
                 />
               </View>
             </View>
@@ -746,9 +746,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 onValueChange={(val) => 
                   updateTrack(selectedTrack.id, { volume: val })
                 }
-                minimumTrackTintColor="#06b6d4"
-                maximumTrackTintColor="#334155"
-                thumbTintColor="#06b6d4"
+                minimumTrackTintColor="#00FF9C"
+                maximumTrackTintColor="rgba(255,255,255,0.08)"
+                thumbTintColor="#00FF9C"
               />
             </View>
           </View>
@@ -943,7 +943,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
   },
   header: {
     flexDirection: 'row',
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -962,7 +962,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   backButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 20,
-    color: '#06b6d4',
+    color: '#00FF9C',
   },
   title: {
     fontSize: 18,
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   timeTick: {
     width: 1,
     height: 20,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   playhead: {
     position: 'absolute',
@@ -1062,7 +1062,7 @@ const styles = StyleSheet.create({
   },
   trackDragging: {
     opacity: 0.8,
-    shadowColor: '#06b6d4',
+    shadowColor: '#00FF9C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   trackActionButton: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -1101,12 +1101,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   editorPanel: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     margin: 16,
     marginTop: 0,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   editorHeader: {
     flexDirection: 'row',
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   editorTitle: {
     fontSize: 16,
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
   editorSection: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   editorLabel: {
     fontSize: 13,
@@ -1152,9 +1152,9 @@ const styles = StyleSheet.create({
     height: 40,
   },
   transport: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     padding: 16,
   },
   timeDisplay: {
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#06b6d4',
+    color: '#00FF9C',
   },
   transportButtons: {
     flexDirection: 'row',
@@ -1172,7 +1172,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   transportButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playButton: {
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     width: 72,
     height: 72,
     borderRadius: 36,
@@ -1194,12 +1194,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '70%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1207,7 +1207,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modalTitle: {
     fontSize: 18,
@@ -1229,7 +1229,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   soundPickerItem: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -1237,7 +1237,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   soundPickerInfo: {
     flex: 1,
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   soundPickerAction: {
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1266,12 +1266,12 @@ const styles = StyleSheet.create({
   },
   // Save Modal Styles
   saveModal: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#161616',
     borderRadius: 16,
     padding: 24,
     margin: 32,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   saveModalTitle: {
     fontSize: 20,
@@ -1281,13 +1281,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   saveInput: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     color: '#fff',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     marginBottom: 20,
   },
   saveModalButtons: {
@@ -1301,10 +1301,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   confirmButton: {
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#00FF9C',
   },
   publishButton: {
     backgroundColor: '#7c3aed',
@@ -1329,12 +1329,12 @@ const styles = StyleSheet.create({
   },
   // Remix Item Styles
   remixItem: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0A0A0A',
     borderRadius: 12,
     marginBottom: 12,
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   remixItemContent: {
@@ -1432,7 +1432,7 @@ function TrackComponent({
           top: index * 70,
           left: trackLeft,
           width: trackWidth,
-          borderColor: isSelected ? '#06b6d4' : track.color,
+          borderColor: isSelected ? '#00FF9C' : track.color,
           backgroundColor: track.color + '40',
         },
         isDragging && styles.trackDragging,
