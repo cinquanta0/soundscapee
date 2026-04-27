@@ -2759,27 +2759,55 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       } else if (nextState === 'active' && wasPlayingOnBgRef.current) {
         const bgDuration = Date.now() - bgEntryTimeRef.current;
         wasPlayingOnBgRef.current = false;
+
+        // Helper: aggiorna widget dopo un resume
+        const refreshWidget = () => {
+          const np = nowPlayingRef.current;
+          const sSlot = (() => {
+            const slots = getScheduleSlots(station.id);
+            const idx = getCurrentSlotIndex(slots);
+            return idx >= 0 ? slots[idx] : null;
+          })();
+          TrackPlayer.updateNowPlayingMetadata?.({
+            title: station.name,
+            artist: np?.djName || sSlot?.djName || station.genre,
+            album: np?.showName || sSlot?.showName || station.genre,
+            artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
+          }).catch(() => {});
+        };
+
         try {
           const ps = await TrackPlayer.getPlaybackState();
           const s = ps?.state ?? ps;
+          const isDeadState =
+            s === State.Stopped || s === State.None ||
+            (s as string) === 'error' || (s as string) === 'ended' ||
+            s === State.Error;
+
           if (bgDuration < 15_000) {
-            // Short return (notification tap): nudge to unblock any muted HLS stream.
-            // autoHandleInterruptions may have silently paused audio during notification interaction.
-            if (s === State.Playing && !isNudgingRef.current) {
+            if (isDeadState) {
+              // Stream fermato dall'interruzione: restart completo anche per ritorni brevi
+              if (reloadStreamRef.current) await reloadStreamRef.current();
+              return;
+            }
+            if (!isNudgingRef.current) {
               isNudgingRef.current = true;
-              await TrackPlayer.pause();
+              // Sia Playing (muto) che Paused: forza AVPlayer a re-bufferizzare
+              if (s === State.Playing) await TrackPlayer.pause();
               await new Promise(r => setTimeout(r, 150));
               await TrackPlayer.play();
-              await new Promise(r => setTimeout(r, 300));
+              await new Promise(r => setTimeout(r, 400));
               isNudgingRef.current = false;
-            } else if (s === State.Paused) {
-              await TrackPlayer.play();
             }
+            // Aggiorna sempre il widget dopo un resume da notifica
+            refreshWidget();
             return;
           }
-          // Long background (>15s): full stream restart — HLS window may have expired.
+
+          // Background lungo (>15s): restart completo — finestra HLS scaduta
           if (
-            (s === State.Playing || s === State.Buffering || s === State.Loading) &&
+            (s === State.Playing || s === State.Buffering || s === State.Loading ||
+             s === State.Paused || isDeadState) &&
             reloadStreamRef.current
           ) {
             await reloadStreamRef.current();
