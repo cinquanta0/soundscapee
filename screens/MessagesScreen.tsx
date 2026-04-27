@@ -101,7 +101,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
       keyboardVerticalOffset={0}
     >
       <View style={nm.sheet}>
-        <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
+        <LinearGradient colors={['#0D0D11', '#141420']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
         <View style={nm.handle} />
         <Text style={nm.title}>{t('messages.newConversation')}</Text>
         <TextInput
@@ -225,43 +225,43 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const cr = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.05)' },
-  avatar: { position: 'relative', width: 46, height: 46, borderRadius: 23, backgroundColor: '#1A0A2E', borderWidth: 1.5, borderColor: 'rgba(168,85,247,0.35)', alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { color: '#A855F7', fontSize: 20, fontStyle: 'italic' },
+  avatar: { position: 'relative', width: 46, height: 46, borderRadius: 23, backgroundColor: '#161616', borderWidth: 2, borderColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
+  avatarTxt: { color: '#00FF9C', fontSize: 18, fontWeight: '700' },
   badge: { position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeTxt: { color: '#050508', fontSize: 9, fontWeight: '800' },
+  badgeTxt: { color: '#001A0D', fontSize: 9, fontWeight: '800' },
   info: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  name: { color: '#fff', fontSize: 14, fontWeight: '600', fontStyle: 'italic' },
-  time: { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: 'monospace' },
+  name: { color: '#F5F5F5', fontSize: 14, fontWeight: '700', letterSpacing: -0.1 },
+  time: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontVariant: ['tabular-nums'] as any },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  preview: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'monospace' },
+  preview: { color: 'rgba(255,255,255,0.38)', fontSize: 12 },
   check: { fontSize: 11 },
 });
 
 const nm = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', zIndex: 100 },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 300 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 18 },
-  title: { color: '#fff', fontSize: 18, fontStyle: 'italic', fontWeight: '600', marginBottom: 14 },
-  input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 10 },
-  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  resultAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A0A2E', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', alignItems: 'center', justifyContent: 'center' },
-  resultAvatarTxt: { color: '#A855F7', fontSize: 16, fontStyle: 'italic' },
-  resultName: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  resultUser: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontFamily: 'monospace' },
-  cancelBtn: { marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
-  cancelTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 300 },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: 18 },
+  title: { color: '#F5F5F5', fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 14 },
+  input: { backgroundColor: '#161616', borderRadius: 28, paddingHorizontal: 16, paddingVertical: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 10 },
+  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  resultAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#161616', borderWidth: 2, borderColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
+  resultAvatarTxt: { color: '#00FF9C', fontSize: 16, fontWeight: '700' },
+  resultName: { color: '#F5F5F5', fontSize: 14, fontWeight: '600', letterSpacing: -0.1 },
+  resultUser: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
+  cancelBtn: { marginTop: 14, padding: 13, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
+  cancelTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: '500' },
 });
 
 const ms = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050508' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.08)' },
-  headerTitle: { color: '#fff', fontSize: 26, fontStyle: 'italic', fontWeight: '700', letterSpacing: 0.5 },
+  headerTitle: { color: '#fff', fontSize: 26, fontStyle: 'normal', fontWeight: '700', letterSpacing: 0.5 },
   newBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
-  newBtnTxt: { color: '#00FF9C', fontSize: 12, fontFamily: 'monospace' },
+  newBtnTxt: { color: '#00FF9C', fontSize: 12, fontVariant: ['tabular-nums'] as any },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { color: '#fff', fontSize: 20, fontStyle: 'italic', marginBottom: 6 },
-  emptyDesc: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', marginBottom: 24 },
+  emptyTitle: { color: '#fff', fontSize: 20, fontStyle: 'normal', marginBottom: 6 },
+  emptyDesc: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontVariant: ['tabular-nums'] as any, marginBottom: 24 },
   emptyBtn: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 24, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
-  emptyBtnTxt: { color: '#00FF9C', fontSize: 13, fontFamily: 'monospace' },
+  emptyBtnTxt: { color: '#00FF9C', fontSize: 13, fontVariant: ['tabular-nums'] as any },
 });

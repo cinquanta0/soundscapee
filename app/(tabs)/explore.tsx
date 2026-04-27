@@ -509,7 +509,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       {section === 'suoni' && <>
       {/* Search bar */}
       <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Feather name="search" size={16} color="#4A4D56" />
         <TextInput
           style={styles.searchInput}
           placeholder={t('explore.searchPlaceholder')}
@@ -626,9 +626,9 @@ const styles = StyleSheet.create({
     borderRadius: R.md,
   },
   subTabActive: {
-    backgroundColor: C.glassAccent,
+    backgroundColor: 'rgba(0,255,156,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(215,255,100,0.28)',
+    borderColor: 'rgba(0,255,156,0.28)',
   },
   subTabTxt: {
     ...T.labelS,
@@ -649,9 +649,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.borderCanvas,
     gap: S.sm + 2,
-  },
-  searchIcon: {
-    fontSize: 16,
   },
   searchInput: {
     flex: 1,
@@ -679,7 +676,7 @@ const styles = StyleSheet.create({
   },
   moodChipActive: {
     backgroundColor: 'rgba(0,255,156,0.14)',
-    borderColor: 'rgba(215,255,100,0.28)',
+    borderColor: 'rgba(0,255,156,0.35)',
   },
   moodChipText: {
     ...T.bodyS,
@@ -771,11 +768,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: R.full,
-    backgroundColor: C.accentWarm,
+    backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
-    shadowColor: C.accentWarm,
+    shadowColor: '#00FF9C',
     shadowOpacity: 0.28,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },

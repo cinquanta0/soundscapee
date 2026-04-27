@@ -352,11 +352,11 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
   },
   createButton: {
-    backgroundColor: C.accentWarm,
+    backgroundColor: '#00FF9C',
     paddingHorizontal: S.lg,
     paddingVertical: 10,
     borderRadius: R.full,
-    shadowColor: C.accentWarm,
+    shadowColor: '#00FF9C',
     shadowOpacity: 0.26,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   joinButton: {
-    backgroundColor: C.accentWarm,
+    backgroundColor: '#00FF9C',
     paddingHorizontal: S.lg,
     paddingVertical: 10,
     borderRadius: R.full,

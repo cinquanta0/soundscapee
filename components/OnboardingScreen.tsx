@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -60,6 +61,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <LinearGradient colors={['#050508', '#0A0A12', '#050508']} style={StyleSheet.absoluteFill} />
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -120,7 +122,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#050508',
     paddingBottom: 16,
   },
   slide: {
@@ -184,15 +186,15 @@ const styles = StyleSheet.create({
   nextBtn: {
     paddingVertical: 13,
     paddingHorizontal: 28,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,255,156,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(0,255,156,0.25)',
   },
   nextText: {
-    color: '#F8F4EF',
+    color: '#00FF9C',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   startBtn: {
     flex: 1,
