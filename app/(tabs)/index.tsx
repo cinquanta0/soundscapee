@@ -1627,7 +1627,7 @@ if (loading) {
               style={styles.filterScroll}
               contentContainerStyle={{ paddingRight: 8 }}
             >
-              {[{ id: 'all', label: t('moods.all') }, { id: 'Energico', label: 'Energetic' }, { id: 'Rilassante', label: 'Relaxing' }, { id: 'Gioioso', label: 'Happy' }, { id: 'Nostalgico', label: 'Chill' }].map(m => (
+              {[{ id: 'all', label: t('moods.all') }, { id: 'Energico', label: 'Energico' }, { id: 'Rilassante', label: 'Rilassante' }, { id: 'Gioioso', label: 'Gioioso' }, { id: 'Nostalgico', label: 'Nostalgico' }].map(m => (
                 <TouchableOpacity
                   key={m.id}
                   style={[styles.filterChip, filterMood === m.id && styles.filterChipActive]}
@@ -1640,35 +1640,6 @@ if (loading) {
 
             {/* Stories row */}
             <StoriesRow userProfile={userProfile} />
-
-            {/* Quick actions */}
-            <Text style={styles.sectionLabel}>Quick actions</Text>
-            <View style={styles.quickActionsRow}>
-              <TouchableOpacity style={styles.quickActionCard}>
-                <View style={styles.quickActionIconWrap}>
-                  <Feather name="help-circle" size={20} color="rgba(255,255,255,0.5)" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.quickActionTitle}>How it works</Text>
-                  <Text style={styles.quickActionSub}>Learn the basics</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickActionCard} onPress={() => setShowPublishTypeModal(true)}>
-                <View style={[styles.quickActionIconWrap, styles.quickActionIconDashed]}>
-                  <Feather name="plus" size={20} color="rgba(255,255,255,0.5)" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.quickActionTitle}>New state</Text>
-                  <Text style={styles.quickActionSub}>Share what's happening</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Live now header */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Live now</Text>
-              <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
-            </View>
 
             {/* Sound Feed */}
             {filteredPosts.map(post => {
@@ -3458,73 +3429,6 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: '#001A0D',
     fontWeight: '700',
-  },
-  // ── Quick actions ─────────────────────────────────────────────────────────────
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 0.3,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 22,
-  },
-  quickActionCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#161616',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  quickActionIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickActionIconDashed: {
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  quickActionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#F5F5F5',
-    marginBottom: 2,
-  },
-  quickActionSub: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
-  },
-  // ── Section header ────────────────────────────────────────────────────────────
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.3,
-  },
-  seeAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#00FF9C',
   },
   // ── Sound cards ───────────────────────────────────────────────────────────────
   soundCard: {
