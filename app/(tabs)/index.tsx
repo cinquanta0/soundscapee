@@ -197,16 +197,16 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
 
 export default function App() {
   const { t } = useTranslation();
-  const { currentlyRunning, initializationError } = useUpdates();
+  const { currentlyRunning } = useUpdates();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
   const [activeTab, setActiveTab] = useState('home');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [recording, setRecording] = useState(null);
-  const [playingId, setPlayingId] = useState(null);
-  const [sound, setSound] = useState(null);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const soundObjRef = useRef<any>(null); // ref per evitare closure stale
   const isLoadingSound = useRef(false);  // guard contro tap multipli
   const mainScrollViewRef = useRef<any>(null);
@@ -215,8 +215,8 @@ export default function App() {
   const lastHandledNotifId = useRef<string | null>(null);
   const [playPosition, setPlayPosition] = useState(0); // secondi correnti
   const [showRecordModal, setShowRecordModal] = useState(false);
-  const [recordedSound, setRecordedSound] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [recordedSound, setRecordedSound] = useState<any | null>(null);
+  const [location, setLocation] = useState<any | null>(null);
   
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [loadingFollow, setLoadingFollow] = useState(false);
@@ -247,8 +247,8 @@ export default function App() {
   const [backstageViewerTitle, setBackstageViewerTitle] = useState('');
 
   // Stati per challenges
-  const [selectedChallengeForSubmit, setSelectedChallengeForSubmit] = useState(null);
-  const [availableChallenges, setAvailableChallenges] = useState([]);
+  const [selectedChallengeForSubmit, setSelectedChallengeForSubmit] = useState<any | null>(null);
+  const [availableChallenges, setAvailableChallenges] = useState<any[]>([]);
   
   
   // Onboarding
@@ -381,7 +381,7 @@ export default function App() {
   const [titleError, setTitleError] = useState('');
 
   // Report states
-  const [reportTargetId, setReportTargetId] = useState(null);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportNote, setReportNote] = useState('');
@@ -389,29 +389,29 @@ export default function App() {
   const [reportLoading, setReportLoading] = useState(false);
 
   // Firebase data
-  const [sounds, setSounds] = useState([]);
+  const [sounds, setSounds] = useState<any[]>([]);
   const [totalSoundsCount, setTotalSoundsCount] = useState<number | null>(null);
-  const [userProfile, setUserProfile] = useState(null);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [myStreakCount, setMyStreakCount] = useState(0);
   const [activeCollabSessionId, setActiveCollabSessionId] = useState<string | null>(null);
   const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [incomingBattle, setIncomingBattle] = useState<Battle | null>(null);
   const [showBattleThemePicker, setShowBattleThemePicker] = useState(false);
-  const [mySounds, setMySounds] = useState([]);
-  const [viewedUserSounds, setViewedUserSounds] = useState([]);
+  const [mySounds, setMySounds] = useState<any[]>([]);
+  const [viewedUserSounds, setViewedUserSounds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [likedSounds, setLikedSounds] = useState(new Set());
   // Stati per commenti
   const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [selectedSoundForComments, setSelectedSoundForComments] = useState(null);
-  const [comments, setComments] = useState([]);
+  const [selectedSoundForComments, setSelectedSoundForComments] = useState<any | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [pendingChat, setPendingChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null);
@@ -427,13 +427,13 @@ export default function App() {
   
   // 🎛️ STATI PER REMIX
   const [showRemixStudio, setShowRemixStudio] = useState(false);
-  const [remixSounds, setRemixSounds] = useState([]);
+  const [remixSounds, setRemixSounds] = useState<any[]>([]);
   const [loadingRemixSounds, setLoadingRemixSounds] = useState(false);
   
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
-  const [followersList, setFollowersList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
+  const [followersList, setFollowersList] = useState<any[]>([]);
+  const [followingList, setFollowingList] = useState<any[]>([]);
   const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
   
   
@@ -502,9 +502,9 @@ useEffect(() => {
     await registerForPushNotifications(user.uid);
 
     // Carica notifiche esistenti
-    const userNotifications = await getUserNotifications(user.uid);
+    const userNotifications: any[] = await getUserNotifications(user.uid);
     setNotifications(userNotifications);
-    setUnreadCount(userNotifications.filter(n => !n.read).length);
+    setUnreadCount(userNotifications.filter((n: any) => !n.read).length);
 
     // Listener per notifiche in tempo reale
     const subscription = Notifications.addNotificationReceivedListener(() => {
@@ -513,7 +513,7 @@ useEffect(() => {
 
     // Background → foreground: l'utente tocca la notifica mentre l'app è in background.
     // Salviamo l'ID in AsyncStorage così la sessione successiva non la riprocessa.
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const notifId = response.notification.request.identifier;
       if (lastHandledNotifId.current === notifId) return;
       lastHandledNotifId.current = notifId;
@@ -546,14 +546,14 @@ useEffect(() => {
 useEffect(() => {
   const user = auth.currentUser;
   if (!user) return;
-  const unsub = listenPendingFriendRequests((reqs) => setPendingFriendRequests(reqs));
+  const unsub = listenPendingFriendRequests((reqs: any[]) => setPendingFriendRequests(reqs));
   return unsub;
 }, []);
 
 
 // Timer per registrazione
   useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isRecording) {
       interval = setInterval(() => {
         setRecordingTime(prev => {
@@ -567,7 +567,9 @@ useEffect(() => {
     } else {
       setRecordingTime(0);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isRecording]);
 
   // Initialize app
@@ -583,7 +585,7 @@ useEffect(() => {
       });
 
       // Get user profile
-      const profile = await getUserProfile(user.uid);
+      const profile: any = await getUserProfile(user.uid);
       setUserProfile(profile);
       setMyStreakCount(profile?.streakCount || 0);
       getFollowStats(user.uid).then(setFollowStats);
@@ -598,7 +600,7 @@ useEffect(() => {
         .catch(() => {});
 
       // Subscribe to feed
-      const unsubscribe = subscribeToSoundsFeed((newSounds) => {
+      const unsubscribe = subscribeToSoundsFeed((newSounds: any[]) => {
         setSounds(newSounds);
         setLoading(false);
         // Riaggiorna il contatore ad ogni nuovo suono nel feed
@@ -877,7 +879,7 @@ const stopCurrentSound = async () => {
   setPlayPosition(0);
 };
 
-const onPlaybackStatusUpdate = (status) => {
+const onPlaybackStatusUpdate = (status: any) => {
   if (!status.isLoaded) return;
   if (status.durationMillis > 0) {
     setPlayProgress((status.positionMillis / status.durationMillis) * 100);
@@ -893,7 +895,7 @@ const onPlaybackStatusUpdate = (status) => {
   }
 };
 
-const handlePlay = async (item) => {
+const handlePlay = async (item: any) => {
   // Blocca tap multipli mentre carica
   if (isLoadingSound.current) return;
 
@@ -1007,8 +1009,8 @@ const handlePlay = async (item) => {
     }
 
     await incrementListens(item.id);
-  } catch (err) {
-    console.error('❌ [PLAY] Error playing sound:', err.message);
+  } catch (err: any) {
+    console.error('❌ [PLAY] Error playing sound:', err?.message || err);
     try {
       const ext = item.audioUrl?.includes('.webm') ? 'webm' : item.audioUrl?.includes('.ogg') ? 'ogg' : 'm4a';
       await FileSystem.deleteAsync(FileSystem.cacheDirectory + `sound_${item.id}.${ext}`, { idempotent: true });
@@ -1020,7 +1022,7 @@ const handlePlay = async (item) => {
 };
 
   // Delete sound
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     Alert.alert(
       t('common.confirm'),
       t('home.deleteConfirm'),
@@ -1045,7 +1047,7 @@ const handlePlay = async (item) => {
   };
 
   // Handle like
-  const handleLike = async (soundId) => {
+  const handleLike = async (soundId: string) => {
     try {
       const isLiked = await toggleLike(soundId);
       
@@ -1067,7 +1069,7 @@ const handlePlay = async (item) => {
 
   
   // Load comments
-  const loadComments = async (soundId) => {
+  const loadComments = async (soundId: string) => {
     try {
       setLoadingComments(true);
       const data = await getComments(soundId);
@@ -1099,7 +1101,7 @@ const handlePlay = async (item) => {
   };
 
   // Delete comment
-  const handleDeleteComment = (comment) => {
+  const handleDeleteComment = (comment: any) => {
     Alert.alert(t('comments.deleteComment'), t('comments.deleteCommentConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -1118,7 +1120,7 @@ const handlePlay = async (item) => {
   };
 
   // Open comments modal
-  const openCommentsModal = (soundId) => {
+  const openCommentsModal = (soundId: string) => {
     setSelectedSoundForComments(soundId);
     setShowCommentsModal(true);
     loadComments(soundId);
@@ -1177,9 +1179,9 @@ const loadNotifications = async () => {
   const user = auth.currentUser;
   if (!user) return;
   
-  const userNotifications = await getUserNotifications(user.uid);
+  const userNotifications: any[] = await getUserNotifications(user.uid);
   setNotifications(userNotifications);
-  setUnreadCount(userNotifications.filter(n => !n.read).length);
+  setUnreadCount(userNotifications.filter((n: any) => !n.read).length);
 };
 
   const handleCheckUpdates = async () => {
@@ -1214,7 +1216,7 @@ const loadNotifications = async () => {
     );
   };
 
-  const openReport = (soundId) => {
+  const openReport = (soundId: string) => {
     setReportTargetId(soundId);
     setReportReason('');
     setReportNote('');
@@ -1304,6 +1306,7 @@ const handleSaveProfile = async () => {
   setSavingProfile(true);
   try {
     const user = auth.currentUser;
+    if (!user) return;
     await updateUserProfile(user.uid, {
       username: editUsername.trim(),
       bio: editBio.trim(),
@@ -1311,7 +1314,7 @@ const handleSaveProfile = async () => {
     });
 
     // Ricarica profilo
-    const newProfile = await getUserProfile(user.uid);
+    const newProfile: any = await getUserProfile(user.uid);
     setUserProfile(newProfile);
     setMyStreakCount(newProfile?.streakCount || 0);
     getFollowStats(user.uid).then(setFollowStats);
@@ -1326,14 +1329,14 @@ const handleSaveProfile = async () => {
   }
 };
   
-  const getMoodColor = (mood) => {
+  const getMoodColor = (mood: string) => {
     const colors = {
       Energico: '#f97316',
       Rilassante: '#3b82f6',
       Gioioso: '#eab308',
       Nostalgico: '#a855f7',
     };
-    return colors[mood] || '#6b7280';
+    return colors[mood as keyof typeof colors] || '#6b7280';
   };
 
   // Filter sounds
@@ -1346,10 +1349,10 @@ const handleSaveProfile = async () => {
   });
 
   // Format time ago — gestisce Firestore Timestamp, Date JS e numeri
-  const timeAgo = (date) => {
+  const timeAgo = (date: any) => {
     if (!date) return '';
     const d = date?.toDate ? date.toDate() : (date instanceof Date ? date : new Date(date));
-    const seconds = Math.floor((new Date() - d) / 1000);
+    const seconds = Math.floor((new Date().getTime() - d.getTime()) / 1000);
     if (seconds < 60) return 'ora';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m fa`;
@@ -1419,7 +1422,7 @@ const fetchAndShowFollowing = async () => {
 
 // Apre il profilo di un utente — il tab cambia immediatamente (non dopo l'await)
 // per evitare che setActiveTab('profile') sovrascriva una navigazione successiva dell'utente
-const openUserProfile = async (userId) => {
+  const openUserProfile = async (userId: string) => {
   setActiveTab('profile');
   setUserProfile(null);
   setViewedUserSounds([]);
@@ -1484,7 +1487,7 @@ const handleNotificationNavigation = async (data: any) => {
       const senderId = data.senderId;
       if (!senderId) { setActiveTab('messages'); break; }
       try {
-        const senderDoc = await getUserProfile(senderId);
+        const senderDoc: any = await getUserProfile(senderId);
         setPendingChat({
           userId: senderId,
           userName: senderDoc?.username || senderDoc?.displayName || 'Utente',
@@ -2029,10 +2032,10 @@ if (loading) {
         <Text style={styles.loadingText}>{t('home.loadingSounds')}</Text>
       </View>
     ) : (
-      <RemixScreen 
-        availableSounds={remixSounds}
-        onClose={() => setActiveTab('profile')}
-      />
+        <RemixScreen 
+          availableSounds={remixSounds as any}
+          onClose={() => setActiveTab('profile')}
+        />
     )}
   </View>
 )}
@@ -2097,7 +2100,7 @@ if (loading) {
           if (tab === 'profile') {
             const me = auth.currentUser;
             if (me) {
-              const myProfile = await getUserProfile(me.uid);
+              const myProfile: any = await getUserProfile(me.uid);
               setUserProfile(myProfile);
               setMyStreakCount(myProfile?.streakCount || 0);
               // Resetta i follow stats col proprio UID — potrebbero essere dell'ultimo profilo visitato
@@ -3965,6 +3968,11 @@ userListItem: {
   marginBottom: 8,
   borderWidth: 1,
   borderColor: 'rgba(255,255,255,0.08)',
+},
+navIcon: {
+  fontSize: 18,
+  color: '#64748b',
+  fontWeight: '700',
 },
 
 

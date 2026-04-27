@@ -101,7 +101,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
       keyboardVerticalOffset={0}
     >
       <View style={nm.sheet}>
-        <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+        <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
         <View style={nm.handle} />
         <Text style={nm.title}>{t('messages.newConversation')}</Text>
         <TextInput

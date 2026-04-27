@@ -229,8 +229,8 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
               onPress={(e) => seekToRatio(e.nativeEvent.locationX / barWidth)}
             >
               <View style={s.seekRail} />
-              <View style={[s.seekFill, { width: progressPct }]} />
-              <View style={[s.seekThumb, { left: progressPct }]} />
+              <View style={[s.seekFill, { width: progressPct as any }]} />
+              <View style={[s.seekThumb, { left: progressPct as any }]} />
             </TouchableOpacity>
             <View style={s.timeRow}>
               <Text style={s.timeTxt}>{fmtTime(position)}</Text>

@@ -385,7 +385,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
               <Text style={s.leaveTxt}>Esci</Text>
             </TouchableOpacity>
           )}
-          {myRole === 'admin' && community.creatorId === myUid && (
+          {myRole === 'admin' && community.createdBy === myUid && (
             <TouchableOpacity style={s.leaveBtn} onPress={handleDeleteCommunity}>
               <Text style={[s.leaveTxt, { color: '#ef4444' }]}>🗑</Text>
             </TouchableOpacity>
@@ -395,7 +395,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
       {/* Tabs */}
       <View style={s.tabs}>
-        {(['chat', 'members', ...(isAdmin ? ['requests'] : [])] as const).map((tab) => {
+        {(['chat', 'members', ...(isAdmin ? (['requests'] as const) : ([] as const))] as const).map((tab) => {
           const label = tab === 'chat' ? '💬 Chat' : tab === 'members' ? '👥 Membri' : `🔔 Richieste`;
           const badge = tab === 'requests' ? requestsBadge : 0;
           return (

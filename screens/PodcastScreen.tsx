@@ -549,7 +549,7 @@ function EditPodcastModal({
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={pm.overlay}>
         <View style={pm.sheet}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           <View style={pm.handle} />
           <Text style={pm.sheetTitle}>{t('podcast.editTitle')}</Text>
 
@@ -924,7 +924,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
     <Modal visible animationType="slide" transparent onRequestClose={showSearch ? () => setShowSearch(false) : onClose}>
       <View style={pm.overlay}>
         <View style={pm.sheet}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           <View style={pm.handle} />
 
           {showSearch ? (
@@ -1230,7 +1230,7 @@ export default function PodcastScreen() {
       <Modal visible={playlistModalVisible} transparent animationType="slide" onRequestClose={() => setPlaylistModalVisible(false)}>
         <View style={pm.overlay}>
           <View style={pm.sheet}>
-            <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+            <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
             <View style={pm.handle} />
             <Text style={pm.sheetTitle}>Aggiungi a playlist</Text>
             {!!playlistTarget && (

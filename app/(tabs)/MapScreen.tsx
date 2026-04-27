@@ -19,29 +19,29 @@ const { width, height } = Dimensions.get('window');
 
 export default function MapScreen() {
   const { t } = useTranslation();
-  const [userLocation, setUserLocation] = useState(null);
-  const [sounds, setSounds] = useState([]);
+  const [userLocation, setUserLocation] = useState<any | null>(null);
+  const [sounds, setSounds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSound, setSelectedSound] = useState(null);
+  const [selectedSound, setSelectedSound] = useState<any | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [playingId, setPlayingId] = useState(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [searchRadius, setSearchRadius] = useState(10);
   const [viewMode, setViewMode] = useState('nearby');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const mapRef = useRef(null);
+  const mapRef = useRef<any>(null);
   // Ref per l'istanza audio — evita il memory leak del closure nella cleanup
-  const soundRef = useRef(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   // Ref per la location — evita la race condition nel doppio caricamento
-  const userLocationRef = useRef(null);
+  const userLocationRef = useRef<any | null>(null);
 
   useEffect(() => {
     initializeMap();
     return () => {
       // Cleanup corretto: usa ref invece dello state (non soffre del closure stale)
       if (soundRef.current) {
-        soundRef.current.unloadAsync();
+        soundRef.current.unloadAsync().catch(() => {});
         soundRef.current = null;
       }
     };
@@ -79,14 +79,14 @@ export default function MapScreen() {
       // Carica i suoni passando la location direttamente — non dipende dallo state aggiornato
       await loadNearbySounds(userPos);
       setLoading(false);
-    } catch (error) {
-      setErrorMsg(error.message);
-      Alert.alert(t('common.error'), error.message);
+    } catch (error: any) {
+      setErrorMsg(error?.message || t('map.errors.cannotLoad'));
+      Alert.alert(t('common.error'), error?.message || t('map.errors.cannotLoad'));
       setLoading(false);
     }
   };
 
-  const loadNearbySounds = async (location) => {
+  const loadNearbySounds = async (location?: any) => {
     const loc = location || userLocationRef.current;
     if (!loc) return;
 
@@ -95,7 +95,7 @@ export default function MapScreen() {
       setSounds(nearby);
 
       if (nearby.length > 0 && mapRef.current) {
-        const coordinates = nearby.map(s => ({
+        const coordinates = nearby.map((s: any) => ({
           latitude: s.location.latitude,
           longitude: s.location.longitude,
         }));
@@ -104,7 +104,7 @@ export default function MapScreen() {
           animated: true,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert(t('common.error'), t('map.errors.cannotLoad'));
     }
   };
@@ -114,7 +114,7 @@ export default function MapScreen() {
       const allSounds = await getSoundsForMap(200);
       setSounds(allSounds);
       if (allSounds.length > 0 && mapRef.current) {
-        const coordinates = allSounds.map(s => ({
+        const coordinates = allSounds.map((s: any) => ({
           latitude: s.location.latitude,
           longitude: s.location.longitude,
         }));
@@ -123,17 +123,17 @@ export default function MapScreen() {
           animated: true,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert(t('common.error'), t('map.errors.cannotLoad'));
     }
   };
 
-  const handleMarkerPress = (soundData) => {
+  const handleMarkerPress = (soundData: any) => {
     setSelectedSound(soundData);
     setShowDetails(true);
   };
 
-  const handlePlayPause = async (soundData) => {
+  const handlePlayPause = async (soundData: any) => {
     try {
       // Se c'è già un suono in riproduzione per un altro sound, scaricalo
       if (soundRef.current && playingId !== soundData.id) {
@@ -172,14 +172,14 @@ export default function MapScreen() {
       await incrementListens(soundData.id);
 
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setPlayingId(null);
           setIsPaused(false);
           soundRef.current = null;
-          newSound.unloadAsync();
+          newSound.unloadAsync().catch(() => {});
         }
       });
-    } catch (error) {
+    } catch (_error) {
       Alert.alert(t('common.error'), t('map.errors.cannotPlay'));
     }
   };
@@ -197,14 +197,14 @@ export default function MapScreen() {
     setSelectedSound(null);
   };
 
-  const getMoodColor = (mood) => {
+  const getMoodColor = (mood: string) => {
     const colors = {
       Energico: '#f97316',
       Rilassante: '#3b82f6',
       Gioioso: '#eab308',
       Nostalgico: '#a855f7',
     };
-    return colors[mood] || '#6b7280';
+    return colors[mood as keyof typeof colors] || '#6b7280';
   };
 
   const toggleViewMode = () => {
@@ -239,7 +239,7 @@ export default function MapScreen() {
     );
   }
 
-  const isCurrentSoundPlaying = (id) => playingId === id && !isPaused;
+  const isCurrentSoundPlaying = (id: string) => playingId === id && !isPaused;
 
   return (
     <View style={styles.container}>
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   controlButtonText: {
     color: '#fff',
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   radiusButton: {
     width: 32,
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     flex: 1,
-    backgroundColor: rgba(255,255,255,0.08),
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

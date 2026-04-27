@@ -44,13 +44,14 @@ try {
 }
 
 import * as Notifications from 'expo-notifications';
-import { AndroidImportance, AndroidPriority } from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
 
 // Configura come gestire le notifiche quando l'app è aperta
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
   }),
@@ -564,7 +565,6 @@ const DJ_PHOTOS: Record<string, string> = {
   'Fabio Volo':               'https://cdn.gelestatic.it/deejay/sites/2/2020/07/il-volo-della-sera-COVER-1200x627-320x320.jpg',
   'Alessandro Cattelan':      'https://cdn.gelestatic.it/deejay/sites/2/2023/07/DEEJAY_CATTELAND-conduttore-320x320.jpg',
   'Trio Medusa':               'https://cdn.gelestatic.it/deejay/sites/2/2020/01/trio-medusa-320x320.jpg',
-  'Wad':                       'https://cdn.gelestatic.it/deejay/sites/2/2020/01/wad-320x320.jpg',
   'Gianluca Gazzoli':          'https://cdn.gelestatic.it/deejay/sites/2/2020/01/gazzoli-320x320.jpg',
   'La Pina, Diego e La Vale':  'https://cdn.gelestatic.it/deejay/sites/2/2020/01/PINA-320x320.jpg',
   'Florencia':                  'https://cdn.gelestatic.it/deejay/sites/2/2023/08/thumbnail_florencia-destefano-abichain-320x320.jpg',
@@ -618,13 +618,12 @@ async function showRadioNotification(station: OfflineStation, djName: string) {
       content: {
         title: `📻 Soundscape - ${station.name}`,
         body: `In onda: ${djName}`,
-        priority: AndroidPriority?.MAX || 2,
         sticky: true,
         color: station.color, 
-        android: {
+        data: {
           channelId: 'radio-playback',
           largeIcon: station.logoUrl,
-        }
+        },
       },
       trigger: null,
     });
@@ -2411,7 +2410,7 @@ function CreateRoomModal({ onCreated, onClose }: { onCreated: () => void; onClos
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={cm.overlay}>
         <View style={cm.sheet}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} borderRadius={20} />
+          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           <View style={cm.handle} />
           <Text style={cm.sheetTitle}>🎙  Vai in Radio</Text>
 
@@ -3048,7 +3047,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   // Fetch "Ora in onda" — al mount e ogni 15 min
   useEffect(() => {
     let cancelled = false;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     const load = async () => {
       const info = await fetchNowPlaying(station.id);
@@ -3095,7 +3094,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   // Update time exactly at slot changes and every minute for precision
   useEffect(() => {
-    let timerId: NodeJS.Timeout;
+    let timerId: ReturnType<typeof setTimeout>;
 
     const scheduleNextUpdate = () => {
       const now = new Date();
@@ -3250,8 +3249,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               <View style={[osp.artworkFallback, { borderColor: station.color + '40' }]}>
                 <LinearGradient
                   colors={[station.color + '28', station.color + '08']}
-                  style={StyleSheet.absoluteFill}
-                  borderRadius={20}
+                  style={[StyleSheet.absoluteFill, { borderRadius: 20 }]}
                 />
                 <Image
                   source={{ uri: station.logoUrl }}

@@ -98,7 +98,7 @@ export async function getMembers(communityId: string): Promise<CommunityMember[]
     };
   }).sort((a, b) => {
     const order = { admin: 0, moderator: 1, member: 2 };
-    return order[a.role] - order[b.role];
+    return order[a.role as keyof typeof order] - order[b.role as keyof typeof order];
   });
 }
 

@@ -948,7 +948,7 @@ export const toggleCommunityMembership = async (communityId) => {
 /**
  * Posta sound in una community
  */
-export const postSoundToCommunity = async (soundId: string, communityId: string) => {
+export const postSoundToCommunity = async (soundId, communityId) => {
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
@@ -980,7 +980,7 @@ export const postSoundToCommunity = async (soundId: string, communityId: string)
 /**
  * Ottieni sounds di una community
  */
-export const getCommunitySounds = async (communityId: string, limitCount = 20) => {
+export const getCommunitySounds = async (communityId, limitCount = 20) => {
   try {
     const q = query(
       collection(db, 'communities', communityId, 'sounds'),
@@ -1609,3 +1609,7 @@ export const getFollowStats = async (userId) => {
     return { followers: 0, following: 0 };
   }
 };
+
+// ── Alias per compatibilità con ChallengesScreen ───────────────────────────────
+// ChallengesScreen importa joinChallenge, ma la funzione si chiama submitSoundToChallenge
+export const joinChallenge = submitSoundToChallenge;

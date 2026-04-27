@@ -117,7 +117,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const [battles, setBattles] = useState<Battle[]>([]);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [cancelingBattleId, setCancelingBattleId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [userSearchText, setUserSearchText] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);

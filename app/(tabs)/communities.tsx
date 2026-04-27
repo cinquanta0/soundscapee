@@ -282,7 +282,7 @@ export default function CommunitiesScreen() {
               <Switch
                 value={!newCommunity.isPublic}
                 onValueChange={(val) => setNewCommunity({ ...newCommunity, isPublic: !val })}
-                trackColor={{ false: rgba(255,255,255,0.08), true: '#00FF9C' }}
+                trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#00FF9C' }}
                 thumbColor="#fff"
               />
             </View>

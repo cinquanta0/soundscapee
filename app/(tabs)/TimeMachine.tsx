@@ -25,12 +25,12 @@ const { width } = Dimensions.get('window');
 
 export default function TimeMachineScreen() {
   const { t } = useTranslation();
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timelineData, setTimelineData] = useState([]);
-  const [selectedSound, setSelectedSound] = useState(null);
-  const [playingId, setPlayingId] = useState(null);
-  const [sound, setSound] = useState(null);
+  const [timelineData, setTimelineData] = useState<any[]>([]);
+  const [selectedSound, setSelectedSound] = useState<any | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
   
   // Time controls
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -38,17 +38,17 @@ export default function TimeMachineScreen() {
   const [selectedHour, setSelectedHour] = useState(12);
   
   // Stats
-  const [locationStats, setLocationStats] = useState(null);
+  const [locationStats, setLocationStats] = useState<any | null>(null);
   const [compareMode, setCompareMode] = useState(false);
-  const [compareDate, setCompareDate] = useState(null);
-  const [compareSounds, setCompareSounds] = useState([]);
+  const [compareDate, setCompareDate] = useState<Date | null>(null);
+  const [compareSounds, setCompareSounds] = useState<any[]>([]);
 
   useEffect(() => {
     initializeTimeMachine();
     return () => {
-      if (sound) sound.unloadAsync();
+      sound?.unloadAsync().catch(() => {});
     };
-  }, []);
+  }, [sound]);
 
   useEffect(() => {
     if (userLocation) {
@@ -106,7 +106,7 @@ export default function TimeMachineScreen() {
     }
   };
 
-  const handlePlaySound = async (soundData) => {
+  const handlePlaySound = async (soundData: any) => {
     try {
       if (sound) {
         await sound.unloadAsync();
@@ -131,9 +131,9 @@ export default function TimeMachineScreen() {
       await incrementListens(soundData.id);
 
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setPlayingId(null);
-          newSound.unloadAsync();
+          newSound.unloadAsync().catch(() => {});
         }
       });
     } catch (error) {
@@ -142,7 +142,7 @@ export default function TimeMachineScreen() {
     }
   };
 
-  const jumpToDate = (daysOffset) => {
+  const jumpToDate = (daysOffset: number) => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + daysOffset);
     setSelectedDate(newDate);
@@ -166,17 +166,17 @@ export default function TimeMachineScreen() {
     setCompareMode(!compareMode);
   };
 
-  const getMoodColor = (mood) => {
+  const getMoodColor = (mood: string) => {
     const colors = {
       Energico: '#f97316',
       Rilassante: '#3b82f6',
       Gioioso: '#eab308',
       Nostalgico: '#a855f7',
     };
-    return colors[mood] || '#6b7280';
+    return colors[mood as keyof typeof colors] || '#6b7280';
   };
 
-  const formatDate = (date) => {
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',
@@ -185,7 +185,7 @@ export default function TimeMachineScreen() {
     });
   };
 
-  const getTimeOfDay = (hour) => {
+  const getTimeOfDay = (hour: number) => {
     if (hour < 6) return { emoji: '🌙', label: t('timeMachine.night') };
     if (hour < 12) return { emoji: '🌅', label: t('timeMachine.morning') };
     if (hour < 18) return { emoji: '☀️', label: t('timeMachine.afternoon') };
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   dateHeader: {
     flexDirection: 'row',
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: rgba(255,255,255,0.08),
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   },
   quickJumpButton: {
     flex: 1,
-    backgroundColor: rgba(255,255,255,0.08),
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   hourHeader: {
     flexDirection: 'row',
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statsTitle: {
     fontSize: 16,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   compareButton: {
-    backgroundColor: rgba(255,255,255,0.08),
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   emptyIcon: {
     fontSize: 64,
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: rgba(255,255,255,0.08),
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   soundHeader: {
     flexDirection: 'row',

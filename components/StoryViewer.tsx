@@ -18,6 +18,7 @@ export interface StoryScreen {
   imageUrl?: string;
   audioUrl?: string;
   audioDuration?: number;
+  seenBy?: Array<{ id: string }>;
 }
 
 export interface StoryGroup {
@@ -76,6 +77,7 @@ export default function StoryViewer({
   const replyTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const group = groups[groupIdx];
+  const screen = group?.screens?.[screenIdx];
   const isOwnGroup = !!(group?.userId && currentUserId && group.userId === currentUserId);
   const isTutorial = group?.id?.startsWith('tutorial');
   const totalScreens = group?.screens.length ?? 1;
@@ -348,9 +350,7 @@ export default function StoryViewer({
     setShowViewers((v) => !v);
   }, [screen?.id, isOwnGroup, getViewersForStato, showViewers]);
 
-  if (!group) return null;
-  const screen = group.screens[screenIdx];
-  if (!screen) return null;
+  if (!group || !screen) return null;
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>

@@ -29,14 +29,14 @@ import {
 export default function ChallengesScreen() {
   const { t } = useTranslation();
   const uid = auth.currentUser?.uid ?? '';
-  const [challenges, setChallenges] = useState([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [challengeSounds, setChallengeSounds] = useState([]);
+  const [selectedChallenge, setSelectedChallenge] = useState<any | null>(null);
+  const [challengeSounds, setChallengeSounds] = useState<any[]>([]);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [loadingSounds, setLoadingSounds] = useState(false);
-  const [playingId, setPlayingId] = useState(null);
-  const [sound, setSound] = useState(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   // 🆕 STATI PER CREARE CHALLENGE
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -49,11 +49,9 @@ export default function ChallengesScreen() {
   useEffect(() => {
     loadChallenges();
     return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
+      sound?.unloadAsync().catch(() => {});
     };
-  }, []);
+  }, [sound]);
 
   const loadChallenges = async () => {
     try {
@@ -128,7 +126,7 @@ export default function ChallengesScreen() {
         description: newChallengeDescription.trim(),
         emoji: newChallengeEmoji,
         endDate: endDate,
-        creatorId: auth.currentUser.uid,
+        creatorId: uid,
       });
 
       // Reset form
@@ -150,7 +148,7 @@ export default function ChallengesScreen() {
     }
   };
 
-  const handleChallengePress = async (challenge) => {
+  const handleChallengePress = async (challenge: any) => {
     try {
       setSelectedChallenge(challenge);
       setShowChallengeModal(true);
@@ -166,7 +164,7 @@ export default function ChallengesScreen() {
     }
   };
 
-  const handlePlay = async (item) => {
+  const handlePlay = async (item: any) => {
     try {
       if (sound) {
         await sound.unloadAsync();
@@ -193,9 +191,9 @@ export default function ChallengesScreen() {
       await incrementListens(item.id);
 
       newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setPlayingId(null);
-          newSound.unloadAsync();
+          newSound.unloadAsync().catch(() => {});
         }
       });
     } catch (err) {
@@ -204,11 +202,11 @@ export default function ChallengesScreen() {
     }
   };
 
-  const handleVote = async (soundId) => {
+  const handleVote = async (soundId: string) => {
     try {
       await voteForChallengeSound(soundId);
       
-      const updatedSounds = challengeSounds.map(s => 
+      const updatedSounds = challengeSounds.map((s: any) =>
         s.id === soundId 
           ? { ...s, challengeVotes: (s.challengeVotes || 0) + 1 }
           : s
@@ -222,9 +220,9 @@ export default function ChallengesScreen() {
     }
   };
 
-  const getTimeRemaining = (endDate) => {
+  const getTimeRemaining = (endDate: Date) => {
     const now = new Date();
-    const diff = endDate - now;
+    const diff = endDate.getTime() - now.getTime();
 
     if (diff <= 0) return t('challenges.ended');
 

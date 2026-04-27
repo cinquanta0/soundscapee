@@ -93,9 +93,9 @@ export default function LoginScreen() {
     try {
       await signInAnonymously(auth);
       router.replace('/(tabs)');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Anonymous error:', error);
-      Alert.alert(t('common.error'), error.message);
+      Alert.alert(t('common.error'), error?.message || t('common.error'));
     } finally {
       setLoading(false);
     }
