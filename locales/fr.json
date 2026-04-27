@@ -70,6 +70,9 @@
     "reportContent": "Signaler le contenu",
     "copyLink": "Copier le lien",
     "publish": "Publier",
+    "heroTitle": "Partage un son",
+    "heroSubtitle": "Fais entendre ta voix",
+    "goLive": "Aller en direct",
     "loadingSounds": "Chargement des sons...",
     "deleteConfirm": "Voulez-vous vraiment supprimer ce son ?",
     "soundDeleted": "Son supprimé"

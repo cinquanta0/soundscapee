@@ -1592,15 +1592,15 @@ if (loading) {
               <View style={styles.heroMicCircle}>
                 <Feather name="mic" size={22} color="#00FF9C" />
               </View>
-              <Text style={styles.heroTitle}>Share a sound</Text>
-              <Text style={styles.heroSubtitle}>Let the world hear you</Text>
+              <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
+              <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
               <TouchableOpacity
                 style={[styles.heroBtn, isRecording && styles.heroBtnRecording]}
                 onPress={isRecording ? handleRecord : () => setShowPublishTypeModal(true)}
               >
                 <Feather name="radio" size={14} color="#001A0D" style={{ marginRight: 6 }} />
                 <Text style={styles.heroBtnText}>
-                  {isRecording ? t('home.recording', { time: recordingTime }) : 'Go Live'}
+                  {isRecording ? t('home.recording', { time: recordingTime }) : t('home.goLive')}
                 </Text>
               </TouchableOpacity>
               {isRecording && recordingTime >= 3 && (
@@ -1627,7 +1627,7 @@ if (loading) {
               style={styles.filterScroll}
               contentContainerStyle={{ paddingRight: 8 }}
             >
-              {[{ id: 'all', label: t('moods.all') }, { id: 'Energico', label: 'Energico' }, { id: 'Rilassante', label: 'Rilassante' }, { id: 'Gioioso', label: 'Gioioso' }, { id: 'Nostalgico', label: 'Nostalgico' }].map(m => (
+              {[{ id: 'all', label: t('moods.all') }, { id: 'Energico', label: t('moods.energico') }, { id: 'Rilassante', label: t('moods.rilassante') }, { id: 'Gioioso', label: t('moods.gioioso') }, { id: 'Nostalgico', label: t('moods.nostalgico') }].map(m => (
                 <TouchableOpacity
                   key={m.id}
                   style={[styles.filterChip, filterMood === m.id && styles.filterChipActive]}
