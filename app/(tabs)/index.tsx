@@ -1760,10 +1760,6 @@ if (loading) {
                         <Feather name="message-circle" size={15} color="rgba(255,255,255,0.4)" />
                         <Text style={styles.actionText}>{post.comments}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.actionButton}>
-                        <Feather name="repeat" size={15} color="rgba(255,255,255,0.4)" />
-                        <Text style={styles.actionText}>0</Text>
-                      </TouchableOpacity>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <View style={styles.actionButton}>
