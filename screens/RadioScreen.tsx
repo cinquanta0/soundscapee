@@ -470,8 +470,7 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; monday?: Sche
       { startHour: 15, endHour: 18, djName: 'Claves',                                showName: 'Claves' },
       { startHour: 18, endHour: 19, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
       { startHour: 19, endHour: 21, djName: 'Wad',                                   showName: 'One Two One Two con Wad' },
-      { startHour: 21, endHour: 22, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
-      { startHour: 22, endHour: 24, djName: 'Ale Lippi',                             showName: 'Discoball con Ale Lippi' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                             showName: 'Dance Revolution con Albertino' },
     ],
   },
   capital: {
