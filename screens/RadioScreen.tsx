@@ -176,7 +176,7 @@ interface ScheduleSlot {
   djPhotoUrl?: string; // URL foto DJ — fallback alle iniziali se mancante/rotto
 }
 
-const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: ScheduleSlot[]; sunday: ScheduleSlot[] }> = {
+const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; monday?: ScheduleSlot[]; tuesday?: ScheduleSlot[]; wednesday?: ScheduleSlot[]; thursday?: ScheduleSlot[]; friday?: ScheduleSlot[]; saturday: ScheduleSlot[]; sunday: ScheduleSlot[] }> = {
   rtl: {
     weekday: [
       { startHour: 0,  endHour: 6,  djName: 'RTL 102.5',           showName: 'Non Stop News' },
@@ -366,42 +366,112 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
       { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
       { startHour: 23, endHour: 24, djName: 'Val S',                                  showName: 'One Two One Two Selecta con Val S' },
     ],
-    friday: [
-      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',           showName: 'Deejay Time in the Mix' },
-      { startHour: 1,  endHour: 3,  djName: 'm2o',                                    showName: 'Dance With Us' },
-      { startHour: 3,  endHour: 4,  djName: 'm2o',                                    showName: 'm2o Playlist' },
-      { startHour: 4,  endHour: 6,  djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
-      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                        showName: 'Il Morning Show di m2o' },
-      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                           showName: 'Davide Rizzi' },
-      { startHour: 12, endHour: 14, djName: 'Marlen',                                 showName: 'Marlen' },
-      { startHour: 14, endHour: 17, djName: 'Ilario',                                 showName: 'Ilario' },
-      { startHour: 17, endHour: 19, djName: 'Albertino',                              showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
-      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                          showName: 'Andrea Mattei' },
-      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
-      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Dance Revolution con Albertino' },
+    monday: [ // domenica notte → lunedì mattina
+      { startHour: 0,  endHour: 1,  djName: 'MoBlack',                               showName: 'MoBlack' },
+      { startHour: 1,  endHour: 2,  djName: 'Defected',                              showName: 'Defected Radio' },
+      { startHour: 2,  endHour: 3,  djName: 'Glitterbox',                            showName: 'Glitterbox Radio' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                   showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 5,  djName: 'Albertino',                             showName: 'Deejay Parade',                  djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
+      { startHour: 5,  endHour: 6,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                       showName: 'Il Morning Show di m2o' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                          showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                         showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                                 showName: 'One Two One Two Selecta con Val S' },
     ],
-    saturday: [
-      { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
-      { startHour: 6,  endHour: 9,  djName: 'Isabella',                               showName: 'Isabella' },
-      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                   showName: 'Patrizia Prinzivalli' },
-      { startHour: 12, endHour: 14, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
+    tuesday: [ // lunedì notte → martedì mattina
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 2,  djName: 'Martin Garrix',                         showName: 'Martin Garrix' },
+      { startHour: 2,  endHour: 3,  djName: 'Tiësto',                                showName: 'Tiësto' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                   showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                       showName: 'Il Morning Show di m2o' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                          showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                         showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                                 showName: 'One Two One Two Selecta con Val S' },
+    ],
+    wednesday: [ // martedì notte → mercoledì mattina
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 2,  djName: 'DJ Mag Sessions',                       showName: 'DJ Mag Sessions' },
+      { startHour: 2,  endHour: 3,  djName: 'Alok',                                  showName: 'Alok' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                   showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                       showName: 'Il Morning Show di m2o' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                          showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                         showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                                 showName: 'One Two One Two Selecta con Val S' },
+    ],
+    thursday: [ // mercoledì notte → giovedì mattina
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 2,  djName: 'James Hype',                            showName: 'James Hype' },
+      { startHour: 2,  endHour: 3,  djName: 'Lost Frequencies',                      showName: 'Lost Frequencies' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                   showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                       showName: 'Il Morning Show di m2o' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                          showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                         showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Val S',                                 showName: 'One Two One Two Selecta con Val S' },
+    ],
+    friday: [ // giovedì notte → venerdì mattina
+      { startHour: 0,  endHour: 1,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix' },
+      { startHour: 1,  endHour: 2,  djName: 'Claptone',                              showName: 'Claptone' },
+      { startHour: 2,  endHour: 3,  djName: 'Toy Tonics',                            showName: 'Toy Tonics' },
+      { startHour: 3,  endHour: 4,  djName: 'm2o',                                   showName: 'm2o Playlist' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 6,  endHour: 9,  djName: 'Walter Pizzulli',                       showName: 'Il Morning Show di m2o' },
+      { startHour: 9,  endHour: 12, djName: 'Davide Rizzi',                          showName: 'Davide Rizzi' },
+      { startHour: 12, endHour: 14, djName: 'Marlen',                                showName: 'Marlen' },
+      { startHour: 14, endHour: 17, djName: 'Ilario',                                showName: 'Ilario' },
+      { startHour: 17, endHour: 19, djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 19, endHour: 21, djName: 'Andrea Mattei',                         showName: 'Andrea Mattei' },
+      { startHour: 21, endHour: 23, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                             showName: 'Dance Revolution con Albertino' },
+    ],
+    saturday: [ // venerdì notte → sabato mattina
+      { startHour: 0,  endHour: 1,  djName: 'm2o',                                   showName: 'Dance With Us' },
+      { startHour: 1,  endHour: 2,  djName: 'Franky Rizardo',                        showName: 'Franky Rizardo' },
+      { startHour: 2,  endHour: 3,  djName: 'Jamie Jones',                           showName: 'Jamie Jones' },
+      { startHour: 3,  endHour: 4,  djName: 'Circoloco Radio',                       showName: 'Circoloco Radio' },
+      { startHour: 4,  endHour: 6,  djName: 'Albertino',                             showName: 'Albertino Everyday',             djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/ALBERTINO-EVERYDAY-ON-AIR-1-1-e1677688343132-320x167.jpeg' },
+      { startHour: 6,  endHour: 9,  djName: 'Isabella',                              showName: 'Isabella' },
+      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                  showName: 'Patrizia Prinzivalli' },
+      { startHour: 12, endHour: 14, djName: 'Giorgio Dazzi',                         showName: 'Giorgio Dazzi' },
       { startHour: 14, endHour: 15, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
-      { startHour: 15, endHour: 19, djName: 'Claves',                                 showName: 'Claves' },
-      { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two con Wad' },
-      { startHour: 21, endHour: 22, djName: 'Ilario',                                 showName: 'm2o Chart con Ilario',          djPhotoUrl: M2O_CHART_URI },
-      { startHour: 22, endHour: 23, djName: 'DJ Shorty',                              showName: 'La Mezcla con Shorty' },
-      { startHour: 23, endHour: 24, djName: 'Albertino',                              showName: 'Deejay Parade',    djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
+      { startHour: 15, endHour: 19, djName: 'Claves',                                showName: 'Claves' },
+      { startHour: 19, endHour: 21, djName: 'Wad',                                   showName: 'One Two One Two con Wad' },
+      { startHour: 21, endHour: 22, djName: 'Ilario',                                showName: 'm2o Chart con Ilario',           djPhotoUrl: M2O_CHART_URI },
+      { startHour: 22, endHour: 23, djName: 'DJ Shorty',                             showName: 'La Mezcla con Shorty' },
+      { startHour: 23, endHour: 24, djName: 'Albertino',                             showName: 'Deejay Parade',                  djPhotoUrl: 'https://cdn.gelestatic.it/m2o/sites/2/2023/03/DEEJAY-PARADE-ON-AIR-1-e1684832568983-320x167.jpg' },
     ],
-    sunday: [
-      { startHour: 0,  endHour: 6,  djName: 'm2o',                                    showName: 'Dance With Us' },
-      { startHour: 6,  endHour: 9,  djName: 'Isabella',                               showName: 'Isabella' },
-      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                   showName: 'Patrizia Prinzivalli' },
-      { startHour: 12, endHour: 15, djName: 'Giorgio Dazzi',                          showName: 'Giorgio Dazzi' },
-      { startHour: 15, endHour: 18, djName: 'Claves',                                 showName: 'Claves' },
+    sunday: [ // sabato notte → domenica mattina
+      { startHour: 0,  endHour: 2,  djName: 'David Guetta',                          showName: 'David Guetta' },
+      { startHour: 2,  endHour: 3,  djName: 'Benny Benassi',                         showName: 'Benny Benassi' },
+      { startHour: 3,  endHour: 4,  djName: 'Mau P',                                 showName: 'Mau P' },
+      { startHour: 4,  endHour: 5,  djName: 'Ilario',                                showName: 'm2o Chart con Ilario',           djPhotoUrl: M2O_CHART_URI },
+      { startHour: 5,  endHour: 6,  djName: 'Fargetta, Molella e Prezioso',          showName: 'Deejay Time in the Mix - Best' },
+      { startHour: 6,  endHour: 9,  djName: 'Isabella',                              showName: 'Isabella' },
+      { startHour: 9,  endHour: 12, djName: 'Patrizia Prinzivalli',                  showName: 'Patrizia Prinzivalli' },
+      { startHour: 12, endHour: 15, djName: 'Giorgio Dazzi',                         showName: 'Giorgio Dazzi' },
+      { startHour: 15, endHour: 18, djName: 'Claves',                                showName: 'Claves' },
       { startHour: 18, endHour: 19, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
-      { startHour: 19, endHour: 21, djName: 'Wad',                                    showName: 'One Two One Two con Wad' },
-      { startHour: 21, endHour: 22, djName: 'Vittoria Hyde',                          showName: 'Vittoria Hyde' },
-      { startHour: 22, endHour: 24, djName: 'Ale Lippi',                              showName: 'Discoball con Ale Lippi' },
+      { startHour: 19, endHour: 21, djName: 'Wad',                                   showName: 'One Two One Two con Wad' },
+      { startHour: 21, endHour: 22, djName: 'Vittoria Hyde',                         showName: 'Vittoria Hyde' },
+      { startHour: 22, endHour: 24, djName: 'Ale Lippi',                             showName: 'Discoball con Ale Lippi' },
     ],
   },
   capital: {
@@ -434,12 +504,16 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; saturday: Sch
 };
 
 function getScheduleSlots(stationId: string, day?: number): ScheduleSlot[] {
-  const d = day ?? new Date().getDay(); // 0=Dom, 6=Sab, 5=Ven
+  const d = day ?? new Date().getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mer, 4=Gio, 5=Ven, 6=Sab
   const s = STATION_SCHEDULES[stationId] as any;
   if (!s) return [];
   if (d === 6) return s.saturday ?? s.weekday;
   if (d === 0) return s.sunday ?? s.saturday ?? s.weekday;
   if (d === 5) return s.friday ?? s.weekday;
+  if (d === 4) return s.thursday ?? s.weekday;
+  if (d === 3) return s.wednesday ?? s.weekday;
+  if (d === 2) return s.tuesday ?? s.weekday;
+  if (d === 1) return s.monday ?? s.weekday;
   return s.weekday;
 }
 
