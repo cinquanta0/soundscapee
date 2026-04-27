@@ -2,10 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated, Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { C, T, S, Elevation, Spring } from '../constants/design';
+import { C, T, S, Spring } from '../constants/design';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,17 +50,20 @@ function NavItem({
   const pillOpacity  = useRef(new Animated.Value(isActive ? 1 : 0)).current;
   const pillScaleX   = useRef(new Animated.Value(isActive ? 1 : 0.5)).current;
   const glowOpacity  = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const lift         = useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.spring(pillOpacity, { toValue: isActive ? 1 : 0, useNativeDriver: true, ...Spring.snappy }),
       Animated.spring(pillScaleX,  { toValue: isActive ? 1 : 0.5, useNativeDriver: true, ...Spring.bouncy }),
       Animated.timing(glowOpacity, { toValue: isActive ? 1 : 0, duration: 250, useNativeDriver: true }),
+      Animated.spring(lift,        { toValue: isActive ? 1 : 0, useNativeDriver: true, ...Spring.smooth }),
     ]).start();
-  }, [isActive]);
+  }, [glowOpacity, isActive, lift, pillOpacity, pillScaleX]);
 
   const onPressIn  = () => Animated.spring(scale, { toValue: 0.84, useNativeDriver: true, ...Spring.snappy }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, ...Spring.snappy }).start();
+  const translateY = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
 
   return (
     <TouchableOpacity
@@ -69,17 +73,19 @@ function NavItem({
       onPressOut={onPressOut}
       activeOpacity={1}
     >
-      <Animated.View style={[styles.navItemInner, { transform: [{ scale }] }]}>
+      <Animated.View style={[styles.navItemInner, { transform: [{ scale }, { translateY }] }]}>
 
         {/* Icon zone with pill highlight */}
         <View style={styles.iconZone}>
           {/* Pill background */}
-          <Animated.View
-            style={[
-              styles.pill,
-              { opacity: pillOpacity, transform: [{ scaleX: pillScaleX }] },
-            ]}
-          />
+          <Animated.View style={[styles.pillWrap, { opacity: pillOpacity, transform: [{ scaleX: pillScaleX }] }]}>
+            <LinearGradient
+              colors={['rgba(0,255,156,0.24)', 'rgba(99,214,255,0.14)']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.pill}
+            />
+          </Animated.View>
           {/* Outer glow halo */}
           <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
           {/* Icon */}
@@ -125,11 +131,17 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
   ];
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      {/* Top edge highlight line */}
-      <View style={styles.topEdge} />
-
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={styles.ambientLeft} />
+      <View style={styles.ambientRight} />
       <View style={styles.bar}>
+        <LinearGradient
+          colors={['rgba(125,255,208,0.08)', 'rgba(255,255,255,0.02)', 'rgba(99,214,255,0.06)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.barRim} />
         {TABS.map((tab) => (
           <NavItem
             key={tab.id}
@@ -151,25 +163,53 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(10, 10, 10, 0.96)',
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+  },
+  ambientLeft: {
+    position: 'absolute',
+    left: 28,
+    bottom: 18,
+    width: 92,
+    height: 46,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
+  ambientRight: {
+    position: 'absolute',
+    right: 28,
+    bottom: 18,
+    width: 88,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.06)',
+  },
+  bar: {
+    overflow: 'hidden',
+    flexDirection: 'row',
+    paddingTop: S.sm + 1,
+    paddingHorizontal: S.xs + 2,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: C.borderCanvas,
+    backgroundColor: C.glassDark,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 16 },
+        shadowOpacity: 0.45,
+        shadowRadius: 24,
       },
       android: { elevation: 20 },
     }),
   },
-  topEdge: {
+  barRim: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
     height: 1,
-    backgroundColor: C.border,
-  },
-  bar: {
-    flexDirection: 'row',
-    paddingTop: S.sm + 2,
-    paddingHorizontal: S.xs,
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   navItem: {
     flex: 1,
@@ -179,43 +219,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: S.xs - 1,
     paddingHorizontal: S.xs,
+    paddingBottom: 4,
   },
   iconZone: {
-    width: 42,
-    height: 32,
+    width: 46,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  pill: {
+  pillWrap: {
     position: 'absolute',
-    width: 42,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.accentDim,
+    width: 46,
+    height: 30,
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  pill: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 156, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   glow: {
     position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.accentGlow,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,255,156,0.16)',
   },
   label: {
     ...T.labelS,
     color: C.textMuted,
+    letterSpacing: 0.45,
   },
   labelActive: {
-    color: C.accent,
+    color: C.textPrimary,
     fontWeight: '600',
   },
   activeDot: {
-    width: 14,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: C.accent,
-    marginTop: 1,
+    width: 18,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: C.accentWarm,
+    marginTop: 2,
   },
 });

@@ -245,7 +245,9 @@ export default function ChallengesScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
+      <View style={styles.ambientA} />
+      <View style={styles.ambientB} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -561,6 +563,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  ambientA: {
+    position: 'absolute',
+    top: -10,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
+  ambientB: {
+    position: 'absolute',
+    top: 60,
+    left: -20,
+    width: 160,
+    height: 160,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.06)',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -574,8 +594,12 @@ const styles = StyleSheet.create({
   header: {
     padding: S.xl,
     paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    marginHorizontal: S.lg,
+    marginTop: S.md,
+    borderWidth: 1,
+    borderColor: C.borderCanvas,
+    borderRadius: R.xxl,
+    backgroundColor: C.glassDark,
   },
   headerTitle: {
     ...T.displayM,
@@ -595,7 +619,7 @@ const styles = StyleSheet.create({
     borderRadius: R.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: C.borderAccent,
+    borderColor: C.borderCanvas,
   },
   challengeGradient: {
     padding: S.xl,
@@ -650,7 +674,7 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
   },
   challengeButton: {
-    backgroundColor: C.accent,
+    backgroundColor: C.accentWarm,
     paddingVertical: 14,
     borderRadius: R.sm,
     alignItems: 'center',
@@ -699,10 +723,10 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: R.full,
-    backgroundColor: C.accent,
+    backgroundColor: C.accentWarm,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: C.accent,
+    shadowColor: C.accentWarm,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 12,

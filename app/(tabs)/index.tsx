@@ -1580,9 +1580,10 @@ if (loading) {
           <View style={styles.content}>
             {/* Quick Record */}
             <LinearGradient
-              colors={['#003D25', '#001A10']}
+              colors={['#0B3B28', '#0C1320', '#11131A']}
               style={styles.recordCard}
             >
+              <View style={styles.recordCardGlow} />
               <Feather name="mic" size={32} color="rgba(255,255,255,0.9)" style={{ marginBottom: 12 }} />
               <TouchableOpacity
                 style={[
@@ -1821,6 +1822,7 @@ if (loading) {
       end={{ x: 1, y: 1 }}
       style={styles.profileCard}
     >
+      <View style={styles.profileCardGlass} />
       {/* Change background button — own profile only */}
       {userProfile?.id === auth.currentUser?.uid && (
         <TouchableOpacity
@@ -3221,10 +3223,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 6,
     padding: 16,
     paddingTop: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(125,255,208,0.14)',
+    borderRadius: 24,
+    backgroundColor: 'rgba(7,10,18,0.72)',
   },
   headerTitle: {
     flexDirection: 'row',
@@ -3265,7 +3271,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerButton: {
-    backgroundColor: '#161616',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 20,
     width: 36,
     height: 36,
@@ -3276,28 +3282,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   recordCard: {
-    borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
+    borderRadius: 24,
+    padding: 18,
     alignItems: 'center',
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(125,255,208,0.16)',
+  },
+  recordCardGlow: {
+    position: 'absolute',
+    top: -30,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.14)',
   },
   recordIcon: {
     fontSize: 32,
     marginBottom: 12,
   },
   recordButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#D7FF64',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 999,
   },
   recordButtonActive: {
     backgroundColor: '#ef4444',
   },
   recordButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#00FF9C',
+    fontWeight: '700',
+    color: '#07110B',
   },
   recordHint: {
     fontSize: 11,
@@ -3309,39 +3327,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   searchInput: {
-    backgroundColor: '#161616',
-    borderRadius: 12,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     color: '#fff',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.14)',
   },
   filterScroll: {
     marginBottom: 16,
   },
   filterChip: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 999,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   filterChipActive: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
   },
   filterChipText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   soundCard: {
-    backgroundColor: '#161616',
-    borderRadius: 18,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 24,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'rgba(125,255,208,0.14)',
     overflow: 'hidden',
     // Tinted shadow — depth without pure black
     shadowColor: '#000',
@@ -3426,11 +3446,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
     justifyContent: 'center',
     alignItems: 'center',
     // Accent glow
-    shadowColor: '#00FF9C',
+    shadowColor: '#D7FF64',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
@@ -3448,7 +3468,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
     borderRadius: 2,
   },
   duration: {
@@ -3504,13 +3524,23 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   profileCard: {
+    overflow: 'hidden',
     backgroundColor: '#161616',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  profileCardGlass: {
+    position: 'absolute',
+    top: -20,
+    right: -10,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   profileAvatar: {
     width: 80,
@@ -3525,8 +3555,8 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   profileName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#fff',
     marginBottom: 4,
   },
@@ -3545,8 +3575,8 @@ const styles = StyleSheet.create({
   },
   profileStatNumber: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#00FF9C',
+    fontWeight: '800',
+    color: '#D7FF64',
   },
   profileStatLabel: {
     fontSize: 11,
@@ -3555,15 +3585,15 @@ const styles = StyleSheet.create({
   },
   profileButtonPrimary: {
     width: '100%',
-    backgroundColor: '#00FF9C',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#D7FF64',
+    paddingVertical: 13,
+    borderRadius: 16,
     alignItems: 'center',
   },
   profileButtonPrimaryText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: '700',
+    color: '#07110B',
   },
   recordingsSection: {
     marginTop: 8,
@@ -3575,12 +3605,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyRecordings: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 20,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.14)',
   },
   emptySubtext: {
     fontSize: 12,
@@ -3588,15 +3618,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   recordingItem: {
-    backgroundColor: '#161616',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 18,
+    padding: 14,
     marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.14)',
   },
   recordingInfo: {
     flex: 1,
@@ -3616,7 +3646,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recordingPlayButton: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -3627,7 +3657,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   recordingDeleteButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     width: 36,
     height: 36,
     borderRadius: 18,

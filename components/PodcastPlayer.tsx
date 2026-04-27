@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { C } from '../constants/design';
@@ -146,7 +147,7 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
       if (isMountedRef.current) setLoading(false);
       isLoadingRef.current = false;
     }
-  }, [stopAndUnload]);
+  }, [stopAndUnload, t]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -182,12 +183,31 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
   const progress    = duration > 0 ? Math.min(position / duration, 1) : 0;
   const progressPct = `${(progress * 100).toFixed(2)}%`;
   const showCover   = !!podcast.coverUrl && !imgError;
+  const durationLabel = fmtTime(duration);
 
   return (
     <View style={s.root}>
+      <View style={s.ambientAura} />
+      <View style={s.ambientAuraSecondary} />
+
+      <View style={s.metaRow}>
+        <View style={s.metaPill}>
+          <Text style={s.metaPillTxt}>PODCAST</Text>
+        </View>
+        <View style={s.metaPillMuted}>
+          <Feather name="clock" size={12} color={C.accentSoft} />
+          <Text style={s.metaPillMutedTxt}>{durationLabel}</Text>
+        </View>
+      </View>
 
       {/* ── Album art ─────────────────────────────────────────────────── */}
       <View style={s.coverWrap}>
+        <LinearGradient
+          colors={['rgba(0,255,156,0.20)', 'rgba(99,214,255,0.12)', 'rgba(255,255,255,0.03)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.coverFrame}
+        />
         {showCover ? (
           <Image
             source={{ uri: podcast.coverUrl! }}
@@ -204,6 +224,7 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
 
       {/* ── Track title ───────────────────────────────────────────────── */}
       <View style={s.trackInfo}>
+        <Text style={s.eyebrow}>Featured sound capsule</Text>
         <Text style={s.title} numberOfLines={2} ellipsizeMode="tail">
           {podcast.title}
         </Text>
@@ -229,12 +250,17 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
               onPress={(e) => seekToRatio(e.nativeEvent.locationX / barWidth)}
             >
               <View style={s.seekRail} />
-              <View style={[s.seekFill, { width: progressPct as any }]} />
+              <LinearGradient
+                colors={[C.accent, C.accentWarm]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={[s.seekFill, { width: progressPct as any }]}
+              />
               <View style={[s.seekThumb, { left: progressPct as any }]} />
             </TouchableOpacity>
             <View style={s.timeRow}>
               <Text style={s.timeTxt}>{fmtTime(position)}</Text>
-              <Text style={s.timeTxt}>{fmtTime(duration)}</Text>
+              <Text style={s.timeTxt}>{durationLabel}</Text>
             </View>
           </View>
 
@@ -297,7 +323,64 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
 const s = StyleSheet.create({
   root: {
     alignItems: 'center',
+    paddingTop: 10,
     paddingBottom: 8,
+  },
+  ambientAura: {
+    position: 'absolute',
+    top: 34,
+    left: 18,
+    width: COVER * 0.56,
+    height: COVER * 0.56,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.10)',
+  },
+  ambientAuraSecondary: {
+    position: 'absolute',
+    top: COVER * 0.2,
+    right: 10,
+    width: COVER * 0.34,
+    height: COVER * 0.34,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.08)',
+  },
+  metaRow: {
+    width: '100%',
+    paddingHorizontal: 24,
+    marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  metaPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.20)',
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
+  metaPillTxt: {
+    color: C.accentSoft,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
+  metaPillMuted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  metaPillMutedTxt: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
   },
 
   // ── Cover ──
@@ -305,16 +388,25 @@ const s = StyleSheet.create({
     width: COVER,
     height: COVER,
     marginBottom: 28,
+    borderRadius: 24,
+    padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.65,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
     elevation: 16,
   },
+  coverFrame: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+  },
   cover: {
-    width: COVER,
-    height: COVER,
-    borderRadius: 12,
+    width: COVER - 20,
+    height: COVER - 20,
+    borderRadius: 16,
   },
   coverFallback: {
     backgroundColor: C.bgCard,
@@ -330,12 +422,20 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 20,
   },
-  title: {
-    fontSize: 20,
+  eyebrow: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 10,
     fontWeight: '700',
+    letterSpacing: 1.4,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
     color: '#fff',
-    lineHeight: 26,
-    letterSpacing: -0.3,
+    lineHeight: 30,
+    letterSpacing: -0.8,
   },
 
   // ── Seek bar ──
@@ -352,30 +452,31 @@ const s = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 18,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
+    top: 17,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 999,
   },
   seekFill: {
     position: 'absolute',
     left: 0,
-    top: 18,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.accent,
+    top: 17,
+    height: 6,
+    borderRadius: 999,
   },
   seekThumb: {
     position: 'absolute',
-    top: 12,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: 10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#fff',
-    marginLeft: -8,
+    borderWidth: 3,
+    borderColor: '#D7FF64',
+    marginLeft: -10,
     shadowColor: C.accent,
     shadowOpacity: 0.7,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
   },
   timeRow: {
@@ -385,7 +486,7 @@ const s = StyleSheet.create({
   },
   timeTxt: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255,255,255,0.42)',
     fontVariant: ['tabular-nums'],
   },
 
@@ -406,16 +507,18 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.35)',
   },
   playBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: C.accent,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: C.accentWarm,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: C.accent,
-    shadowOpacity: 0.45,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    shadowColor: C.accentWarm,
+    shadowOpacity: 0.38,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 24,
     elevation: 10,
   },
   playBtnDisabled: {

@@ -10,6 +10,7 @@ import {
     where,
 } from 'firebase/firestore';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -329,6 +330,9 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
+      <View style={styles.ambientA} />
+      <View style={styles.ambientB} />
       {/* Sub-tabs */}
       <View style={styles.subTabs}>
         {([
@@ -586,27 +590,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: C.bg,
   },
+  ambientA: {
+    position: 'absolute',
+    top: -20,
+    right: -10,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
+  ambientB: {
+    position: 'absolute',
+    top: 70,
+    left: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.07)',
+  },
   subTabs: {
     flexDirection: 'row',
     marginHorizontal: S.lg,
     marginTop: S.md,
     marginBottom: S.md,
-    backgroundColor: C.bgCard,
-    borderRadius: R.sm,
-    padding: 3,
+    backgroundColor: C.glassDark,
+    borderRadius: R.lg,
+    padding: 5,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.borderCanvas,
   },
   subTab: {
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: R.xs,
+    borderRadius: R.md,
   },
   subTabActive: {
-    backgroundColor: C.accentDim,
+    backgroundColor: C.glassAccent,
     borderWidth: 1,
-    borderColor: C.borderAccent,
+    borderColor: 'rgba(215,255,100,0.28)',
   },
   subTabTxt: {
     ...T.labelS,
@@ -619,13 +641,13 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.bgCard,
+    backgroundColor: C.glassDark,
     marginHorizontal: S.lg,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     paddingHorizontal: S.md,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.borderCanvas,
     gap: S.sm + 2,
   },
   searchIcon: {
@@ -648,16 +670,16 @@ const styles = StyleSheet.create({
   },
   moodChip: {
     paddingHorizontal: S.lg,
-    paddingVertical: 7,
+    paddingVertical: 9,
     borderRadius: R.full,
-    backgroundColor: C.bgCard,
+    backgroundColor: C.glassDark,
     borderWidth: 1,
     borderColor: C.border,
     marginRight: S.sm,
   },
   moodChipActive: {
-    backgroundColor: C.accentDim,
-    borderColor: C.borderAccent,
+    backgroundColor: 'rgba(0,255,156,0.14)',
+    borderColor: 'rgba(215,255,100,0.28)',
   },
   moodChipText: {
     ...T.bodyS,
@@ -681,14 +703,15 @@ const styles = StyleSheet.create({
   },
   sortBtn: {
     paddingHorizontal: S.md,
-    paddingVertical: 6,
-    borderRadius: R.sm,
-    backgroundColor: C.bgCard,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    backgroundColor: C.glassDark,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   sortBtnActive: {
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.borderStrong,
+    backgroundColor: 'rgba(99,214,255,0.12)',
+    borderColor: 'rgba(99,214,255,0.25)',
   },
   sortBtnText: {
     color: C.textMuted,
@@ -705,12 +728,12 @@ const styles = StyleSheet.create({
   soundCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.bgCard,
-    borderRadius: R.md,
-    padding: S.md,
-    marginBottom: 10,
+    backgroundColor: C.glassDark,
+    borderRadius: R.lg,
+    padding: S.lg,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.borderCanvas,
   },
   soundCardLeft: {
     flex: 1,
@@ -748,13 +771,17 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: R.full,
-    backgroundColor: C.accent,
+    backgroundColor: C.accentWarm,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
+    shadowColor: C.accentWarm,
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
   playBtnActive: {
-    backgroundColor: C.warning,
+    backgroundColor: C.accentIce,
   },
   playBtnText: {
     color: C.textOnAccent,

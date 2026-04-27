@@ -9,6 +9,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
@@ -288,6 +289,11 @@ export default function MapScreen() {
           </Marker>
         ))}
       </MapView>
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(7,8,12,0.78)', 'rgba(7,8,12,0.12)', 'rgba(7,8,12,0.76)']}
+        style={StyleSheet.absoluteFill}
+      />
 
       {/* Controlli superiori */}
       <View style={styles.topControls}>
@@ -415,6 +421,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07080C',
   },
   map: {
     width: '100%',
@@ -461,7 +468,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 8,
   },
   markerPlaying: {
     transform: [{ scale: 1.2 }],
@@ -479,12 +486,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   controlButton: {
-    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    backgroundColor: 'rgba(7, 10, 18, 0.82)',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 12,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.18)',
   },
   controlButtonText: {
     color: '#fff',
@@ -494,11 +501,11 @@ const styles = StyleSheet.create({
   radiusControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(30, 41, 59, 0.95)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(7, 10, 18, 0.82)',
+    borderRadius: 999,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.18)',
   },
   radiusButton: {
     width: 32,
@@ -521,10 +528,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 110,
     left: 16,
-    backgroundColor: 'rgba(6, 182, 212, 0.95)',
+    backgroundColor: 'rgba(99,214,255,0.88)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 999,
   },
   counterText: {
     color: '#fff',
@@ -537,12 +544,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   detailsCard: {
-    backgroundColor: '#161616',
+    backgroundColor: 'rgba(12,16,24,0.98)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
+    padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.18)',
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -624,10 +631,12 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   closeButtonText: {
     fontSize: 15,
@@ -636,17 +645,17 @@ const styles = StyleSheet.create({
   },
   playButton: {
     flex: 2,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   playButtonActive: {
-    backgroundColor: '#f97316',
+    backgroundColor: '#63D6FF',
   },
   playButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: '#04110A',
   },
 });

@@ -207,7 +207,9 @@ export default function TimeMachineScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0A0A0A', '#161616', '#0A0A0A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#07080C', '#0A0A0A', '#11131A']} style={StyleSheet.absoluteFill} />
+      <View style={styles.ambientA} />
+      <View style={styles.ambientB} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -461,6 +463,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0A0A',
   },
+  ambientA: {
+    position: 'absolute',
+    top: -20,
+    left: -20,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.08)',
+  },
+  ambientB: {
+    position: 'absolute',
+    top: 70,
+    right: -30,
+    width: 200,
+    height: 200,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -478,9 +498,12 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 60,
     alignItems: 'center',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     marginBottom: 16,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   headerEmoji: {
     fontSize: 48,
@@ -497,13 +520,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
   },
   dateCard: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 22,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   dateHeader: {
     flexDirection: 'row',
@@ -560,13 +583,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   hourCard: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 22,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   hourHeader: {
     flexDirection: 'row',
@@ -601,13 +624,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   statsCard: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 22,
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   statsTitle: {
     fontSize: 16,
@@ -623,8 +646,8 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#0A0A0A',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
     padding: 12,
     alignItems: 'center',
   },
@@ -639,14 +662,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   compareButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   compareButtonActive: {
     backgroundColor: '#8b5cf6',
@@ -671,12 +694,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyState: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 22,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   emptyIcon: {
     fontSize: 64,
@@ -694,12 +717,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   soundCard: {
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8,12,18,0.82)',
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   soundHeader: {
     flexDirection: 'row',

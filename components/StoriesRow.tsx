@@ -9,11 +9,13 @@ import {
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { auth, storage } from '../firebaseConfig';
 import { getRecentStati, createStato, StatiGroup, deleteStato, getStatoViewers, markStatoViewed } from '../services/statiService';
 import { inviaMessaggio } from '../services/messaggiService';
 import StoryViewer, { StoryGroup } from './StoryViewer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { C } from '../constants/design';
 
 const MAX_RECORDING_SECONDS = 15;
 
@@ -102,7 +104,7 @@ function AnimatedRing({ viewed }: { viewed: boolean }) {
     );
     anim.start();
     return () => anim.stop();
-  }, [viewed]);
+  }, [rotation, viewed]);
 
   const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
@@ -119,11 +121,23 @@ function AnimatedRing({ viewed }: { viewed: boolean }) {
 
 // ─── Story circle item ─────────────────────────────────────────────────────────
 function StoryCircle({
-  emoji, label, viewed, onPress,
-}: { emoji: string; label: string; viewed: boolean; onPress: () => void }) {
+  emoji, label, viewed, onPress, highlight,
+}: { emoji: string; label: string; viewed: boolean; onPress: () => void; highlight?: 'accent' | 'ice' }) {
+  const ringColors = viewed
+    ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.08)']
+    : highlight === 'ice'
+      ? ['#63D6FF', '#00FF9C']
+      : ['#D7FF64', '#00FF9C'];
+
   return (
     <TouchableOpacity style={styles.circleWrap} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.circleOuter}>
+        <LinearGradient
+          colors={ringColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.circleHalo}
+        />
         <AnimatedRing viewed={viewed} />
         <View style={styles.circleInner}>
           <Text style={styles.circleEmoji}>{emoji}</Text>
@@ -408,6 +422,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
           emoji="❓"
           label={t('stories.howItWorks')}
           viewed={viewedTutorial}
+          highlight="ice"
           onPress={openTutorial}
         />
 
@@ -441,6 +456,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
               emoji={group.icon || '🎵'}
               label={group.label}
               viewed={viewedStati.has(group.id)}
+              highlight={followingIds.has(group.userId) ? 'accent' : 'ice'}
               onPress={() => openUserStory(group)}
             />
           ))}
@@ -616,34 +632,42 @@ const styles = StyleSheet.create({
   rowContent: {
     paddingHorizontal: 16,
     gap: 16,
+    paddingVertical: 4,
   },
   circleWrap: {
     alignItems: 'center',
     width: CIRCLE_SIZE + 12,
   },
   circleOuter: {
-    width: CIRCLE_SIZE + 6,
-    height: CIRCLE_SIZE + 6,
-    borderRadius: (CIRCLE_SIZE + 6) / 2,
+    width: CIRCLE_SIZE + 12,
+    height: CIRCLE_SIZE + 12,
+    borderRadius: (CIRCLE_SIZE + 12) / 2,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
+  circleHalo: {
+    position: 'absolute',
+    width: CIRCLE_SIZE + 12,
+    height: CIRCLE_SIZE + 12,
+    borderRadius: (CIRCLE_SIZE + 12) / 2,
+    opacity: 0.18,
+  },
   ring: {
     position: 'absolute',
-    width: CIRCLE_SIZE + 6,
-    height: CIRCLE_SIZE + 6,
-    borderRadius: (CIRCLE_SIZE + 6) / 2,
-    borderWidth: 2,
-    borderColor: '#00FF9C',
-    shadowColor: '#00FF9C',
-    shadowOpacity: 0.55,
-    shadowRadius: 8,
+    width: CIRCLE_SIZE + 10,
+    height: CIRCLE_SIZE + 10,
+    borderRadius: (CIRCLE_SIZE + 10) / 2,
+    borderWidth: 2.5,
+    borderColor: C.accent,
+    shadowColor: C.accent,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
   ringViewed: {
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.14)',
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -655,22 +679,22 @@ const styles = StyleSheet.create({
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: '#161616',
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
+    backgroundColor: '#12151B',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   circleEmoji: {
-    fontSize: 28,
+    fontSize: 29,
   },
   circleLabel: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 10,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.72)',
     textAlign: 'center',
     lineHeight: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   ringDashed: {
     borderColor: 'rgba(255,255,255,0.25)',
@@ -682,14 +706,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#00FF9C',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#D7FF64',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#0A0A0A',
+    borderColor: '#0C0E12',
+    shadowColor: '#D7FF64',
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
   },
   addBadgeText: {
     color: '#001A0D',
@@ -704,13 +732,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   createModal: {
-    backgroundColor: '#111115',
+    backgroundColor: '#11151B',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 24,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(125,255,208,0.16)',
   },
   createTitle: {
     color: '#fff',
@@ -738,7 +766,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -746,9 +774,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.07)',
   },
   emojiSelected: {
-    backgroundColor: 'rgba(0,255,156,0.15)',
+    backgroundColor: 'rgba(0,255,156,0.12)',
     borderWidth: 1.5,
-    borderColor: '#00FF9C',
+    borderColor: '#D7FF64',
   },
   emojiText: {
     fontSize: 22,
@@ -781,11 +809,13 @@ const styles = StyleSheet.create({
   preview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
     padding: 12,
     marginBottom: 20,
     gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   previewEmoji: {
     fontSize: 28,
@@ -822,9 +852,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D7FF64',
     alignItems: 'center',
-    shadowColor: '#00FF9C',
+    shadowColor: '#D7FF64',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,

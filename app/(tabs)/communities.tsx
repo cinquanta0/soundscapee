@@ -186,7 +186,9 @@ export default function CommunitiesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
+      <View style={styles.ambientA} />
+      <View style={styles.ambientB} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -307,6 +309,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: C.bg,
   },
+  ambientA: {
+    position: 'absolute',
+    top: -10,
+    left: -30,
+    width: 170,
+    height: 170,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,214,255,0.07)',
+  },
+  ambientB: {
+    position: 'absolute',
+    top: 80,
+    right: -20,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -319,18 +339,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: S.lg,
     paddingTop: S.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    marginHorizontal: S.lg,
+    marginTop: S.sm,
+    marginBottom: S.sm,
+    borderWidth: 1,
+    borderColor: C.borderCanvas,
+    borderRadius: R.xl,
+    backgroundColor: C.glassDark,
   },
   headerTitle: {
     ...T.h1,
     color: C.textPrimary,
   },
   createButton: {
-    backgroundColor: C.accent,
+    backgroundColor: C.accentWarm,
     paddingHorizontal: S.lg,
-    paddingVertical: S.sm,
-    borderRadius: R.sm,
+    paddingVertical: 10,
+    borderRadius: R.full,
+    shadowColor: C.accentWarm,
+    shadowOpacity: 0.26,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   createButtonText: {
     color: C.textOnAccent,
@@ -341,12 +370,12 @@ const styles = StyleSheet.create({
     padding: S.lg,
   },
   communityCard: {
-    backgroundColor: C.bgCard,
-    borderRadius: R.lg,
+    backgroundColor: C.glassDark,
+    borderRadius: R.xl,
     padding: S.lg,
     marginBottom: S.md,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.borderCanvas,
   },
   communityHeader: {
     flexDirection: 'row',
@@ -380,12 +409,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
-    backgroundColor: C.glass,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: C.border,
     paddingHorizontal: S.md,
-    paddingVertical: 6,
-    borderRadius: R.sm,
+    paddingVertical: 7,
+    borderRadius: R.full,
   },
   categoryText: {
     ...T.labelS,
@@ -393,10 +422,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   joinButton: {
-    backgroundColor: C.accent,
+    backgroundColor: C.accentWarm,
     paddingHorizontal: S.lg,
-    paddingVertical: S.sm,
-    borderRadius: R.sm,
+    paddingVertical: 10,
+    borderRadius: R.full,
   },
   joinButtonMember: {
     backgroundColor: 'rgba(0,255,156,0.12)',
@@ -474,11 +503,11 @@ const styles = StyleSheet.create({
     padding: S.lg,
   },
   modalContent: {
-    backgroundColor: C.bgCard,
+    backgroundColor: C.bgCanvas2,
     borderRadius: R.xxl,
     padding: S.xxl,
     borderWidth: 1,
-    borderColor: C.borderStrong,
+    borderColor: C.borderCanvas,
   },
   modalTitle: {
     ...T.h2,

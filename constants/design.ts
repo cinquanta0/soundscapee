@@ -8,12 +8,17 @@ export const C = {
   bgCard:       '#161616',
   bgInput:      '#1C1C1C',
   bgOverlay:    'rgba(10, 10, 10, 0.92)',
+  bgCanvas:     '#07080C',
+  bgCanvas2:    '#11131A',
 
   // Brand accent — neon green, single accent rule
   accent:       '#00FF9C',
   accentDim:    'rgba(0, 255, 156, 0.12)',
   accentGlow:   'rgba(0, 255, 156, 0.06)',
   accentStrong: 'rgba(0, 255, 156, 0.25)',
+  accentSoft:   '#7DFFD0',
+  accentWarm:   '#D7FF64',
+  accentIce:    '#63D6FF',
 
   // Text — warm-tinted grays (consistent hue family)
   textPrimary:   '#F5F5F5',
@@ -25,11 +30,14 @@ export const C = {
   border:       'rgba(255, 255, 255, 0.07)',
   borderStrong: 'rgba(255, 255, 255, 0.13)',
   borderAccent: 'rgba(0, 255, 156, 0.30)',
+  borderCanvas: 'rgba(125, 255, 208, 0.16)',
 
   // Glass surfaces
   glass:        'rgba(255, 255, 255, 0.04)',
   glassMid:     'rgba(255, 255, 255, 0.07)',
   glassStrong:  'rgba(255, 255, 255, 0.11)',
+  glassAccent:  'rgba(0, 255, 156, 0.09)',
+  glassDark:    'rgba(4, 6, 12, 0.74)',
 
   // Status
   error:   '#FF4444',
