@@ -367,7 +367,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
             <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }}>{Math.round((battle.challengerVotes / totalVotes) * 100)}%</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>{totalVotes} voti totali</Text>
+            <Text style={{ color: '#858585', fontSize: 11 }}>{totalVotes} voti totali</Text>
             <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }}>{Math.round((battle.opponentVotes / totalVotes) * 100)}%</Text>
           </View>
         </View>
@@ -391,7 +391,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         {isUploading && (
           <View style={{ alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color="#f97316" />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Caricamento traccia…</Text>
+            <Text style={{ color: '#9A9A9A', fontSize: 12 }}>Caricamento traccia…</Text>
           </View>
         )}
 
@@ -406,7 +406,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         {!isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
           <View style={{ alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color="#a855f7" />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+            <Text style={{ color: '#9A9A9A', fontSize: 13 }}>
               Aspetta che {battle.challengerName} inizi…
             </Text>
           </View>
@@ -418,7 +418,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
            (!isChallenger && battle.status === 'challenger_rec')) && (
           <View style={{ alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color="#a855f7" />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+            <Text style={{ color: '#9A9A9A', fontSize: 13 }}>
               {isChallenger ? battle.opponentName : battle.challengerName} sta registrando…
             </Text>
           </View>
@@ -429,7 +429,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <View style={{ alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color="#4ade80" />
             <Text style={{ color: '#4ade80', fontSize: 13, fontWeight: '600' }}>✓ Traccia caricata!</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+            <Text style={{ color: '#9A9A9A', fontSize: 12 }}>
               In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…
             </Text>
           </View>
@@ -458,7 +458,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         {/* Vota */}
         {votingOpen && !isParticipant && !myVote && (
           <View style={{ gap: 10, width: '100%' }}>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center' }}>{timeLeftLabel()}</Text>
+            <Text style={{ color: '#9A9A9A', fontSize: 12, textAlign: 'center' }}>{timeLeftLabel()}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
                 style={[s.voteBtn, { borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.15)' }]}
@@ -480,15 +480,15 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         {votingOpen && !isParticipant && myVote && (
           <View style={{ alignItems: 'center', gap: 6 }}>
             <Text style={{ color: '#4ade80', fontWeight: '700', fontSize: 14 }}>✓ Hai votato!</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>{timeLeftLabel()}</Text>
+            <Text style={{ color: '#858585', fontSize: 11 }}>{timeLeftLabel()}</Text>
           </View>
         )}
 
         {/* Partecipante: voto in corso */}
         {votingOpen && isParticipant && (
           <View style={{ alignItems: 'center', gap: 6 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' }}>🗳 Votazione aperta al pubblico</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>{timeLeftLabel()}</Text>
+            <Text style={{ color: '#9A9A9A', fontSize: 14, fontWeight: '600' }}>🗳 Votazione aperta al pubblico</Text>
+            <Text style={{ color: '#858585', fontSize: 11 }}>{timeLeftLabel()}</Text>
           </View>
         )}
 
@@ -498,7 +498,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
             <Text style={{ color: '#fbbf24', fontSize: 22, fontWeight: '900' }}>
               🏆 {battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName} ha vinto!
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{totalVotes} voti totali</Text>
+            <Text style={{ color: '#858585', fontSize: 12 }}>{totalVotes} voti totali</Text>
             <TouchableOpacity style={[s.acceptBtn, { marginTop: 8 }]} onPress={onClose}>
               <Text style={s.acceptTxt}>Chiudi</Text>
             </TouchableOpacity>
@@ -514,7 +514,7 @@ const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: '#0A0A0A' },
   card: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   cardTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
-  cardDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  cardDesc: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   themePill: { backgroundColor: 'rgba(249,115,22,0.15)', borderRadius: 20, paddingHorizontal: 18, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginBottom: 16 },
   themePillTxt: { color: '#f97316', fontWeight: '700', fontSize: 14 },
   themePillSmall: { backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' },
@@ -526,11 +526,11 @@ const s = StyleSheet.create({
   acceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 52 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 15 },
+  closeTxt: { color: '#9A9A9A', fontSize: 15 },
   cancelBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.4)', alignItems: 'center', justifyContent: 'center' },
   cancelTxt: { color: '#FF3B30', fontSize: 15, fontWeight: '700' },
   vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 24 },
-  vsText: { color: 'rgba(255,255,255,0.3)', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
+  vsText: { color: '#858585', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
   playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 12, borderWidth: 1, marginHorizontal: 4 },
   playerCardWinner: { backgroundColor: 'rgba(251,191,36,0.08)', borderColor: '#fbbf24' },
   crownEmoji: { fontSize: 20, position: 'absolute', top: -12 },
@@ -540,7 +540,7 @@ const s = StyleSheet.create({
   recBadge: { fontSize: 10, fontWeight: '800' },
   votesBubble: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, alignItems: 'center', marginTop: 4 },
   votesCount: { fontSize: 20, fontWeight: '900' },
-  votesLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9 },
+  votesLabel: { color: '#858585', fontSize: 9 },
   controls: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 20 },
   startBtn: { backgroundColor: '#f97316', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16 },
   startBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 17 },

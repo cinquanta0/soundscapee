@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   circleLabel: {
     marginTop: 8,
     fontSize: 10,
-    color: 'rgba(255,255,255,0.72)',
+    color: '#9A9A9A',
     textAlign: 'center',
     lineHeight: 13,
     fontWeight: '600',
@@ -747,12 +747,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   createSubtitle: {
-    color: 'rgba(255,255,255,0.35)',
+    color: '#858585',
     fontSize: 13,
     marginBottom: 20,
   },
   fieldLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9A9A9A',
     fontSize: 11,
     marginBottom: 8,
     textTransform: 'uppercase',
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   previewBody: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9A9A9A',
     fontSize: 12,
     marginTop: 2,
   },
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: 'rgba(255,255,255,0.55)',
+    color: '#9A9A9A',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
   },
   recordBtnIcon: { fontSize: 18 },
   recordBtnText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#9A9A9A',
     fontFamily: 'monospace',
     fontSize: 13,
   },
@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   clipDiscard: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#9A9A9A',
     fontFamily: 'monospace',
     fontSize: 12,
   },

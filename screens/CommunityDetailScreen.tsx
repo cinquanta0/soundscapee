@@ -549,8 +549,8 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 15, fontWeight: '600' },
-  emptySubTxt: { color: 'rgba(255,255,255,0.25)', fontSize: 12, marginTop: 4 },
+  emptyTxt: { color: '#9A9A9A', fontSize: 15, fontWeight: '600' },
+  emptySubTxt: { color: '#858585', fontSize: 12, marginTop: 4 },
 
   // Header
   header: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingTop: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
@@ -559,7 +559,7 @@ const s = StyleSheet.create({
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerAvatar: { fontSize: 28 },
   headerName: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  headerMeta: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 1 },
+  headerMeta: { color: '#9A9A9A', fontSize: 11, marginTop: 1 },
   leaveBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,59,48,0.4)' },
   leaveTxt: { color: '#FF3B30', fontSize: 12, fontWeight: '600' },
 
@@ -567,7 +567,7 @@ const s = StyleSheet.create({
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#00FF9C' },
-  tabTxt: { color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: '600' },
+  tabTxt: { color: '#858585', fontSize: 12, fontWeight: '600' },
   tabTxtActive: { color: '#00FF9C' },
   tabBadge: { backgroundColor: '#FF3B30', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabBadgeTxt: { color: '#fff', fontSize: 9, fontWeight: '700' },
@@ -575,7 +575,7 @@ const s = StyleSheet.create({
   // Pinned
   pinnedBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(0,255,156,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.2)', gap: 8 },
   pinnedLabel: { color: '#00FF9C', fontSize: 11, fontWeight: '700' },
-  pinnedCaption: { flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+  pinnedCaption: { flex: 1, color: '#9A9A9A', fontSize: 11 },
 
   // Bubbles
   bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 6 },
@@ -584,8 +584,8 @@ const s = StyleSheet.create({
   bubble: { maxWidth: '78%', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 16, borderBottomLeftRadius: 4, padding: 10 },
   bubbleMe: { backgroundColor: 'rgba(0,255,156,0.18)', borderBottomLeftRadius: 16, borderBottomRightRadius: 4 },
   bubbleSender: { color: '#00FF9C', fontSize: 11, fontWeight: '700', marginBottom: 4 },
-  bubbleTime: { color: 'rgba(255,255,255,0.25)', fontSize: 9, marginTop: 4, textAlign: 'right' },
-  caption: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 4 },
+  bubbleTime: { color: '#858585', fontSize: 9, marginTop: 4, textAlign: 'right' },
+  caption: { color: '#9A9A9A', fontSize: 12, marginTop: 4 },
 
   // Player
   player: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 160 },
@@ -593,7 +593,7 @@ const s = StyleSheet.create({
   playIcon: { fontSize: 14 },
   waveBar: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' },
   waveProgress: { height: 4, backgroundColor: '#00FF9C', borderRadius: 2 },
-  durationTxt: { color: 'rgba(255,255,255,0.45)', fontSize: 10, minWidth: 30, textAlign: 'right' },
+  durationTxt: { color: '#9A9A9A', fontSize: 10, minWidth: 30, textAlign: 'right' },
 
   // Reactions
   reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
@@ -626,18 +626,18 @@ const s = StyleSheet.create({
   sendBtnDisabled: { opacity: 0.5 },
   sendTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
   notMemberBar: { padding: 14, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
-  notMemberTxt: { color: 'rgba(255,255,255,0.35)', fontSize: 12 },
+  notMemberTxt: { color: '#858585', fontSize: 12 },
 
   // Members
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   memberAvatar: { fontSize: 26 },
   memberInfo: { flex: 1 },
   memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  memberJoined: { color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 1 },
+  memberJoined: { color: '#858585', fontSize: 11, marginTop: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.07)' },
   roleBadgeAdmin: { backgroundColor: 'rgba(255,215,0,0.15)' },
   roleBadgeMod: { backgroundColor: 'rgba(0,255,156,0.12)' },
-  roleTxt: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  roleTxt: { fontSize: 10, color: '#9A9A9A', fontWeight: '600' },
 
   // Member profile modal
   profileOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },

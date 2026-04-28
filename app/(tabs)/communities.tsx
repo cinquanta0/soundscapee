@@ -150,19 +150,19 @@ export default function CommunitiesScreen() {
             <View style={{ backgroundColor: '#161616', borderRadius: 20, padding: 24, width: '100%', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 56 }}>{viewingProfile?.avatar || '🎵'}</Text>
               <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>{viewingProfile?.username || 'Utente'}</Text>
-              {viewingProfile?.bio ? <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>{viewingProfile.bio}</Text> : null}
+              {viewingProfile?.bio ? <Text style={{ color: '#9A9A9A', fontSize: 13, textAlign: 'center' }}>{viewingProfile.bio}</Text> : null}
               <View style={{ flexDirection: 'row', gap: 24, marginTop: 8 }}>
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.followersCount ?? 0}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Follower</Text>
+                  <Text style={{ color: '#9A9A9A', fontSize: 11 }}>Follower</Text>
                 </View>
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.followingCount ?? 0}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Following</Text>
+                  <Text style={{ color: '#9A9A9A', fontSize: 11 }}>Following</Text>
                 </View>
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{viewingProfile?.soundsCount ?? 0}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Suoni</Text>
+                  <Text style={{ color: '#9A9A9A', fontSize: 11 }}>Suoni</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setViewingProfile(null)} style={{ marginTop: 16, paddingHorizontal: 32, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 }}>

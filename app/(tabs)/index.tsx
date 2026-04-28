@@ -1813,7 +1813,7 @@ if (loading) {
           onPress={() => setShowThemeModal(true)}
         >
           <Feather name="image" size={13} color="rgba(255,255,255,0.7)" />
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>Sfondo</Text>
+          <Text style={{ color: '#9A9A9A', fontSize: 11, fontWeight: '600' }}>Sfondo</Text>
         </TouchableOpacity>
       )}
       <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} />
@@ -2319,7 +2319,7 @@ if (loading) {
                 <Text style={{ fontSize: 28 }}>{icon}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#fff', fontSize: 16, fontStyle: 'italic', fontWeight: '600' }}>{label}</Text>
-                  <Text style={{ color: '#64748b', fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>{sub}</Text>
+                  <Text style={{ color: '#858585', fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>{sub}</Text>
                 </View>
                 <Text style={{ color: '#00FF9C', fontSize: 18 }}>›</Text>
               </TouchableOpacity>
@@ -2745,7 +2745,7 @@ if (loading) {
           <AppAvatar avatar={editAvatar} username={editUsername} size={64} />
         </View>
         {/* Icone vettoriali */}
-        <Text style={{ color: '#64748b', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>ICONE</Text>
+        <Text style={{ color: '#858585', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>ICONE</Text>
         <View style={styles.avatarGrid}>
           {FEATHER_ICON_OPTIONS.map(icon => (
             <TouchableOpacity
@@ -2758,7 +2758,7 @@ if (loading) {
           ))}
         </View>
         {/* Emoji personalità */}
-        <Text style={{ color: '#64748b', fontSize: 11, fontFamily: 'monospace', marginBottom: 6, marginTop: 8 }}>EMOJI</Text>
+        <Text style={{ color: '#858585', fontSize: 11, fontFamily: 'monospace', marginBottom: 6, marginTop: 8 }}>EMOJI</Text>
         <View style={styles.avatarGrid}>
           {['🔥', '💎', '👑', '⚡', '🌟', '🎭', '😎', '🦋', '🐺', '🎯'].map(emoji => (
             <TouchableOpacity
@@ -3031,7 +3031,7 @@ if (loading) {
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
+            <Text style={{ color: '#9A9A9A', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
             {['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'].map(theme => (
               <TouchableOpacity
                 key={theme}
@@ -3054,7 +3054,7 @@ if (loading) {
               style={{ paddingVertical: 14, alignItems: 'center' }}
               onPress={() => setShowBattleThemePicker(false)}
             >
-              <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>Annulla</Text>
+              <Text style={{ color: '#858585', fontWeight: '600' }}>Annulla</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -3065,7 +3065,7 @@ if (loading) {
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
           <View style={{ backgroundColor: '#0A0A0A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
+            <Text style={{ color: '#858585', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
               {PROFILE_THEMES.map(theme => {
                 const isActive = (userProfile?.profileTheme ?? 'default') === theme.id;
@@ -3089,7 +3089,7 @@ if (loading) {
                       end={{ x: 1, y: 1 }}
                       style={{ width: 60, height: 60, borderRadius: 16, borderWidth: isActive ? 2.5 : 1, borderColor: isActive ? '#00FF9C' : 'rgba(255,255,255,0.15)' }}
                     />
-                    <Text style={{ color: isActive ? '#00FF9C' : 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: isActive ? '700' : '400' }}>
+                    <Text style={{ color: isActive ? '#00FF9C' : '#9A9A9A', fontSize: 10, fontWeight: isActive ? '700' : '400' }}>
                       {theme.name}
                     </Text>
                   </TouchableOpacity>
@@ -3100,7 +3100,7 @@ if (loading) {
               style={{ paddingVertical: 14, alignItems: 'center' }}
               onPress={() => setShowThemeModal(false)}
             >
-              <Text style={{ color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>Chiudi</Text>
+              <Text style={{ color: '#858585', fontWeight: '600' }}>Chiudi</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -3120,7 +3120,7 @@ if (loading) {
             <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
               <Text style={{ fontSize: 36 }}>{incomingCollab.hostAvatar}</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
+              <Text style={{ color: '#9A9A9A', fontSize: 13, textAlign: 'center' }}>
                 {incomingCollab.hostName} ti invita a una {incomingCollab.mode === 'sync' ? 'sessione sync' : 'sessione a turni'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
@@ -3149,7 +3149,7 @@ if (loading) {
             <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
               <Text style={{ fontSize: 40 }}>⚔️</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
+              <Text style={{ color: '#9A9A9A', fontSize: 13, textAlign: 'center' }}>
                 {incomingBattle.challengerName} ti ha lanciato una Sound Battle
               </Text>
               <View style={{ backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' }}>
@@ -3263,11 +3263,11 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
+    color: '#858585',
   },
   streakText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
+    color: '#858585',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -3348,7 +3348,7 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.45)',
+    color: '#9A9A9A',
     marginBottom: 18,
   },
   heroBtn: {
@@ -3377,7 +3377,7 @@ const styles = StyleSheet.create({
   },
   recordHint: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9A9A9A',
     marginTop: 8,
   },
   // ── Search ───────────────────────────────────────────────────────────────────
@@ -3418,7 +3418,7 @@ const styles = StyleSheet.create({
     borderColor: '#00FF9C',
   },
   filterChipText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#9A9A9A',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -3479,7 +3479,7 @@ const styles = StyleSheet.create({
   },
   soundLocation: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.3)',
+    color: '#858585',
     marginTop: 1,
   },
   moodBadge: {
@@ -3507,7 +3507,7 @@ const styles = StyleSheet.create({
   },
   soundDescription: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.38)',
+    color: '#9A9A9A',
     marginBottom: 14,
     lineHeight: 19,
   },
@@ -3556,7 +3556,7 @@ const styles = StyleSheet.create({
   },
   duration: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
+    color: '#858585',
     fontVariant: ['tabular-nums'] as any,
     minWidth: 28,
   },
@@ -3600,7 +3600,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#9A9A9A',
     fontVariant: ['tabular-nums'] as any,
   },
   deleteButton: {
@@ -3618,7 +3618,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.25)',
+    color: '#858585',
     fontWeight: '500',
   },
   profileCard: {
@@ -3712,7 +3712,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#858585',
     marginTop: 4,
   },
   recordingItem: {
@@ -4019,7 +4019,7 @@ avatarOptionText: {
 },
 charCount: {
   fontSize: 12,
-  color: '#64748b',
+  color: '#858585',
   textAlign: 'right',
   marginTop: 4,
   marginBottom: 8,
@@ -4070,7 +4070,7 @@ notificationBody: {
 },
 notificationTime: {
   fontSize: 11,
-  color: '#64748b',
+  color: '#858585',
 },
 
 
@@ -4099,7 +4099,7 @@ userListItem: {
 },
 navIcon: {
   fontSize: 18,
-  color: '#64748b',
+  color: '#858585',
   fontWeight: '700',
 },
 

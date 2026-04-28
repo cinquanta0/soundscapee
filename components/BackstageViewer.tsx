@@ -177,7 +177,7 @@ const s = StyleSheet.create({
   },
   footerText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.25)',
+    color: '#858585',
     letterSpacing: 0.5,
   },
 });

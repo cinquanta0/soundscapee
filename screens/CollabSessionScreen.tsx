@@ -491,10 +491,10 @@ const s = StyleSheet.create({
   inviteCard: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   inviteEmoji: { fontSize: 64, marginBottom: 12 },
   inviteTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  inviteSub: { color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 16 },
+  inviteSub: { color: '#9A9A9A', fontSize: 14, marginBottom: 16 },
   modeBadge: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginBottom: 16 },
   modeBadgeTxt: { color: '#a855f7', fontSize: 14, fontWeight: '700' },
-  inviteDesc: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+  inviteDesc: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 32 },
   inviteActions: { flexDirection: 'row', gap: 16 },
   rejectBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
   rejectTxt: { color: '#FF3B30', fontWeight: '700', fontSize: 15 },
@@ -504,7 +504,7 @@ const s = StyleSheet.create({
   // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: 'rgba(255,255,255,0.6)', fontSize: 16 },
+  closeTxt: { color: '#9A9A9A', fontSize: 16 },
   modePill: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)' },
   modePillTxt: { color: '#a855f7', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
 
@@ -513,27 +513,27 @@ const s = StyleSheet.create({
   participant: { alignItems: 'center', gap: 6, flex: 1 },
   participantAvatar: { fontSize: 48 },
   participantName: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  participantRole: { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: '600', letterSpacing: 1 },
+  participantRole: { color: '#858585', fontSize: 10, fontWeight: '600', letterSpacing: 1 },
   trackDone: { color: '#4ade80', fontSize: 10, fontWeight: '600' },
   vsCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(168,85,247,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
   vsTxt: { fontSize: 20 },
 
   // Status
-  statusLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', marginBottom: 32, paddingHorizontal: 24 },
+  statusLabel: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', marginBottom: 32, paddingHorizontal: 24 },
 
   // Controls
   controls: { alignItems: 'center', gap: 20, paddingHorizontal: 32 },
   micBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   micBtnOn: { backgroundColor: 'rgba(168,85,247,0.2)', borderColor: 'rgba(168,85,247,0.4)' },
   micIcon: { fontSize: 18 },
-  micLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
+  micLabel: { color: '#9A9A9A', fontSize: 12, fontWeight: '600' },
 
   recBtn: { alignItems: 'center', gap: 8 },
   recBtnDisabled: { opacity: 0.4 },
   recBtnInner: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.2)', borderWidth: 3, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' },
   recBtnInnerActive: { backgroundColor: 'rgba(255,59,48,0.3)', borderColor: '#FF3B30' },
   recBtnIcon: { fontSize: 28 },
-  recBtnLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600' },
+  recBtnLabel: { color: '#9A9A9A', fontSize: 12, fontWeight: '600' },
 
   actionBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, backgroundColor: C.accentDim, borderWidth: 1, borderColor: C.borderAccent },
   actionBtnTxt: { color: C.accent, fontWeight: '700' },
@@ -547,10 +547,10 @@ const s = StyleSheet.create({
   previewBtn: { backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
   previewBtnTxt: { color: '#a855f7', fontWeight: '700' },
   titleInput: { backgroundColor: C.bgInput, borderRadius: R.sm, borderWidth: 1, borderColor: C.border, padding: S.md, color: '#fff', fontSize: 15 },
-  publishHint: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' },
+  publishHint: { color: '#858585', fontSize: 11, textAlign: 'center' },
   publishActions: { flexDirection: 'row', gap: 12 },
   publishCancel: { flex: 1, backgroundColor: C.glass, borderWidth: 1, borderColor: C.border, borderRadius: R.sm, paddingVertical: 14, alignItems: 'center' },
-  publishCancelTxt: { color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  publishCancelTxt: { color: '#9A9A9A', fontWeight: '600' },
   publishBtn: { flex: 2, backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   publishBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

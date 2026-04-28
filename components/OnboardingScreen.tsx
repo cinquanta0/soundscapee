@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15,
-    color: '#8A8D96',
+    color: '#9A9A9A',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   skipText: {
-    color: '#4A4D56',
+    color: '#9A9A9A',
     fontSize: 15,
   },
   nextBtn: {

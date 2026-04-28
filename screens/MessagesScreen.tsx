@@ -50,7 +50,7 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
             {isMe ? '▶ ' : '🎤 '}{conv.lastDuration}s
           </Text>
           {isMe && (
-            <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#00FF9C' : 'rgba(255,255,255,0.3)' }]}>
+            <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#00FF9C' : '#858585' }]}>
               {conv.lastMessageAscoltato ? '✓✓' : '✓'}
             </Text>
           )}
@@ -232,9 +232,9 @@ const cr = StyleSheet.create({
   info: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
   name: { color: '#F5F5F5', fontSize: 14, fontWeight: '700', letterSpacing: -0.1 },
-  time: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontVariant: ['tabular-nums'] as any },
+  time: { color: '#9A9A9A', fontSize: 11, fontVariant: ['tabular-nums'] as any },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  preview: { color: 'rgba(255,255,255,0.38)', fontSize: 12 },
+  preview: { color: '#9A9A9A', fontSize: 12 },
   check: { fontSize: 11 },
 });
 
@@ -248,9 +248,9 @@ const nm = StyleSheet.create({
   resultAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#161616', borderWidth: 2, borderColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
   resultAvatarTxt: { color: '#00FF9C', fontSize: 16, fontWeight: '700' },
   resultName: { color: '#F5F5F5', fontSize: 14, fontWeight: '600', letterSpacing: -0.1 },
-  resultUser: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
+  resultUser: { color: '#9A9A9A', fontSize: 11 },
   cancelBtn: { marginTop: 14, padding: 13, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
-  cancelTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: '500' },
+  cancelTxt: { color: '#9A9A9A', fontSize: 14, fontWeight: '500' },
 });
 
 const ms = StyleSheet.create({
@@ -261,7 +261,7 @@ const ms = StyleSheet.create({
   newBtnTxt: { color: '#00FF9C', fontSize: 12, fontVariant: ['tabular-nums'] as any },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle: { color: '#fff', fontSize: 20, fontStyle: 'normal', marginBottom: 6 },
-  emptyDesc: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontVariant: ['tabular-nums'] as any, marginBottom: 24 },
+  emptyDesc: { color: '#858585', fontSize: 13, fontVariant: ['tabular-nums'] as any, marginBottom: 24 },
   emptyBtn: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 24, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
   emptyBtnTxt: { color: '#00FF9C', fontSize: 13, fontVariant: ['tabular-nums'] as any },
 });

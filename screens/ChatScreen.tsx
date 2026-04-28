@@ -392,7 +392,7 @@ const bs = StyleSheet.create({
   bubble: { maxWidth: SW * 0.72, borderRadius: 18, padding: 10 },
   bubbleMine: { backgroundColor: '#0D1F14', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)', borderTopRightRadius: 4 },
   bubbleTheirs: { backgroundColor: '#150D2A', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', borderTopLeftRadius: 4 },
-  soundRef: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', marginBottom: 6 },
+  soundRef: { fontSize: 11, color: '#9A9A9A', fontFamily: 'monospace', marginBottom: 6 },
   statusReplyTag: {
     borderRadius: 10,
     paddingHorizontal: 8,
@@ -418,10 +418,10 @@ const bs = StyleSheet.create({
   playCircleMine: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },
   playCircleTheirs: { borderColor: '#A855F7', backgroundColor: 'rgba(168,85,247,0.1)' },
   playIcon: { fontSize: 13, fontWeight: '700' },
-  durTxt: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontFamily: 'monospace', minWidth: 28 },
+  durTxt: { fontSize: 11, color: '#9A9A9A', fontFamily: 'monospace', minWidth: 28 },
   meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4 },
-  timeTxt: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' },
-  check: { fontSize: 11, color: 'rgba(255,255,255,0.3)' },
+  timeTxt: { fontSize: 9, color: '#858585', fontFamily: 'monospace' },
+  check: { fontSize: 11, color: '#858585' },
   checkRead: { color: '#00FF9C' },
 });
 
@@ -443,11 +443,11 @@ const cs = StyleSheet.create({
   headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1A0A2E', borderWidth: 1.5, borderColor: 'rgba(168,85,247,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerAvatarTxt: { color: '#A855F7', fontSize: 18, fontStyle: 'italic' },
   headerName: { color: '#fff', fontSize: 15, fontWeight: '600', fontStyle: 'italic' },
-  headerSub: { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: 'monospace' },
+  headerSub: { color: '#858585', fontSize: 10, fontFamily: 'monospace' },
   list: { paddingVertical: 12, flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
-  emptyTxt: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
+  emptyTxt: { color: '#858585', fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
   inputBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,255,156,0.08)', paddingBottom: 28 },
   inputHint: { flex: 1 },
-  inputHintTxt: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontFamily: 'monospace' },
+  inputHintTxt: { color: '#858585', fontSize: 12, fontFamily: 'monospace' },
 });

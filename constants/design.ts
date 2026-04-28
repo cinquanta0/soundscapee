@@ -23,7 +23,7 @@ export const C = {
   // Text — warm-tinted grays (consistent hue family)
   textPrimary:   '#F5F5F5',
   textSecondary: '#9A9A9A',
-  textMuted:     '#5A5A5A',
+  textMuted:     '#858585',
   textOnAccent:  '#001A0D',
 
   // Borders — subtle, consistent warm-gray tint
