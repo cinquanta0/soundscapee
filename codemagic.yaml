@@ -43,7 +43,7 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       node: 20
-      xcode: 15.4
+      xcode: 16.2
       cocoapods: default
       vars:
         EXPO_UPDATE_CHANNEL: preview
@@ -116,6 +116,8 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             NODE_BINARY="$NODE_BINARY" \
+            SWIFT_STRICT_CONCURRENCY=minimal \
+            OTHER_SWIFT_FLAGS="-strict-concurrency=minimal" \
             archive
       - name: Export IPA
         script: |
