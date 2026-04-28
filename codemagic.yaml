@@ -14,6 +14,10 @@ workflows:
         script: |
           set -e
           npm install
+      - name: Patch expo-updates iOS dependency
+        script: |
+          set -e
+          python3 scripts/patch_expo_updates_ios.py
       - name: Create .env file
         script: |
           set -e
@@ -54,6 +58,10 @@ workflows:
         script: |
           set -e
           npm install
+      - name: Patch expo-updates iOS dependency
+        script: |
+          set -e
+          python3 scripts/patch_expo_updates_ios.py
       - name: Create .env file
         script: |
           set -e
