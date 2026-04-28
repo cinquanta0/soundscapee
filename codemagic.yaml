@@ -130,6 +130,8 @@ workflows:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES=NO \
             NODE_BINARY="$NODE_BINARY" \
             archive 2>&1 | tee /tmp/xbuild.log
           XCODE_STATUS=${PIPESTATUS[0]}

@@ -21,10 +21,8 @@ if "SWIFT_STRICT_CONCURRENCY" not in updated:
         "  installer.pods_project.targets.each do |target|\n"
         "    target.build_configurations.each do |config|\n"
         "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
-        "      if target.name.start_with?('Pods-')\n"
-        "        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'\n"
-        "        config.build_settings['HEADERMAP_USES_VFS'] = 'NO'\n"
-        "      end\n"
+        "      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'\n"
+        "      config.build_settings['_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES'] = 'NO'\n"
         "    end\n"
         "  end\n"
     )
@@ -35,7 +33,7 @@ if "SWIFT_STRICT_CONCURRENCY" not in updated:
         sys.exit(1)
 
     updated = pat.sub(lambda m: m.group(1) + injection, updated, count=1)
-    changes.append("set Swift concurrency build settings")
+    changes.append("set Swift build settings")
 
 if updated == content:
     print("Podfile already patched, skipping")
