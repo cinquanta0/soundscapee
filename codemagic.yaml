@@ -110,6 +110,7 @@ workflows:
           echo "Node: $NODE_BINARY ($($NODE_BINARY --version))"
           WORKSPACE="ios/soundscapemobile.xcworkspace"
           SCHEME="soundscapemobile"
+          set -o pipefail
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
@@ -120,7 +121,11 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             NODE_BINARY="$NODE_BINARY" \
-            archive
+            archive 2>&1 | tee /tmp/xbuild.log; RC=${PIPESTATUS[0]}
+          echo "=== SWIFT/CLANG ERRORS ==="
+          grep -E "error:|warning: (command|linker)" /tmp/xbuild.log | head -80 || true
+          echo "=========================="
+          exit $RC
       - name: Export IPA
         script: |
           set -e

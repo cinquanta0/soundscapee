@@ -11,11 +11,11 @@ if 'SWIFT_STRICT_CONCURRENCY' in content:
     sys.exit(0)
 
 injection = (
-    "  # Disable Swift 6 strict concurrency (Xcode 16.2 compatibility)\n"
+    "  # Force Swift 5 compatibility mode on all Pods (Xcode 16.2 ships Swift 6 compiler)\n"
     "  installer.pods_project.targets.each do |target|\n"
     "    target.build_configurations.each do |config|\n"
+    "      config.build_settings['SWIFT_VERSION'] = '5'\n"
     "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
-    "      config.build_settings['OTHER_SWIFT_FLAGS'] = '$(inherited) -strict-concurrency=minimal'\n"
     "    end\n"
     "  end\n"
 )
@@ -32,4 +32,4 @@ patched = pat.sub(lambda x: x.group(0) + injection, content, count=1)
 with open(PODFILE, 'w', encoding='utf-8') as f:
     f.write(patched)
 
-print("OK: Swift strict concurrency injected into existing post_install block")
+print("OK: SWIFT_VERSION=5 + SWIFT_STRICT_CONCURRENCY=minimal injected into post_install")
