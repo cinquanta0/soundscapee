@@ -119,6 +119,7 @@ workflows:
           echo "Node: $NODE_BINARY ($($NODE_BINARY --version))"
           WORKSPACE="ios/soundscapemobile.xcworkspace"
           SCHEME="soundscapemobile"
+          set +e
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
@@ -130,6 +131,8 @@ workflows:
             CODE_SIGNING_ALLOWED=NO \
             NODE_BINARY="$NODE_BINARY" \
             archive 2>&1 | tee /tmp/xbuild.log
+          XCODE_STATUS=${PIPESTATUS[0]}
+          set -e
           echo "=== ACTUAL ERRORS FROM BUILD LOG ==="
           grep -nE " error:|fatal error:|clang: error:|Cycle inside|module map file|cannot load underlying module|no such module|no such file|ScanDependencies " /tmp/xbuild.log | head -300 || echo "(no matching error lines found)"
           echo "=== CONTEXT: aggregate pod target / ExpoModulesProvider ==="
@@ -137,6 +140,7 @@ workflows:
           echo "=== LAST 220 LOG LINES ==="
           tail -220 /tmp/xbuild.log || true
           echo "====================================="
+          test "$XCODE_STATUS" -eq 0
           test -d "$CM_BUILD_DIR/soundscape.xcarchive"
       - name: Export IPA
         script: |
