@@ -131,7 +131,7 @@ workflows:
             NODE_BINARY="$NODE_BINARY" \
             archive 2>&1 | tee /tmp/xbuild.log
           echo "=== ACTUAL ERRORS FROM BUILD LOG ==="
-          grep -nE " error:|fatal error:|clang: error:|Cycle inside|module map file|cannot load underlying module|no such file|ScanDependencies " /tmp/xbuild.log | head -300 || echo "(no matching error lines found)"
+          grep -nE " error:|fatal error:|clang: error:|Cycle inside|module map file|cannot load underlying module|no such module|no such file|ScanDependencies " /tmp/xbuild.log | head -300 || echo "(no matching error lines found)"
           echo "=== LAST 220 LOG LINES ==="
           tail -220 /tmp/xbuild.log || true
           echo "====================================="
