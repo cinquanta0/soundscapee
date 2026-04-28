@@ -77,6 +77,10 @@ workflows:
           echo "=== Podfile exists? ==="
           test -f ios/Podfile && echo "YES - Podfile found" || echo "NO - Podfile MISSING"
  
+      - name: Patch Podfile - disable Swift strict concurrency
+        script: |
+          set -e
+          python3 scripts/patch_podfile_swift.py
       - name: CocoaPods install
         script: |
           set -e
@@ -116,8 +120,6 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             NODE_BINARY="$NODE_BINARY" \
-            SWIFT_STRICT_CONCURRENCY=minimal \
-            OTHER_SWIFT_FLAGS="-strict-concurrency=minimal" \
             archive
       - name: Export IPA
         script: |
