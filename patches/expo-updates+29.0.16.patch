@@ -1,0 +1,49 @@
+diff --git a/node_modules/expo-updates/ios/EXUpdates.podspec b/node_modules/expo-updates/ios/EXUpdates.podspec
+index 0000000..0000000 100644
+--- a/node_modules/expo-updates/ios/EXUpdates.podspec
++++ b/node_modules/expo-updates/ios/EXUpdates.podspec
+@@ -41,7 +41,6 @@ Pod::Spec.new do |s|
+   s.dependency 'EXStructuredHeaders'
+   s.dependency 'EXUpdatesInterface'
+   s.dependency 'EXManifests'
+-  s.dependency 'EASClient'
+   s.dependency 'ReachabilitySwift'
+   if podfile_properties['expo.updates.useThirdPartySQLitePod'] === 'true'
+     s.dependency 'sqlite3'
+diff --git a/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift b/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
+index 0000000..0000000 100644
+--- a/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
++++ b/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
+@@ -7,7 +7,6 @@
+ // swiftlint:disable legacy_objc_type
+ 
+ import Foundation
+-import EASClient
+ 
+ public typealias SuccessBlock = (_ data: Data?, _ urlResponse: URLResponse) -> Void
+ public typealias ErrorBlock = (_ error: UpdatesError) -> Void
+@@ -62,6 +61,7 @@ public final class FileDownloader {
+   private static let MultipartCertificateChainPartName = "certificate_chain"
+ 
+   // swiftlint:disable:next force_unwrapping
++  private static let EASClientIDHeaderValue = UUID().uuidString.lowercased()
+   private static let ParameterParserSemicolonDelimiter = ";".utf16.first!
+ 
+   // these can be made non-forced lets when NSObject protocol is removed
+@@ -280,7 +280,7 @@ public final class FileDownloader {
+     request.setValue("1", forHTTPHeaderField: "Expo-Protocol-Version")
+     request.setValue("1", forHTTPHeaderField: "Expo-API-Version")
+     request.setValue("BARE", forHTTPHeaderField: "Expo-Updates-Environment")
+-    request.setValue(EASClientID.uuid().uuidString, forHTTPHeaderField: "EAS-Client-ID")
++    request.setValue(FileDownloader.EASClientIDHeaderValue, forHTTPHeaderField: "EAS-Client-ID")
+ 
+     for (key, value) in config.requestHeaders {
+       request.setValue(value, forHTTPHeaderField: key)
+@@ -296,7 +296,7 @@ public final class FileDownloader {
+     request.setValue("1", forHTTPHeaderField: "Expo-Protocol-Version")
+     request.setValue("1", forHTTPHeaderField: "Expo-API-Version")
+     request.setValue("BARE", forHTTPHeaderField: "Expo-Updates-Environment")
+-    request.setValue(EASClientID.uuid().uuidString, forHTTPHeaderField: "EAS-Client-ID")
++    request.setValue(FileDownloader.EASClientIDHeaderValue, forHTTPHeaderField: "EAS-Client-ID")
+     request.setValue("true", forHTTPHeaderField: "Expo-JSON-Error")
+     request.setValue(config.runtimeVersion, forHTTPHeaderField: "Expo-Runtime-Version")
