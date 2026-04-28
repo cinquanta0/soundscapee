@@ -125,6 +125,7 @@ workflows:
             -scheme "$SCHEME" \
             -configuration Release \
             -archivePath "$CM_BUILD_DIR/soundscape.xcarchive" \
+            -resultBundlePath "$CM_BUILD_DIR/soundscape.xcresult" \
             -destination "generic/platform=iOS" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -133,10 +134,18 @@ workflows:
             archive 2>&1 | tee /tmp/xbuild.log
           XCODE_STATUS=${PIPESTATUS[0]}
           set -e
+          cp /tmp/xbuild.log "$CM_BUILD_DIR/xbuild.log" || true
+          if [ -d "$CM_BUILD_DIR/soundscape.xcresult" ]; then
+            xcrun xcresulttool get --legacy --path "$CM_BUILD_DIR/soundscape.xcresult" --format json > "$CM_BUILD_DIR/xcresult.json" || true
+          fi
           echo "=== ACTUAL ERRORS FROM BUILD LOG ==="
           grep -nE " error:|fatal error:|clang: error:|Cycle inside|module map file|cannot load underlying module|no such module|no such file|ScanDependencies " /tmp/xbuild.log | head -300 || echo "(no matching error lines found)"
           echo "=== CONTEXT: aggregate pod target / ExpoModulesProvider ==="
           grep -nC 8 -E "Pods-soundscapemobile-dummy|ExpoModulesProvider.swift|could not build module|no such module|module map file" /tmp/xbuild.log | head -300 || echo "(no aggregate pod context found)"
+          if [ -f "$CM_BUILD_DIR/xcresult.json" ]; then
+            echo "=== XCRESULT DIAGNOSTICS ==="
+            grep -nE '"message"|"severity"|"issueType"|Pods-soundscapemobile|ExpoModulesProvider|no such module|module map file|could not build module' "$CM_BUILD_DIR/xcresult.json" | head -300 || echo "(no xcresult diagnostics matched)"
+          fi
           echo "=== LAST 220 LOG LINES ==="
           tail -220 /tmp/xbuild.log || true
           echo "====================================="
@@ -150,6 +159,9 @@ workflows:
           cd "$CM_BUILD_DIR" && zip -r soundscape.ipa Payload/
     artifacts:
       - $CM_BUILD_DIR/soundscape.ipa
+      - $CM_BUILD_DIR/xbuild.log
+      - $CM_BUILD_DIR/xcresult.json
+      - $CM_BUILD_DIR/soundscape.xcresult
  
   android-release:
     name: Android Release APK (unsigned)
