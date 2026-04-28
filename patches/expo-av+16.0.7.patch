@@ -1,0 +1,23 @@
+diff --git a/node_modules/expo-av/ios/EXAV.podspec b/node_modules/expo-av/ios/EXAV.podspec
+index 2d84f7d..65f3054 100644
+--- a/node_modules/expo-av/ios/EXAV.podspec
++++ b/node_modules/expo-av/ios/EXAV.podspec
+@@ -26,6 +26,7 @@ Pod::Spec.new do |s|
+     'SWIFT_COMPILATION_MODE' => 'wholemodule',
+     "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
+   }
++  s.module_map = 'EXAV/module.modulemap'
+ 
+   if !$ExpoUseSources&.include?(package['name']) && ENV['EXPO_USE_SOURCE'].to_i == 0 && File.exist?("#{s.name}.xcframework") && Gem::Version.new(Pod::VERSION) >= Gem::Version.new('1.10.0')
+     s.source_files = "#{s.name}/**/*.h"
+diff --git a/node_modules/expo-av/ios/EXAV/module.modulemap b/node_modules/expo-av/ios/EXAV/module.modulemap
+new file mode 100644
+index 0000000..a6ff4e0
+--- /dev/null
++++ b/node_modules/expo-av/ios/EXAV/module.modulemap
+@@ -0,0 +1,4 @@
++module EXAV {
++  umbrella header "EXAV.h"
++  export *
++  module * { export * }
++}
