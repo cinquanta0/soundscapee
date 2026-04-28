@@ -114,6 +114,7 @@ workflows:
       - name: Build unsigned archive
         script: |
           set -e
+          set -o pipefail
           export NODE_BINARY=$(which node)
           echo "Node: $NODE_BINARY ($($NODE_BINARY --version))"
           WORKSPACE="ios/soundscapemobile.xcworkspace"
@@ -128,9 +129,11 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             NODE_BINARY="$NODE_BINARY" \
-            archive 2>&1 | tee /tmp/xbuild.log; true
+            archive 2>&1 | tee /tmp/xbuild.log
           echo "=== ACTUAL ERRORS FROM BUILD LOG ==="
-          grep " error:" /tmp/xbuild.log | grep -v "^note:" | head -200 || echo "(no 'error:' lines found)"
+          grep -nE " error:|fatal error:|clang: error:|Cycle inside|module map file|cannot load underlying module|no such file|ScanDependencies " /tmp/xbuild.log | head -300 || echo "(no matching error lines found)"
+          echo "=== LAST 220 LOG LINES ==="
+          tail -220 /tmp/xbuild.log || true
           echo "====================================="
           test -d "$CM_BUILD_DIR/soundscape.xcarchive"
       - name: Export IPA
