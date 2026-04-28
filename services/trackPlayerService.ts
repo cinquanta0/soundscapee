@@ -36,7 +36,16 @@ export async function PlaybackService() {
   // Per i live stream HLS (radio), dopo una pausa la finestra HLS si sposta avanti.
   // Un semplice play() fallisce silenziosamente su iOS → serve un vero restart.
   async function restartIfLive() {
-    const track = await TrackPlayer.getActiveTrack();
+    let track = await TrackPlayer.getActiveTrack();
+    // iOS può killare il processo RNTP in background (OOM / aggressive battery).
+    // Se la coda è vuota, carichiamo il backup salvato da startStream() —
+    // così il pulsante play del lock screen funziona anche dopo un process kill.
+    if (!track) {
+      try {
+        const saved = await AsyncStorage.getItem('@soundscape/live_stream_track');
+        if (saved) track = JSON.parse(saved);
+      } catch {}
+    }
     if (track?.isLiveStream) {
       await TrackPlayer.reset();
       await TrackPlayer.add(track);

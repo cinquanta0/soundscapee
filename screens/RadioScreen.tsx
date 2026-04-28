@@ -2792,12 +2792,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             }
             if (!isNudgingRef.current) {
               isNudgingRef.current = true;
-              // Sia Playing (muto) che Paused: forza AVPlayer a re-bufferizzare
-              if (s === State.Playing) await TrackPlayer.pause();
-              await new Promise(r => setTimeout(r, 150));
-              await TrackPlayer.play();
-              await new Promise(r => setTimeout(r, 400));
-              isNudgingRef.current = false;
+              try {
+                // Sia Playing (muto) che Paused: forza AVPlayer a re-bufferizzare
+                if (s === State.Playing) await TrackPlayer.pause();
+                await new Promise(r => setTimeout(r, 150));
+                await TrackPlayer.play();
+                await new Promise(r => setTimeout(r, 400));
+              } finally {
+                isNudgingRef.current = false;
+              }
             }
             // Aggiorna sempre il widget dopo un resume da notifica
             refreshWidget();
@@ -2969,6 +2972,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await TrackPlayer.play();
           streamUrlRef.current = url;
           AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
+          // Backup traccia completa per restart lock-screen su iOS dopo process kill
+          AsyncStorage.setItem('@soundscape/live_stream_track', JSON.stringify({
+            id: station.id,
+            url,
+            title: station.name,
+            artist: artistName,
+            album: albumName,
+            artwork: artworkUrl,
+            isLiveStream: true,
+            type: url.includes('.m3u8') ? 'hls' : 'default',
+            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
+          })).catch(() => {});
         };
 
         // Espone la funzione di ricarica stream per togglePlay (usata quando lo stream è morto)
@@ -3002,19 +3017,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               if (s !== State.Playing) return;
               // Silent nudge: suppress PlaybackState UI updates during pause+play
               isNudgingRef.current = true;
-              await TrackPlayer.pause();
-              await new Promise(r => setTimeout(r, 150));
-              if (!mounted) { isNudgingRef.current = false; return; }
-              const ps2 = await TrackPlayer.getPlaybackState();
-              const s2 = ps2?.state ?? ps2;
-              if (s2 !== State.Paused) { isNudgingRef.current = false; return; }
-              await TrackPlayer.play();
-              // Wait for State.Playing to confirm before lifting suppression
-              await new Promise(r => setTimeout(r, 400));
-              isNudgingRef.current = false;
-            } catch {
-              isNudgingRef.current = false;
-            }
+              try {
+                await TrackPlayer.pause();
+                await new Promise(r => setTimeout(r, 150));
+                if (!mounted) return;
+                const ps2 = await TrackPlayer.getPlaybackState();
+                const s2 = ps2?.state ?? ps2;
+                if (s2 !== State.Paused) return;
+                await TrackPlayer.play();
+                await new Promise(r => setTimeout(r, 400));
+              } finally {
+                isNudgingRef.current = false;
+              }
           }, 2000);
         }
 
