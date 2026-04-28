@@ -89,6 +89,13 @@ workflows:
           ls -la
           echo "=== xcworkspace check ==="
           test -d soundscapemobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
+      - name: Patch expo-updates channel
+        script: |
+          set -e
+          PLIST="ios/soundscapemobile/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
+          echo "EXUpdatesChannelName → preview"
       - name: Build unsigned archive
         script: |
           set -e
@@ -104,6 +111,7 @@ workflows:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            EXPO_TOKEN="$EXPO_TOKEN" \
             archive
       - name: Export IPA
         script: |
