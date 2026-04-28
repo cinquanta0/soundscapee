@@ -21,6 +21,10 @@ if "SWIFT_STRICT_CONCURRENCY" not in updated:
         "  installer.pods_project.targets.each do |target|\n"
         "    target.build_configurations.each do |config|\n"
         "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
+        "      if target.name.start_with?('Pods-')\n"
+        "        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'\n"
+        "        config.build_settings['HEADERMAP_USES_VFS'] = 'NO'\n"
+        "      end\n"
         "    end\n"
         "  end\n"
     )
