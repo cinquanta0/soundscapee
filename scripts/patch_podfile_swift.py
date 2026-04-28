@@ -3,6 +3,17 @@ import sys
 
 PODFILE = "ios/Podfile"
 DISABLE_UPDATES_SCRIPT = "$expo_updates_create_updates_resources = false\n"
+EXAV_FRAMEWORK_PATCH = """pre_install do |installer|
+  installer.pod_targets.each do |pod|
+    next unless pod.name == 'EXAV'
+
+    def pod.build_type
+      Pod::BuildType.static_framework
+    end
+  end
+end
+
+"""
 
 
 with open(PODFILE, "r", encoding="utf-8") as f:
@@ -14,6 +25,10 @@ changes = []
 if "$expo_updates_create_updates_resources" not in updated:
     updated = DISABLE_UPDATES_SCRIPT + updated
     changes.append("disabled expo-updates resource generation")
+
+if "next unless pod.name == 'EXAV'" not in updated:
+    updated = EXAV_FRAMEWORK_PATCH + updated
+    changes.append("forced EXAV to build as framework")
 
 if "SWIFT_STRICT_CONCURRENCY" not in updated:
     injection = (
