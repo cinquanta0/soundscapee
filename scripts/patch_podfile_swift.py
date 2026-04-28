@@ -38,6 +38,10 @@ if "SWIFT_STRICT_CONCURRENCY" not in updated:
         "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
         "      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'\n"
         "      config.build_settings['_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES'] = 'NO'\n"
+        "      if target.name.start_with?('Pods-')\n"
+        "        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'\n"
+        "        config.build_settings['HEADERMAP_USES_VFS'] = 'NO'\n"
+        "      end\n"
         "    end\n"
         "  end\n"
     )
