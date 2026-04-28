@@ -85,7 +85,7 @@ workflows:
           echo "=== Podfile exists? ==="
           test -f ios/Podfile && echo "YES - Podfile found" || echo "NO - Podfile MISSING"
  
-      - name: Patch Podfile - disable Swift strict concurrency
+      - name: Patch Podfile - disable expo-updates resources + set Swift flags
         script: |
           set -e
           python3 scripts/patch_podfile_swift.py
@@ -109,7 +109,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
           echo "EXUpdatesChannelName set to preview"
-          # 2. Neutralizza 'Generate updates resources for expo-updates' nel pbxproj
+          # 2. Fallback: neutralizza 'Generate updates resources for expo-updates' nel pbxproj
           python3 scripts/disable_expo_updates_script.py
       - name: Build unsigned archive
         script: |
