@@ -1,5 +1,4 @@
 diff --git a/node_modules/expo-updates/ios/EXUpdates.podspec b/node_modules/expo-updates/ios/EXUpdates.podspec
-index 0000000..0000000 100644
 --- a/node_modules/expo-updates/ios/EXUpdates.podspec
 +++ b/node_modules/expo-updates/ios/EXUpdates.podspec
 @@ -41,7 +41,6 @@ Pod::Spec.new do |s|
@@ -11,7 +10,6 @@ index 0000000..0000000 100644
    if podfile_properties['expo.updates.useThirdPartySQLitePod'] === 'true'
      s.dependency 'sqlite3'
 diff --git a/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift b/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
-index 0000000..0000000 100644
 --- a/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
 +++ b/node_modules/expo-updates/ios/EXUpdates/AppLoader/FileDownloader.swift
 @@ -7,7 +7,6 @@
