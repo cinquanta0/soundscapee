@@ -16,6 +16,9 @@ injection = (
     "    target.build_configurations.each do |config|\n"
     "      config.build_settings['SWIFT_VERSION'] = '5'\n"
     "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
+    "      if target.name == 'EASClient'\n"
+    "        config.build_settings['DEFINES_MODULE'] = 'YES'\n"
+    "      end\n"
     "    end\n"
     "  end\n"
 )
@@ -31,4 +34,4 @@ patched = pat.sub(lambda x: x.group(0) + injection, content, count=1)
 with open(PODFILE, 'w', encoding='utf-8') as f:
     f.write(patched)
 
-print("OK: Swift 5 compatibility injected into post_install without overriding pod module maps")
+print("OK: Swift 5 compatibility injected and EASClient keeps DEFINES_MODULE=YES without overriding module maps")
