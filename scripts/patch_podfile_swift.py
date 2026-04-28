@@ -21,9 +21,7 @@ if "SWIFT_STRICT_CONCURRENCY" not in updated:
         "  installer.pods_project.targets.each do |target|\n"
         "    target.build_configurations.each do |config|\n"
         "      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'\n"
-        "      if target.name == 'EASClient'\n"
-        "        config.build_settings['DEFINES_MODULE'] = 'YES'\n"
-        "      end\n"
+        "      config.build_settings['DEFINES_MODULE'] = 'YES'\n"
         "    end\n"
         "  end\n"
     )
