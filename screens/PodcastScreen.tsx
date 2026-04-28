@@ -763,6 +763,13 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const recordSecondsRef = useRef(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const meterLevelsRef = useRef<number[]>(new Array(20).fill(0));
+  const [meterTick, setMeterTick] = useState(0);
+  const meterPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const previewSoundRef = useRef<Audio.Sound | null>(null);
+  const [hasPreview, setHasPreview] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [previewPos, setPreviewPos] = useState(0);
 
   // Tutorial interattivo — mostrato solo la prima volta
   const [tutorialStep, setTutorialStep] = useState(0); // 0 = non attivo
@@ -784,7 +791,9 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   useEffect(() => {
     return () => {
       if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      if (meterPollRef.current) clearInterval(meterPollRef.current);
       recordingRef.current?.stopAndUnloadAsync().catch(() => {});
+      previewSoundRef.current?.unloadAsync().catch(() => {});
     };
   }, []);
 
@@ -792,9 +801,17 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert(t('permissions.denied')); return; }
+      // Scarica preview precedente
+      if (previewSoundRef.current) {
+        await previewSoundRef.current.unloadAsync().catch(() => {});
+        previewSoundRef.current = null;
+      }
+      setHasPreview(false);
+      setPreviewPlaying(false);
+      setPreviewPos(0);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync({
-        isMeteringEnabled: false,
+        isMeteringEnabled: true,
         android: {
           extension: '.m4a',
           outputFormat: Audio.AndroidOutputFormat.MPEG_4,
@@ -815,12 +832,27 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       });
       recordingRef.current = recording;
       recordSecondsRef.current = 0;
+      meterLevelsRef.current = new Array(20).fill(0);
       setRecordSeconds(0);
       setIsRecording(true);
       recordTimerRef.current = setInterval(() => {
         recordSecondsRef.current += 1;
         setRecordSeconds(recordSecondsRef.current);
       }, 1000);
+      // Polling metering a 100ms
+      meterPollRef.current = setInterval(async () => {
+        if (!recordingRef.current) return;
+        try {
+          const status = await recordingRef.current.getStatusAsync();
+          if (status.isRecording && status.metering != null) {
+            const level = Math.max(0, Math.min(1, (status.metering + 50) / 50));
+            const levels = meterLevelsRef.current;
+            levels.shift();
+            levels.push(level);
+            setMeterTick(prev => prev + 1);
+          }
+        } catch {}
+      }, 100);
     } catch {
       Alert.alert(t('common.error'), t('podcast.errors.cannotRecord') ?? 'Impossibile avviare la registrazione');
     }
@@ -829,9 +861,11 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const stopRecording = async () => {
     if (!recordingRef.current) return;
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    if (meterPollRef.current) { clearInterval(meterPollRef.current); meterPollRef.current = null; }
+    meterLevelsRef.current = new Array(20).fill(0);
     try {
       await recordingRef.current.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
       const uri = recordingRef.current.getURI();
       const secs = recordSecondsRef.current;
       recordingRef.current = null;
@@ -841,6 +875,22 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         setSoundscapeAudioUrl(null);
         setAudioName('AUDIO REGISTRATO');
         setAudioDuration(secs);
+        // Carica preview player
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri },
+            { shouldPlay: false },
+            (status) => {
+              if (status.isLoaded) {
+                setPreviewPos(status.positionMillis / 1000);
+                if (status.didJustFinish) setPreviewPlaying(false);
+              }
+            }
+          );
+          previewSoundRef.current = sound;
+          setHasPreview(true);
+          setPreviewPos(0);
+        } catch {}
       }
     } catch {
       setIsRecording(false);
@@ -848,7 +898,20 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   };
 
   const fmtRecSecs = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(Math.floor(s) % 60).toString().padStart(2, '0')}`;
+
+  const togglePreview = async () => {
+    const snd = previewSoundRef.current;
+    if (!snd) return;
+    if (previewPlaying) {
+      await snd.pauseAsync().catch(() => {});
+      setPreviewPlaying(false);
+    } else {
+      if (previewPos >= audioDuration - 0.5) await snd.setPositionAsync(0).catch(() => {});
+      await snd.playAsync().catch(() => {});
+      setPreviewPlaying(true);
+    }
+  };
 
   const handleSelectSound = (sound: SoundResult) => {
     setSoundscapeAudioUrl(sound.audioUrl);
@@ -987,18 +1050,43 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
           {/* Step 2: Registra subito */}
           <View style={tutorialStep === 2 ? pm.tutorialHighlight : undefined}>
             {isRecording ? (
-              <TouchableOpacity
-                style={[pm.pickBtn, { borderColor: '#FF3B30', backgroundColor: 'rgba(255,59,48,0.08)' }]}
-                onPress={stopRecording}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' }} />
-                  <Text style={{ color: '#FF3B30', fontWeight: '800', fontFamily: 'monospace', fontSize: 13 }}>
-                    {fmtRecSecs(recordSeconds)} — Tocca per fermare
-                  </Text>
+              /* ── Registrazione in corso: meter live ── */
+              <TouchableOpacity style={pm.recActiveBox} onPress={stopRecording} activeOpacity={0.85}>
+                <View style={pm.meterRow}>
+                  {meterLevelsRef.current.map((lvl, i) => (
+                    <View key={i} style={[pm.meterBar, { height: Math.max(4, lvl * 44), opacity: 0.35 + lvl * 0.65 }]} />
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                  <View style={pm.recDot} />
+                  <Text style={pm.recTimer}>{fmtRecSecs(recordSeconds)}</Text>
+                  <Text style={pm.recHint}>· tocca per fermare</Text>
                 </View>
               </TouchableOpacity>
+            ) : hasPreview ? (
+              /* ── Preview player post-registrazione ── */
+              <View style={pm.previewBox}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <TouchableOpacity style={pm.previewPlayBtn} onPress={togglePreview}>
+                    <Text style={{ fontSize: 20, color: C.textOnAccent }}>{previewPlaying ? '⏸' : '▶'}</Text>
+                  </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={pm.previewLabel}>✅ REGISTRAZIONE PRONTA</Text>
+                    <View style={pm.previewBarBg}>
+                      <View style={[pm.previewBarFill, { width: `${audioDuration > 0 ? Math.min(100, (previewPos / audioDuration) * 100) : 0}%` as any }]} />
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 3 }}>
+                      <Text style={pm.previewTime}>{fmtRecSecs(previewPos)}</Text>
+                      <Text style={pm.previewTime}>{fmtRecSecs(audioDuration)}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity onPress={startRecording} style={pm.rerecordBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={pm.rerecordTxt}>↺</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ) : (
+              /* ── Bottone inizia registrazione ── */
               <TouchableOpacity
                 style={[pm.pickBtn, { borderColor: 'rgba(255,59,48,0.4)', marginBottom: 2 }]}
                 onPress={startRecording}
@@ -1012,7 +1100,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
           <View style={tutorialStep === 3 ? pm.tutorialHighlight : undefined}>
             <TouchableOpacity style={[pm.pickBtn, { marginTop: 6 }]} onPress={pickAudio}>
               <Text style={pm.pickBtnTxt}>
-                {audioUri && !isRecording ? `✅ ${audioName}` : t('podcast.chooseFile')}
+                {audioUri && !isRecording && !hasPreview ? `✅ ${audioName}` : t('podcast.chooseFile')}
               </Text>
             </TouchableOpacity>
 
@@ -1397,6 +1485,96 @@ const pm = StyleSheet.create({
     backgroundColor: C.accentDim,
     padding: 6,
     marginBottom: S.xs,
+  },
+  // ── Registrazione live ──────────────────────────────────────────────────────
+  recActiveBox: {
+    borderRadius: R.sm,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    backgroundColor: 'rgba(255,59,48,0.06)',
+    padding: 16,
+    marginBottom: S.xs,
+    alignItems: 'center',
+  },
+  meterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+    height: 48,
+  },
+  meterBar: {
+    width: 9,
+    borderRadius: 3,
+    backgroundColor: '#FF3B30',
+  },
+  recDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+  },
+  recTimer: {
+    color: '#FF3B30',
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    fontSize: 17,
+    letterSpacing: 1.5,
+  },
+  recHint: {
+    color: '#858585',
+    fontSize: 12,
+  },
+  // ── Preview player ──────────────────────────────────────────────────────────
+  previewBox: {
+    borderRadius: R.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.3)',
+    backgroundColor: 'rgba(0,255,156,0.06)',
+    padding: 14,
+    marginBottom: S.xs,
+  },
+  previewPlayBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#00FF9C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewLabel: {
+    color: '#00FF9C',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 7,
+  },
+  previewBarBg: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,255,156,0.18)',
+    overflow: 'hidden',
+  },
+  previewBarFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#00FF9C',
+  },
+  previewTime: {
+    color: '#858585',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+  rerecordBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rerecordTxt: {
+    color: '#9A9A9A',
+    fontSize: 20,
   },
 });
 
