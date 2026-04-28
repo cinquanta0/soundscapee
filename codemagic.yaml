@@ -96,26 +96,9 @@ workflows:
           PLIST="ios/soundscapemobile/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
-          echo "EXUpdatesChannelName → preview"
-          # 2. Neutralizza lo script 'Generate updates resources for expo-updates' nel pbxproj
-          # — questo script chiama node/npx con un PATH diverso da quello CI e fallisce sempre.
-          PBXPROJ="ios/Pods/Pods.xcodeproj/project.pbxproj"
-          python3 - << 'PYEOF'
-import re
-with open('ios/Pods/Pods.xcodeproj/project.pbxproj', 'r', encoding='utf-8') as f:
-    content = f.read()
-# Cerca la PBXShellScriptBuildPhase con name="Generate updates resources for expo-updates"
-# e svuota il shellScript lasciando solo exit 0
-modified = re.sub(
-    r'(name = "Generate updates resources for expo-updates";.*?shellScript = ")[^"]*(")',
-    r'\1exit 0;\2',
-    content,
-    flags=re.DOTALL
-)
-with open('ios/Pods/Pods.xcodeproj/project.pbxproj', 'w', encoding='utf-8') as f:
-    f.write(modified)
-print("OK" if modified != content else "WARN: pattern not found - build may still fail")
-PYEOF
+          echo "EXUpdatesChannelName set to preview"
+          # 2. Neutralizza 'Generate updates resources for expo-updates' nel pbxproj
+          python3 scripts/disable_expo_updates_script.py
       - name: Build unsigned archive
         script: |
           set -e
