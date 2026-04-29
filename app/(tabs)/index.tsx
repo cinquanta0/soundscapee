@@ -453,6 +453,11 @@ export default function App() {
         initializeApp().then((unsub) => {
           feedUnsubscribe = unsub;
         });
+      } else {
+        setUserProfile(null);
+        setSounds([]);
+        setMySounds([]);
+        setLoading(false);
       }
     });
 
@@ -1192,9 +1197,9 @@ const loadNotifications = async () => {
 };
 
   const handleCheckUpdates = async () => {
-    const isEmbedded = currentlyRunning.isEmbeddedLaunch;
-    const channel = currentlyRunning.channel ?? "non impostato";
-    const runtimeVersion = currentlyRunning.runtimeVersion ?? "?";
+    const isEmbedded = currentlyRunning?.isEmbeddedLaunch ?? true;
+    const channel = currentlyRunning?.channel ?? "non impostato";
+    const runtimeVersion = currentlyRunning?.runtimeVersion ?? "?";
     Alert.alert(
       isEmbedded ? "Bundle embedded" : "Bundle OTA attivo ✅",
       `Canale: ${channel}\nRuntime: ${runtimeVersion}`,
