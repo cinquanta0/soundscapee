@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
@@ -50,6 +50,7 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [authBootstrapping, setAuthBootstrapping] = useState(true);
 
   // Precarica font vettoriali — fondamentale su Android per evitare icone trasparenti
   const [fontsLoaded] = useFonts({
@@ -89,6 +90,7 @@ export default function RootLayout() {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      setAuthBootstrapping(false);
       // Registra push token quando l'utente è loggato (non anonimi)
       if (firebaseUser && !firebaseUser.isAnonymous) {
         // Garantisce campi school/security sul doc utente anche se la prima call al login e fallita.
@@ -101,9 +103,29 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (loading || user || !i18nReady || !fontsLoaded) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setAuthBootstrapping(true);
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.warn('anonymous sign-in failed:', (err as any)?.message || err);
+      } finally {
+        if (!cancelled) setAuthBootstrapping(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user, i18nReady, fontsLoaded]);
+
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authBootstrapping) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
 
@@ -119,11 +141,11 @@ export default function RootLayout() {
     } else if (!user && segments[0] !== 'login') {
       router.replace('/login');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, authBootstrapping, segments]);
 
   if (forceUpdate) return <ForceUpdateScreen />;
 
-  if (loading || !i18nReady || !fontsLoaded) {
+  if (loading || authBootstrapping || !i18nReady || !fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0A0A' }}>
         <ActivityIndicator size="large" color="#a855f7" />
