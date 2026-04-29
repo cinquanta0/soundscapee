@@ -298,6 +298,7 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
       callback(sounds);
     }, (error) => {
       console.error('❌ [FEED] Error in sounds subscription:', error);
+      callback([]);
     });
     
     return unsubscribe;

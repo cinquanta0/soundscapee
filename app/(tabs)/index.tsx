@@ -577,49 +577,40 @@ useEffect(() => {
 
   // Initialize app
   const initializeApp = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-      // Create/update user profile
+    // Profilo — non bloccante: il feed si carica anche se questo fallisce
+    try {
       await createOrUpdateUserProfile(user.uid, {
         email: user.email,
         username: user.email?.split('@')[0] || `user_${user.uid.slice(0, 6)}`
       });
-
-      // Get user profile
       const profile: any = await getUserProfile(user.uid);
       setUserProfile(profile);
       setMyStreakCount(profile?.streakCount || 0);
       getFollowStats(user.uid).then(setFollowStats);
+    } catch (error) {
+      console.error('Profile init error (non-fatal):', error);
+    }
 
-      // Garantisce il salvataggio del push token anche per nuovi utenti
-      // (il doc è ora certamente creato dal createOrUpdateUserProfile sopra)
-      registerForPushNotifications(user.uid).catch(() => {});
+    registerForPushNotifications(user.uid).catch(() => {});
 
-      // Conta il totale reale dei suoni (non limitato a 20)
+    getCountFromServer(collection(firestoreDb, 'sounds'))
+      .then((snap) => setTotalSoundsCount(snap.data().count))
+      .catch(() => {});
+
+    // Subscribe to feed — sempre eseguito anche se il profilo ha fallito
+    const unsubscribe = subscribeToSoundsFeed((newSounds: any[]) => {
+      setSounds(newSounds);
+      setLoading(false);
       getCountFromServer(collection(firestoreDb, 'sounds'))
         .then((snap) => setTotalSoundsCount(snap.data().count))
         .catch(() => {});
+    });
 
-      // Subscribe to feed
-      const unsubscribe = subscribeToSoundsFeed((newSounds: any[]) => {
-        setSounds(newSounds);
-        setLoading(false);
-        // Riaggiorna il contatore ad ogni nuovo suono nel feed
-        getCountFromServer(collection(firestoreDb, 'sounds'))
-          .then((snap) => setTotalSoundsCount(snap.data().count))
-          .catch(() => {});
-      });
-
-      // Get user sounds
-      loadMySounds();
-
-      return unsubscribe;
-    } catch (error) {
-      console.error('Error initializing app:', error);
-      setLoading(false);
-    }
+    loadMySounds();
+    return unsubscribe;
   };
 
   // Load user sounds
