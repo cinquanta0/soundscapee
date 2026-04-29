@@ -32,7 +32,6 @@ module.exports = ({ config }) => ({
     supportsTablet: true,
     buildNumber: "1",
     bundleIdentifier: "com.cucucucucuione.soundscapemobile",
-    googleServicesFile: "./GoogleService-Info.plist",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ["audio"],
