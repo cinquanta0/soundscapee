@@ -5,10 +5,9 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
-import { auth, db, functions } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
 
@@ -99,9 +98,6 @@ export default function RootLayout() {
       setLoading(false);
       // Registra push token quando l'utente è loggato (non anonimi)
       if (firebaseUser && !firebaseUser.isAnonymous) {
-        // Garantisce campi school/security sul doc utente anche se la prima call al login e fallita.
-        httpsCallable(functions, 'upsertSchoolProfile')({})
-          .catch((err) => console.warn('upsertSchoolProfile failed:', err?.message || err));
         registerForPushNotifications(firebaseUser.uid).catch(() => {});
       }
     });

@@ -9,9 +9,6 @@ module.exports = ({ config }) => ({
     checkAutomatically: "ON_LOAD",
     enabled: process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? false : true,
     fallbackToCacheTimeout: 10000,
-    requestHeaders: {
-      "expo-channel-name": "preview",
-    },
   },
   autolinking: {
     ios: {
