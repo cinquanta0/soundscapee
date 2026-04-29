@@ -51,6 +51,7 @@ workflows:
       cocoapods: default
       vars:
         EXPO_UPDATE_CHANNEL: preview
+        DISABLE_EXPO_UPDATES_NATIVE: "1"
       groups:
         - soundscape
     scripts:

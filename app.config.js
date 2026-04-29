@@ -7,10 +7,18 @@ module.exports = ({ config }) => ({
   updates: {
     url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
     checkAutomatically: "ON_LOAD",
-    enabled: true,
+    enabled: process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? false : true,
     fallbackToCacheTimeout: 10000,
     requestHeaders: {
       "expo-channel-name": "preview",
+    },
+  },
+  autolinking: {
+    ios: {
+      exclude: [
+        "expo-eas-client",
+        ...(process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? ["expo-updates"] : []),
+      ],
     },
   },
   runtimeVersion: {

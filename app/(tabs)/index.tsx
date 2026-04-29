@@ -123,8 +123,15 @@ import BackstageViewer from '../../components/BackstageViewer';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import * as Updates from 'expo-updates';
-import { useUpdates } from 'expo-updates';
+
+function useOptionalExpoUpdates() {
+  try {
+    const ExpoUpdates = require('expo-updates');
+    return ExpoUpdates?.useUpdates?.() ?? { currentlyRunning: null };
+  } catch {
+    return { currentlyRunning: null };
+  }
+}
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -197,7 +204,7 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
 
 export default function App() {
   const { t } = useTranslation();
-  const { currentlyRunning } = useUpdates();
+  const { currentlyRunning } = useOptionalExpoUpdates();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
