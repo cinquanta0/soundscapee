@@ -3029,6 +3029,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               } finally {
                 isNudgingRef.current = false;
               }
+            } catch {}
           }, 2000);
         }
 
