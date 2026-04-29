@@ -26,7 +26,7 @@ function ForceUpdateScreen() {
       <Text style={fu.title}>Aggiorna Soundscape</Text>
       <Text style={fu.body}>
         Questa versione non è più supportata.{'\n'}
-        Scarica l'ultima versione per continuare.
+        {"Scarica l'ultima versione per continuare."}
       </Text>
       <TouchableOpacity style={fu.button} onPress={() => Linking.openURL(storeUrl)}>
         <Text style={fu.buttonText}>Aggiorna ora</Text>

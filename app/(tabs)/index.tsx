@@ -21,6 +21,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import * as Updates from 'expo-updates';
 
 // Opzioni di registrazione cross-platform: AAC-LC in M4A, compatibile con Android ExoPlayer e iOS AVFoundation
 const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
@@ -124,15 +125,6 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
-function useOptionalExpoUpdates() {
-  try {
-    const ExpoUpdates = require('expo-updates');
-    return ExpoUpdates?.useUpdates?.() ?? { currentlyRunning: null };
-  } catch {
-    return { currentlyRunning: null };
-  }
-}
-
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
 const AVATAR_COLORS = ['#00FF9C','#8b5cf6','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#3b82f6'];
@@ -204,7 +196,7 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
 
 export default function App() {
   const { t } = useTranslation();
-  const { currentlyRunning } = useOptionalExpoUpdates();
+  const { currentlyRunning } = Updates.useUpdates();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
@@ -2960,9 +2952,7 @@ if (loading) {
               }}
               style={styles.userListItem}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user.avatar}</Text>
-              </View>
+              <AppAvatar avatar={user.avatar} username={user.username} size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{user.username}</Text>
                 <Text style={styles.soundLocation}>@{user.username}</Text>
@@ -3010,9 +3000,7 @@ if (loading) {
               }}
               style={styles.userListItem}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user.avatar}</Text>
-              </View>
+              <AppAvatar avatar={user.avatar} username={user.username} size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{user.username}</Text>
                 <Text style={styles.soundLocation}>@{user.username}</Text>
@@ -3632,6 +3620,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#858585',
     fontWeight: '500',
+  },
+  emptyIcon: {
+    fontSize: 34,
   },
   profileCard: {
     overflow: 'hidden',

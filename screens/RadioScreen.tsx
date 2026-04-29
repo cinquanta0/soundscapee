@@ -2060,7 +2060,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         <ScrollView style={{ flex: 1 }} contentContainerStyle={lm.content} showsVerticalScrollIndicator={false}>
           {hostDisconnected && (
             <View style={lm.disconnectedBanner}>
-              <Text style={lm.disconnectedTxt}>⚠️ L'host potrebbe essersi disconnesso</Text>
+              <Text style={lm.disconnectedTxt}>{"⚠️ L'host potrebbe essersi disconnesso"}</Text>
             </View>
           )}
           <Text style={lm.stationName}>{room.title}</Text>
@@ -2082,7 +2082,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           {/* Scelto banner */}
           {isPicked && !isCohost && (
             <View style={lm.pickedBanner}>
-              <Text style={lm.pickedBannerTxt}>⭐ Sei stato scelto dall'host!</Text>
+              <Text style={lm.pickedBannerTxt}>{"⭐ Sei stato scelto dall'host!"}</Text>
             </View>
           )}
           {/* Mic button for speaker/cohost */}
@@ -3367,7 +3367,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               Su Xiaomi/Huawei: vai in{' '}
               <Text style={{ fontWeight: '700' }}>Impostazioni → App → Soundscape → Batteria</Text>
               {' '}e scegli{' '}
-              <Text style={{ fontWeight: '700' }}>"Nessuna restrizione"</Text>
+              <Text style={{ fontWeight: '700' }}>{'"Nessuna restrizione"'}</Text>
               {' '}per ascoltare in background.
             </Text>
           </View>

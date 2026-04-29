@@ -123,7 +123,7 @@ function AnimatedRing({ viewed }: { viewed: boolean }) {
 function StoryCircle({
   emoji, label, viewed, onPress, highlight,
 }: { emoji: string; label: string; viewed: boolean; onPress: () => void; highlight?: 'accent' | 'ice' }) {
-  const ringColors = viewed
+  const ringColors: readonly [string, string] = viewed
     ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.08)']
     : highlight === 'ice'
       ? ['#63D6FF', '#00FF9C']

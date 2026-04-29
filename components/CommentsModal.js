@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { getComments, addComment } from '../firebaseService';
+import { getComments, addComment } from '../services/firebaseService';
 
 export const CommentsModal = ({ visible, soundId, onClose }) => {
   const [comments, setComments] = useState([]);

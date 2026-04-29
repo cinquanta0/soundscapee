@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getCommunities, toggleCommunityMembership, createCommunity } from './firebaseService';
+import { getCommunities, toggleCommunityMembership, createCommunity } from '../services/firebaseService';
 
 export const CommunitiesScreen = ({ navigation }) => {
   const [communities, setCommunities] = useState([]);

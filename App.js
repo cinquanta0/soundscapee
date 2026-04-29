@@ -103,7 +103,7 @@ export default function App() {
         <View style={styles.infoBox}>
           <Text style={styles.infoEmoji}>✨</Text>
           <Text style={styles.infoText}>
-            Questo è un DEMO. L'app completa include:{'\n'}
+            {"Questo è un DEMO. L'app completa include:"}{'\n'}
             • Registrazione audio vera{'\n'}
             • Mappa interattiva{'\n'}
             • Sistema XP e badge{'\n'}

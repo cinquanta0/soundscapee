@@ -2,6 +2,9 @@ const admin = require('firebase-admin');
 
 // Inizializza con le credenziali se disponibili, altrimenti usa il client SDK
 let db;
+let docFn = null;
+let setDocFn = null;
+let useAdminDb = false;
 
 try {
   // Prova con admin SDK se disponibile
@@ -12,6 +15,7 @@ try {
       projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
     });
     db = admin.firestore();
+    useAdminDb = true;
   } else {
     // Fallback al client SDK
     const { initializeApp } = require('firebase/app');
@@ -29,6 +33,8 @@ try {
 
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
+    docFn = doc;
+    setDocFn = setDoc;
   }
 } catch (error) {
   console.error('Errore inizializzazione Firebase:', error.message);
@@ -37,12 +43,12 @@ try {
 
 async function enableMaintenance() {
   try {
-    const docRef = admin ? db.doc('appConfig/general') : doc(db, 'appConfig', 'general');
+    const docRef = useAdminDb ? db.doc('appConfig/general') : docFn(db, 'appConfig', 'general');
 
-    if (admin) {
+    if (useAdminDb) {
       await docRef.set({ maintenance: true }, { merge: true });
     } else {
-      await setDoc(docRef, { maintenance: true }, { merge: true });
+      await setDocFn(docRef, { maintenance: true }, { merge: true });
     }
 
     console.log('✅ Modalità manutenzione ATTIVATA per Android');
