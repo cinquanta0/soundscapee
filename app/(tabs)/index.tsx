@@ -196,7 +196,6 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
 
 export default function App() {
   const { t } = useTranslation();
-  const { currentlyRunning } = Updates.useUpdates();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
@@ -1189,9 +1188,9 @@ const loadNotifications = async () => {
 };
 
   const handleCheckUpdates = async () => {
-    const isEmbedded = currentlyRunning?.isEmbeddedLaunch ?? true;
-    const channel = currentlyRunning?.channel ?? "non impostato";
-    const runtimeVersion = currentlyRunning?.runtimeVersion ?? "?";
+    const isEmbedded = Updates.isEmbeddedLaunch ?? true;
+    const channel = Updates.channel ?? "non impostato";
+    const runtimeVersion = Updates.runtimeVersion ?? "?";
     Alert.alert(
       isEmbedded ? "Bundle embedded" : "Bundle OTA attivo ✅",
       `Canale: ${channel}\nRuntime: ${runtimeVersion}`,
