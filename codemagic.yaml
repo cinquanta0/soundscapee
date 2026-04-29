@@ -101,15 +101,16 @@ workflows:
           ls -la
           echo "=== xcworkspace check ==="
           test -d soundscapemobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
-      - name: Patch expo-updates channel + disable generate script
+      - name: Patch expo-updates channel + disable runtime updates
         script: |
           set -e
-          # 1. Imposta EXUpdatesChannelName nel Info.plist
           PLIST="ios/soundscapemobile/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
           echo "EXUpdatesChannelName set to preview"
-          # 2. Fallback: neutralizza 'Generate updates resources for expo-updates' nel pbxproj
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool false" "$PLIST"
+          echo "EXUpdatesEnabled set to false for unsigned builds"
           python3 scripts/disable_expo_updates_script.py
       - name: Build unsigned archive
         script: |
