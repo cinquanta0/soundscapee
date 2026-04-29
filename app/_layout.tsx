@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
@@ -86,7 +86,15 @@ export default function RootLayout() {
 
   // Ascolta cambiamenti auth
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Se l'utente è anonimo (residuo del vecchio codice Codex), lo slogghiamo
+      // e lo mandiamo al login per far usare un account reale.
+      if (firebaseUser?.isAnonymous) {
+        try { await signOut(auth); } catch {}
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       setUser(firebaseUser);
       setLoading(false);
       // Registra push token quando l'utente è loggato (non anonimi)
