@@ -79,10 +79,12 @@ workflows:
           EOF
       - name: Write GoogleService-Info.plist
         script: |
-          set -e
-          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
-          echo "=== GoogleService-Info.plist written ==="
-          cat GoogleService-Info.plist | head -10
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+            echo "=== GoogleService-Info.plist written ==="
+          else
+            echo "GOOGLE_SERVICE_INFO_PLIST not set, skipping"
+          fi
       - name: Expo Prebuild (no pod install)
         script: |
           set -e
@@ -256,10 +258,12 @@ workflows:
           EOF
       - name: Write GoogleService-Info.plist
         script: |
-          set -e
-          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
-          echo "=== GoogleService-Info.plist written ==="
-          cat GoogleService-Info.plist | head -10
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+            echo "=== GoogleService-Info.plist written ==="
+          else
+            echo "GOOGLE_SERVICE_INFO_PLIST not set, skipping"
+          fi
       - name: Expo Prebuild (no pod install)
         script: |
           set -e
