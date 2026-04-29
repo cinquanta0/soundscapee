@@ -101,6 +101,10 @@ workflows:
           ls -la
           echo "=== xcworkspace check ==="
           test -d soundscapemobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
+      - name: Create missing Expo modulemaps (fix EXApplication not found)
+        script: |
+          set -e
+          python3 scripts/create_expo_modulemaps.py
       - name: Patch expo-updates channel + disable generate script
         script: |
           set -e
