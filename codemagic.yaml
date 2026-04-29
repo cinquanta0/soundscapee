@@ -120,24 +120,42 @@ workflows:
           WORKSPACE="ios/soundscapemobile.xcworkspace"
           SCHEME="soundscapemobile"
 
-          # PRE-BUILD: compila solo i Pod targets per generare le cartelle
-          # BuildProductsPath/Release-iphoneos/EXApplication/ ecc.
-          # con i modulemap che ExpoModulesProvider.swift cerca.
-          echo "=== PRE-BUILD: building Pods targets to generate modulemaps ==="
-          xcodebuild build \
+          # Ricava il BUILT_PRODUCTS_DIR che xcodebuild archive usa (ArchiveIntermediates)
+          echo "=== Resolving archive BuildProductsPath ==="
+          ARCHIVE_BUILD_PRODUCTS=$(xcodebuild \
             -workspace "$WORKSPACE" \
-            -scheme "Pods-soundscapemobile" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -destination "generic/platform=iOS" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
-            _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES=NO \
-            NODE_BINARY="$NODE_BINARY" \
-            2>&1 | tail -20 || echo "(pre-build warnings ignored)"
+            -archivePath "$CM_BUILD_DIR/soundscape.xcarchive" \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            -showBuildSettings 2>/dev/null \
+            | grep "^\s*BUILT_PRODUCTS_DIR" | head -1 | awk -F= '{print $2}' | xargs)
+          echo "Archive BUILT_PRODUCTS_DIR: $ARCHIVE_BUILD_PRODUCTS"
 
-          echo "=== ARCHIVE ==="
+          # Crea i modulemap mancanti per tutti i pod EX*/Expo* nel path che archive usa
+          echo "=== Creating EX*/Expo* modulemaps in archive BuildProductsPath ==="
+          PODS_HEADERS="ios/Pods/Headers/Public"
+          for pod_dir in "$PODS_HEADERS"/EX* "$PODS_HEADERS"/Expo*; do
+            [ -d "$pod_dir" ] || continue
+            pod_name=$(basename "$pod_dir")
+            target_dir="$ARCHIVE_BUILD_PRODUCTS/$pod_name"
+            modulemap_file="$target_dir/$pod_name.modulemap"
+            if [ ! -f "$modulemap_file" ]; then
+              mkdir -p "$target_dir"
+              {
+                echo "module $pod_name {"
+                find "$pod_dir" -name "*.h" 2>/dev/null | head -20 | while read h; do
+                  echo "  header \"$(realpath "$h")\""
+                done
+                echo "  export *"
+                echo "}"
+              } > "$modulemap_file"
+              echo "  created: $modulemap_file"
+            fi
+          done
+          echo "=== Modulemaps ready ==="
+
           set +e
           xcodebuild \
             -workspace "$WORKSPACE" \
