@@ -120,41 +120,44 @@ workflows:
           WORKSPACE="ios/soundscapemobile.xcworkspace"
           SCHEME="soundscapemobile"
 
-          # Ricava il BUILT_PRODUCTS_DIR che xcodebuild archive usa (ArchiveIntermediates)
-          echo "=== Resolving archive BuildProductsPath ==="
-          ARCHIVE_BUILD_PRODUCTS=$(xcodebuild \
-            -workspace "$WORKSPACE" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath "$CM_BUILD_DIR/soundscape.xcarchive" \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            -showBuildSettings 2>/dev/null \
-            | grep "^\s*BUILT_PRODUCTS_DIR" | head -1 | awk -F= '{print $2}' | xargs)
-          echo "Archive BUILT_PRODUCTS_DIR: $ARCHIVE_BUILD_PRODUCTS"
-
-          # Crea i modulemap mancanti per tutti i pod EX*/Expo* nel path che archive usa
-          echo "=== Creating EX*/Expo* modulemaps in archive BuildProductsPath ==="
-          PODS_HEADERS="ios/Pods/Headers/Public"
-          for pod_dir in "$PODS_HEADERS"/EX* "$PODS_HEADERS"/Expo*; do
-            [ -d "$pod_dir" ] || continue
-            pod_name=$(basename "$pod_dir")
-            target_dir="$ARCHIVE_BUILD_PRODUCTS/$pod_name"
-            modulemap_file="$target_dir/$pod_name.modulemap"
-            if [ ! -f "$modulemap_file" ]; then
-              mkdir -p "$target_dir"
-              {
-                echo "module $pod_name {"
-                find "$pod_dir" -name "*.h" 2>/dev/null | head -20 | while read h; do
-                  echo "  header \"$(realpath "$h")\""
-                done
-                echo "  export *"
-                echo "}"
-              } > "$modulemap_file"
-              echo "  created: $modulemap_file"
-            fi
+          # Background watcher: appena xcodebuild crea la cartella EXApplication
+          # (con CreateBuildDirectory), ci mette dentro il modulemap prima che
+          # la compilazione Swift lo cerchi.
+          PODS_HEADERS="$(pwd)/ios/Pods/Headers/Public"
+          cat > /tmp/watch_and_create_modulemaps.sh << 'WATCHSCRIPT'
+          #!/bin/bash
+          DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData"
+          PODS_HEADERS="$1"
+          echo "[watcher] started, watching $DERIVED_DATA"
+          while true; do
+            sleep 2
+            # Cerca tutte le cartelle EX*/Expo* create da xcodebuild archive
+            find "$DERIVED_DATA" -type d -path "*/ArchiveIntermediates/*/BuildProductsPath/Release-iphoneos/EX*" \
+                                         -o -type d -path "*/ArchiveIntermediates/*/BuildProductsPath/Release-iphoneos/Expo*" \
+            2>/dev/null | while read pod_dir; do
+              pod_name=$(basename "$pod_dir")
+              modulemap_file="$pod_dir/$pod_name.modulemap"
+              if [ ! -f "$modulemap_file" ]; then
+                src_headers="$PODS_HEADERS/$pod_name"
+                {
+                  echo "module $pod_name {"
+                  if [ -d "$src_headers" ]; then
+                    find "$src_headers" -name "*.h" 2>/dev/null | head -20 | while read h; do
+                      echo "  header \"$h\""
+                    done
+                  fi
+                  echo "  export *"
+                  echo "}"
+                } > "$modulemap_file"
+                echo "[watcher] created $modulemap_file"
+              fi
+            done
           done
-          echo "=== Modulemaps ready ==="
+          WATCHSCRIPT
+          chmod +x /tmp/watch_and_create_modulemaps.sh
+          bash /tmp/watch_and_create_modulemaps.sh "$PODS_HEADERS" &
+          WATCHER_PID=$!
+          echo "Modulemap watcher started (PID $WATCHER_PID)"
 
           set +e
           xcodebuild \
@@ -171,6 +174,7 @@ workflows:
             _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES=NO \
             NODE_BINARY="$NODE_BINARY" \
             archive 2>&1 | tee /tmp/xbuild.log
+          kill $WATCHER_PID 2>/dev/null || true
           XCODE_STATUS=${PIPESTATUS[0]}
           set -e
           cp /tmp/xbuild.log "$CM_BUILD_DIR/xbuild.log" || true
