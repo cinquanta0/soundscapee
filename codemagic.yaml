@@ -199,7 +199,9 @@ workflows:
           set -e
           mkdir -p "$CM_BUILD_DIR/Payload"
           cp -r "$CM_BUILD_DIR/soundscape.xcarchive/Products/Applications/"*.app "$CM_BUILD_DIR/Payload/"
-          cd "$CM_BUILD_DIR" && zip -r soundscape.ipa Payload/
+          rm -f "$CM_BUILD_DIR/soundscape.ipa"
+          cd "$CM_BUILD_DIR"
+          ditto -c -k --sequesterRsrc --keepParent Payload soundscape.ipa
     artifacts:
       - $CM_BUILD_DIR/soundscape.ipa
       - $CM_BUILD_DIR/xbuild.log
