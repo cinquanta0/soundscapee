@@ -101,10 +101,6 @@ workflows:
           ls -la
           echo "=== xcworkspace check ==="
           test -d soundscapemobile.xcworkspace && echo "xcworkspace CREATED OK" || { echo "xcworkspace MISSING - FAIL"; exit 1; }
-      - name: Create missing Expo modulemaps (fix EXApplication not found)
-        script: |
-          set -e
-          python3 scripts/create_expo_modulemaps.py
       - name: Patch expo-updates channel + disable generate script
         script: |
           set -e
@@ -123,6 +119,25 @@ workflows:
           echo "Node: $NODE_BINARY ($($NODE_BINARY --version))"
           WORKSPACE="ios/soundscapemobile.xcworkspace"
           SCHEME="soundscapemobile"
+
+          # PRE-BUILD: compila solo i Pod targets per generare le cartelle
+          # BuildProductsPath/Release-iphoneos/EXApplication/ ecc.
+          # con i modulemap che ExpoModulesProvider.swift cerca.
+          echo "=== PRE-BUILD: building Pods targets to generate modulemaps ==="
+          xcodebuild build \
+            -workspace "$WORKSPACE" \
+            -scheme "Pods-soundscapemobile" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES=NO \
+            NODE_BINARY="$NODE_BINARY" \
+            2>&1 | tail -20 || echo "(pre-build warnings ignored)"
+
+          echo "=== ARCHIVE ==="
           set +e
           xcodebuild \
             -workspace "$WORKSPACE" \
