@@ -157,31 +157,46 @@ export async function startRadioPlayback(track: {
   await TrackPlayer.reset();
   await TrackPlayer.add(track);
   await TrackPlayer.play();
-  // iOS live streams a volte accettano play() ma restano in Ready/Paused silenziosi
-  // al primo avvio. Verifichiamo sia lo state sia playWhenReady, poi rifacciamo
-  // un bootstrap esplicito solo se il player non sta davvero tentando di suonare.
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  try {
-    const [ps, playWhenReady] = await Promise.all([
-      TrackPlayer.getPlaybackState().catch(() => null),
-      TrackPlayer.getPlayWhenReady?.().catch(() => null),
-    ]);
-    const state = ps?.state ?? ps;
-    const shouldForceRestart =
-      playWhenReady !== true ||
-      state === State?.Ready ||
-      state === State?.Paused ||
-      state === State?.None;
+  // iOS live streams: il primo play può restare "appeso" senza errore.
+  // Aspettiamo il bootstrap reale e, se non entra in Loading/Buffering/Playing,
+  // facciamo un unico retry controllato.
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  let didRetry = false;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await wait(450);
+    try {
+      const [ps, playWhenReady] = await Promise.all([
+        TrackPlayer.getPlaybackState().catch(() => null),
+        TrackPlayer.getPlayWhenReady?.().catch(() => null),
+      ]);
+      const state = ps?.state ?? ps;
+      const isBooting =
+        state === State?.Loading ||
+        state === State?.Buffering ||
+        state === State?.Playing;
+      if (isBooting && playWhenReady !== false) break;
 
-    if (shouldForceRestart) {
-      await TrackPlayer.reset();
-      await TrackPlayer.add(track);
-      await TrackPlayer.play().catch(() => {});
-    } else if (state === State?.Error) {
-      await TrackPlayer.retry?.().catch(() => {});
-      await TrackPlayer.play().catch(() => {});
-    }
-  } catch {}
+      const stuck =
+        state === State?.Ready ||
+        state === State?.Paused ||
+        state === State?.None ||
+        playWhenReady !== true;
+
+      if (state === State?.Error) {
+        await TrackPlayer.retry?.().catch(() => {});
+        await TrackPlayer.play().catch(() => {});
+        didRetry = true;
+        continue;
+      }
+
+      if (stuck && !didRetry && attempt >= 1) {
+        await TrackPlayer.reset();
+        await TrackPlayer.add(track);
+        await TrackPlayer.play().catch(() => {});
+        didRetry = true;
+      }
+    } catch {}
+  }
   await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
   await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
   await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
