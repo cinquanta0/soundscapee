@@ -155,13 +155,15 @@ export async function startRadioPlayback(track: {
   isLiveStream: true;
   type?: string;
   userAgent?: string;
-}) {
+}, options?: { autoplay?: boolean }) {
   if (!TrackPlayer) return;
+  const autoplay = options?.autoplay ?? true;
   console.log(RADIO_LOG_PREFIX, 'startRadioPlayback begin', {
     id: track.id,
     url: track.url,
     type: track.type,
     platform: Platform.OS,
+    autoplay,
   });
   if (Platform.OS === 'ios') {
     // Rilascia esplicitamente la sessione expo-av prima di passare al live stream RNTP.
@@ -183,11 +185,28 @@ export async function startRadioPlayback(track: {
   console.log(RADIO_LOG_PREFIX, 'player reset complete');
   await TrackPlayer.add(track);
   console.log(RADIO_LOG_PREFIX, 'track added');
-  await TrackPlayer.play();
-  console.log(RADIO_LOG_PREFIX, 'initial play requested');
+  if (autoplay) {
+    await TrackPlayer.play();
+    console.log(RADIO_LOG_PREFIX, 'initial play requested');
+  } else {
+    console.log(RADIO_LOG_PREFIX, 'autoplay skipped');
+  }
   // iOS live streams: il primo play può restare "appeso" senza errore.
   // Aspettiamo il bootstrap reale e, se non entra in Loading/Buffering/Playing,
   // facciamo un unico retry controllato.
+  if (!autoplay) {
+    await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
+    await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
+    await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
+    await syncActiveTrackMetadata({
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      artwork: track.artwork,
+    }).catch(() => {});
+    return;
+  }
+
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   let didRetry = false;
   let didSecondKick = false;

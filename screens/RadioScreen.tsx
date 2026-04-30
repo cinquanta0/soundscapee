@@ -2823,8 +2823,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             type: url.includes('.m3u8') ? 'hls' : 'default',
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
           };
-          await startRadioPlayback(radioTrack);
+          await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;
+          if (Platform.OS === 'ios' && mounted) {
+            setStatusLabel('Tocca Play');
+          }
         };
 
         // Espone la funzione di ricarica stream per togglePlay (usata quando lo stream è morto)
