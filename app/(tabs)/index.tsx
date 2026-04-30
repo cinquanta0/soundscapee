@@ -2053,9 +2053,33 @@ if (loading) {
             try {
               const r = require('react-native-track-player');
               const TP = r.default; const S = r;
-              const ps = await TP.getPlaybackState();
+              const [ps, sessionStr, activeTrack, savedLiveTrackStr] = await Promise.all([
+                TP.getPlaybackState(),
+                AsyncStorage.getItem('@soundscape/rntp_session'),
+                TP.getActiveTrack().catch(() => null),
+                AsyncStorage.getItem('@soundscape/live_stream_track').catch(() => null),
+              ]);
               const st = ps?.state ?? ps;
-              if (st === S.State?.Playing) await TP.pause(); else await TP.play();
+              const session = sessionStr ? JSON.parse(sessionStr) : null;
+              const savedLiveTrack = savedLiveTrackStr ? JSON.parse(savedLiveTrackStr) : null;
+              const isLiveRadio = session?.type === 'radio' && (activeTrack?.isLiveStream || savedLiveTrack?.isLiveStream);
+
+              if (st === S.State?.Playing) {
+                if (isLiveRadio) await AsyncStorage.setItem('@soundscape/live_stream_user_paused', '1');
+                await TP.pause();
+              } else if (isLiveRadio) {
+                await AsyncStorage.removeItem('@soundscape/live_stream_user_paused').catch(() => {});
+                const trackToRestart = activeTrack?.isLiveStream ? activeTrack : savedLiveTrack;
+                if (trackToRestart) {
+                  await TP.reset();
+                  await TP.add(trackToRestart);
+                  await TP.play();
+                } else {
+                  await TP.play();
+                }
+              } else {
+                await TP.play();
+              }
               setMiniPlayerData(prev => prev ? { ...prev, isPlaying: st !== S.State?.Playing } : null);
             } catch {}
           }}
@@ -2066,6 +2090,7 @@ if (loading) {
               await TP.reset();
             } catch {}
             try { await AsyncStorage.removeItem('@soundscape/rntp_session'); } catch {}
+            try { await AsyncStorage.removeItem('@soundscape/live_stream_user_paused'); } catch {}
             setMiniPlayerData(null);
           }}
         />

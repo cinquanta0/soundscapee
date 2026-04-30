@@ -7,6 +7,10 @@ const { Platform } = require('react-native');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
+const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
+const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
+
 // Questo file viene eseguito in un thread separato in background da React Native Track Player.
 // È obbligatorio registrarlo tramite TrackPlayer.registerPlaybackService().
 export async function PlaybackService() {
@@ -35,6 +39,20 @@ export async function PlaybackService() {
   // ── Logica di restart live stream ────────────────────────────────────────────
   // Per i live stream HLS (radio), dopo una pausa la finestra HLS si sposta avanti.
   // Un semplice play() fallisce silenziosamente su iOS → serve un vero restart.
+  async function markLiveStreamUserPaused(paused: boolean) {
+    try {
+      const activeTrack = await TrackPlayer.getActiveTrack().catch(() => null);
+      const savedTrackStr = !activeTrack
+        ? await AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY).catch(() => null)
+        : null;
+      const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
+      const liveTrack = activeTrack?.isLiveStream ? activeTrack : savedTrack?.isLiveStream ? savedTrack : null;
+      if (!liveTrack) return;
+      if (paused) await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1');
+      else await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY);
+    } catch {}
+  }
+
   async function restartIfLive() {
     let track = await TrackPlayer.getActiveTrack();
     // iOS può killare il processo RNTP in background (OOM / aggressive battery).
@@ -42,15 +60,17 @@ export async function PlaybackService() {
     // così il pulsante play del lock screen funziona anche dopo un process kill.
     if (!track) {
       try {
-        const saved = await AsyncStorage.getItem('@soundscape/live_stream_track');
+        const saved = await AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY);
         if (saved) track = JSON.parse(saved);
       } catch {}
     }
     if (track?.isLiveStream) {
+      await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
       await TrackPlayer.reset();
       await TrackPlayer.add(track);
       await TrackPlayer.play();
     } else {
+      await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
       await TrackPlayer.play();
     }
   }
@@ -59,14 +79,18 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemotePlay, async () => {
     try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
-  TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
+  TrackPlayer.addEventListener(Event.RemotePause, async () => {
+    await markLiveStreamUserPaused(true);
+    return TrackPlayer.pause();
+  });
   // RemoteStop → solo pause(), mai reset().
   // reset() distrugge il ForegroundService Android e rimuove il widget iOS.
   // Alcuni ROM (Xiaomi/Samsung/OPPO) e iOS inviano RemoteStop automaticamente
   // quando l'app va in background o lo schermo si blocca — reset() causerebbe
   // la scomparsa della notifica/widget senza che l'utente abbia fatto nulla.
   // Il vero reset avviene quando l'utente chiude il player dalla UI (onClose → reset()).
-  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+    await markLiveStreamUserPaused(true);
     TrackPlayer.pause().catch(() => {});
   });
 
@@ -101,7 +125,9 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
     const state = data?.state ?? data;
     if (state === State?.Stopped || state === State?.None) {
-      AsyncStorage.removeItem('@soundscape/rntp_session').catch(() => {});
+      AsyncStorage.multiRemove([RNTP_SESSION_KEY, LIVE_STREAM_USER_PAUSED_KEY]).catch(() => {});
+    } else if (state === State?.Playing) {
+      AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
     }
   });
 }
