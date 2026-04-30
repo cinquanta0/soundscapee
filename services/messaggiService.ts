@@ -6,7 +6,7 @@ import {
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
-import * as FileSystem from 'expo-file-system/legacy';
+import { uploadFileWithFallback } from './storageUpload';
 
 export interface Messaggio {
   id: string;
@@ -125,28 +125,8 @@ export async function inviaMessaggio(params: {
 
   const cId = convId(user.uid, params.receiverId);
 
-  // Upload audio via Firebase Storage REST API (bypass SDK - non funziona su Android)
-  const token = await auth.currentUser!.getIdToken();
-  const bucket = (storage as any).app.options.storageBucket;
   const storagePath = `messaggi/${cId}/${Date.now()}.m4a`;
-  const encodedPath = encodeURIComponent(storagePath);
-  const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
-
-  const uploadResult = await FileSystem.uploadAsync(uploadUrl, params.audioUri, {
-    httpMethod: 'POST',
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    headers: {
-      'Content-Type': 'audio/mp4',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (uploadResult.status < 200 || uploadResult.status >= 300) {
-    throw new Error(`Upload fallito: HTTP ${uploadResult.status}`);
-  }
-
-  const uploadData = JSON.parse(uploadResult.body);
-  const audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${uploadData.downloadTokens}`;
+  const audioUrl = await uploadFileWithFallback(storagePath, params.audioUri, 'audio/mp4');
 
   const msgRef = await addDoc(collection(db, 'messaggi'), {
     conversationId: cId,

@@ -7,12 +7,12 @@ import {
   ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { auth, storage } from '../firebaseConfig';
+import { auth } from '../firebaseConfig';
 import { getRecentStati, createStato, StatiGroup, deleteStato, getStatoViewers, markStatoViewed } from '../services/statiService';
 import { inviaMessaggio } from '../services/messaggiService';
+import { uploadFileWithFallback } from '../services/storageUpload';
 import StoryViewer, { StoryGroup } from './StoryViewer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { C } from '../constants/design';
@@ -317,18 +317,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   const uploadAudio = async (uri: string, uid: string): Promise<{ url: string; duration: number }> => {
     const fileName = `stati/${uid}/${Date.now()}.m4a`;
-    const token = await auth.currentUser!.getIdToken();
-    const bucket = storage.app.options.storageBucket as string;
-    const encodedPath = encodeURIComponent(fileName);
-    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
-    const result = await FileSystem.uploadAsync(uploadUrl, uri, {
-      httpMethod: 'POST',
-      headers: { 'Content-Type': 'audio/mp4', Authorization: `Bearer ${token}` },
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
-    if (result.status < 200 || result.status >= 300) throw new Error(`Upload failed: ${result.status}`);
-    const data = JSON.parse(result.body);
-    const audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${data.downloadTokens}`;
+    const audioUrl = await uploadFileWithFallback(fileName, uri, 'audio/mp4');
     return { url: audioUrl, duration: recordingSeconds };
   };
 
@@ -350,18 +339,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   const uploadImage = async (uri: string, uid: string): Promise<string> => {
     const fileName = `stati/${uid}/${Date.now()}_photo.jpg`;
-    const token = await auth.currentUser!.getIdToken();
-    const bucket = storage.app.options.storageBucket as string;
-    const encodedPath = encodeURIComponent(fileName);
-    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
-    const result = await FileSystem.uploadAsync(uploadUrl, uri, {
-      httpMethod: 'POST',
-      headers: { 'Content-Type': 'image/jpeg', Authorization: `Bearer ${token}` },
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
-    if (result.status < 200 || result.status >= 300) throw new Error(`Upload image failed: ${result.status}`);
-    const data = JSON.parse(result.body);
-    return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${data.downloadTokens}`;
+    return uploadFileWithFallback(fileName, uri, 'image/jpeg');
   };
 
   const handlePublishStato = async () => {

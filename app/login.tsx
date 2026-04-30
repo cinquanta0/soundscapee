@@ -10,12 +10,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { auth } from '../firebaseConfig';
-import { functions } from '../firebaseConfig';
+import { auth, functions } from '../firebaseConfig';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInAnonymously,
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
@@ -83,19 +81,6 @@ export default function LoginScreen() {
       else if (code === 'auth/wrong-password') Alert.alert(em, 'Password errata.');
       else if (code === 'auth/too-many-requests') Alert.alert(em, 'Troppi tentativi. Riprova tra qualche minuto.');
       else Alert.alert(em, error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAnonymous = async () => {
-    setLoading(true);
-    try {
-      await signInAnonymously(auth);
-      router.replace('/(tabs)');
-    } catch (error: any) {
-      console.error('Anonymous error:', error);
-      Alert.alert(t('common.error'), error?.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -188,26 +173,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {!isForgot && (
-          <>
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OPPURE</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Anonymous */}
-            <TouchableOpacity
-              style={styles.anonymousButton}
-              onPress={handleAnonymous}
-              disabled={loading}
-            >
-              <Text style={styles.anonymousButtonText}>{t('auth.continueAsGuest')}</Text>
-            </TouchableOpacity>
-          </>
-        )}
 
         {/* Info */}
         <Text style={styles.infoText}>{t('auth.termsInfo')}</Text>

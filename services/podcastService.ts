@@ -6,9 +6,9 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
-import * as FileSystem from 'expo-file-system/legacy';
 import { db, storage, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
+import { uploadFileWithFallback } from './storageUpload';
 
 export interface Podcast {
   id: string;
@@ -302,26 +302,10 @@ export async function publishPodcast(params: {
     // Suono già su Firebase Storage — nessun upload necessario
     audioUrl = params.audioUrl;
   } else {
-    const token = await user.getIdToken();
-    const bucket = (storage.app.options as any).storageBucket as string;
-
     const ext = extFromUri(params.audioUri!);
     const contentType = mimeFromExt(ext);
-
     const audioPath = `podcast/${user.uid}/${Date.now()}.${ext}`;
-    const encodedAudioPath = encodeURIComponent(audioPath);
-    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedAudioPath}`;
-
-    const audioResult = await FileSystem.uploadAsync(uploadUrl, params.audioUri!, {
-      httpMethod: 'POST',
-      headers: { 'Content-Type': contentType, Authorization: `Bearer ${token}` },
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
-    if (audioResult.status < 200 || audioResult.status >= 300) {
-      throw new Error(`Audio upload failed: HTTP ${audioResult.status}`);
-    }
-    const audioData = JSON.parse(audioResult.body);
-    audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedAudioPath}?alt=media&token=${audioData.downloadTokens}`;
+    audioUrl = await uploadFileWithFallback(audioPath, params.audioUri!, contentType);
   }
 
   // Upload cover se presente (immagine — usa uploadBytes va bene)
