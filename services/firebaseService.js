@@ -21,6 +21,11 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
+import { ref, deleteObject } from 'firebase/storage';
+import { db, storage, auth } from '../firebaseConfig';
+import { uploadFileWithFallback } from './storageUpload';
+import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
+
 import { sanitizeField } from '../utils/sanitize';
 
 const DAILY_SOUND_LIMIT = 10;
@@ -47,37 +52,9 @@ const checkAndUpdateSoundQuota = async (userId) => {
 };
 
 
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage, auth } from '../firebaseConfig';
-import * as FileSystem from 'expo-file-system/legacy';
 
-/**
- * Upload affidabile su React Native.
- * Firebase Storage JS SDK non gestisce correttamente i Blob su Android.
- * Soluzione: FileSystem.uploadAsync con Firebase Storage REST API — bypassa l'SDK completamente.
- */
 const uploadFileReliable = async (storagePath, localUri, contentType = 'audio/mp4') => {
-  const token = await auth.currentUser.getIdToken();
-  const bucket = storage.app.options.storageBucket;
-  const encodedPath = encodeURIComponent(storagePath);
-  const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
-
-  const result = await FileSystem.uploadAsync(uploadUrl, localUri, {
-    httpMethod: 'POST',
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    headers: {
-      'Content-Type': contentType,
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (result.status < 200 || result.status >= 300) {
-    throw new Error(`Upload fallito: HTTP ${result.status}`);
-  }
-
-  const responseData = JSON.parse(result.body);
-  const downloadToken = responseData.downloadTokens;
-  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${downloadToken}`;
+  return uploadFileWithFallback(storagePath, localUri, contentType);
 };
 
 // Notifiche gestite dalle Cloud Functions via trigger Firestore (onLikeCreated, onCommentCreated, onFollowCreated)
@@ -1017,7 +994,7 @@ export const getCommunitySounds = async (communityId, limitCount = 20) => {
 // 🗺️ FUNZIONI PER LE MAPPE SONORE
 // ========================================
 
-import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
+
 
 // Crea suono con geohash per query geografiche
 export const createSoundWithGeohash = async (soundData) => {
@@ -1573,10 +1550,6 @@ export const getFollowingList = async (userId) => {
   }
 };
 
-/**
- * Conta follower e following direttamente dalla collezione `follows`.
- * Sempre accurato — non usa i counter fields che si desincronizzano.
- */
 export const deleteCommunity = async (communityId) => {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Non autenticato');
@@ -1596,6 +1569,10 @@ export const deleteCommunity = async (communityId) => {
   await batch.commit();
 };
 
+/**
+ * Conta follower e following direttamente dalla collezione `follows`.
+ * Sempre accurato — non usa i counter fields che si desincronizzano.
+ */
 export const getFollowStats = async (userId) => {
   try {
     const [followersSnap, followingSnap] = await Promise.all([
