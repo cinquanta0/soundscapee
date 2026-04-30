@@ -6,6 +6,8 @@ const { Event, AppKilledPlaybackBehavior, Capability, State } = require('react-n
 const { Platform } = require('react-native');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { resumeLivePlayback } = require('./audioPlayer');
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
@@ -47,31 +49,9 @@ export async function PlaybackService() {
     } catch {}
   }
 
-  async function restartIfLive() {
-    let track = await TrackPlayer.getActiveTrack();
-    // iOS può killare il processo RNTP in background (OOM / aggressive battery).
-    // Se la coda è vuota, carichiamo il backup salvato da startStream() —
-    // così il pulsante play del lock screen funziona anche dopo un process kill.
-    if (!track) {
-      try {
-        const saved = await AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY);
-        if (saved) track = JSON.parse(saved);
-      } catch {}
-    }
-    if (track?.isLiveStream) {
-      await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-      await TrackPlayer.reset();
-      await TrackPlayer.add(track);
-      await TrackPlayer.play();
-    } else {
-      await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-      await TrackPlayer.play();
-    }
-  }
-
   // ── Remote control events ───────────────────────────────────────────
   TrackPlayer.addEventListener(Event.RemotePlay, async () => {
-    try { await restartIfLive(); } catch { await TrackPlayer.play().catch(() => {}); }
+    try { await resumeLivePlayback(); } catch { await TrackPlayer.play().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, async () => {
     await markLiveStreamUserPaused(true);
@@ -93,13 +73,13 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemoteNext, async () => {
     try {
       const track = await TrackPlayer.getActiveTrack();
-      if (track?.isLiveStream) { await restartIfLive(); }
+      if (track?.isLiveStream) { await resumeLivePlayback(); }
     } catch {}
   });
   TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
     try {
       const track = await TrackPlayer.getActiveTrack();
-      if (track?.isLiveStream) { await restartIfLive(); }
+      if (track?.isLiveStream) { await resumeLivePlayback(); }
     } catch {}
   });
 

@@ -124,6 +124,7 @@ import BackstageViewer from '../../components/BackstageViewer';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { resumeLivePlayback, syncActiveTrackMetadata } from '../../services/audioPlayer';
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
@@ -318,19 +319,17 @@ export default function App() {
           (st === S.State?.Paused && userPaused !== '1');
 
         if (shouldRecover) {
-          await TP.reset();
-          await TP.add(liveTrack);
-          await TP.play();
+          await resumeLivePlayback();
           return;
         }
 
         if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading) {
-          TP.updateNowPlayingMetadata?.({
+          await syncActiveTrackMetadata({
             title: liveTrack.title ?? '',
             artist: liveTrack.artist ?? '',
             album: liveTrack.album ?? '',
             artwork: liveTrack.artwork,
-          }).catch(() => {});
+          });
         }
       } catch {}
     };
@@ -349,12 +348,12 @@ export default function App() {
           const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
           const metadataSource = track ?? savedTrack;
           if (!metadataSource || st === S.State?.Stopped || st === S.State?.None) return;
-          TP.updateNowPlayingMetadata?.({
+          await syncActiveTrackMetadata({
             title: metadataSource.title ?? '',
             artist: metadataSource.artist ?? '',
             album: metadataSource.album ?? '',
             artwork: metadataSource.artwork,
-          }).catch(() => {});
+          });
         } catch {}
         return;
       }
@@ -2133,14 +2132,7 @@ if (loading) {
                 await TP.pause();
               } else if (isLiveRadio) {
                 await AsyncStorage.removeItem('@soundscape/live_stream_user_paused').catch(() => {});
-                const trackToRestart = activeTrack?.isLiveStream ? activeTrack : savedLiveTrack;
-                if (trackToRestart) {
-                  await TP.reset();
-                  await TP.add(trackToRestart);
-                  await TP.play();
-                } else {
-                  await TP.play();
-                }
+                await resumeLivePlayback();
               } else {
                 await TP.play();
               }

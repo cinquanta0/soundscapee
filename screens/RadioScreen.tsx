@@ -44,7 +44,7 @@ try {
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
-import { configurePlayerForRadio, ensurePlayerReady } from '../services/audioPlayer';
+import { configurePlayerForRadio, ensurePlayerReady, resumeLivePlayback, syncActiveTrackMetadata } from '../services/audioPlayer';
 
 // Configura come gestire le notifiche quando l'app è aperta
 Notifications.setNotificationHandler({
@@ -2873,16 +2873,14 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         // Android: Se expo-av mantiene il focus, RNTP rileva un'interruzione (autoHandleInterruptions)
         // e va subito in pausa (ecco perché alcune radio escono "in pausa").
         // iOS: playsInSilentModeIOS: false cede l'AVAudioSession, evitando che RNTP vada nel vuoto.
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: false,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
-        }).catch(() => {});
-        // Tempo per OS di rilasciare l'audio focus: necessario su Android,
-        // dannoso su iOS perché ritarda add()/metadata e il widget lock screen.
         if (Platform.OS === 'android') {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: false,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: false,
+            playThroughEarpieceAndroid: false,
+          }).catch(() => {});
           await new Promise(r => setTimeout(r, 600));
         }
 
@@ -2928,15 +2926,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           // add() mette la traccia in coda → updateNowPlayingMetadata lavora su una
           // traccia esistente. Il widget appare anche se l'utente va in background
           // durante il buffering (era il motivo principale della scomparsa intermittente).
+          await TrackPlayer.play();
           if (Platform.OS === 'ios') {
-            TrackPlayer.updateNowPlayingMetadata?.({
+            await syncActiveTrackMetadata({
               title: station.name,
               artist: artistName,
               album: albumName,
               artwork: artworkUrl,
             }).catch?.(() => {});
           }
-          await TrackPlayer.play();
           streamUrlRef.current = url;
           AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
           AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
@@ -2976,35 +2974,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         // IMPORTANTE: verificare lo stato prima del nudge: se l'utente ha già messo
         // in pausa dal lock screen, non dobbiamo riprendere la riproduzione.
         if (Platform.OS === 'ios') {
-          setTimeout(async () => {
-            if (!mounted) return;
-            if (AppState.currentState !== 'active') return;
-            try {
-              const ps = await TrackPlayer.getPlaybackState();
-              const s = ps?.state ?? ps;
-              if (s !== State.Playing) return;
-              // Silent nudge: suppress PlaybackState UI updates during pause+play
-              isNudgingRef.current = true;
-              try {
-                await TrackPlayer.pause();
-                await new Promise(r => setTimeout(r, 150));
-                if (!mounted) return;
-                const ps2 = await TrackPlayer.getPlaybackState();
-                const s2 = ps2?.state ?? ps2;
-                if (s2 !== State.Paused) return;
-                await TrackPlayer.play();
-                await new Promise(r => setTimeout(r, 400));
-              } finally {
-                isNudgingRef.current = false;
-              }
-            } catch {}
-          }, 2000);
-        }
-
-        // iOS: forza aggiornamento MPNowPlayingInfoCenter per il widget lock screen.
-        // A 800ms nowPlaying potrebbe non essere ancora arrivato → usa palinsesto statico
-        // come fallback (stesso calcolo dell'add). useEffect su nowPlaying aggiorna se API live risponde.
-        if (Platform.OS === 'ios') {
           setTimeout(() => {
             if (!mounted) return;
             const np = nowPlayingRef.current;
@@ -3013,7 +2982,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               const idx = getCurrentSlotIndex(slots);
               return idx >= 0 ? slots[idx] : null;
             })();
-            TrackPlayer?.updateNowPlayingMetadata?.({
+            syncActiveTrackMetadata({
               title: station.name,
               artist: np?.djName || sSlot?.djName || station.genre,
               album: np?.showName || sSlot?.showName || '🔴 In diretta',
@@ -3095,7 +3064,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   // è undefined al momento dell'add. Questo effect lo aggiorna non appena i dati arrivano.
   useEffect(() => {
     if (!TrackPlayer || !nowPlaying) return;
-    TrackPlayer.updateNowPlayingMetadata?.({
+    syncActiveTrackMetadata({
       title: station.name,
       artist: nowPlaying.djName || station.genre,
       album: nowPlaying.showName || station.genre,
@@ -3144,11 +3113,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
       await TrackPlayer.pause();
     } else if (reloadStreamRef.current) {
-      // Per stream live HLS: sempre un restart completo invece di play().
-      // play() su iOS fallisce silenziosamente se la finestra HLS è scaduta
-      // (dopo pausa, interruzione telefonica, Siri, ecc.).
       AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-      await reloadStreamRef.current();
+      await resumeLivePlayback().catch(async () => {
+        await reloadStreamRef.current?.();
+      });
     } else {
       AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
       await TrackPlayer.play();

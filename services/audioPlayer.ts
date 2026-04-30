@@ -1,9 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const TrackPlayer = require('react-native-track-player').default;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { AppKilledPlaybackBehavior, Capability } = require('react-native-track-player');
+const { AppKilledPlaybackBehavior, Capability, State } = require('react-native-track-player');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
 let setupPromise: Promise<void> | null = null;
+const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
+const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
 
 async function doSetup() {
   await TrackPlayer.setupPlayer({
@@ -76,4 +80,61 @@ export async function configurePlayerForPodcast() {
     forwardJumpInterval: 15,
     backwardJumpInterval: 15,
   });
+}
+
+export async function syncActiveTrackMetadata(metadata: {
+  title?: string;
+  artist?: string;
+  album?: string;
+  artwork?: string;
+}) {
+  if (!TrackPlayer) return;
+  try {
+    const activeIndex = await TrackPlayer.getActiveTrackIndex?.();
+    if (activeIndex != null) {
+      await TrackPlayer.updateMetadataForTrack(activeIndex, metadata);
+      return;
+    }
+  } catch {}
+
+  await TrackPlayer.updateNowPlayingMetadata?.(metadata).catch?.(() => {});
+}
+
+export async function resumeLivePlayback() {
+  if (!TrackPlayer) return;
+
+  const [activeTrack, savedTrackStr, playbackState] = await Promise.all([
+    TrackPlayer.getActiveTrack().catch(() => null),
+    AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY).catch(() => null),
+    TrackPlayer.getPlaybackState().catch(() => null),
+  ]);
+
+  const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
+  const liveTrack = activeTrack?.isLiveStream ? activeTrack : savedTrack?.isLiveStream ? savedTrack : null;
+  const state = playbackState?.state ?? playbackState;
+
+  if (!liveTrack) {
+    await TrackPlayer.play().catch(() => {});
+    return;
+  }
+
+  AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+
+  if (state === State?.Playing || state === State?.Buffering || state === State?.Loading) return;
+  if (state === State?.Paused || state === State?.Ready) {
+    await TrackPlayer.play();
+    return;
+  }
+  if (state === State?.Error) {
+    try {
+      await TrackPlayer.retry();
+    } catch {
+      await TrackPlayer.play().catch(() => {});
+    }
+    return;
+  }
+
+  await TrackPlayer.reset();
+  await TrackPlayer.add(liveTrack);
+  await TrackPlayer.play();
 }
