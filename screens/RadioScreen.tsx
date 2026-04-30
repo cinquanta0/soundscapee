@@ -142,6 +142,7 @@ interface NowPlayingInfo {
 }
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+const RADIO_LOG_PREFIX = '[RNTP-RADIO]';
 
 const OFFLINE_STATIONS: OfflineStation[] = [
   { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
@@ -2645,6 +2646,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
     const subState = TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
       const state = data?.state ?? data;
+      console.log(RADIO_LOG_PREFIX, 'PlaybackState', { stationId: station.id, state });
       if (state === State.Playing) {
         hasStartedPlayingRef.current = true;
         setIsPlaying(true);
