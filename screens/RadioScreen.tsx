@@ -2826,7 +2826,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;
           if (Platform.OS === 'ios' && mounted) {
-            setStatusLabel('Tocca Play');
+            setStatusLabel('Tocca Play per avviare la radio');
           }
         };
 
