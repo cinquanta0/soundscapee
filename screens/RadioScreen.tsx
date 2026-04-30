@@ -30,14 +30,12 @@ import {
 let TrackPlayer: any = null;
 let Event: any = {};
 let State: any = {};
-let Capability: any = {};
-let AppKilledPlaybackBehavior: any = {};
 try {
   const rntp = require('react-native-track-player');
   const rntpDefault = rntp.default;
   if (rntpDefault) {
     TrackPlayer = rntpDefault;
-    ({ Event, State, Capability, AppKilledPlaybackBehavior } = rntp);
+    ({ Event, State } = rntp);
   }
 } catch (_e) {
   // RNTP non disponibile (web o build senza native module)
@@ -46,6 +44,7 @@ try {
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
+import { configurePlayerForRadio, ensurePlayerReady } from '../services/audioPlayer';
 
 // Configura come gestire le notifiche quando l'app è aperta
 Notifications.setNotificationHandler({
@@ -2844,11 +2843,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             if (activeTrack?.id === station.id && isActiveOrPaused) {
               // Anche nel ripristino, sovrascriviamo le capability del PlaybackService
               // e manteniamo solo play/pause come nel player podcast.
-              TrackPlayer.updateOptions({
-                capabilities: [Capability.Play, Capability.Pause],
-                notificationCapabilities: [Capability.Play, Capability.Pause],
-                compactCapabilities: [Capability.Play, Capability.Pause],
-              }).catch(() => {});
+              configurePlayerForRadio().catch(() => {});
               if (mounted) {
                 setLoading(false);
                 setIsPlaying(activeState === State.Playing || activeState === State.Buffering);
@@ -2892,31 +2887,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         }
 
         try {
-          await TrackPlayer.setupPlayer({
-            autoHandleInterruptions: true,
-            minBuffer: 15,
-            maxBuffer: 50,
-            playBuffer: 2,
-            backBuffer: 0,
-            // iOS: forza categoria AVAudioSession .playback per background audio corretto
-            iosCategory: 'playback',
-            iosCategoryMode: 'default',
-            // iOS: essenziale per non perdere i controlli lock screen quando
-            // l'utente passa a cuffie BT, AirPlay o cambia uscita audio
-            iosCategoryOptions: ['allowBluetooth', 'allowAirPlay', 'allowBluetoothA2DP'],
-          });
-        } catch (_setupErr) { /* player già inizializzato — continua */ }
-
-        try {
-          await TrackPlayer.updateOptions({
-            android: {
-              appKilledPlaybackBehavior:
-                AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
-            },
-            capabilities: [Capability.Play, Capability.Pause],
-            notificationCapabilities: [Capability.Play, Capability.Pause],
-            compactCapabilities: [Capability.Play, Capability.Pause],
-          });
+          await ensurePlayerReady();
+          await configurePlayerForRadio();
         } catch (_optErr) {}
 
         const startStream = async (url: string) => {

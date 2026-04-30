@@ -13,14 +13,12 @@ import { Audio } from 'expo-av';
 let TrackPlayer: any = null;
 let Event: any = {};
 let State: any = {};
-let Capability: any = {};
-let AppKilledPlaybackBehavior: any = {};
 try {
   const rntp = require('react-native-track-player');
   const rntpDefault = rntp.default;
   if (rntpDefault) {
     TrackPlayer = rntpDefault;
-    ({ Event, State, Capability, AppKilledPlaybackBehavior } = rntp);
+    ({ Event, State } = rntp);
   }
 } catch (_e) {
   // RNTP non disponibile (web o build senza native module)
@@ -29,6 +27,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
 import { C, S, R } from '../constants/design';
+import { configurePlayerForPodcast, ensurePlayerReady } from '../services/audioPlayer';
 import {
   getPodcasts, getPodcastById, publishPodcast, updatePodcast, deletePodcast, searchSounds,
   togglePodcastLike, togglePodcastDislike, getPodcastVotes,
@@ -218,26 +217,8 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       } catch {}
 
       try {
-        await TrackPlayer.setupPlayer({
-          autoHandleInterruptions: true,
-          iosCategory: 'playback',
-          iosCategoryMode: 'default',
-        });
-      } catch (_setupErr) { /* player già inizializzato o non disponibile — continua */ }
-
-      // updateOptions in try/catch separato: non blocca la riproduzione
-      try {
-        await TrackPlayer.updateOptions({
-          android: {
-            appKilledPlaybackBehavior:
-              AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
-          },
-          capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
-          notificationCapabilities: [Capability.Play, Capability.Pause, Capability.SeekTo, Capability.JumpForward, Capability.JumpBackward],
-          compactCapabilities: [Capability.Play, Capability.Pause],
-          forwardJumpInterval: 15,
-          backwardJumpInterval: 15,
-        });
+        await ensurePlayerReady();
+        await configurePlayerForPodcast();
       } catch (_optErr) { /* updateOptions opzionale: continua comunque */ }
 
       await TrackPlayer.reset();
