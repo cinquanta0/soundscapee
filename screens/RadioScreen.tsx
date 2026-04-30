@@ -44,7 +44,7 @@ try {
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
-import { clearRadioDebugLogs, configurePlayerForRadio, ensurePlayerReady, getRadioDebugLogs, pauseRadioPlayback, playRadioPlayback, startRadioPlayback, syncActiveTrackMetadata } from '../services/audioPlayer';
+import { configurePlayerForRadio, ensurePlayerReady, pauseRadioPlayback, playRadioPlayback, startRadioPlayback, syncActiveTrackMetadata } from '../services/audioPlayer';
 
 // Configura come gestire le notifiche quando l'app è aperta
 Notifications.setNotificationHandler({
@@ -2632,7 +2632,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const [djImgError, setDjImgError] = useState(false);
   const [showPalinsesto, setShowPalinsesto] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const scheduleScrollRef = useRef<any>(null);
   const livePulse = useRef(new Animated.Value(1)).current;
   const [timeUpdate, setTimeUpdate] = useState(0);
@@ -2641,20 +2640,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadLogs = async () => {
-      const logs = await getRadioDebugLogs();
-      if (mounted) setDebugLogs(logs);
-    };
-    loadLogs();
-    const interval = setInterval(loadLogs, 700);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     if (!TrackPlayer) return;
@@ -3131,9 +3116,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           </View>
 
         {/* Info: "ORA IN ONDA", DJ, show, stazione */}
-        <View style={osp.otaTestBox}>
-          <Text style={osp.otaTestTxt}>OTA TEST 123</Text>
-        </View>
         <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
           <Text style={osp.djName} numberOfLines={2}>{effectiveDjName}</Text>
           {effectiveShowName && effectiveShowName !== effectiveDjName ? (
@@ -3181,24 +3163,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
           </View>
         )}
-
-        <View style={osp.debugBox}>
-          <View style={osp.debugHeader}>
-            <Text style={osp.debugTitle}>DEBUG RADIO iOS</Text>
-            <TouchableOpacity onPress={async () => { await clearRadioDebugLogs(); setDebugLogs([]); }}>
-              <Text style={osp.debugClear}>Pulisci</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={osp.debugScroll}>
-            {debugLogs.length === 0 ? (
-              <Text style={osp.debugLine}>Nessun log ancora</Text>
-            ) : (
-              debugLogs.map((line, idx) => (
-                <Text key={`${idx}-${line.slice(0, 12)}`} style={osp.debugLine}>{line}</Text>
-              ))
-            )}
-          </ScrollView>
-        </View>
 
         {/* Android battery tip for Xiaomi/Huawei */}
         {Platform.OS !== 'ios' && isPlaying && (
@@ -3463,22 +3427,6 @@ const osp = StyleSheet.create({
   },
   liveDotOverlay: { width: 6, height: 6, borderRadius: 3 },
   liveTxtOverlay: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
-  otaTestBox: {
-    marginTop: 8,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#FFD400',
-    borderWidth: 2,
-    borderColor: '#FFF3A0',
-  },
-  otaTestTxt: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#111',
-    letterSpacing: 1,
-  },
 
   // ── Testi info ──
   oraInOnda: {
@@ -3536,42 +3484,6 @@ const osp = StyleSheet.create({
   },
   errorTxt: {
     fontSize: Math.round(12 * scale), color: 'rgba(255,255,255,0.3)', textAlign: 'center',
-  },
-  debugBox: {
-    marginTop: 16,
-    width: '100%',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(0,0,0,0.28)',
-    padding: 10,
-  },
-  debugHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  debugTitle: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.65)',
-    fontFamily: 'monospace',
-    letterSpacing: 1,
-  },
-  debugClear: {
-    fontSize: 10,
-    color: '#fff',
-    fontFamily: 'monospace',
-  },
-  debugScroll: {
-    maxHeight: 120,
-  },
-  debugLine: {
-    fontSize: 9,
-    lineHeight: 13,
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: 'monospace',
-    marginBottom: 2,
   },
 
   // ── Android tip ──

@@ -14,30 +14,6 @@ const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
 const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const RADIO_LOG_PREFIX = '[RNTP-RADIO]';
-const RADIO_DEBUG_LOGS_KEY = '@soundscape/radio_debug_logs';
-
-async function appendRadioDebugLog(label: string, payload?: any) {
-  try {
-    const line = `${new Date().toISOString()} ${label}${payload ? ` ${JSON.stringify(payload)}` : ''}`;
-    const prev = await AsyncStorage.getItem(RADIO_DEBUG_LOGS_KEY).catch(() => null);
-    const list = prev ? JSON.parse(prev) : [];
-    const next = [...list, line].slice(-20);
-    await AsyncStorage.setItem(RADIO_DEBUG_LOGS_KEY, JSON.stringify(next));
-  } catch {}
-}
-
-export async function getRadioDebugLogs(): Promise<string[]> {
-  try {
-    const raw = await AsyncStorage.getItem(RADIO_DEBUG_LOGS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function clearRadioDebugLogs() {
-  await AsyncStorage.removeItem(RADIO_DEBUG_LOGS_KEY).catch(() => {});
-}
 
 async function doSetup() {
   await TrackPlayer.setupPlayer({
@@ -187,11 +163,6 @@ export async function startRadioPlayback(track: {
     type: track.type,
     platform: Platform.OS,
   });
-  appendRadioDebugLog('startRadioPlayback begin', {
-    id: track.id,
-    type: track.type,
-    platform: Platform.OS,
-  });
   if (Platform.OS === 'ios') {
     // Rilascia esplicitamente la sessione expo-av prima di passare al live stream RNTP.
     // Senza questo handoff, il primo play della radio su iOS può restare muto e
@@ -204,20 +175,16 @@ export async function startRadioPlayback(track: {
       playThroughEarpieceAndroid: false,
     }).catch(() => {});
     console.log(RADIO_LOG_PREFIX, 'released expo-av session before radio start');
-    appendRadioDebugLog('released expo-av session before radio start');
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   await ensurePlayerReady();
   await configurePlayerForRadio();
   await TrackPlayer.reset();
   console.log(RADIO_LOG_PREFIX, 'player reset complete');
-  appendRadioDebugLog('player reset complete');
   await TrackPlayer.add(track);
   console.log(RADIO_LOG_PREFIX, 'track added');
-  appendRadioDebugLog('track added');
   await TrackPlayer.play();
   console.log(RADIO_LOG_PREFIX, 'initial play requested');
-  appendRadioDebugLog('initial play requested');
   // iOS live streams: il primo play può restare "appeso" senza errore.
   // Aspettiamo il bootstrap reale e, se non entra in Loading/Buffering/Playing,
   // facciamo un unico retry controllato.
@@ -239,13 +206,6 @@ export async function startRadioPlayback(track: {
         didRetry,
         didSecondKick,
       });
-      appendRadioDebugLog('startup probe', {
-        attempt,
-        state,
-        playWhenReady,
-        didRetry,
-        didSecondKick,
-      });
       const isBooting =
         state === State?.Loading ||
         state === State?.Buffering ||
@@ -260,7 +220,6 @@ export async function startRadioPlayback(track: {
 
       if (state === State?.Error) {
         console.log(RADIO_LOG_PREFIX, 'startup retry from error');
-        appendRadioDebugLog('startup retry from error');
         await TrackPlayer.retry?.().catch(() => {});
         await TrackPlayer.play().catch(() => {});
         didRetry = true;
@@ -269,7 +228,6 @@ export async function startRadioPlayback(track: {
 
       if (stuck && !didRetry && attempt >= 1) {
         console.log(RADIO_LOG_PREFIX, 'startup hard reset retry');
-        appendRadioDebugLog('startup hard reset retry');
         await TrackPlayer.reset();
         await TrackPlayer.add(track);
         await TrackPlayer.play().catch(() => {});
@@ -282,7 +240,6 @@ export async function startRadioPlayback(track: {
       // un pause/play successivo lo sblocca quasi sempre su iOS.
       if (stuck && !didSecondKick && attempt >= 2) {
         console.log(RADIO_LOG_PREFIX, 'startup second kick pause/play');
-        appendRadioDebugLog('startup second kick pause/play');
         await TrackPlayer.pause().catch(() => {});
         await wait(180);
         await TrackPlayer.play().catch(() => {});
@@ -302,10 +259,6 @@ export async function startRadioPlayback(track: {
   const finalState = await TrackPlayer.getPlaybackState().catch(() => null);
   const finalPlayWhenReady = await TrackPlayer.getPlayWhenReady?.().catch(() => null);
   console.log(RADIO_LOG_PREFIX, 'startRadioPlayback end', {
-    state: finalState?.state ?? finalState,
-    playWhenReady: finalPlayWhenReady,
-  });
-  appendRadioDebugLog('startRadioPlayback end', {
     state: finalState?.state ?? finalState,
     playWhenReady: finalPlayWhenReady,
   });
