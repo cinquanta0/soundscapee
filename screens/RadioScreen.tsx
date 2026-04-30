@@ -2843,11 +2843,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               activeState === State.Loading;
             if (activeTrack?.id === station.id && isActiveOrPaused) {
               // Anche nel ripristino, sovrascriviamo le capability del PlaybackService
-              // per rimuovere i tasti << >> dal lock screen iOS (non ha senso per radio live)
+              // e manteniamo solo play/pause come nel player podcast.
               TrackPlayer.updateOptions({
-                capabilities: Platform.OS === 'ios'
-                  ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
-                  : [Capability.Play, Capability.Pause, Capability.Stop],
+                capabilities: [Capability.Play, Capability.Pause],
                 notificationCapabilities: [Capability.Play, Capability.Pause],
                 compactCapabilities: [Capability.Play, Capability.Pause],
               }).catch(() => {});
@@ -2887,8 +2885,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           shouldDuckAndroid: false,
           playThroughEarpieceAndroid: false,
         }).catch(() => {});
-        // Tempo per OS di rilasciare l'audio focus (cruciale per Android)
-        await new Promise(r => setTimeout(r, 600));
+        // Tempo per OS di rilasciare l'audio focus: necessario su Android,
+        // dannoso su iOS perché ritarda add()/metadata e il widget lock screen.
+        if (Platform.OS === 'android') {
+          await new Promise(r => setTimeout(r, 600));
+        }
 
         try {
           await TrackPlayer.setupPlayer({
@@ -2912,9 +2913,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               appKilledPlaybackBehavior:
                 AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
             },
-            capabilities: Platform.OS === 'ios'
-              ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
-              : [Capability.Play, Capability.Pause, Capability.Stop],
+            capabilities: [Capability.Play, Capability.Pause],
             notificationCapabilities: [Capability.Play, Capability.Pause],
             compactCapabilities: [Capability.Play, Capability.Pause],
           });

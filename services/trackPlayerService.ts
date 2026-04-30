@@ -19,16 +19,10 @@ export async function PlaybackService() {
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior?.StopPlaybackAndRemoveNotification ?? 'stop-playback-and-remove-notification',
       },
-      // iOS 16+: Next/Previous sempre visibili nel widget — li abilitiamo per renderli
-      // funzionali (restart stream). Su Android causano crash nel MediaSession nativo
-      // se non presenti anche in notificationCapabilities, quindi li escludiamo.
-      capabilities: Platform.OS === 'ios'
-        ? [Capability.Play, Capability.Pause, Capability.Stop, Capability.Next, Capability.Previous]
-        : [Capability.Play, Capability.Pause, Capability.Stop],
-      // Nessuna piattaforma espone il tasto Stop nella notifica/widget:
-      // alcuni ROM Android e iOS inviano RemoteStop automaticamente in background,
-      // e qualsiasi stop aggressivo (reset/stop) rimuove notifica o widget.
-      // Il vero reset avviene solo quando l'utente chiude il player dalla UI.
+      // Base capabilities conservative: le screen specifiche possono estenderle
+      // (es. podcast con seek/jump). Per la radio live su iOS i controlli più
+      // affidabili sono play/pause, come già avviene nel player podcast.
+      capabilities: [Capability.Play, Capability.Pause],
       notificationCapabilities: [Capability.Play, Capability.Pause],
       compactCapabilities: [Capability.Play, Capability.Pause],
     });
