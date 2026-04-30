@@ -179,6 +179,7 @@ export async function startRadioPlayback(track: {
   // facciamo un unico retry controllato.
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   let didRetry = false;
+  let didSecondKick = false;
   for (let attempt = 0; attempt < 4; attempt += 1) {
     await wait(450);
     try {
@@ -211,6 +212,17 @@ export async function startRadioPlayback(track: {
         await TrackPlayer.add(track);
         await TrackPlayer.play().catch(() => {});
         didRetry = true;
+        continue;
+      }
+
+      // Ultimo fallback: replica internamente il "secondo comando" che l'utente
+      // sta facendo a mano via UI/widget. Se il primo bootstrap live resta muto,
+      // un pause/play successivo lo sblocca quasi sempre su iOS.
+      if (stuck && !didSecondKick && attempt >= 2) {
+        await TrackPlayer.pause().catch(() => {});
+        await wait(180);
+        await TrackPlayer.play().catch(() => {});
+        didSecondKick = true;
       }
     } catch {}
   }
