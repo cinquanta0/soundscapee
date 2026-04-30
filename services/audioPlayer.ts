@@ -191,7 +191,8 @@ export async function startRadioPlayback(track: {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   let didRetry = false;
   let didSecondKick = false;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  let reachedPlaying = false;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     await wait(450);
     try {
       const [ps, playWhenReady] = await Promise.all([
@@ -206,17 +207,28 @@ export async function startRadioPlayback(track: {
         didRetry,
         didSecondKick,
       });
+      const isPlaying = state === State?.Playing;
       const isBooting =
         state === State?.Loading ||
-        state === State?.Buffering ||
-        state === State?.Playing;
-      if (isBooting && playWhenReady !== false) break;
+        state === State?.Buffering;
+      if (isPlaying && playWhenReady !== false) {
+        reachedPlaying = true;
+        break;
+      }
+
+      if (isBooting && playWhenReady === true) {
+        // Non usciamo subito: su alcuni iPhone il live stream resta "buffering"
+        // indefinitamente pur non avviando mai l'audio. Aspettiamo ancora un po'
+        // prima di applicare il fallback equivalente al secondo comando manuale.
+        if (attempt < 2) continue;
+      }
 
       const stuck =
         state === State?.Ready ||
         state === State?.Paused ||
         state === State?.None ||
-        playWhenReady !== true;
+        playWhenReady !== true ||
+        isBooting;
 
       if (state === State?.Error) {
         console.log(RADIO_LOG_PREFIX, 'startup retry from error');
@@ -244,8 +256,12 @@ export async function startRadioPlayback(track: {
         await wait(180);
         await TrackPlayer.play().catch(() => {});
         didSecondKick = true;
+        continue;
       }
     } catch {}
+  }
+  if (!reachedPlaying) {
+    console.log(RADIO_LOG_PREFIX, 'startup ended without explicit playing state');
   }
   await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
   await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
