@@ -4,6 +4,10 @@ const TrackPlayer = require('react-native-track-player').default;
 const { AppKilledPlaybackBehavior, Capability, State } = require('react-native-track-player');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Audio } = require('expo-av');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Platform } = require('react-native');
 
 let setupPromise: Promise<void> | null = null;
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
@@ -152,6 +156,19 @@ export async function startRadioPlayback(track: {
   userAgent?: string;
 }) {
   if (!TrackPlayer) return;
+  if (Platform.OS === 'ios') {
+    // Rilascia esplicitamente la sessione expo-av prima di passare al live stream RNTP.
+    // Senza questo handoff, il primo play della radio su iOS può restare muto e
+    // partire solo al secondo comando (UI o widget).
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: false,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: false,
+      playThroughEarpieceAndroid: false,
+    }).catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
   await ensurePlayerReady();
   await configurePlayerForRadio();
   await TrackPlayer.reset();
