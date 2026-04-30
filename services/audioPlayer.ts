@@ -157,6 +157,19 @@ export async function startRadioPlayback(track: {
   await TrackPlayer.reset();
   await TrackPlayer.add(track);
   await TrackPlayer.play();
+  // iOS live streams a volte accettano play() ma restano in Ready/Paused silenziosi
+  // al primo avvio. Facciamo un secondo kick solo durante il bootstrap iniziale.
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  try {
+    const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+    const state = ps?.state ?? ps;
+    if (state === State?.Ready || state === State?.Paused) {
+      await TrackPlayer.play().catch(() => {});
+    } else if (state === State?.Error) {
+      await TrackPlayer.retry?.().catch(() => {});
+      await TrackPlayer.play().catch(() => {});
+    }
+  } catch {}
   await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
   await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
   await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
