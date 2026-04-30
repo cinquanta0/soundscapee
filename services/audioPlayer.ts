@@ -304,6 +304,11 @@ export async function playRadioPlayback() {
   await ensurePlayerReady();
   await configurePlayerForRadio();
   await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+  const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+  const state = ps?.state ?? ps;
+  if (state === State?.Error) {
+    await TrackPlayer.retry?.().catch(() => {});
+  }
   await TrackPlayer.play();
 }
 

@@ -2639,6 +2639,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const streamUrlRef = useRef<string | null>(null);
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
+  const [radioPrimed, setRadioPrimed] = useState(Platform.OS !== 'ios');
+  const queuedPlayRef = useRef(false);
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
   useEffect(() => {
@@ -2652,6 +2654,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsPlaying(true);
         setIsBufferingStream(false);
         setError(false);
+        setRadioPrimed(true);
         // iOS: forza sincronizzazione lock screen con metadati completi — passare {}
         // cancellerebbe l'artwork. Usiamo nowPlayingRef per evitare stale closure.
         if (Platform.OS === 'ios') {
@@ -2698,9 +2701,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsBufferingStream(false);
         setError(true);
         setLoading(false);
+        setRadioPrimed(true);
       } else {
         setIsPlaying(false);
         setIsBufferingStream(false);
+        if (state === State.Ready || state === State.Paused) {
+          setRadioPrimed(true);
+        }
       }
     });
 
@@ -2826,6 +2833,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;
           if (Platform.OS === 'ios' && mounted) {
+            setRadioPrimed(false);
             setStatusLabel('Tocca Play per avviare la radio');
           }
         };
@@ -2986,11 +2994,28 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     if (isPlaying) {
       await pauseRadioPlayback();
     } else if (reloadStreamRef.current) {
+      if (Platform.OS === 'ios' && !radioPrimed) {
+        queuedPlayRef.current = true;
+        setStatusLabel('Connessione...');
+        return;
+      }
       await playRadioPlayback().catch(async () => reloadStreamRef.current?.());
     } else {
+      if (Platform.OS === 'ios' && !radioPrimed) {
+        queuedPlayRef.current = true;
+        setStatusLabel('Connessione...');
+        return;
+      }
       await playRadioPlayback();
     }
   };
+
+  useEffect(() => {
+    if (!queuedPlayRef.current) return;
+    if (!radioPrimed || loading) return;
+    queuedPlayRef.current = false;
+    playRadioPlayback().catch(async () => reloadStreamRef.current?.());
+  }, [radioPrimed, loading]);
 
   const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
   const today = new Date().getDay();
