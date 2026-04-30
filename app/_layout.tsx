@@ -1,12 +1,11 @@
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
-import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
@@ -34,6 +33,17 @@ function ForceUpdateScreen() {
   );
 }
 
+function MaintenanceScreen() {
+  return (
+    <View style={fu.container}>
+      <Text style={fu.emoji}>🔧</Text>
+      <Text style={fu.title}>Manutenzione in corso</Text>
+      <Text style={fu.body}>
+        {"Soundscape è temporaneamente offline per miglioramenti.\nTorna tra poco!"}
+      </Text>
+    </View>
+  );
+}
 
 const fu = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center', padding: 32 },
@@ -49,6 +59,7 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [maintenance, setMaintenance] = useState(false);
 
   // Precarica font vettoriali — fondamentale su Android per evitare icone trasparenti
   const [fontsLoaded] = useFonts({
@@ -69,17 +80,28 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
   }, []);
 
-  // Controlla se la build è ancora supportata
+  // Controlla se la build è ancora supportata e se c'è maintenance mode
   useEffect(() => {
     (async () => {
       try {
         const snap = await getDoc(doc(db, 'appConfig', 'general'));
         if (!snap.exists()) return;
-        const minBuild = snap.data().minBuildVersion;
+        const data = snap.data();
+
+        // Maintenance mode
+        if (data.maintenance === true) {
+          setMaintenance(true);
+          return;
+        }
+
+        // Force update
+        const minBuild = data.minBuildVersion;
         if (!minBuild) return;
         const currentBuild = parseInt(Constants.nativeBuildVersion ?? '0', 10);
         if (currentBuild < minBuild) setForceUpdate(true);
-      } catch {}
+      } catch {
+        // Offline o errore di rete: non bloccare l'app
+      }
     })();
   }, []);
 
@@ -105,8 +127,6 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-
-
   useEffect(() => {
     if (loading) return;
 
@@ -126,6 +146,7 @@ export default function RootLayout() {
     }
   }, [user, loading, segments]);
 
+  if (maintenance) return <MaintenanceScreen />;
   if (forceUpdate) return <ForceUpdateScreen />;
 
   if (loading || !i18nReady || !fontsLoaded) {
