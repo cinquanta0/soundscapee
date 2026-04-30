@@ -3130,8 +3130,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             )}
           </View>
 
-          {/* Info: "ORA IN ONDA", DJ, show, stazione */}
-          <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
+        {/* Info: "ORA IN ONDA", DJ, show, stazione */}
+        <View style={osp.otaTestBox}>
+          <Text style={osp.otaTestTxt}>OTA TEST 123</Text>
+        </View>
+        <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
           <Text style={osp.djName} numberOfLines={2}>{effectiveDjName}</Text>
           {effectiveShowName && effectiveShowName !== effectiveDjName ? (
             <Text style={osp.showName} numberOfLines={1}>{effectiveShowName}</Text>
@@ -3460,6 +3463,22 @@ const osp = StyleSheet.create({
   },
   liveDotOverlay: { width: 6, height: 6, borderRadius: 3 },
   liveTxtOverlay: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  otaTestBox: {
+    marginTop: 8,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFD400',
+    borderWidth: 2,
+    borderColor: '#FFF3A0',
+  },
+  otaTestTxt: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#111',
+    letterSpacing: 1,
+  },
 
   // ── Testi info ──
   oraInOnda: {
