@@ -124,11 +124,10 @@ import BackstageViewer from '../../components/BackstageViewer';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { resumeLivePlayback, syncActiveTrackMetadata } from '../../services/audioPlayer';
+import { pauseRadioPlayback, playRadioPlayback, syncActiveTrackMetadata } from '../../services/audioPlayer';
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
-const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -286,83 +285,32 @@ export default function App() {
     })();
   }, []);
 
-  // iOS: quando l'app va in background, forza updateNowPlayingMetadata per garantire
-  // che il widget lock screen appaia anche dopo che il player full-screen si è smontato.
-  // Quando l'app torna attiva, per la radio live facciamo anche recovery globale
-  // così il resume non dipende dalla modale Radio ancora montata.
+  // iOS: quando l'app va in background, risincronizza solo i metadati del track attivo.
+  // Niente recovery custom: la radio deve comportarsi come il podcast e lasciare
+  // a RNTP/service la gestione dei controlli lock screen.
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
-    const restoreLiveRadioIfNeeded = async () => {
+    const sub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'background') return;
       try {
         const r = require('react-native-track-player');
         const TP = r.default; const S = r;
-        const [sessionStr, savedTrackStr, userPaused, activeTrack, ps] = await Promise.all([
-          AsyncStorage.getItem(RNTP_SESSION_KEY),
-          AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY),
-          AsyncStorage.getItem(LIVE_STREAM_USER_PAUSED_KEY),
+        const [track, ps, savedTrackStr] = await Promise.all([
           TP.getActiveTrack().catch(() => null),
           TP.getPlaybackState().catch(() => null),
+          AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY),
         ]);
-        if (!sessionStr) return;
-        const session = JSON.parse(sessionStr);
-        if (session.type !== 'radio') return;
-        const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
-        const liveTrack = activeTrack?.isLiveStream ? activeTrack : savedTrack?.isLiveStream ? savedTrack : null;
-        if (!liveTrack) return;
         const st = ps?.state ?? ps;
-        const shouldRecover =
-          st === S.State?.Stopped ||
-          st === S.State?.None ||
-          st === S.State?.Error ||
-          (st as string) === 'error' ||
-          (st as string) === 'ended' ||
-          (st === S.State?.Paused && userPaused !== '1');
-
-        if (shouldRecover) {
-          await resumeLivePlayback();
-          return;
-        }
-
-        if (st === S.State?.Playing || st === S.State?.Buffering || st === S.State?.Loading) {
-          await syncActiveTrackMetadata({
-            title: liveTrack.title ?? '',
-            artist: liveTrack.artist ?? '',
-            album: liveTrack.album ?? '',
-            artwork: liveTrack.artwork,
-          });
-        }
+        const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
+        const metadataSource = track ?? savedTrack;
+        if (!metadataSource || st === S.State?.Stopped || st === S.State?.None) return;
+        await syncActiveTrackMetadata({
+          title: metadataSource.title ?? '',
+          artist: metadataSource.artist ?? '',
+          album: metadataSource.album ?? '',
+          artwork: metadataSource.artwork,
+        });
       } catch {}
-    };
-
-    const sub = AppState.addEventListener('change', async (nextState) => {
-      if (nextState === 'background') {
-        try {
-          const r = require('react-native-track-player');
-          const TP = r.default; const S = r;
-          const [track, ps, savedTrackStr] = await Promise.all([
-            TP.getActiveTrack().catch(() => null),
-            TP.getPlaybackState().catch(() => null),
-            AsyncStorage.getItem(LIVE_STREAM_TRACK_KEY),
-          ]);
-          const st = ps?.state ?? ps;
-          const savedTrack = savedTrackStr ? JSON.parse(savedTrackStr) : null;
-          const metadataSource = track ?? savedTrack;
-          if (!metadataSource || st === S.State?.Stopped || st === S.State?.None) return;
-          await syncActiveTrackMetadata({
-            title: metadataSource.title ?? '',
-            artist: metadataSource.artist ?? '',
-            album: metadataSource.album ?? '',
-            artwork: metadataSource.artwork,
-          });
-        } catch {}
-        return;
-      }
-
-      if (nextState === 'active') {
-        setTimeout(() => {
-          restoreLiveRadioIfNeeded().catch?.(() => {});
-        }, 250);
-      }
     });
     return () => sub.remove();
   }, []);
@@ -2128,11 +2076,9 @@ if (loading) {
               const isLiveRadio = session?.type === 'radio' && (activeTrack?.isLiveStream || savedLiveTrack?.isLiveStream);
 
               if (st === S.State?.Playing) {
-                if (isLiveRadio) await AsyncStorage.setItem('@soundscape/live_stream_user_paused', '1');
-                await TP.pause();
+                if (isLiveRadio) await pauseRadioPlayback(); else await TP.pause();
               } else if (isLiveRadio) {
-                await AsyncStorage.removeItem('@soundscape/live_stream_user_paused').catch(() => {});
-                await resumeLivePlayback();
+                await playRadioPlayback();
               } else {
                 await TP.play();
               }

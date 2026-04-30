@@ -8,6 +8,7 @@ const AsyncStorage = require('@react-native-async-storage/async-storage').defaul
 let setupPromise: Promise<void> | null = null;
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
 const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
+const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 
 async function doSetup() {
   await TrackPlayer.setupPlayer({
@@ -137,4 +138,46 @@ export async function resumeLivePlayback() {
   await TrackPlayer.reset();
   await TrackPlayer.add(liveTrack);
   await TrackPlayer.play();
+}
+
+export async function startRadioPlayback(track: {
+  id: string;
+  url: string;
+  title: string;
+  artist: string;
+  album?: string;
+  artwork?: string;
+  isLiveStream: true;
+  type?: string;
+  userAgent?: string;
+}) {
+  if (!TrackPlayer) return;
+  await ensurePlayerReady();
+  await configurePlayerForRadio();
+  await TrackPlayer.reset();
+  await TrackPlayer.add(track);
+  await TrackPlayer.play();
+  await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
+  await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
+  await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+  await syncActiveTrackMetadata({
+    title: track.title,
+    artist: track.artist,
+    album: track.album,
+    artwork: track.artwork,
+  }).catch(() => {});
+}
+
+export async function playRadioPlayback() {
+  if (!TrackPlayer) return;
+  await ensurePlayerReady();
+  await configurePlayerForRadio();
+  await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+  await TrackPlayer.play();
+}
+
+export async function pauseRadioPlayback() {
+  if (!TrackPlayer) return;
+  await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
+  await TrackPlayer.pause();
 }

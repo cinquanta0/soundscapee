@@ -6,8 +6,6 @@ const { Event, AppKilledPlaybackBehavior, Capability, State } = require('react-n
 const { Platform } = require('react-native');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { resumeLivePlayback } = require('./audioPlayer');
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
@@ -32,9 +30,6 @@ export async function PlaybackService() {
     console.warn('[RNTP PlaybackService] updateOptions error:', e);
   }
 
-  // ── Logica di restart live stream ────────────────────────────────────────────
-  // Per i live stream HLS (radio), dopo una pausa la finestra HLS si sposta avanti.
-  // Un semplice play() fallisce silenziosamente su iOS → serve un vero restart.
   async function markLiveStreamUserPaused(paused: boolean) {
     try {
       const activeTrack = await TrackPlayer.getActiveTrack().catch(() => null);
@@ -51,7 +46,8 @@ export async function PlaybackService() {
 
   // ── Remote control events ───────────────────────────────────────────
   TrackPlayer.addEventListener(Event.RemotePlay, async () => {
-    try { await resumeLivePlayback(); } catch { await TrackPlayer.play().catch(() => {}); }
+    await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+    try { await TrackPlayer.play(); } catch { await TrackPlayer.retry?.().catch(() => {}); }
   });
   TrackPlayer.addEventListener(Event.RemotePause, async () => {
     await markLiveStreamUserPaused(true);
@@ -66,21 +62,6 @@ export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemoteStop, async () => {
     await markLiveStreamUserPaused(true);
     TrackPlayer.pause().catch(() => {});
-  });
-
-  // ◀◀ ▶▶: su iOS 16+ compaiono sempre — li colleghiamo al restart dello stream live.
-  // Per i podcast (isLiveStream=false) non fanno nulla (nessuna traccia precedente/successiva).
-  TrackPlayer.addEventListener(Event.RemoteNext, async () => {
-    try {
-      const track = await TrackPlayer.getActiveTrack();
-      if (track?.isLiveStream) { await resumeLivePlayback(); }
-    } catch {}
-  });
-  TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
-    try {
-      const track = await TrackPlayer.getActiveTrack();
-      if (track?.isLiveStream) { await resumeLivePlayback(); }
-    } catch {}
   });
 
   TrackPlayer.addEventListener(Event.RemoteJumpForward,  ({ interval }: { interval: number }) =>

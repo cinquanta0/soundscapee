@@ -44,7 +44,7 @@ try {
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { auth, db } from '../firebaseConfig';
-import { configurePlayerForRadio, ensurePlayerReady, resumeLivePlayback, syncActiveTrackMetadata } from '../services/audioPlayer';
+import { configurePlayerForRadio, ensurePlayerReady, pauseRadioPlayback, playRadioPlayback, startRadioPlayback, syncActiveTrackMetadata } from '../services/audioPlayer';
 
 // Configura come gestire le notifiche quando l'app è aperta
 Notifications.setNotificationHandler({
@@ -142,8 +142,6 @@ interface NowPlayingInfo {
 }
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
-const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
-const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
 
 const OFFLINE_STATIONS: OfflineStation[] = [
   { id: 'rtl',        name: 'RTL 102.5',    genre: 'Pop · Hit',           color: '#E91E63', searchName: 'RTL 102.5',          logoUrl: 'https://www.google.com/s2/favicons?domain=rtl.it&sz=128' },
@@ -2640,9 +2638,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const streamUrlRef = useRef<string | null>(null);
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
-  const wasPlayingOnBgRef = useRef(false);
-  const isNudgingRef = useRef(false);   // suppress UI during silent pause+play nudge
-  const bgEntryTimeRef = useRef(0);     // timestamp when app went to background
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
   useEffect(() => {
@@ -2664,7 +2659,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             const idx = getCurrentSlotIndex(slots);
             return idx >= 0 ? slots[idx] : null;
           })();
-          TrackPlayer.updateNowPlayingMetadata?.({
+          syncActiveTrackMetadata({
             title: station.name,
             artist: np?.djName || sSlot?.djName || station.genre,
             album: np?.showName || sSlot?.showName || station.genre,
@@ -2688,7 +2683,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             const idx = getCurrentSlotIndex(slots);
             return idx >= 0 ? slots[idx] : null;
           })();
-          TrackPlayer.updateNowPlayingMetadata?.({
+          syncActiveTrackMetadata({
             title: station.name,
             artist: np?.djName || sSlot?.djName || station.genre,
             album: np?.showName || sSlot?.showName || station.genre,
@@ -2702,12 +2697,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setError(true);
         setLoading(false);
       } else {
-        // Paused, Stopped, Ready, Ended, None
-        // Skip UI update during the silent nudge (pause+play to fix iOS muted audio)
-        if (!isNudgingRef.current) {
-          setIsPlaying(false);
-          setIsBufferingStream(false);
-        }
+        setIsPlaying(false);
+        setIsBufferingStream(false);
       }
     });
 
@@ -2726,97 +2717,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       subErr?.remove();
     };
   }, []);
-
-  // iOS: gestisce foreground restore per widget e silent audio
-  // autoHandleInterruptions bypassa RemotePlay, quindi la restartIfLive del PlaybackService
-  // non viene mai chiamata. Quando l'app torna in foreground dopo una interruzione
-  // (telefonata, Siri, altra app), lo stream HLS risulta silenzioso o il widget è sparito.
-  useEffect(() => {
-    if (!TrackPlayer || Platform.OS !== 'ios') return;
-
-    const sub = AppState.addEventListener('change', async (nextState) => {
-      if (nextState === 'background' || nextState === 'inactive') {
-        bgEntryTimeRef.current = Date.now();
-        try {
-          const ps = await TrackPlayer.getPlaybackState();
-          const s = ps?.state ?? ps;
-          wasPlayingOnBgRef.current =
-            s === State.Playing || s === State.Buffering || s === State.Loading;
-          if (wasPlayingOnBgRef.current) {
-            const np = nowPlayingRef.current;
-            const sSlot = (() => {
-              const slots = getScheduleSlots(station.id);
-              const idx = getCurrentSlotIndex(slots);
-              return idx >= 0 ? slots[idx] : null;
-            })();
-            TrackPlayer.updateNowPlayingMetadata?.({
-              title: station.name,
-              artist: np?.djName || sSlot?.djName || station.genre,
-              album: np?.showName || sSlot?.showName || station.genre,
-              artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
-            }).catch(() => {});
-          }
-        } catch {}
-      } else if (nextState === 'active' && wasPlayingOnBgRef.current) {
-        const bgDuration = Date.now() - bgEntryTimeRef.current;
-        wasPlayingOnBgRef.current = false;
-
-        // Helper: aggiorna widget dopo un resume
-        const refreshWidget = () => {
-          const np = nowPlayingRef.current;
-          const sSlot = (() => {
-            const slots = getScheduleSlots(station.id);
-            const idx = getCurrentSlotIndex(slots);
-            return idx >= 0 ? slots[idx] : null;
-          })();
-          TrackPlayer.updateNowPlayingMetadata?.({
-            title: station.name,
-            artist: np?.djName || sSlot?.djName || station.genre,
-            album: np?.showName || sSlot?.showName || station.genre,
-            artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
-          }).catch(() => {});
-        };
-
-        try {
-          const ps = await TrackPlayer.getPlaybackState();
-          const s = ps?.state ?? ps;
-          const userPaused = await AsyncStorage.getItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => null);
-          const isDeadState =
-            s === State.Stopped || s === State.None ||
-            (s as string) === 'error' || (s as string) === 'ended' ||
-            s === State.Error;
-          const shouldRecoverFromPaused = s === State.Paused && userPaused !== '1';
-
-          if (bgDuration < 15_000) {
-            if (isDeadState || shouldRecoverFromPaused) {
-              // Stream fermato dall'interruzione: restart completo anche per ritorni brevi
-              if (reloadStreamRef.current) await reloadStreamRef.current();
-              return;
-            }
-            // FIX: per stream HLS live NON fare pause+play.
-            // La finestra HLS avanza anche in 150ms → play() dopo pause() fallisce
-            // silenziosamente lasciando l'audio bloccato (bug "musica si blocca rientrando").
-            // Se Playing/Buffering: autoHandleInterruptions gestisce già eventuali
-            // interruzioni. Se Paused (utente ha messo in pausa dal lock screen): non
-            // riprendere. In entrambi i casi aggiorniamo solo il widget lock screen.
-            refreshWidget();
-            return;
-          }
-
-          // Background lungo (>15s): restart completo — finestra HLS scaduta
-          if (
-            (s === State.Playing || s === State.Buffering || s === State.Loading ||
-             shouldRecoverFromPaused || isDeadState) &&
-            reloadStreamRef.current
-          ) {
-            await reloadStreamRef.current();
-          }
-        } catch {}
-      }
-    });
-
-    return () => sub.remove();
-  }, [station.id]);
 
   // Fetch audio stream
   useEffect(() => {
@@ -2910,46 +2810,19 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           const artistName = preNp?.djName || staticSlot?.djName || station.genre;
           const albumName  = preNp?.showName || staticSlot?.showName || station.genre;
 
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
+          const radioTrack = {
             id: station.id,
             url,
             title: station.name,
             artist: artistName,
             album: albumName,
             artwork: artworkUrl,
-            isLiveStream: true,
+            isLiveStream: true as const,
             type: url.includes('.m3u8') ? 'hls' : 'default',
             userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
-          });
-          // iOS: registra MPNowPlayingInfoCenter DOPO add() e prima di play().
-          // add() mette la traccia in coda → updateNowPlayingMetadata lavora su una
-          // traccia esistente. Il widget appare anche se l'utente va in background
-          // durante il buffering (era il motivo principale della scomparsa intermittente).
-          await TrackPlayer.play();
-          if (Platform.OS === 'ios') {
-            await syncActiveTrackMetadata({
-              title: station.name,
-              artist: artistName,
-              album: albumName,
-              artwork: artworkUrl,
-            }).catch?.(() => {});
-          }
+          };
+          await startRadioPlayback(radioTrack);
           streamUrlRef.current = url;
-          AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: station.id })).catch(() => {});
-          AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-          // Backup traccia completa per restart lock-screen su iOS dopo process kill
-          AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify({
-            id: station.id,
-            url,
-            title: station.name,
-            artist: artistName,
-            album: albumName,
-            artwork: artworkUrl,
-            isLiveStream: true,
-            type: url.includes('.m3u8') ? 'hls' : 'default',
-            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
-          })).catch(() => {});
         };
 
         // Espone la funzione di ricarica stream per togglePlay (usata quando lo stream è morto)
@@ -2969,10 +2842,6 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           // Forzarlo prima causa race condition con lo stato Buffering/Connecting.
         }
 
-        // iOS: "nudge" — esegue pause+play per sbloccare l'audio. Spesso iOS parte
-        // in State.Playing ma muto se la transizione audio focus non è stata perfetta.
-        // IMPORTANTE: verificare lo stato prima del nudge: se l'utente ha già messo
-        // in pausa dal lock screen, non dobbiamo riprendere la riproduzione.
         if (Platform.OS === 'ios') {
           setTimeout(() => {
             if (!mounted) return;
@@ -3110,16 +2979,11 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const togglePlay = async () => {
     if (!TrackPlayer) return;
     if (isPlaying) {
-      AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
-      await TrackPlayer.pause();
+      await pauseRadioPlayback();
     } else if (reloadStreamRef.current) {
-      AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-      await resumeLivePlayback().catch(async () => {
-        await reloadStreamRef.current?.();
-      });
+      await playRadioPlayback().catch(async () => reloadStreamRef.current?.());
     } else {
-      AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
-      await TrackPlayer.play();
+      await playRadioPlayback();
     }
   };
 
