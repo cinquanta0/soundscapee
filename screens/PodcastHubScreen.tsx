@@ -17,7 +17,7 @@ const TABS: { id: Exclude<PodcastView, 'podcastDetail' | 'playlistDetail'>; icon
   { id: 'playlists', icon: 'layers', labelKey: 'podcast.tabPlaylists', subtitle: 'raccolte curate e mood mix' },
 ];
 
-export default function PodcastHubScreen() {
+export default function PodcastHubScreen({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const [view, setView] = useState<PodcastView>('feed');
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
@@ -50,40 +50,42 @@ export default function PodcastHubScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']}
-        style={styles.hero}
-      >
-        <View style={styles.heroGlow} />
-        <Text style={styles.eyebrow}>Audio narratives</Text>
-        <Text style={styles.title}>Podcast hub</Text>
-        <Text style={styles.subtitle}>
-          Episodi, format scuola e playlist editoriali dentro una struttura più leggibile e coerente con il nuovo feed.
-        </Text>
-      </LinearGradient>
+      {!compact && (
+        <LinearGradient
+          colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']}
+          style={styles.hero}
+        >
+          <View style={styles.heroGlow} />
+          <Text style={styles.eyebrow}>Audio narratives</Text>
+          <Text style={styles.title}>Podcast hub</Text>
+          <Text style={styles.subtitle}>
+            Episodi, format scuola e playlist editoriali dentro una struttura più leggibile e coerente con il nuovo feed.
+          </Text>
+        </LinearGradient>
+      )}
 
-      <View style={styles.tabsRow}>
+      <View style={[styles.tabsRow, compact && styles.tabsRowCompact]}>
         {TABS.map((tab) => {
           const active = view === tab.id;
           return (
             <TouchableOpacity
               key={tab.id}
-              style={[styles.tabCard, active && styles.tabCardActive]}
+              style={[styles.tabCard, compact && styles.tabCardCompact, active && styles.tabCardActive]}
               onPress={() => setView(tab.id)}
               activeOpacity={0.9}
             >
-              <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
+              <View style={[styles.tabIconWrap, compact && styles.tabIconWrapCompact, active && styles.tabIconWrapActive]}>
                 <Feather name={tab.icon} size={16} color={active ? '#67E8F9' : '#94A0C3'} />
               </View>
               <Text style={[styles.tabTitle, active && styles.tabTitleActive]}>{t(tab.labelKey)}</Text>
-              <Text style={styles.tabSubtitle}>{tab.subtitle}</Text>
+              {!compact && <Text style={styles.tabSubtitle}>{tab.subtitle}</Text>}
             </TouchableOpacity>
           );
         })}
       </View>
 
       <View style={styles.content}>
-        {view === 'feed' && <PodcastScreen />}
+        {view === 'feed' && <PodcastScreen compact={compact} />}
         {view === 'school' && <ITSSchoolScreen />}
         {view === 'playlists' && (
           <PlaylistListScreen
@@ -105,12 +107,12 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 14,
-    borderRadius: 26,
+    marginTop: 2,
+    marginBottom: 10,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(163,177,255,0.14)',
-    padding: 18,
+    padding: 14,
     overflow: 'hidden',
   },
   heroGlow: {
@@ -132,22 +134,26 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#F7F8FF',
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
     color: '#97A4C7',
-    fontSize: 14,
-    lineHeight: 20,
-    maxWidth: '90%',
+    fontSize: 12,
+    lineHeight: 17,
+    maxWidth: '94%',
   },
   tabsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 10,
+  },
+  tabsRowCompact: {
+    marginTop: 2,
+    marginBottom: 10,
   },
   tabCard: {
     flex: 1,
@@ -157,6 +163,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(163,177,255,0.12)',
     backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 14,
+  },
+  tabCardCompact: {
+    minHeight: 62,
+    padding: 10,
   },
   tabCardActive: {
     borderColor: 'rgba(103,232,249,0.24)',
@@ -173,15 +183,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  tabIconWrapCompact: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
   tabIconWrapActive: {
     borderColor: 'rgba(103,232,249,0.2)',
     backgroundColor: 'rgba(103,232,249,0.12)',
   },
   tabTitle: {
     color: '#F7F8FF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   tabTitleActive: {
     color: '#67E8F9',

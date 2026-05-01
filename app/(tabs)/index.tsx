@@ -1650,13 +1650,6 @@ if (loading) {
               />
             </ScrollView>
 
-            <FeedQuickActions
-              onHowItWorks={() => setShowOnboarding(true)}
-              onNewDrop={() => setShowPublishTypeModal(true)}
-            />
-
-            <StoriesRow userProfile={userProfile} />
-
             <View style={styles.feedSectionHeader}>
               <View>
                 <Text style={styles.feedSectionEyebrow}>Curated audio feed</Text>
@@ -1703,6 +1696,13 @@ if (loading) {
             {filteredPosts.length === 0 && (
               <FeedEmptyState />
             )}
+
+            <FeedQuickActions
+              onHowItWorks={() => setShowOnboarding(true)}
+              onNewDrop={() => setShowPublishTypeModal(true)}
+            />
+
+            <StoriesRow userProfile={userProfile} />
           </View>
         )}
 

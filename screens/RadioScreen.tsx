@@ -3706,7 +3706,7 @@ const rc = StyleSheet.create({
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
-export default function RadioScreen() {
+export default function RadioScreen({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const [rooms, setRooms] = useState<RadioRoom[]>([]);
   const [scheduledRooms, setScheduledRooms] = useState<RadioRoom[]>([]);
@@ -3765,24 +3765,26 @@ export default function RadioScreen() {
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>
-      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
-        <View style={ms.heroGlow} />
-        <Text style={ms.heroEyebrow}>Live broadcast</Text>
-        <View style={ms.topBar}>
-          <View style={{ flex: 1 }}>
-            <Text style={ms.topTitle}>{t('radio.title')}</Text>
-            <Text style={ms.topSub}>
-              {rooms.length > 0
-                ? `${rooms.length} ${rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}`
-                : 'Radio live, stanze utente e stazioni sempre accese'}
-            </Text>
+      {!compact && (
+        <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
+          <View style={ms.heroGlow} />
+          <Text style={ms.heroEyebrow}>Live broadcast</Text>
+          <View style={ms.topBar}>
+            <View style={{ flex: 1 }}>
+              <Text style={ms.topTitle}>{t('radio.title')}</Text>
+              <Text style={ms.topSub}>
+                {rooms.length > 0
+                  ? `${rooms.length} ${rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}`
+                  : 'Radio live, stanze utente e stazioni sempre accese'}
+              </Text>
+            </View>
+            <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
+              <View style={ms.liveDot} />
+              <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
-            <View style={ms.liveDot} />
-            <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      )}
 
       {/* Stazioni radio offline */}
       <View style={ms.stationsSection}>
@@ -3843,7 +3845,7 @@ export default function RadioScreen() {
           data={rooms}
           keyExtractor={(r) => r.id}
           renderItem={({ item }) => <RoomCard room={item} onPress={() => handleRoomPress(item)} />}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{ padding: compact ? 12 : 16 }}
           showsVerticalScrollIndicator={false}
         />
       )}

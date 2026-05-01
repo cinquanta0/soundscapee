@@ -636,12 +636,12 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: S.xl,
-    paddingTop: 28,
+    paddingTop: 18,
     marginHorizontal: S.lg,
     marginTop: S.md,
     borderWidth: 1,
     borderColor: 'rgba(163,177,255,0.14)',
-    borderRadius: R.xxl,
+    borderRadius: R.xl,
     backgroundColor: 'rgba(17,22,45,0.96)',
     overflow: 'hidden',
   },
@@ -673,17 +673,17 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    padding: S.lg,
+    padding: S.md,
   },
   challengeCard: {
-    marginBottom: S.lg,
+    marginBottom: S.md,
     borderRadius: R.xl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(163,177,255,0.14)',
   },
   challengeGradient: {
-    padding: S.xl,
+    padding: S.lg,
   },
   challengeHeader: {
     flexDirection: 'row',
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     marginBottom: S.md,
   },
   challengeEmoji: {
-    fontSize: 48,
+    fontSize: 38,
   },
   challengeTimer: {
     backgroundColor: 'rgba(103,232,249,0.12)',
@@ -715,12 +715,12 @@ const styles = StyleSheet.create({
   challengeDescription: {
     ...T.body,
     color: C.textSecondary,
-    marginBottom: S.lg,
+    marginBottom: S.md,
   },
   challengeStats: {
     flexDirection: 'row',
     gap: S.xl,
-    marginBottom: S.lg,
+    marginBottom: S.md,
   },
   stat: {
     flexDirection: 'row',
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
   },
   challengeButton: {
     backgroundColor: '#8B5CFF',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: R.sm,
     alignItems: 'center',
   },
@@ -781,8 +781,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     borderRadius: R.full,
     backgroundColor: '#D9FF5A',
     justifyContent: 'center',
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabIcon: {
-    fontSize: 32,
+    fontSize: 26,
     color: '#07110B',
   },
 

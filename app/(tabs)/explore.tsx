@@ -303,6 +303,14 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   const isPlaying = (id: string) => playingId === id && !isPaused;
 
+  const modeItems = [
+    { id: 'suoni', title: 'Suoni', subtitle: 'clip, drop, frammenti vocali', icon: 'music', accent: '#67E8F9' },
+    { id: 'utenti', title: 'Utenti', subtitle: 'creator, profili, bio audio', icon: 'users', accent: '#8B5CFF' },
+    { id: 'podcast', title: 'Podcast', subtitle: 'serie, episodi, hub', icon: 'mic', accent: '#F472FF' },
+    { id: 'radio', title: 'Radio', subtitle: 'stazioni, live room, DJ', icon: 'radio', accent: '#D9FF5A' },
+    { id: 'battles', title: 'Battles', subtitle: 'sfide e votazioni', icon: 'crosshair', accent: '#FF9B5E' },
+  ] as const;
+
   const renderHeader = (showFeatureStrip = true) => (
     <>
       <ExploreHeader
@@ -313,13 +321,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       <ExploreModeRail
         section={section}
         onSelect={setSection}
-        items={[
-          { id: 'suoni', title: 'Suoni', subtitle: 'clip, drop, frammenti vocali', icon: 'music', accent: '#67E8F9' },
-          { id: 'utenti', title: 'Utenti', subtitle: 'creator, profili, bio audio', icon: 'users', accent: '#8B5CFF' },
-          { id: 'podcast', title: 'Podcast', subtitle: 'serie, episodi, hub', icon: 'mic', accent: '#F472FF' },
-          { id: 'radio', title: 'Radio', subtitle: 'stazioni, live room, DJ', icon: 'radio', accent: '#D9FF5A' },
-          { id: 'battles', title: 'Battles', subtitle: 'sfide e votazioni', icon: 'crosshair', accent: '#FF9B5E' },
-        ]}
+        items={modeItems as any}
       />
 
       {(section === 'suoni' || section === 'utenti' || section === 'battles') && (
@@ -365,17 +367,23 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     </>
   );
 
+  const renderCompactTop = () => (
+    <View style={styles.compactTop}>
+      <ExploreModeRail
+        section={section}
+        onSelect={setSection}
+        items={modeItems as any}
+      />
+    </View>
+  );
+
   if (section === 'podcast') {
     return (
       <View style={styles.container}>
         <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
-        {renderHeader(false)}
-        <ExploreSectionHeading
-          title="Podcast vault"
-          caption="Long-form listening"
-        />
+        {renderCompactTop()}
         <View style={styles.embeddedScreen}>
-          <PodcastHubScreen />
+          <PodcastHubScreen compact />
         </View>
       </View>
     );
@@ -385,13 +393,9 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     return (
       <View style={styles.container}>
         <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
-        {renderHeader(false)}
-        <ExploreSectionHeading
-          title="Live radio"
-          caption="Always on"
-        />
+        {renderCompactTop()}
         <View style={styles.embeddedScreen}>
-          <RadioScreen />
+          <RadioScreen compact />
         </View>
       </View>
     );
@@ -523,6 +527,10 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 110,
+  },
+  compactTop: {
+    paddingTop: 8,
+    paddingBottom: 6,
   },
   embeddedScreen: {
     flex: 1,

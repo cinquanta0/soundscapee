@@ -1118,7 +1118,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 }
 
 // ─── Main screen ───────────────────────────────────────────────────────────────
-export default function PodcastScreen() {
+export default function PodcastScreen({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1251,24 +1251,28 @@ export default function PodcastScreen() {
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>
-      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
-        <View style={sc.heroGlow} />
-        <Text style={sc.heroEyebrow}>Podcast studio</Text>
-        <View style={sc.topBar}>
-          <View style={{ flex: 1 }}>
-            <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
-            <Text style={sc.topBarSub}>Episodi, voci e format editoriali con una struttura più pulita.</Text>
-          </View>
-          <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
-            <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+      {!compact && (
+        <>
+          <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
+            <View style={sc.heroGlow} />
+            <Text style={sc.heroEyebrow}>Podcast studio</Text>
+            <View style={sc.topBar}>
+              <View style={{ flex: 1 }}>
+                <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
+                <Text style={sc.topBarSub}>Episodi, voci e format editoriali con una struttura più pulita.</Text>
+              </View>
+              <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
+                <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
 
-      <View style={sc.sectionHead}>
-        <Text style={sc.sectionCaption}>Library</Text>
-        <Text style={sc.sectionCount}>{podcasts.length}</Text>
-      </View>
+          <View style={sc.sectionHead}>
+            <Text style={sc.sectionCaption}>Library</Text>
+            <Text style={sc.sectionCount}>{podcasts.length}</Text>
+          </View>
+        </>
+      )}
 
       {podcasts.length === 0 ? (
         <View style={sc.empty}>
@@ -1289,7 +1293,7 @@ export default function PodcastScreen() {
               onAddToPlaylist={() => openPlaylistModal(item)}
             />
           )}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+          contentContainerStyle={{ padding: compact ? 12 : 16, gap: 12, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         />
       )}
