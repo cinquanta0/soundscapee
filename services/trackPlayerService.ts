@@ -79,7 +79,7 @@ export async function PlaybackService() {
   // dell'app il mini player non riappare e cleanStaleRNTP non trova una sessione stale.
   TrackPlayer.addEventListener(Event.PlaybackState, (data: any) => {
     const state = data?.state ?? data;
-    if (state === State?.Stopped || state === State?.None) {
+    if (state === State?.Stopped) {
       AsyncStorage.multiRemove([RNTP_SESSION_KEY, LIVE_STREAM_USER_PAUSED_KEY]).catch(() => {});
     } else if (state === State?.Playing) {
       AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});

@@ -181,6 +181,8 @@ export async function startRadioPlayback(track: {
   }
   await ensurePlayerReady();
   await configurePlayerForRadio();
+  await TrackPlayer.reset();
+  console.log(RADIO_LOG_PREFIX, 'player reset complete');
   await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
   await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
   if (autoplay) {
@@ -188,8 +190,6 @@ export async function startRadioPlayback(track: {
   } else {
     await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
   }
-  await TrackPlayer.reset();
-  console.log(RADIO_LOG_PREFIX, 'player reset complete');
   await TrackPlayer.add(track);
   console.log(RADIO_LOG_PREFIX, 'track added');
   if (autoplay) {
