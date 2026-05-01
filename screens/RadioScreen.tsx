@@ -2833,7 +2833,10 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;
           if (Platform.OS === 'ios' && mounted) {
-            setRadioPrimed(false);
+            // Con autoplay disattivato su iOS, RNTP non garantisce sempre un evento
+            // Ready/Paused prima del tap utente. Se lasciamo radioPrimed a false,
+            // il Play resta bloccato su "Connessione..." senza invocare davvero play().
+            setRadioPrimed(true);
             setStatusLabel('Tocca Play per avviare la radio');
           }
         };
