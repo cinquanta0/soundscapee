@@ -3908,7 +3908,7 @@ const ms = StyleSheet.create({
   stationsSection: { marginBottom: 8 },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
   sectionBadge: { minWidth: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.22)' },
-  sectionBadgeText: { color: '#D9FF5A', fontSize: 13, fontWeight: '800' },
+  sectionBadgeText: { color: '#4F7CFF', fontSize: 13, fontWeight: '800' },
   stationsTitle: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
   liveSection: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', paddingHorizontal: 16, marginBottom: 8, marginTop: 8 },
   emptyLive: { paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center' },

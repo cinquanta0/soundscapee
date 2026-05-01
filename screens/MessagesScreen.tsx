@@ -12,6 +12,15 @@ import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
 import ChatScreen from './ChatScreen';
 
+const C = {
+  text: '#F7F8FF',
+  textDim: '#97A4C7',
+  cyan: '#67E8F9',
+  blue: '#4F7CFF',
+  purple: '#8B5CFF',
+  border: 'rgba(163,177,255,0.12)',
+};
+
 interface OtherUser {
   id: string;
   displayName: string;
@@ -277,19 +286,19 @@ const cr = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D9FF5A',
+    backgroundColor: C.purple,
   },
   badgeTxt: {
-    color: '#060913',
+    color: C.text,
     fontSize: 9,
     fontWeight: '800',
   },
   info: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  name: { color: '#F7F8FF', fontSize: 15, fontWeight: '800' },
-  time: { color: '#97A4C7', fontSize: 11, fontWeight: '700' },
+  name: { color: C.text, fontSize: 15, fontWeight: '800' },
+  time: { color: C.textDim, fontSize: 11, fontWeight: '700' },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  preview: { color: '#97A4C7', fontSize: 12, flex: 1 },
+  preview: { color: C.textDim, fontSize: 12, flex: 1 },
   check: { fontSize: 11, fontWeight: '700' },
 });
 
@@ -297,16 +306,16 @@ const nm = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', zIndex: 100 },
   sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 320 },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: 18 },
-  eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 8 },
-  title: { color: '#F7F8FF', fontSize: 24, fontWeight: '800', letterSpacing: -0.6, marginBottom: 14 },
-  input: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 14, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(163,177,255,0.12)', marginBottom: 10 },
+  eyebrow: { color: C.cyan, fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 8 },
+  title: { color: C.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.6, marginBottom: 14 },
+  input: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 14, color: C.text, fontSize: 14, borderWidth: 1, borderColor: C.border, marginBottom: 10 },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   resultAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)', alignItems: 'center', justifyContent: 'center' },
-  resultAvatarTxt: { color: '#67E8F9', fontSize: 16, fontWeight: '800' },
-  resultName: { color: '#F7F8FF', fontSize: 14, fontWeight: '700' },
-  resultUser: { color: '#97A4C7', fontSize: 11 },
+  resultAvatarTxt: { color: C.cyan, fontSize: 16, fontWeight: '800' },
+  resultName: { color: C.text, fontSize: 14, fontWeight: '700' },
+  resultUser: { color: C.textDim, fontSize: 11 },
   cancelBtn: { marginTop: 16, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
-  cancelTxt: { color: '#97A4C7', fontSize: 14, fontWeight: '600' },
+  cancelTxt: { color: C.textDim, fontSize: 14, fontWeight: '600' },
 });
 
 const ms = StyleSheet.create({
@@ -315,19 +324,19 @@ const ms = StyleSheet.create({
   ambientB: { position: 'absolute', left: -70, top: 260, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(139,92,255,0.08)' },
   hero: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', padding: 18, overflow: 'hidden' },
   heroGlow: { position: 'absolute', right: -20, top: -24, width: 150, height: 150, borderRadius: 999, backgroundColor: 'rgba(139,92,255,0.12)' },
-  eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 },
+  eyebrow: { color: C.cyan, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  headerTitle: { color: '#F7F8FF', fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
-  headerSub: { color: '#97A4C7', fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
-  newBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9FF5A' },
+  headerTitle: { color: C.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
+  headerSub: { color: C.textDim, fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
+  newBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(103,232,249,0.14)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)' },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
-  sectionCaption: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
-  sectionBadge: { minWidth: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.22)' },
-  sectionBadgeText: { color: '#D9FF5A', fontSize: 14, fontWeight: '800' },
+  sectionCaption: { color: C.cyan, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  sectionBadge: { minWidth: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(79,124,255,0.22)' },
+  sectionBadgeText: { color: C.blue, fontSize: 14, fontWeight: '800' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyOrb: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(103,232,249,0.08)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.2)', marginBottom: 16 },
-  emptyTitle: { color: '#F7F8FF', fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  emptyDesc: { color: '#97A4C7', fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
+  emptyTitle: { color: C.text, fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  emptyDesc: { color: C.textDim, fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
   emptyBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)' },
-  emptyBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
+  emptyBtnTxt: { color: C.cyan, fontSize: 13, fontWeight: '700' },
 });

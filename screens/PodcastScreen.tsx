@@ -1498,7 +1498,7 @@ const sc = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(139,92,255,0.22)',
-    color: '#D9FF5A',
+    color: '#4F7CFF',
     fontSize: 14,
     fontWeight: '800',
     paddingTop: 8,

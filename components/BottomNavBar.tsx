@@ -31,7 +31,7 @@ const TABS: Tab[] = [
   { id: 'map', label: 'Map', icon: 'map-pin', accent: '#4F7CFF' },
   { id: 'challenges', label: 'Challenges', icon: 'award', accent: '#FF9B5E' },
   { id: 'messages', label: 'Messages', icon: 'message-circle', accent: '#F472FF' },
-  { id: 'profile', label: 'Profile', icon: 'user', accent: '#D9FF5A' },
+  { id: 'profile', label: 'Profile', icon: 'user', accent: '#4F7CFF' },
 ];
 
 function NavItem({

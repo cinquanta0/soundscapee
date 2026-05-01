@@ -28,7 +28,6 @@ const C = {
   textMute: '#687392',
   cyan: '#67E8F9',
   purple: '#8B5CFF',
-  lime: '#D9FF5A',
   border: 'rgba(163, 177, 255, 0.18)',
   bg: 'rgba(12, 16, 34, 0.96)',
   bgCard: 'rgba(16, 21, 43, 0.96)',
@@ -274,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 21,
-    backgroundColor: C.lime,
+    backgroundColor: C.cyan,
   },
   closeBtn: {
     width: 34,

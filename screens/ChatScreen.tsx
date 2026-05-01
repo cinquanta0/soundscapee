@@ -37,10 +37,19 @@ import {
 
 const { width: SW } = Dimensions.get('window');
 const ME = () => auth.currentUser?.uid ?? '';
+const C = {
+  text: '#F7F8FF',
+  textDim: '#97A4C7',
+  textMute: '#687392',
+  cyan: '#67E8F9',
+  blue: '#4F7CFF',
+  purple: '#8B5CFF',
+  pink: '#F472FF',
+};
 
 // ─── Waveform bubble ──────────────────────────────────────────────────────────
 function WaveformBars({ waveform, isPlaying, isMine }: { waveform: number[]; isPlaying: boolean; isMine: boolean }) {
-  const color = isMine ? '#00FF9C' : '#A855F7';
+  const color = isMine ? C.cyan : C.purple;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>
       {waveform.map((h, i) => (
@@ -75,7 +84,7 @@ function MessageBubble({
   const isMine = msg.senderId === ME();
   const isPlaying = playingId === msg.id;
   const wf = msg.waveform?.length ? msg.waveform : genWaveform(msg.id);
-  const color = isMine ? '#00FF9C' : '#A855F7';
+  const color = isMine ? C.cyan : C.purple;
 
   const durDisplay = isPlaying
     ? `${playingPosition}s / ${msg.duration}s`
@@ -376,7 +385,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           </Text>
         </View>
         {sending
-          ? <ActivityIndicator color="#00FF9C" style={{ marginRight: 8 }} />
+          ? <ActivityIndicator color={C.cyan} style={{ marginRight: 8 }} />
           : <RecordButton onSend={handleSend} />
         }
       </View>
@@ -390,9 +399,9 @@ const bs = StyleSheet.create({
   rowRight: { alignItems: 'flex-end' },
   rowLeft: { alignItems: 'flex-start' },
   bubble: { maxWidth: SW * 0.72, borderRadius: 18, padding: 10 },
-  bubbleMine: { backgroundColor: '#0D1F14', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)', borderTopRightRadius: 4 },
-  bubbleTheirs: { backgroundColor: '#150D2A', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', borderTopLeftRadius: 4 },
-  soundRef: { fontSize: 11, color: '#9A9A9A', fontFamily: 'monospace', marginBottom: 6 },
+  bubbleMine: { backgroundColor: 'rgba(16,28,50,0.96)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)', borderTopRightRadius: 4 },
+  bubbleTheirs: { backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.28)', borderTopLeftRadius: 4 },
+  soundRef: { fontSize: 11, color: C.textMute, fontFamily: 'monospace', marginBottom: 6 },
   statusReplyTag: {
     borderRadius: 10,
     paddingHorizontal: 8,
@@ -401,12 +410,12 @@ const bs = StyleSheet.create({
     borderWidth: 1,
   },
   statusReplyTagMine: {
-    backgroundColor: 'rgba(0,255,156,0.12)',
-    borderColor: 'rgba(0,255,156,0.35)',
+    backgroundColor: 'rgba(103,232,249,0.12)',
+    borderColor: 'rgba(103,232,249,0.3)',
   },
   statusReplyTagTheirs: {
-    backgroundColor: 'rgba(168,85,247,0.12)',
-    borderColor: 'rgba(168,85,247,0.35)',
+    backgroundColor: 'rgba(139,92,255,0.12)',
+    borderColor: 'rgba(139,92,255,0.32)',
   },
   statusReplyTxt: {
     color: 'rgba(255,255,255,0.82)',
@@ -415,14 +424,14 @@ const bs = StyleSheet.create({
   },
   audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   playCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  playCircleMine: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },
-  playCircleTheirs: { borderColor: '#A855F7', backgroundColor: 'rgba(168,85,247,0.1)' },
+  playCircleMine: { borderColor: C.cyan, backgroundColor: 'rgba(103,232,249,0.12)' },
+  playCircleTheirs: { borderColor: C.purple, backgroundColor: 'rgba(139,92,255,0.1)' },
   playIcon: { fontSize: 13, fontWeight: '700' },
-  durTxt: { fontSize: 11, color: '#9A9A9A', fontFamily: 'monospace', minWidth: 28 },
+  durTxt: { fontSize: 11, color: C.textMute, fontFamily: 'monospace', minWidth: 28 },
   meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4 },
-  timeTxt: { fontSize: 9, color: '#858585', fontFamily: 'monospace' },
-  check: { fontSize: 11, color: '#858585' },
-  checkRead: { color: '#00FF9C' },
+  timeTxt: { fontSize: 9, color: C.textMute, fontFamily: 'monospace' },
+  check: { fontSize: 11, color: C.textMute },
+  checkRead: { color: C.cyan },
 });
 
 const rb = StyleSheet.create({
@@ -430,24 +439,24 @@ const rb = StyleSheet.create({
   recordingHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,45,85,0.15)' },
   recDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FF2D55' },
   recTxt: { color: '#FF2D55', fontSize: 10, fontFamily: 'monospace' },
-  btn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1.5, borderColor: 'rgba(0,255,156,0.4)', alignItems: 'center', justifyContent: 'center' },
+  btn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(103,232,249,0.14)', borderWidth: 1.5, borderColor: 'rgba(103,232,249,0.34)', alignItems: 'center', justifyContent: 'center' },
   btnActive: { backgroundColor: 'rgba(255,45,85,0.2)', borderColor: '#FF2D55' },
   icon: { fontSize: 22 },
 });
 
 const cs = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050508' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.08)' },
+  container: { flex: 1, backgroundColor: '#050816' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(103,232,249,0.08)' },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#00FF9C', fontSize: 28, fontWeight: '300', lineHeight: 32 },
-  headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1A0A2E', borderWidth: 1.5, borderColor: 'rgba(168,85,247,0.4)', alignItems: 'center', justifyContent: 'center' },
-  headerAvatarTxt: { color: '#A855F7', fontSize: 18, fontStyle: 'italic' },
-  headerName: { color: '#fff', fontSize: 15, fontWeight: '600', fontStyle: 'italic' },
-  headerSub: { color: '#858585', fontSize: 10, fontFamily: 'monospace' },
+  backTxt: { color: C.cyan, fontSize: 28, fontWeight: '300', lineHeight: 32 },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1.5, borderColor: 'rgba(139,92,255,0.35)', alignItems: 'center', justifyContent: 'center' },
+  headerAvatarTxt: { color: C.purple, fontSize: 18, fontStyle: 'italic' },
+  headerName: { color: C.text, fontSize: 15, fontWeight: '700' },
+  headerSub: { color: C.textMute, fontSize: 10, fontFamily: 'monospace' },
   list: { paddingVertical: 12, flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
-  emptyTxt: { color: '#858585', fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
-  inputBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,255,156,0.08)', paddingBottom: 28 },
+  emptyTxt: { color: C.textMute, fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
+  inputBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(103,232,249,0.08)', paddingBottom: 28 },
   inputHint: { flex: 1 },
-  inputHintTxt: { color: '#858585', fontSize: 12, fontFamily: 'monospace' },
+  inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace' },
 });
