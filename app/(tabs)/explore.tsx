@@ -18,7 +18,6 @@ import {
   ExploreBattleCard,
   ExploreChips,
   ExploreEmptyState,
-  ExploreFeatureStrip,
   ExploreHeader,
   ExploreModeRail,
   ExploreSearchBar,
@@ -311,7 +310,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     { id: 'battles', title: 'Battles', subtitle: 'sfide e votazioni', icon: 'crosshair', accent: '#FF9B5E' },
   ] as const;
 
-  const renderHeader = (showFeatureStrip = true) => (
+  const renderHeader = () => (
     <>
       <ExploreHeader
         title="Explore what moves"
@@ -359,10 +358,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
             onSelect={setSortBy}
           />
         </>
-      )}
-
-      {showFeatureStrip && (
-        <ExploreFeatureStrip section={section} onOpenSection={setSection} />
       )}
     </>
   );
