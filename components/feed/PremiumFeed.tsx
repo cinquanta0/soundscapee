@@ -109,7 +109,7 @@ export function FeedHomeHeader({
             ))}
           </LinearGradient>
           <View style={{ flex: 1 }}>
-            <Text style={styles.brandTitle}>SoundScape</Text>
+            <Text style={styles.brandTitle}>Soundscape</Text>
             <View style={styles.metaRow}>
               <View style={styles.liveBadge}>
                 <View style={styles.liveDot} />
@@ -235,8 +235,8 @@ export function FeedQuickActions({ onHowItWorks, onNewDrop }: QuickActionsProps)
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.quickCard} onPress={onNewDrop}>
-        <View style={[styles.quickOrb, { borderColor: 'rgba(217,255,90,0.35)' }]}>
-          <Ionicons name="add" size={22} color={C.lime} />
+        <View style={[styles.quickOrb, { borderColor: 'rgba(79,124,255,0.35)' }]}>
+          <Ionicons name="add" size={22} color={C.blue} />
         </View>
         <Text style={styles.quickTitle}>New drop</Text>
         <Text style={styles.quickCaption}>pubblica audio, backstage o live</Text>
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   metaAccent: {
-    color: C.lime,
+    color: C.blue,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   signalValue: {
-    color: C.lime,
+    color: C.blue,
     fontSize: 16,
     fontWeight: '800',
   },

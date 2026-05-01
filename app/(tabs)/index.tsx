@@ -1567,7 +1567,7 @@ if (loading) {
 
       {/* Header */}
       {!isFullScreen && (
-        activeTab === 'home' ? (
+        activeTab === 'home' || activeTab === 'profile' ? (
           <FeedHomeHeader
             soundsCount={totalSoundsCount ?? sounds.length}
             streakCount={myStreakCount}
@@ -1585,7 +1585,7 @@ if (loading) {
                     <View key={i} style={[styles.logoBar, { height: h }]} />
                   ))}
                 </View>
-                <Text style={styles.title}>SoundScape</Text>
+                <Text style={styles.title}>Soundscape</Text>
               </View>
               <View style={styles.headerSubtitle}>
                 <View style={styles.livePill}>
@@ -3215,7 +3215,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(139,92,255,0.22)',
   },
   feedSectionCounterText: {
-    color: '#D9FF5A',
+    color: '#4F7CFF',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -3717,7 +3717,7 @@ const styles = StyleSheet.create({
   profileStatNumber: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#D7FF64',
+    color: '#67E8F9',
   },
   profileStatLabel: {
     fontSize: 11,
@@ -3726,7 +3726,7 @@ const styles = StyleSheet.create({
   },
   profileButtonPrimary: {
     width: '100%',
-    backgroundColor: '#D7FF64',
+    backgroundColor: '#67E8F9',
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
@@ -3734,7 +3734,7 @@ const styles = StyleSheet.create({
   profileButtonPrimaryText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#07110B',
+    color: '#050816',
   },
   profileThemeButton: {
     position: 'absolute',
@@ -3812,7 +3812,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(139,92,255,0.22)',
   },
   profileSectionBadgeText: {
-    color: '#D9FF64',
+    color: '#4F7CFF',
     fontSize: 14,
     fontWeight: '800',
   },
