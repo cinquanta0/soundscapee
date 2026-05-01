@@ -2,37 +2,36 @@ import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
-    collection,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    where,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
 } from 'firebase/firestore';
-import { Feather } from '@expo/vector-icons';
+import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
 import { auth, db } from '../../firebaseConfig';
-import { C, T, S, R } from '../../constants/design';
+import {
+  ExploreBattleCard,
+  ExploreChips,
+  ExploreEmptyState,
+  ExploreFeatureStrip,
+  ExploreHeader,
+  ExploreModeRail,
+  ExploreSearchBar,
+  ExploreSectionHeading,
+  ExploreSoundCard,
+  ExploreUserCard,
+} from '../../components/explore/PremiumExplore';
 import BattleScreen from '../../screens/BattleScreen';
 import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
 import { Battle, cancelBattle, finalizeBattle, listenToActiveBattles } from '../../services/battleService';
 import { incrementListens } from '../../services/firebaseService';
 
-// RNTP lazy import — stesso pattern di RadioScreen per evitare crash su web
 let _TP: any = null; let _S: any = {};
 try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
@@ -40,21 +39,19 @@ const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
 
 const MOOD_COLORS: Record<string, string> = {
-  Energico: '#f97316',
-  Rilassante: '#3b82f6',
-  Gioioso: '#eab308',
-  Nostalgico: '#a855f7',
+  Energico: '#FF9B5E',
+  Rilassante: '#67E8F9',
+  Gioioso: '#D9FF5A',
+  Nostalgico: '#8B5CFF',
 };
 
 async function searchUsers(searchText: string) {
   const lower = searchText.trim().toLowerCase();
   if (!lower) {
-    // No query — return a few recent users
     const q = query(collection(db, 'users'), orderBy('username'), limit(20));
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
   }
-  // Firestore prefix range trick for username search
   const q = query(
     collection(db, 'users'),
     where('username', '>=', lower),
@@ -68,7 +65,7 @@ async function searchUsers(searchText: string) {
 async function searchSounds(searchText: string, mood: string, sortBy: string) {
   const constraints: any[] = [orderBy('createdAt', 'desc'), limit(30)];
 
-  if (mood && mood !== 'Tutti') { // key stays Italian for Firestore
+  if (mood && mood !== 'Tutti') {
     constraints.unshift(where('mood', '==', mood));
   }
 
@@ -85,7 +82,6 @@ async function searchSounds(searchText: string, mood: string, sortBy: string) {
 
   let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
-  // Filtra per testo lato client (Firestore non supporta full-text search nativo)
   if (searchText.trim()) {
     const lower = searchText.toLowerCase();
     results = results.filter(
@@ -110,11 +106,12 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const [section, setSection] = useState<Section>('suoni');
   const [searchText, setSearchText] = useState('');
   const [selectedMood, setSelectedMood] = useState('Tutti');
-  const [sortBy, setSortBy] = useState('recent'); // recent | likes | listens
+  const [sortBy, setSortBy] = useState('recent');
   const [sounds, setSounds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [soundBusy, setSoundBusy] = useState(false);
   const [battles, setBattles] = useState<Battle[]>([]);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [cancelingBattleId, setCancelingBattleId] = useState<string | null>(null);
@@ -127,8 +124,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-ripristino sessione RNTP: se l'app è ripartita dopo un kill
-  // (notifica Android toccata), naviga direttamente alla sezione corretta.
   useEffect(() => {
     (async () => {
       if (!_TP) return;
@@ -144,7 +139,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       } catch {}
     })();
   }, []);
-
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -165,10 +159,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   useEffect(() => {
     if (section !== 'battles') return;
-    console.log('🎯 Battles section selected, listening to active battles...');
     const unsub = listenToActiveBattles(async (bs) => {
-      console.log('🎯 Received battles:', bs.length);
-      // Chiudi battaglie scadute
       const now = new Date();
       for (const b of bs) {
         if (b.votingEndsAt && b.votingEndsAt < now) {
@@ -185,6 +176,9 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     searchTimeout.current = setTimeout(() => {
       loadSounds();
     }, 400);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
   }, [searchText]);
 
   useEffect(() => {
@@ -193,6 +187,9 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     userSearchTimeout.current = setTimeout(() => {
       loadUsers();
     }, 400);
+    return () => {
+      if (userSearchTimeout.current) clearTimeout(userSearchTimeout.current);
+    };
   }, [userSearchText, section]);
 
   const loadUsers = async () => {
@@ -254,6 +251,8 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   const handlePlayPause = async (soundData: any) => {
     try {
+      setSoundBusy(true);
+
       if (soundRef.current && playingId !== soundData.id) {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
@@ -297,290 +296,204 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       });
     } catch {
       Alert.alert(t('common.error'), t('explore.errors.cannotPlay'));
+    } finally {
+      setSoundBusy(false);
     }
   };
 
   const isPlaying = (id: string) => playingId === id && !isPaused;
 
-  const renderSound = ({ item }: { item: any }) => (
-    <View style={styles.soundCard}>
-      <View style={styles.soundCardLeft}>
-        <View style={[styles.moodDot, { backgroundColor: MOOD_COLORS[item.mood] || '#6b7280' }]} />
-        <View style={styles.soundInfo}>
-          <Text style={styles.soundTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.soundMeta}>
-            {item.username} · {item.duration > 0 ? `${item.duration}s` : '?s'} · {item.mood}
-          </Text>
-          <View style={styles.soundStats}>
-            <Text style={styles.statText}>❤️ {item.likes || 0}</Text>
-            <Text style={styles.statText}>🎧 {item.listens || 0}</Text>
-          </View>
+  const renderHeader = (showFeatureStrip = true) => (
+    <>
+      <ExploreHeader
+        title="Explore what moves"
+        subtitle="Trova audio, creator, live radio, podcast e battle in un hub più ordinato e immediato."
+      />
+
+      <ExploreModeRail
+        section={section}
+        onSelect={setSection}
+        items={[
+          { id: 'suoni', title: 'Suoni', subtitle: 'clip, drop, frammenti vocali', icon: 'music', accent: '#67E8F9' },
+          { id: 'utenti', title: 'Utenti', subtitle: 'creator, profili, bio audio', icon: 'users', accent: '#8B5CFF' },
+          { id: 'podcast', title: 'Podcast', subtitle: 'serie, episodi, hub', icon: 'mic', accent: '#F472FF' },
+          { id: 'radio', title: 'Radio', subtitle: 'stazioni, live room, DJ', icon: 'radio', accent: '#D9FF5A' },
+          { id: 'battles', title: 'Battles', subtitle: 'sfide e votazioni', icon: 'crosshair', accent: '#FF9B5E' },
+        ]}
+      />
+
+      {(section === 'suoni' || section === 'utenti' || section === 'battles') && (
+        <ExploreSearchBar
+          value={section === 'utenti' ? userSearchText : searchText}
+          placeholder={
+            section === 'utenti'
+              ? 'Cerca creator per username…'
+              : section === 'battles'
+                ? 'Scopri battle e temi attivi…'
+                : t('explore.searchPlaceholder')
+          }
+          onChangeText={section === 'utenti' ? setUserSearchText : setSearchText}
+          onClear={() => section === 'utenti' ? setUserSearchText('') : setSearchText('')}
+        />
+      )}
+
+      {section === 'suoni' && (
+        <>
+          <ExploreChips
+            items={MOOD_KEYS.map((m) => ({
+              id: m,
+              label: m === 'Tutti' ? t('moods.all') : t(`moods.${m.toLowerCase()}`, m),
+            }))}
+            activeId={selectedMood}
+            onSelect={setSelectedMood}
+          />
+          <ExploreChips
+            items={[
+              { id: 'recent', label: t('explore.recent') },
+              { id: 'likes', label: t('explore.likes') },
+              { id: 'listens', label: t('explore.listens') },
+            ]}
+            activeId={sortBy}
+            onSelect={setSortBy}
+          />
+        </>
+      )}
+
+      {showFeatureStrip && (
+        <ExploreFeatureStrip section={section} onOpenSection={setSection} />
+      )}
+    </>
+  );
+
+  if (section === 'podcast') {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+        {renderHeader(false)}
+        <ExploreSectionHeading
+          title="Podcast vault"
+          caption="Long-form listening"
+        />
+        <View style={styles.embeddedScreen}>
+          <PodcastHubScreen />
         </View>
       </View>
-      <TouchableOpacity
-        style={[styles.playBtn, isPlaying(item.id) && styles.playBtnActive]}
-        onPress={() => handlePlayPause(item)}
-      >
-        <Text style={styles.playBtnText}>
-          {playingId === item.id ? (isPaused ? '▶' : '⏸') : '▶'}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  }
+
+  if (section === 'radio') {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+        {renderHeader(false)}
+        <ExploreSectionHeading
+          title="Live radio"
+          caption="Always on"
+        />
+        <View style={styles.embeddedScreen}>
+          <RadioScreen />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientA} />
       <View style={styles.ambientB} />
-      {/* Sub-tabs */}
-      <View style={styles.subTabs}>
-        {([
-          { id: 'suoni', label: '🎵 Suoni' },
-          { id: 'utenti', label: '👤 Utenti' },
-          { id: 'podcast', label: '🎙 Podcast' },
-          { id: 'radio', label: '📻 Radio' },
-          { id: 'battles', label: '⚔️ Battles' },
-        ] as { id: Section; label: string }[]).map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.subTab, section === tab.id && styles.subTabActive]}
-            onPress={() => setSection(tab.id)}
-          >
-            <Text style={[styles.subTabTxt, section === tab.id && styles.subTabTxtActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
 
-      {section === 'podcast' && <PodcastHubScreen />}
-      {section === 'radio' && <RadioScreen />}
-
-      {section === 'utenti' && (
-        <View style={{ flex: 1 }}>
-          <View style={styles.searchBar}>
-            <Feather name="search" size={16} color="#64748b" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Cerca utenti per username…"
-              placeholderTextColor="#64748b"
-              value={userSearchText}
-              onChangeText={setUserSearchText}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-            {userSearchText.length > 0 && (
-              <TouchableOpacity onPress={() => setUserSearchText('')}>
-                <Text style={styles.clearBtn}>✕</Text>
-              </TouchableOpacity>
+      <FlatList
+        data={section === 'utenti' ? users : section === 'battles' ? battles : sounds}
+        keyExtractor={(item: any) => item.id}
+        ListHeaderComponent={(
+          <>
+            {renderHeader()}
+            {section === 'suoni' && (
+              <ExploreSectionHeading title="Fresh audio" caption="Discover" counter={sounds.length} />
             )}
-          </View>
-          {usersLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={C.accent} />
-            </View>
-          ) : !userSearchText.trim() ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyIcon}>🔍</Text>
-              <Text style={styles.emptyText}>Cerca un utente</Text>
-              <Text style={styles.emptySubtext}>Digita un username per trovarlo</Text>
-            </View>
-          ) : users.length === 0 ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyIcon}>👤</Text>
-              <Text style={styles.emptyText}>Nessun utente trovato</Text>
-              <Text style={styles.emptySubtext}>Prova con un altro username</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={users}
-              keyExtractor={u => u.id}
-              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item: u }) => (
-                <TouchableOpacity
-                  style={styles.userCard}
-                  onPress={() => onOpenUserProfile?.(u.id)}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.userAvatarWrap}>
-                    <Text style={{ fontSize: 28 }}>{u.avatar || '🎧'}</Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text style={styles.userUsername}>@{u.username || 'utente'}</Text>
-                    {u.bio ? (
-                      <Text style={styles.userBio} numberOfLines={1}>{u.bio}</Text>
-                    ) : null}
-                  </View>
-                  <Feather name="chevron-right" size={18} color={C.textMuted} />
-                </TouchableOpacity>
-              )}
-            />
-          )}
-        </View>
-      )}
-
-      {section === 'battles' && (
-        <FlatList
-          data={battles}
-          keyExtractor={b => b.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-              <Text style={{ fontSize: 48 }}>⚔️</Text>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Nessuna battaglia in corso</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center' }}>Sfida un utente dal suo profilo{'\n'}per iniziare una battaglia</Text>
-            </View>
-          }
-          renderItem={({ item: b }) => {
-            const total = b.challengerVotes + b.opponentVotes;
-            const challPct = total > 0 ? Math.round((b.challengerVotes / total) * 100) : 50;
-            const timeLeft = b.votingEndsAt ? Math.max(0, b.votingEndsAt.getTime() - Date.now()) : 0;
-            const hLeft = Math.floor(timeLeft / 3600000);
-            const mLeft = Math.floor((timeLeft % 3600000) / 60000);
-            const statusLabel = b.status === 'accepted'
-              ? 'In attesa dell’avversario'
-              : b.status === 'challenger_rec'
-                ? `${b.challengerName} sta registrando`
-                : b.status === 'opponent_rec'
-                  ? `${b.opponentName} sta registrando`
-                  : 'Votazione aperta';
+            {section === 'utenti' && (
+              <ExploreSectionHeading title="Find creators" caption="Profiles" counter={users.length} />
+            )}
+            {section === 'battles' && (
+              <ExploreSectionHeading title="Open battles" caption="Competitive audio" counter={battles.length} />
+            )}
+          </>
+        )}
+        renderItem={({ item }: { item: any }) => {
+          if (section === 'utenti') {
             return (
-              <TouchableOpacity
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', gap: 12 }}
-                onPress={() => setActiveBattleId(b.id)}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' }}>
-                    <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }}>🎯 {b.theme}</Text>
-                  </View>
-                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>⏱ {hLeft}h {mLeft}m</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, flex: 1 }}>{statusLabel}</Text>
-                  {currentUserId === b.challengerId && (
-                    <TouchableOpacity
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)', backgroundColor: 'rgba(248,113,113,0.12)' }}
-                      onPress={() => handleCancelBattle(b.id)}
-                      disabled={cancelingBattleId === b.id}
-                    >
-                      <Text style={{ color: '#fb7185', fontSize: 11, fontWeight: '700' }}>
-                        {cancelingBattleId === b.id ? 'Annullando…' : 'Annulla'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
-                    <Text style={{ fontSize: 28 }}>{b.challengerAvatar}</Text>
-                    <Text style={{ color: '#f97316', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>{b.challengerName}</Text>
-                    <Text style={{ color: '#f97316', fontSize: 16, fontWeight: '900' }}>{b.challengerVotes}</Text>
-                  </View>
-                  <Text style={{ color: 'rgba(255,255,255,0.2)', fontSize: 18, fontWeight: '900', paddingHorizontal: 8 }}>VS</Text>
-                  <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
-                    <Text style={{ fontSize: 28 }}>{b.opponentAvatar}</Text>
-                    <Text style={{ color: '#a855f7', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>{b.opponentName}</Text>
-                    <Text style={{ color: '#a855f7', fontSize: 16, fontWeight: '900' }}>{b.opponentVotes}</Text>
-                  </View>
-                </View>
-                {total > 0 && (
-                  <View style={{ height: 6, backgroundColor: '#a855f7', borderRadius: 3, overflow: 'hidden' }}>
-                    <View style={{ height: '100%', width: `${challPct}%`, backgroundColor: '#f97316' }} />
-                  </View>
-                )}
-                <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' }}>
-                  {total} voti · Tocca per ascoltare e votare
-                </Text>
-              </TouchableOpacity>
+              <ExploreUserCard
+                user={item}
+                onPress={() => onOpenUserProfile?.(item.id)}
+              />
             );
-          }}
-        />
-      )}
+          }
+
+          if (section === 'battles') {
+            return (
+              <ExploreBattleCard
+                battle={item}
+                canCancel={currentUserId === item.challengerId}
+                canceling={cancelingBattleId === item.id}
+                onPress={() => setActiveBattleId(item.id)}
+                onCancel={() => handleCancelBattle(item.id)}
+              />
+            );
+          }
+
+          return (
+            <ExploreSoundCard
+              item={item}
+              moodColor={MOOD_COLORS[item.mood] || '#6b7280'}
+              isPlaying={isPlaying(item.id)}
+              busy={soundBusy}
+              onPress={() => handlePlayPause(item)}
+            />
+          );
+        }}
+        ListEmptyComponent={
+          usersLoading || loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#67E8F9" />
+            </View>
+          ) : section === 'utenti' ? (
+            !userSearchText.trim() ? (
+              <ExploreEmptyState
+                icon="🔎"
+                title="Cerca un creator"
+                subtitle="Digita un username per trovare profili, bio e creator da seguire."
+              />
+            ) : (
+              <ExploreEmptyState
+                icon="👤"
+                title="Nessun utente trovato"
+                subtitle="Prova con un altro username o un nome più corto."
+              />
+            )
+          ) : section === 'battles' ? (
+            <ExploreEmptyState
+              icon="⚔️"
+              title="Nessuna battle attiva"
+              subtitle="Apri un profilo e lancia una sfida per iniziare una nuova votazione."
+            />
+          ) : (
+            <ExploreEmptyState
+              icon="🎧"
+              title={t('home.noSoundsFound')}
+              subtitle="Cambia mood, ordina diversamente o prova una ricerca più ampia."
+            />
+          )
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
 
       {activeBattleId && (
         <Modal visible animationType="slide" onRequestClose={() => setActiveBattleId(null)}>
           <BattleScreen battleId={activeBattleId} onClose={() => setActiveBattleId(null)} />
         </Modal>
       )}
-
-      {section === 'suoni' && <>
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <Feather name="search" size={16} color="#4A4D56" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('explore.searchPlaceholder')}
-          placeholderTextColor="#64748b"
-          value={searchText}
-          onChangeText={setSearchText}
-          returnKeyType="search"
-        />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText('')}>
-            <Text style={styles.clearBtn}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Mood filter */}
-      <FlatList
-        horizontal
-        data={MOOD_KEYS}
-        keyExtractor={m => m}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.moodList}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.moodChip, selectedMood === item && styles.moodChipActive]}
-            onPress={() => setSelectedMood(item)}
-          >
-            <Text style={[styles.moodChipText, selectedMood === item && styles.moodChipTextActive]}>
-              {item === 'Tutti' ? t('moods.all') : t(`moods.${item.toLowerCase()}`, item)}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* Sort */}
-      <View style={styles.sortRow}>
-        <Text style={styles.sortLabel}>{t('explore.sortBy')}</Text>
-        {(['recent', 'likes', 'listens'] as const).map(s => (
-          <TouchableOpacity
-            key={s}
-            style={[styles.sortBtn, sortBy === s && styles.sortBtnActive]}
-            onPress={() => setSortBy(s)}
-          >
-            <Text style={[styles.sortBtnText, sortBy === s && styles.sortBtnTextActive]}>
-              {s === 'recent' ? t('explore.recent') : s === 'likes' ? t('explore.likes') : t('explore.listens')}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Results */}
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={C.accent} />
-        </View>
-      ) : sounds.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={styles.emptyText}>{t('explore.noResults')}</Text>
-          <Text style={styles.emptySubtext}>{t('explore.noResultsHint')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={sounds}
-          keyExtractor={item => item.id}
-          renderItem={renderSound}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-      </>}
     </View>
   );
 }
@@ -588,254 +501,35 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#050816',
   },
   ambientA: {
     position: 'absolute',
-    top: -20,
-    right: -10,
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,255,156,0.08)',
+    right: -80,
+    top: 70,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(103,232,249,0.08)',
   },
   ambientB: {
     position: 'absolute',
-    top: 70,
-    left: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 999,
-    backgroundColor: 'rgba(99,214,255,0.07)',
+    left: -70,
+    top: 280,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    backgroundColor: 'rgba(139,92,255,0.08)',
   },
-  subTabs: {
-    flexDirection: 'row',
-    marginHorizontal: S.lg,
-    marginTop: S.md,
-    marginBottom: S.md,
-    backgroundColor: C.glassDark,
-    borderRadius: R.lg,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
+  listContent: {
+    paddingBottom: 110,
   },
-  subTab: {
+  embeddedScreen: {
     flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: R.md,
-  },
-  subTabActive: {
-    backgroundColor: 'rgba(0,255,156,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.28)',
-  },
-  subTabTxt: {
-    ...T.labelS,
-    color: C.textMuted,
-    fontWeight: '600',
-  },
-  subTabTxtActive: {
-    color: C.accent,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.glassDark,
-    marginHorizontal: S.lg,
-    borderRadius: R.lg,
-    paddingHorizontal: S.md,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-    gap: S.sm + 2,
-  },
-  searchInput: {
-    flex: 1,
-    color: C.textPrimary,
-    fontSize: 15,
-  },
-  clearBtn: {
-    color: C.textMuted,
-    fontSize: 16,
-    paddingHorizontal: S.xs,
-  },
-  moodList: {
-    paddingHorizontal: S.lg,
-    paddingVertical: S.md,
-    gap: S.sm,
-  },
-  moodChip: {
-    paddingHorizontal: S.lg,
-    paddingVertical: 9,
-    borderRadius: R.full,
-    backgroundColor: C.glassDark,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginRight: S.sm,
-  },
-  moodChipActive: {
-    backgroundColor: 'rgba(0,255,156,0.14)',
-    borderColor: 'rgba(0,255,156,0.35)',
-  },
-  moodChipText: {
-    ...T.bodyS,
-    color: C.textSecondary,
-    fontWeight: '600',
-  },
-  moodChipTextActive: {
-    color: C.accent,
-  },
-  sortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: S.lg,
-    paddingBottom: S.md,
-    gap: S.sm,
-  },
-  sortLabel: {
-    color: C.textMuted,
-    fontSize: 13,
-    marginRight: S.xs,
-  },
-  sortBtn: {
-    paddingHorizontal: S.md,
-    paddingVertical: 8,
-    borderRadius: R.full,
-    backgroundColor: C.glassDark,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  sortBtnActive: {
-    backgroundColor: 'rgba(99,214,255,0.12)',
-    borderColor: 'rgba(99,214,255,0.25)',
-  },
-  sortBtnText: {
-    color: C.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  sortBtnTextActive: {
-    color: C.textPrimary,
-  },
-  list: {
-    paddingHorizontal: S.lg,
-    paddingBottom: 100,
-  },
-  soundCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.glassDark,
-    borderRadius: R.lg,
-    padding: S.lg,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-  },
-  soundCardLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.md,
-  },
-  moodDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  soundInfo: {
-    flex: 1,
-  },
-  soundTitle: {
-    ...T.h4,
-    color: C.textPrimary,
-    marginBottom: 3,
-  },
-  soundMeta: {
-    ...T.bodyS,
-    color: C.textSecondary,
-    marginBottom: 5,
-  },
-  soundStats: {
-    flexDirection: 'row',
-    gap: S.md,
-  },
-  statText: {
-    ...T.label,
-    color: C.textMuted,
-  },
-  playBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: R.full,
-    backgroundColor: '#00FF9C',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-    shadowColor: '#00FF9C',
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  playBtnActive: {
-    backgroundColor: C.accentIce,
-  },
-  playBtnText: {
-    color: C.textOnAccent,
-    fontSize: 16,
-    fontWeight: '700',
   },
   center: {
-    flex: 1,
+    minHeight: 240,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: S.md,
-  },
-  emptyText: {
-    ...T.h2,
-    color: C.textPrimary,
-    marginBottom: S.sm - 2,
-  },
-  emptySubtext: {
-    ...T.body,
-    color: C.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: S.xxxl,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.bgCard,
-    borderRadius: R.lg,
-    padding: S.md,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  userAvatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: R.full,
-    backgroundColor: C.bg,
-    borderWidth: 1.5,
-    borderColor: C.borderStrong,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userUsername: {
-    ...T.h4,
-    color: C.textPrimary,
-  },
-  userBio: {
-    ...T.bodyS,
-    color: C.textSecondary,
-    marginTop: 2,
-  },
-  userStat: {
-    ...T.label,
-    color: C.textMuted,
   },
 });

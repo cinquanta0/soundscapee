@@ -1251,12 +1251,23 @@ export default function PodcastScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Header con pulsante pubblica */}
-      <View style={sc.topBar}>
-        <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
-        <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
-          <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
-        </TouchableOpacity>
+      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
+        <View style={sc.heroGlow} />
+        <Text style={sc.heroEyebrow}>Podcast studio</Text>
+        <View style={sc.topBar}>
+          <View style={{ flex: 1 }}>
+            <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
+            <Text style={sc.topBarSub}>Episodi, voci e format editoriali con una struttura più pulita.</Text>
+          </View>
+          <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
+            <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <View style={sc.sectionHead}>
+        <Text style={sc.sectionCaption}>Library</Text>
+        <Text style={sc.sectionCount}>{podcasts.length}</Text>
       </View>
 
       {podcasts.length === 0 ? (
@@ -1427,10 +1438,67 @@ const pc = StyleSheet.create({
 });
 
 const sc = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  topBarTitle: { fontSize: 16, fontWeight: '700', fontStyle: 'italic', color: '#fff' },
-  publishBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
-  publishBtnTxt: { color: '#00FF9C', fontSize: 13, fontWeight: '600' },
+  hero: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 14,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    padding: 18,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    right: -20,
+    top: -24,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(139,92,255,0.12)',
+  },
+  heroEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  topBarTitle: { fontSize: 28, fontWeight: '800', color: '#F7F8FF', letterSpacing: -0.8 },
+  topBarSub: { color: '#97A4C7', fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
+  publishBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', alignSelf: 'flex-start' },
+  publishBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
+  sectionHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  sectionCaption: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  sectionCount: {
+    minWidth: 38,
+    height: 38,
+    borderRadius: 19,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,92,255,0.22)',
+    color: '#D9FF5A',
+    fontSize: 14,
+    fontWeight: '800',
+    paddingTop: 8,
+  },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle: { fontSize: 18, color: '#fff', fontStyle: 'italic', marginBottom: 6 },
   emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' },

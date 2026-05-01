@@ -24,17 +24,15 @@ function fmtSec(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-// ─── Barra timer ──────────────────────────────────────────────────────────────
 function TimerBar({ seconds, total, color }: { seconds: number; total: number; color: string }) {
   const pct = Math.max(0, Math.min(1, seconds / total));
   return (
-    <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', width: '100%' }}>
-      <View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: color, borderRadius: 3 }} />
+    <View style={s.timerTrack}>
+      <View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: color, borderRadius: 999 }} />
     </View>
   );
 }
 
-// ─── Card partecipante ────────────────────────────────────────────────────────
 function PlayerCard({ name, avatar, votes, trackDone, isRecording, isWinner, color }: {
   name: string; avatar: string; votes: number; trackDone: boolean;
   isRecording: boolean; isWinner: boolean; color: string;
@@ -43,29 +41,61 @@ function PlayerCard({ name, avatar, votes, trackDone, isRecording, isWinner, col
   useEffect(() => {
     if (!isRecording) { pulse.setValue(1); return; }
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1.08, duration: 400, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1.08, duration: 420, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 420, useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
-  }, [isRecording]);
+  }, [isRecording, pulse]);
 
   return (
-    <Animated.View style={[s.playerCard, isWinner && s.playerCardWinner, { borderColor: isWinner ? '#fbbf24' : color + '55', transform: [{ scale: pulse }] }]}>
+    <Animated.View
+      style={[
+        s.playerCard,
+        isWinner && s.playerCardWinner,
+        { borderColor: isWinner ? '#D9FF5A' : `${color}55`, transform: [{ scale: pulse }] },
+      ]}
+    >
       {isWinner && <Text style={s.crownEmoji}>👑</Text>}
       <Text style={s.playerAvatar}>{avatar}</Text>
       <Text style={s.playerName} numberOfLines={1}>{name}</Text>
-      {trackDone && <Text style={s.trackReadyBadge}>✓ Pronto</Text>}
-      {isRecording && <Text style={[s.recBadge, { color }]}>⏺ REC</Text>}
-      <View style={[s.votesBubble, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+      {trackDone && <Text style={s.trackReadyBadge}>READY</Text>}
+      {isRecording && <Text style={[s.recBadge, { color }]}>LIVE REC</Text>}
+      <View style={[s.votesBubble, { backgroundColor: `${color}18`, borderColor: `${color}44` }]}>
         <Text style={[s.votesCount, { color }]}>{votes}</Text>
-        <Text style={s.votesLabel}>voti</Text>
+        <Text style={s.votesLabel}>votes</Text>
       </View>
     </Animated.View>
   );
 }
 
-// ─── Schermata principale ─────────────────────────────────────────────────────
+function CenterState({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: string;
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <View style={s.overlay}>
+      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+      <View style={s.ambientA} />
+      <View style={s.ambientB} />
+      <View style={s.cardShell}>
+        <Text style={s.heroEyebrow}>SOUNDSCAPE BATTLE</Text>
+        <Text style={s.centerIcon}>{icon}</Text>
+        <Text style={s.cardTitle}>{title}</Text>
+        {!!description && <Text style={s.cardDesc}>{description}</Text>}
+        {children}
+      </View>
+    </View>
+  );
+}
+
 interface Props { battleId: string; onClose: () => void; }
 
 export default function BattleScreen({ battleId, onClose }: Props) {
@@ -80,20 +110,14 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
-  // Refs per evitare stale closure
   const recSecsRef = useRef(0);
   const battleRef = useRef<Battle | null>(null);
   const uid = auth.currentUser?.uid ?? '';
 
-  // Mantieni battleRef aggiornato
   useEffect(() => { battleRef.current = battle; }, [battle]);
 
   const isChallenger = battle?.challengerId === uid;
   const isParticipant = battle?.challengerId === uid || battle?.opponentId === uid;
-  const isMyTurn = battle ? (
-    (isChallenger && battle.status === 'challenger_rec') ||
-    (!isChallenger && battle.status === 'opponent_rec')
-  ) : false;
   const myTrackDone = battle ? (isChallenger ? !!battle.challengerTrackUrl : !!battle.opponentTrackUrl) : false;
   const otherTrackDone = battle ? (isChallenger ? !!battle.opponentTrackUrl : !!battle.challengerTrackUrl) : false;
 
@@ -102,8 +126,6 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
   };
 
-  // ── Registrazione ─────────────────────────────────────────────────────────────
-  // stopRecording non ha deps su recSecs/isChallenger — legge dai ref
   const stopRecording = useCallback(async (discard = false) => {
     clearTimers();
     if (!recRef.current) return;
@@ -127,7 +149,6 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     }
   }, [battleId, uid]);
 
-  // Ref aggiornata a stopRecording più recente — usata dal setTimeout
   const stopRecordingRef = useRef(stopRecording);
   useEffect(() => { stopRecordingRef.current = stopRecording; }, [stopRecording]);
 
@@ -145,24 +166,20 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         recSecsRef.current += 1;
         setRecSecs(recSecsRef.current);
       }, 1000);
-      // Auto-stop: chiama sempre la versione aggiornata tramite ref
       maxTimerRef.current = setTimeout(() => stopRecordingRef.current(false), REC_SECS * 1000);
     } catch {
       Alert.alert('Errore', 'Impossibile avviare la registrazione');
     }
   }, []);
 
-  // ── Listener ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const unsub = listenToBattle(battleId, async (b) => {
       setBattle(b);
-      // Auto-start rec quando è il mio turno — calcola ruolo da b direttamente
       const iAmChallenger = b.challengerId === uid;
       if ((b.status === 'challenger_rec' && iAmChallenger) ||
           (b.status === 'opponent_rec' && !iAmChallenger)) {
         if (!recRef.current) startRecording();
       }
-      // Chiudi battaglia scaduta
       if (b.status === 'voting' && b.votingEndsAt && b.votingEndsAt < new Date() && b.winnerId === undefined) {
         await finalizeBattle(battleId).catch(() => {});
       }
@@ -173,8 +190,6 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       .then(async (v) => {
         if (cancelled) return;
         setMyVote(v);
-        // Se esiste la mia vote subdoc, ma i contatori potrebbero essere rimasti indietro
-        // a causa di permessi Firebase precedenti, prova a riconciliare.
         if (v) {
           await reconcileBattleCounters(battleId).catch(() => {});
         }
@@ -186,9 +201,8 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       clearTimers();
       stopRecordingRef.current(true);
     };
-  }, [battleId]);
+  }, [battleId, startRecording, uid]);
 
-  // ── Preview ──────────────────────────────────────────────────────────────────
   const handlePreview = async (who: 'challenger' | 'opponent') => {
     const url = who === 'challenger' ? battle?.challengerTrackUrl : battle?.opponentTrackUrl;
     if (!url) return;
@@ -211,7 +225,6 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     }
   };
 
-  // ── Voto ─────────────────────────────────────────────────────────────────────
   const handleVote = async (votedForId: string) => {
     if (myVote) return;
     if (isParticipant) { Alert.alert('Non puoi votare', 'I partecipanti non possono votare'); return; }
@@ -223,70 +236,64 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     }
   };
 
-  // ────────────────────────────────────────────────────────────────────────────
   if (!battle) {
     return (
-      <View style={[s.overlay, { alignItems: 'center', justifyContent: 'center' }]}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator color="#f97316" size="large" />
-      </View>
+      <CenterState icon="⚔️" title="Sto sincronizzando la battle" description="Recupero round, partecipanti e stato live.">
+        <ActivityIndicator color="#67E8F9" size="large" />
+      </CenterState>
     );
   }
 
-  // ── Invite screen (opponent) ──────────────────────────────────────────────────
   if (battle.status === 'pending' && !isChallenger) {
     return (
-      <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
-        <View style={s.card}>
-          <Text style={{ fontSize: 60, marginBottom: 8 }}>⚔️</Text>
-          <Text style={s.cardTitle}>{battle.challengerName} ti sfida!</Text>
-          <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
-          <Text style={s.cardDesc}>Registra 30 secondi sul tema dato.{'\n'}Il pubblico voterà il migliore.</Text>
-          <View style={s.rowBtns}>
-            <TouchableOpacity style={s.rejectBtn} onPress={() => { rejectBattle(battleId); onClose(); }}>
-              <Text style={s.rejectTxt}>✕ Rifiuta</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.acceptBtn} onPress={() => acceptBattle(battleId)}>
-              <Text style={s.acceptTxt}>⚔️ Accetta</Text>
-            </TouchableOpacity>
-          </View>
+      <CenterState
+        icon="⚔️"
+        title={`${battle.challengerName} ti sfida!`}
+        description="Registra 30 secondi sul tema dato. Poi sarà il pubblico a scegliere il migliore."
+      >
+        <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
+        <View style={s.rowBtns}>
+          <TouchableOpacity style={s.rejectBtn} onPress={() => { rejectBattle(battleId); onClose(); }}>
+            <Text style={s.rejectTxt}>Rifiuta</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.acceptBtn} onPress={() => acceptBattle(battleId)}>
+            <Text style={s.acceptTxt}>Accetta</Text>
+          </TouchableOpacity>
         </View>
-      </View>
+      </CenterState>
     );
   }
 
   if (battle.status === 'rejected' || battle.status === 'cancelled') {
     return (
-      <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
-        <View style={s.card}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>😔</Text>
-          <Text style={s.cardTitle}>{battle.status === 'rejected' ? 'Sfida rifiutata' : 'Sfida annullata'}</Text>
-          <TouchableOpacity style={s.acceptBtn} onPress={onClose}><Text style={s.acceptTxt}>Chiudi</Text></TouchableOpacity>
-        </View>
-      </View>
+      <CenterState
+        icon="😔"
+        title={battle.status === 'rejected' ? 'Sfida rifiutata' : 'Sfida annullata'}
+        description="La sessione non è più attiva. Puoi tornare all’app e lanciare una nuova battle."
+      >
+        <TouchableOpacity style={s.acceptBtn} onPress={onClose}>
+          <Text style={s.acceptTxt}>Chiudi</Text>
+        </TouchableOpacity>
+      </CenterState>
     );
   }
 
-  // ── Waiting (challenger aspetta acceptance) ───────────────────────────────────
   if (battle.status === 'pending' && isChallenger) {
     return (
-      <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
-        <View style={s.card}>
-          <ActivityIndicator color="#f97316" size="large" style={{ marginBottom: 16 }} />
-          <Text style={s.cardTitle}>In attesa di {battle.opponentName}…</Text>
-          <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
-          <TouchableOpacity style={[s.rejectBtn, { marginTop: 24 }]} onPress={() => { cancelBattle(battleId); onClose(); }}>
-            <Text style={s.rejectTxt}>Annulla sfida</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <CenterState
+        icon="⌛"
+        title={`In attesa di ${battle.opponentName}…`}
+        description="La battle partirà appena l’altro utente accetta l’invito."
+      >
+        <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
+        <ActivityIndicator color="#67E8F9" size="large" style={{ marginTop: 12 }} />
+        <TouchableOpacity style={[s.rejectBtn, { marginTop: 24 }]} onPress={() => { cancelBattle(battleId); onClose(); }}>
+          <Text style={s.rejectTxt}>Annulla sfida</Text>
+        </TouchableOpacity>
+      </CenterState>
     );
   }
 
-  // ── Schermata registrazione / voting ─────────────────────────────────────────
   const votingOpen = battle.status === 'voting';
   const isDone = battle.status === 'done';
   const totalVotes = battle.challengerVotes + battle.opponentVotes;
@@ -302,18 +309,25 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+      <View style={s.ambientA} />
+      <View style={s.ambientB} />
+      <View style={s.heroGlow} />
 
-      {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.closeBtn} onPress={() => {
-          if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di uscire'); return; }
-          onClose();
-        }}>
+        <TouchableOpacity
+          style={s.closeBtn}
+          onPress={() => {
+            if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di uscire'); return; }
+            onClose();
+          }}
+        >
           <Text style={s.closeTxt}>←</Text>
         </TouchableOpacity>
-        <View style={s.themePillSmall}><Text style={s.themePillSmallTxt}>🎯 {battle.theme}</Text></View>
-        {/* X rosso — solo challenger, solo stati pre-voting */}
+        <View style={s.headerMeta}>
+          <Text style={s.heroEyebrow}>SOUNDSCAPE BATTLE</Text>
+          <View style={s.themePillSmall}><Text style={s.themePillSmallTxt}>🎯 {battle.theme}</Text></View>
+        </View>
         {isChallenger && ['accepted', 'challenger_rec', 'opponent_rec'].includes(battle.status) ? (
           <TouchableOpacity
             style={s.cancelBtn}
@@ -332,220 +346,238 @@ export default function BattleScreen({ battleId, onClose }: Props) {
             <Text style={s.cancelTxt}>✕</Text>
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 36 }} />
+          <View style={{ width: 40 }} />
         )}
       </View>
 
-      {/* VS */}
-      <View style={s.vsRow}>
-        <PlayerCard
-          name={battle.challengerName}
-          avatar={battle.challengerAvatar}
-          votes={battle.challengerVotes}
-          trackDone={!!battle.challengerTrackUrl}
-          isRecording={battle.status === 'challenger_rec'}
-          isWinner={isDone && battle.winnerId === battle.challengerId}
-          color="#f97316"
-        />
-        <Text style={s.vsText}>VS</Text>
-        <PlayerCard
-          name={battle.opponentName}
-          avatar={battle.opponentAvatar}
-          votes={battle.opponentVotes}
-          trackDone={!!battle.opponentTrackUrl}
-          isRecording={battle.status === 'opponent_rec'}
-          isWinner={isDone && battle.winnerId === battle.opponentId}
-          color="#a855f7"
-        />
-      </View>
-
-      {/* Barra voti */}
-      {(votingOpen || isDone) && totalVotes > 0 && (
-        <View style={{ paddingHorizontal: 24, marginBottom: 16 }}>
-          <View style={{ height: 8, backgroundColor: '#a855f7', borderRadius: 4, overflow: 'hidden' }}>
-            <View style={{ height: '100%', width: `${(battle.challengerVotes / totalVotes) * 100}%`, backgroundColor: '#f97316' }} />
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-            <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }}>{Math.round((battle.challengerVotes / totalVotes) * 100)}%</Text>
-            <Text style={{ color: '#858585', fontSize: 11 }}>{totalVotes} voti totali</Text>
-            <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }}>{Math.round((battle.opponentVotes / totalVotes) * 100)}%</Text>
-          </View>
+      <View style={s.stageCard}>
+        <View style={s.introBlock}>
+          <Text style={s.heroTitle}>30 secondi. Un solo vincitore.</Text>
+          <Text style={s.heroSub}>
+            Registra il tuo round, ascolta l’avversario e lascia che sia il pubblico a decidere.
+          </Text>
         </View>
-      )}
 
-      {/* Status / controlli */}
-      <View style={s.controls}>
+        <View style={s.vsRow}>
+          <PlayerCard
+            name={battle.challengerName}
+            avatar={battle.challengerAvatar}
+            votes={battle.challengerVotes}
+            trackDone={!!battle.challengerTrackUrl}
+            isRecording={battle.status === 'challenger_rec'}
+            isWinner={isDone && battle.winnerId === battle.challengerId}
+            color="#67E8F9"
+          />
+          <Text style={s.vsText}>VS</Text>
+          <PlayerCard
+            name={battle.opponentName}
+            avatar={battle.opponentAvatar}
+            votes={battle.opponentVotes}
+            trackDone={!!battle.opponentTrackUrl}
+            isRecording={battle.status === 'opponent_rec'}
+            isWinner={isDone && battle.winnerId === battle.opponentId}
+            color="#8B5CF6"
+          />
+        </View>
 
-        {/* Registrazione in corso */}
-        {isRecording && (
-          <View style={{ alignItems: 'center', gap: 12, width: '100%' }}>
-            <Text style={{ color: '#f97316', fontSize: 36, fontWeight: '900' }}>{fmtSec(REC_SECS - recSecs)}</Text>
-            <TimerBar seconds={recSecs} total={REC_SECS} color="#f97316" />
-            <TouchableOpacity style={s.stopBtn} onPress={() => stopRecording(false)}>
-              <Text style={s.stopBtnTxt}>⏹ Finito!</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Upload */}
-        {isUploading && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <ActivityIndicator color="#f97316" />
-            <Text style={{ color: '#9A9A9A', fontSize: 12 }}>Caricamento traccia…</Text>
-          </View>
-        )}
-
-        {/* Challenger: avvia battaglia */}
-        {isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
-          <TouchableOpacity style={s.startBtn} onPress={() => startChallengerRec(battleId)}>
-            <Text style={s.startBtnTxt}>⚔️ Inizia la battaglia!</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Opponent: aspetta challenger */}
-        {!isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <ActivityIndicator color="#a855f7" />
-            <Text style={{ color: '#9A9A9A', fontSize: 13 }}>
-              Aspetta che {battle.challengerName} inizi…
-            </Text>
-          </View>
-        )}
-
-        {/* Partecipante: attesa turno avversario */}
-        {isParticipant && !isRecording && !isUploading && !myTrackDone &&
-          ((isChallenger && battle.status === 'opponent_rec') ||
-           (!isChallenger && battle.status === 'challenger_rec')) && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <ActivityIndicator color="#a855f7" />
-            <Text style={{ color: '#9A9A9A', fontSize: 13 }}>
-              {isChallenger ? battle.opponentName : battle.challengerName} sta registrando…
-            </Text>
-          </View>
-        )}
-
-        {/* Traccia caricata, in attesa dell'avversario */}
-        {isParticipant && myTrackDone && !otherTrackDone && !votingOpen && !isDone && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <ActivityIndicator color="#4ade80" />
-            <Text style={{ color: '#4ade80', fontSize: 13, fontWeight: '600' }}>✓ Traccia caricata!</Text>
-            <Text style={{ color: '#9A9A9A', fontSize: 12 }}>
-              In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…
-            </Text>
-          </View>
-        )}
-
-        {/* Preview tracce (in voting/done) */}
-        {(votingOpen || isDone) && (
-          <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-            <TouchableOpacity
-              style={[s.previewBtn, { borderColor: '#f97316' + '55' }]}
-              onPress={() => handlePreview('challenger')}
-            >
-              <Text style={{ color: '#f97316', fontSize: 16 }}>{previewPlaying === 'challenger' ? '⏹' : '▶'}</Text>
-              <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '700' }} numberOfLines={1}>{battle.challengerName}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.previewBtn, { borderColor: '#a855f7' + '55' }]}
-              onPress={() => handlePreview('opponent')}
-            >
-              <Text style={{ color: '#a855f7', fontSize: 16 }}>{previewPlaying === 'opponent' ? '⏹' : '▶'}</Text>
-              <Text style={{ color: '#a855f7', fontSize: 11, fontWeight: '700' }} numberOfLines={1}>{battle.opponentName}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Vota */}
-        {votingOpen && !isParticipant && !myVote && (
-          <View style={{ gap: 10, width: '100%' }}>
-            <Text style={{ color: '#9A9A9A', fontSize: 12, textAlign: 'center' }}>{timeLeftLabel()}</Text>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity
-                style={[s.voteBtn, { borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.15)' }]}
-                onPress={() => handleVote(battle.challengerId)}
-              >
-                <Text style={{ color: '#f97316', fontWeight: '800', fontSize: 14 }}>🔥 {battle.challengerName}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.voteBtn, { borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.15)' }]}
-                onPress={() => handleVote(battle.opponentId)}
-              >
-                <Text style={{ color: '#a855f7', fontWeight: '800', fontSize: 14 }}>⚡ {battle.opponentName}</Text>
-              </TouchableOpacity>
+        {(votingOpen || isDone) && totalVotes > 0 && (
+          <View style={s.voteBarWrap}>
+            <View style={s.voteBarTrack}>
+              <View style={[s.voteBarFill, { width: `${(battle.challengerVotes / totalVotes) * 100}%` }]} />
+            </View>
+            <View style={s.voteBarMeta}>
+              <Text style={s.voteBarLeft}>{Math.round((battle.challengerVotes / totalVotes) * 100)}%</Text>
+              <Text style={s.voteBarMid}>{totalVotes} voti totali</Text>
+              <Text style={s.voteBarRight}>{Math.round((battle.opponentVotes / totalVotes) * 100)}%</Text>
             </View>
           </View>
         )}
 
-        {/* Già votato */}
-        {votingOpen && !isParticipant && myVote && (
-          <View style={{ alignItems: 'center', gap: 6 }}>
-            <Text style={{ color: '#4ade80', fontWeight: '700', fontSize: 14 }}>✓ Hai votato!</Text>
-            <Text style={{ color: '#858585', fontSize: 11 }}>{timeLeftLabel()}</Text>
-          </View>
-        )}
+        <View style={s.controls}>
+          {isRecording && (
+            <View style={s.focusPanel}>
+              <Text style={s.focusLabel}>RECORDING LIVE</Text>
+              <Text style={s.recordCountdown}>{fmtSec(REC_SECS - recSecs)}</Text>
+              <TimerBar seconds={recSecs} total={REC_SECS} color="#67E8F9" />
+              <TouchableOpacity style={s.stopBtn} onPress={() => stopRecording(false)}>
+                <Text style={s.stopBtnTxt}>⏹ Finito!</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* Partecipante: voto in corso */}
-        {votingOpen && isParticipant && (
-          <View style={{ alignItems: 'center', gap: 6 }}>
-            <Text style={{ color: '#9A9A9A', fontSize: 14, fontWeight: '600' }}>🗳 Votazione aperta al pubblico</Text>
-            <Text style={{ color: '#858585', fontSize: 11 }}>{timeLeftLabel()}</Text>
-          </View>
-        )}
+          {isUploading && (
+            <View style={s.focusPanel}>
+              <ActivityIndicator color="#67E8F9" />
+              <Text style={s.statusTitle}>Upload in corso</Text>
+              <Text style={s.statusSub}>Sto inviando la tua traccia al round.</Text>
+            </View>
+          )}
 
-        {/* Fine battaglia */}
-        {isDone && (
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <Text style={{ color: '#fbbf24', fontSize: 22, fontWeight: '900' }}>
-              🏆 {battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName} ha vinto!
-            </Text>
-            <Text style={{ color: '#858585', fontSize: 12 }}>{totalVotes} voti totali</Text>
-            <TouchableOpacity style={[s.acceptBtn, { marginTop: 8 }]} onPress={onClose}>
-              <Text style={s.acceptTxt}>Chiudi</Text>
+          {isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
+            <TouchableOpacity style={s.startBtn} onPress={() => startChallengerRec(battleId)}>
+              <Text style={s.startBtnTxt}>⚔️ Inizia la battaglia!</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+
+          {!isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
+            <View style={s.focusPanel}>
+              <ActivityIndicator color="#8B5CF6" />
+              <Text style={s.statusTitle}>Aspetta che {battle.challengerName} inizi…</Text>
+              <Text style={s.statusSub}>La tua registrazione si sblocca appena parte il primo round.</Text>
+            </View>
+          )}
+
+          {isParticipant && !isRecording && !isUploading && !myTrackDone &&
+            ((isChallenger && battle.status === 'opponent_rec') ||
+             (!isChallenger && battle.status === 'challenger_rec')) && (
+            <View style={s.focusPanel}>
+              <ActivityIndicator color="#8B5CF6" />
+              <Text style={s.statusTitle}>{isChallenger ? battle.opponentName : battle.challengerName} sta registrando…</Text>
+              <Text style={s.statusSub}>Quando finisce, la sfida passa automaticamente allo step successivo.</Text>
+            </View>
+          )}
+
+          {isParticipant && myTrackDone && !otherTrackDone && !votingOpen && !isDone && (
+            <View style={s.focusPanel}>
+              <ActivityIndicator color="#D9FF5A" />
+              <Text style={s.successTitle}>✓ Traccia caricata!</Text>
+              <Text style={s.statusSub}>In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…</Text>
+            </View>
+          )}
+
+          {(votingOpen || isDone) && (
+            <View style={s.dualActionRow}>
+              <TouchableOpacity
+                style={[s.previewBtn, { borderColor: 'rgba(103,232,249,0.24)' }]}
+                onPress={() => handlePreview('challenger')}
+              >
+                <Text style={{ color: '#67E8F9', fontSize: 16 }}>{previewPlaying === 'challenger' ? '⏹' : '▶'}</Text>
+                <Text style={{ color: '#67E8F9', fontSize: 11, fontWeight: '700' }} numberOfLines={1}>{battle.challengerName}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.previewBtn, { borderColor: 'rgba(139,92,246,0.24)' }]}
+                onPress={() => handlePreview('opponent')}
+              >
+                <Text style={{ color: '#8B5CF6', fontSize: 16 }}>{previewPlaying === 'opponent' ? '⏹' : '▶'}</Text>
+                <Text style={{ color: '#8B5CF6', fontSize: 11, fontWeight: '700' }} numberOfLines={1}>{battle.opponentName}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {votingOpen && !isParticipant && !myVote && (
+            <View style={{ gap: 10, width: '100%' }}>
+              <Text style={s.voteHint}>{timeLeftLabel()}</Text>
+              <View style={s.dualActionRow}>
+                <TouchableOpacity
+                  style={[s.voteBtn, { borderColor: '#67E8F9', backgroundColor: 'rgba(103,232,249,0.12)' }]}
+                  onPress={() => handleVote(battle.challengerId)}
+                >
+                  <Text style={{ color: '#67E8F9', fontWeight: '800', fontSize: 14 }}>Vote {battle.challengerName}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.voteBtn, { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.12)' }]}
+                  onPress={() => handleVote(battle.opponentId)}
+                >
+                  <Text style={{ color: '#8B5CF6', fontWeight: '800', fontSize: 14 }}>Vote {battle.opponentName}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {votingOpen && !isParticipant && myVote && (
+            <View style={s.focusPanel}>
+              <Text style={s.successTitle}>✓ Hai votato!</Text>
+              <Text style={s.voteHint}>{timeLeftLabel()}</Text>
+            </View>
+          )}
+
+          {votingOpen && isParticipant && (
+            <View style={s.focusPanel}>
+              <Text style={s.statusTitle}>🗳 Votazione aperta al pubblico</Text>
+              <Text style={s.voteHint}>{timeLeftLabel()}</Text>
+            </View>
+          )}
+
+          {isDone && (
+            <View style={s.focusPanel}>
+              <Text style={s.winnerTitle}>
+                🏆 {battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName} ha vinto!
+              </Text>
+              <Text style={s.voteHint}>{totalVotes} voti totali</Text>
+              <TouchableOpacity style={[s.acceptBtn, { marginTop: 8 }]} onPress={onClose}>
+                <Text style={s.acceptTxt}>Chiudi</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
-// ─── Stili ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#0A0A0A' },
-  card: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  cardTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
-  cardDesc: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
-  themePill: { backgroundColor: 'rgba(249,115,22,0.15)', borderRadius: 20, paddingHorizontal: 18, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginBottom: 16 },
-  themePillTxt: { color: '#f97316', fontWeight: '700', fontSize: 14 },
-  themePillSmall: { backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' },
-  themePillSmallTxt: { color: '#f97316', fontSize: 11, fontWeight: '700' },
+  overlay: { flex: 1, backgroundColor: '#050816' },
+  ambientA: { position: 'absolute', right: -90, top: 84, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(103,232,249,0.08)' },
+  ambientB: { position: 'absolute', left: -70, bottom: 120, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(139,92,246,0.08)' },
+  heroGlow: { position: 'absolute', right: 28, top: 118, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(217,255,90,0.08)' },
+  cardShell: { flex: 1, margin: 20, marginTop: 72, marginBottom: 36, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', backgroundColor: 'rgba(9,12,28,0.82)', alignItems: 'center', justifyContent: 'center', padding: 32, overflow: 'hidden' },
+  heroEyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 },
+  centerIcon: { fontSize: 58, marginBottom: 10 },
+  cardTitle: { color: '#F7F8FF', fontSize: 26, fontWeight: '800', marginBottom: 12, textAlign: 'center', letterSpacing: -0.7 },
+  cardDesc: { color: '#97A4C7', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  themePill: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', marginBottom: 12 },
+  themePillTxt: { color: '#67E8F9', fontWeight: '700', fontSize: 14 },
+  themePillSmall: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)' },
+  themePillSmallTxt: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
   rowBtns: { flexDirection: 'row', gap: 14 },
-  rejectBtn: { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12, backgroundColor: 'rgba(255,59,48,0.12)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
-  rejectTxt: { color: '#FF3B30', fontWeight: '700', fontSize: 14 },
-  acceptBtn: { paddingHorizontal: 26, paddingVertical: 13, borderRadius: 12, backgroundColor: '#f97316' },
+  acceptBtn: { paddingHorizontal: 26, paddingVertical: 13, borderRadius: 16, backgroundColor: '#8B5CF6' },
   acceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 52 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#9A9A9A', fontSize: 15 },
-  cancelBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.4)', alignItems: 'center', justifyContent: 'center' },
-  cancelTxt: { color: '#FF3B30', fontSize: 15, fontWeight: '700' },
-  vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 24 },
-  vsText: { color: '#858585', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
-  playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 12, borderWidth: 1, marginHorizontal: 4 },
-  playerCardWinner: { backgroundColor: 'rgba(251,191,36,0.08)', borderColor: '#fbbf24' },
+  rejectBtn: { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' },
+  rejectTxt: { color: '#FF6B6B', fontWeight: '700', fontSize: 14 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 52, paddingBottom: 12 },
+  headerMeta: { alignItems: 'center', gap: 8 },
+  closeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  closeTxt: { color: '#97A4C7', fontSize: 15 },
+  cancelBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { color: '#FF6B6B', fontSize: 15, fontWeight: '700' },
+  stageCard: { flex: 1, marginHorizontal: 16, marginBottom: 24, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', backgroundColor: 'rgba(9,12,28,0.82)', overflow: 'hidden' },
+  introBlock: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
+  heroTitle: { color: '#F7F8FF', fontSize: 28, fontWeight: '800', letterSpacing: -0.9 },
+  heroSub: { color: '#97A4C7', fontSize: 14, lineHeight: 21, marginTop: 8, maxWidth: '92%' },
+  vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 22 },
+  vsText: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
+  playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 22, padding: 14, borderWidth: 1, marginHorizontal: 4 },
+  playerCardWinner: { backgroundColor: 'rgba(217,255,90,0.08)', borderColor: '#D9FF5A' },
   crownEmoji: { fontSize: 20, position: 'absolute', top: -12 },
   playerAvatar: { fontSize: 44 },
-  playerName: { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  trackReadyBadge: { color: '#4ade80', fontSize: 10, fontWeight: '700' },
+  playerName: { color: '#F7F8FF', fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  trackReadyBadge: { color: '#D9FF5A', fontSize: 10, fontWeight: '700' },
   recBadge: { fontSize: 10, fontWeight: '800' },
   votesBubble: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, alignItems: 'center', marginTop: 4 },
   votesCount: { fontSize: 20, fontWeight: '900' },
-  votesLabel: { color: '#858585', fontSize: 9 },
-  controls: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 20 },
-  startBtn: { backgroundColor: '#f97316', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16 },
+  votesLabel: { color: '#97A4C7', fontSize: 9 },
+  voteBarWrap: { paddingHorizontal: 20, marginBottom: 16 },
+  voteBarTrack: { height: 10, backgroundColor: 'rgba(139,92,246,0.3)', borderRadius: 999, overflow: 'hidden' },
+  voteBarFill: { height: '100%', backgroundColor: '#67E8F9' },
+  voteBarMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  voteBarLeft: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
+  voteBarMid: { color: '#97A4C7', fontSize: 11 },
+  voteBarRight: { color: '#8B5CF6', fontSize: 11, fontWeight: '700' },
+  controls: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: 20, gap: 20 },
+  focusPanel: { width: '100%', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 18, borderWidth: 1, borderColor: 'rgba(163,177,255,0.12)' },
+  focusLabel: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase' },
+  recordCountdown: { color: '#F7F8FF', fontSize: 38, fontWeight: '900' },
+  timerTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden', width: '100%' },
+  statusTitle: { color: '#F7F8FF', fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  statusSub: { color: '#97A4C7', fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  successTitle: { color: '#D9FF5A', fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  voteHint: { color: '#97A4C7', fontSize: 12, textAlign: 'center' },
+  winnerTitle: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', textAlign: 'center' },
+  startBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 18, shadowColor: '#8B5CF6', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   startBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 17 },
-  stopBtn: { backgroundColor: 'rgba(255,59,48,0.2)', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(255,59,48,0.4)' },
-  stopBtnTxt: { color: '#FF3B30', fontWeight: '800', fontSize: 15 },
-  previewBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 12, borderWidth: 1 },
-  voteBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5 },
+  stopBtn: { backgroundColor: 'rgba(239,68,68,0.14)', borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.28)' },
+  stopBtnTxt: { color: '#FF6B6B', fontWeight: '800', fontSize: 15 },
+  dualActionRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  previewBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 12, borderWidth: 1 },
+  voteBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 1.5 },
 });

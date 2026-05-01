@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
@@ -26,31 +27,33 @@ function timeAgo(d: Date) {
   return `${Math.floor(diff / 86400)}g`;
 }
 
-// ─── Conversation row ──────────────────────────────────────────────────────────
 function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }) {
   const isMe = conv.lastSenderId === auth.currentUser?.uid;
   const initial = conv.otherUserName[0]?.toUpperCase() || '?';
   return (
-    <TouchableOpacity style={cr.row} onPress={onPress} activeOpacity={0.8}>
-      <View style={cr.avatar}>
-        <Text style={cr.avatarTxt}>{initial}</Text>
+    <TouchableOpacity style={cr.row} onPress={onPress} activeOpacity={0.86}>
+      <View style={cr.avatarWrap}>
+        <View style={cr.avatar}>
+          <Text style={cr.avatarTxt}>{initial}</Text>
+        </View>
         {conv.unread > 0 && (
           <View style={cr.badge}>
             <Text style={cr.badgeTxt}>{conv.unread > 9 ? '9+' : conv.unread}</Text>
           </View>
         )}
       </View>
+
       <View style={cr.info}>
         <View style={cr.top}>
           <Text style={cr.name}>{conv.otherUserName}</Text>
           <Text style={cr.time}>{timeAgo(conv.lastTimestamp)}</Text>
         </View>
         <View style={cr.bottom}>
-          <Text style={cr.preview}>
-            {isMe ? '▶ ' : '🎤 '}{conv.lastDuration}s
+          <Text style={cr.preview} numberOfLines={1}>
+            {isMe ? 'Tu' : 'Audio'} · {conv.lastDuration}s
           </Text>
           {isMe && (
-            <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#00FF9C' : '#858585' }]}>
+            <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#67E8F9' : '#687392' }]}>
               {conv.lastMessageAscoltato ? '✓✓' : '✓'}
             </Text>
           )}
@@ -60,10 +63,9 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
   );
 }
 
-// ─── New conversation search ───────────────────────────────────────────────────
 function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => void; onClose: () => void }) {
   const { t } = useTranslation();
-  const [query_text, setQueryText] = useState('');
+  const [queryText, setQueryText] = useState('');
   const [results, setResults] = useState<OtherUser[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -90,38 +92,35 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
             avatar: d.data().avatar || '🎵',
           })),
       );
-    } catch { /* silenzioso */ }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={nm.overlay}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
+    <KeyboardAvoidingView style={nm.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={nm.sheet}>
-        <LinearGradient colors={['#0D0D11', '#141420']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
+        <LinearGradient colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.98)']} style={[StyleSheet.absoluteFill, { borderRadius: 28 }]} />
         <View style={nm.handle} />
+        <Text style={nm.eyebrow}>New conversation</Text>
         <Text style={nm.title}>{t('messages.newConversation')}</Text>
         <TextInput
           style={nm.input}
           placeholder={t('messages.searchPlaceholder')}
-          placeholderTextColor="#4A4D56"
-          value={query_text}
+          placeholderTextColor="#6F7896"
+          value={queryText}
           onChangeText={search}
           autoFocus
         />
-        {loading && <ActivityIndicator color="#00FF9C" style={{ marginTop: 10 }} />}
+        {loading && <ActivityIndicator color="#67E8F9" style={{ marginTop: 12 }} />}
         {results.map((u) => (
           <TouchableOpacity key={u.id} style={nm.resultRow} onPress={() => onSelect(u)}>
             <View style={nm.resultAvatar}>
               <Text style={nm.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={nm.resultName}>{u.displayName}</Text>
               <Text style={nm.resultUser}>@{u.username}</Text>
             </View>
+            <Feather name="arrow-up-right" size={16} color="#97A4C7" />
           </TouchableOpacity>
         ))}
         <TouchableOpacity style={nm.cancelBtn} onPress={onClose}>
@@ -132,7 +131,6 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
   );
 }
 
-// ─── Main screen ───────────────────────────────────────────────────────────────
 interface Props {
   initialChat?: { userId: string; userName: string; userAvatar: string } | null;
   onViewProfile?: (userId: string) => void;
@@ -155,7 +153,6 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
     return unsub;
   }, [me?.uid]);
 
-  // Apri chat diretta se viene passato initialChat
   useEffect(() => {
     if (initialChat) setActiveChat(initialChat);
   }, [initialChat]);
@@ -175,19 +172,36 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
 
   return (
     <View style={ms.container}>
-      <LinearGradient colors={['#050508', '#0D0D1A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+      <View style={ms.ambientA} />
+      <View style={ms.ambientB} />
 
-      {/* Header */}
-      <View style={ms.header}>
-        <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
-        <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
-          <Text style={ms.newBtnTxt}>{t('messages.newBtn')}</Text>
-        </TouchableOpacity>
+      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
+        <View style={ms.heroGlow} />
+        <Text style={ms.eyebrow}>Voice inbox</Text>
+        <View style={ms.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
+            <Text style={ms.headerSub}>Messaggi vocali, reply rapidi e conversazioni audio in un’unica inbox.</Text>
+          </View>
+          <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
+            <Feather name="plus" size={15} color="#060913" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <View style={ms.sectionHead}>
+        <Text style={ms.sectionCaption}>Conversations</Text>
+        <View style={ms.sectionBadge}>
+          <Text style={ms.sectionBadgeText}>{totalUnread}</Text>
+        </View>
       </View>
 
       {conversations.length === 0 ? (
         <View style={ms.empty}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>🎤</Text>
+          <View style={ms.emptyOrb}>
+            <Feather name="message-circle" size={28} color="#67E8F9" />
+          </View>
           <Text style={ms.emptyTitle}>{t('messages.emptyTitle')}</Text>
           <Text style={ms.emptyDesc}>{t('messages.emptyDesc')}</Text>
           <TouchableOpacity style={ms.emptyBtn} onPress={() => setShowNewConv(true)}>
@@ -204,7 +218,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
               onPress={() => setActiveChat({ userId: item.otherUserId, userName: item.otherUserName, userAvatar: item.otherUserAvatar })}
             />
           )}
-          contentContainerStyle={{ paddingTop: 8 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -222,46 +236,98 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const cr = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.05)' },
-  avatar: { position: 'relative', width: 46, height: 46, borderRadius: 23, backgroundColor: '#161616', borderWidth: 2, borderColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { color: '#00FF9C', fontSize: 18, fontWeight: '700' },
-  badge: { position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeTxt: { color: '#001A0D', fontSize: 9, fontWeight: '800' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  avatarWrap: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.22)',
+  },
+  avatarTxt: {
+    color: '#67E8F9',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D9FF5A',
+  },
+  badgeTxt: {
+    color: '#060913',
+    fontSize: 9,
+    fontWeight: '800',
+  },
   info: { flex: 1 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  name: { color: '#F5F5F5', fontSize: 14, fontWeight: '700', letterSpacing: -0.1 },
-  time: { color: '#9A9A9A', fontSize: 11, fontVariant: ['tabular-nums'] as any },
-  bottom: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  preview: { color: '#9A9A9A', fontSize: 12 },
-  check: { fontSize: 11 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  name: { color: '#F7F8FF', fontSize: 15, fontWeight: '800' },
+  time: { color: '#97A4C7', fontSize: 11, fontWeight: '700' },
+  bottom: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  preview: { color: '#97A4C7', fontSize: 12, flex: 1 },
+  check: { fontSize: 11, fontWeight: '700' },
 });
 
 const nm = StyleSheet.create({
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', zIndex: 100 },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 300 },
+  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', zIndex: 100 },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 320 },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginBottom: 18 },
-  title: { color: '#F5F5F5', fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 14 },
-  input: { backgroundColor: '#161616', borderRadius: 28, paddingHorizontal: 16, paddingVertical: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 10 },
-  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  resultAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#161616', borderWidth: 2, borderColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
-  resultAvatarTxt: { color: '#00FF9C', fontSize: 16, fontWeight: '700' },
-  resultName: { color: '#F5F5F5', fontSize: 14, fontWeight: '600', letterSpacing: -0.1 },
-  resultUser: { color: '#9A9A9A', fontSize: 11 },
-  cancelBtn: { marginTop: 14, padding: 13, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
-  cancelTxt: { color: '#9A9A9A', fontSize: 14, fontWeight: '500' },
+  eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 8 },
+  title: { color: '#F7F8FF', fontSize: 24, fontWeight: '800', letterSpacing: -0.6, marginBottom: 14 },
+  input: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 14, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(163,177,255,0.12)', marginBottom: 10 },
+  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  resultAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)', alignItems: 'center', justifyContent: 'center' },
+  resultAvatarTxt: { color: '#67E8F9', fontSize: 16, fontWeight: '800' },
+  resultName: { color: '#F7F8FF', fontSize: 14, fontWeight: '700' },
+  resultUser: { color: '#97A4C7', fontSize: 11 },
+  cancelBtn: { marginTop: 16, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
+  cancelTxt: { color: '#97A4C7', fontSize: 14, fontWeight: '600' },
 });
 
 const ms = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050508' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,255,156,0.08)' },
-  headerTitle: { color: '#fff', fontSize: 26, fontStyle: 'normal', fontWeight: '700', letterSpacing: 0.5 },
-  newBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
-  newBtnTxt: { color: '#00FF9C', fontSize: 12, fontVariant: ['tabular-nums'] as any },
+  container: { flex: 1, backgroundColor: '#050816' },
+  ambientA: { position: 'absolute', right: -80, top: 70, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(103,232,249,0.08)' },
+  ambientB: { position: 'absolute', left: -70, top: 260, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(139,92,255,0.08)' },
+  hero: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', padding: 18, overflow: 'hidden' },
+  heroGlow: { position: 'absolute', right: -20, top: -24, width: 150, height: 150, borderRadius: 999, backgroundColor: 'rgba(139,92,255,0.12)' },
+  eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  headerTitle: { color: '#F7F8FF', fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
+  headerSub: { color: '#97A4C7', fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
+  newBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9FF5A' },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
+  sectionCaption: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  sectionBadge: { minWidth: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.22)' },
+  sectionBadgeText: { color: '#D9FF5A', fontSize: 14, fontWeight: '800' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { color: '#fff', fontSize: 20, fontStyle: 'normal', marginBottom: 6 },
-  emptyDesc: { color: '#858585', fontSize: 13, fontVariant: ['tabular-nums'] as any, marginBottom: 24 },
-  emptyBtn: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 24, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
-  emptyBtnTxt: { color: '#00FF9C', fontSize: 13, fontVariant: ['tabular-nums'] as any },
+  emptyOrb: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(103,232,249,0.08)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.2)', marginBottom: 16 },
+  emptyTitle: { color: '#F7F8FF', fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  emptyDesc: { color: '#97A4C7', fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
+  emptyBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)' },
+  emptyBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
 });

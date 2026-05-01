@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import PodcastScreen from './PodcastScreen';
 import PodcastDetailScreen from './PodcastDetailScreen';
@@ -8,6 +10,12 @@ import PlaylistDetailScreen from './PlaylistDetailScreen';
 import ITSSchoolScreen from './ITSSchoolScreen';
 
 type PodcastView = 'feed' | 'school' | 'playlists' | 'podcastDetail' | 'playlistDetail';
+
+const TABS: { id: Exclude<PodcastView, 'podcastDetail' | 'playlistDetail'>; icon: React.ComponentProps<typeof Feather>['name']; labelKey: string; subtitle: string }[] = [
+  { id: 'feed', icon: 'mic', labelKey: 'podcast.tabFeed', subtitle: 'episodi e nuove uscite' },
+  { id: 'school', icon: 'book-open', labelKey: 'podcast.tabSchool', subtitle: 'format learning e ITS' },
+  { id: 'playlists', icon: 'layers', labelKey: 'podcast.tabPlaylists', subtitle: 'raccolte curate e mood mix' },
+];
 
 export default function PodcastHubScreen() {
   const { t } = useTranslation();
@@ -42,25 +50,36 @@ export default function PodcastHubScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, view === 'feed' && styles.tabActive]}
-          onPress={() => setView('feed')}
-        >
-          <Text style={[styles.tabText, view === 'feed' && styles.tabTextActive]}>{t('podcast.tabFeed')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, view === 'school' && styles.tabActive]}
-          onPress={() => setView('school')}
-        >
-          <Text style={[styles.tabText, view === 'school' && styles.tabTextActive]}>{t('podcast.tabSchool')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, view === 'playlists' && styles.tabActive]}
-          onPress={() => setView('playlists')}
-        >
-          <Text style={[styles.tabText, view === 'playlists' && styles.tabTextActive]}>{t('podcast.tabPlaylists')}</Text>
-        </TouchableOpacity>
+      <LinearGradient
+        colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']}
+        style={styles.hero}
+      >
+        <View style={styles.heroGlow} />
+        <Text style={styles.eyebrow}>Audio narratives</Text>
+        <Text style={styles.title}>Podcast hub</Text>
+        <Text style={styles.subtitle}>
+          Episodi, format scuola e playlist editoriali dentro una struttura più leggibile e coerente con il nuovo feed.
+        </Text>
+      </LinearGradient>
+
+      <View style={styles.tabsRow}>
+        {TABS.map((tab) => {
+          const active = view === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tabCard, active && styles.tabCardActive]}
+              onPress={() => setView(tab.id)}
+              activeOpacity={0.9}
+            >
+              <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
+                <Feather name={tab.icon} size={16} color={active ? '#67E8F9' : '#94A0C3'} />
+              </View>
+              <Text style={[styles.tabTitle, active && styles.tabTitleActive]}>{t(tab.labelKey)}</Text>
+              <Text style={styles.tabSubtitle}>{tab.subtitle}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <View style={styles.content}>
@@ -83,36 +102,93 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabs: {
-    flexDirection: 'row',
+  hero: {
     marginHorizontal: 16,
     marginTop: 4,
+    marginBottom: 14,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    padding: 18,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    right: -18,
+    top: -26,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(139,92,255,0.12)',
+  },
+  eyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
     marginBottom: 8,
-    backgroundColor: '#161616',
-    borderRadius: 12,
-    padding: 3,
+  },
+  title: {
+    color: '#F7F8FF',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#97A4C7',
+    fontSize: 14,
+    lineHeight: 20,
+    maxWidth: '90%',
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 14,
+  },
+  tabCard: {
+    flex: 1,
+    minHeight: 108,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+  },
+  tabCardActive: {
+    borderColor: 'rgba(103,232,249,0.24)',
+    backgroundColor: 'rgba(103,232,249,0.08)',
+  },
+  tabIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    gap: 3,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  tabActive: {
-    backgroundColor: 'rgba(0,255,156,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
+  tabIconWrapActive: {
+    borderColor: 'rgba(103,232,249,0.2)',
+    backgroundColor: 'rgba(103,232,249,0.12)',
   },
-  tabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
+  tabTitle: {
+    color: '#F7F8FF',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
   },
-  tabTextActive: {
-    color: '#00FF9C',
+  tabTitleActive: {
+    color: '#67E8F9',
+  },
+  tabSubtitle: {
+    color: '#8390B2',
+    fontSize: 11,
+    lineHeight: 16,
   },
   content: {
     flex: 1,

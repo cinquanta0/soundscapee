@@ -1,14 +1,15 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated, Platform,
+  Animated,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { C, T, S, Spring } from '../constants/design';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type TabId = 'home' | 'explore' | 'map' | 'challenges' | 'communities' | 'profile' | 'messages';
 
@@ -16,6 +17,7 @@ interface Tab {
   id: TabId;
   label: string;
   icon: React.ComponentProps<typeof Feather>['name'];
+  accent: string;
 }
 
 interface BottomNavBarProps {
@@ -23,19 +25,14 @@ interface BottomNavBarProps {
   onTabChange: (tab: TabId) => void;
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const TAB_ICONS: Record<TabId, React.ComponentProps<typeof Feather>['name']> = {
-  home:        'activity',
-  explore:     'compass',
-  map:         'map-pin',
-  challenges:  'award',
-  communities: 'users',
-  messages:    'message-circle',
-  profile:     'user',
-};
-
-// ─── NavItem ──────────────────────────────────────────────────────────────────
+const TABS: Tab[] = [
+  { id: 'home', label: 'Feed', icon: 'activity', accent: '#67E8F9' },
+  { id: 'explore', label: 'Explore', icon: 'compass', accent: '#8B5CFF' },
+  { id: 'map', label: 'Map', icon: 'map-pin', accent: '#4F7CFF' },
+  { id: 'challenges', label: 'Challenges', icon: 'award', accent: '#FF9B5E' },
+  { id: 'messages', label: 'Messages', icon: 'message-circle', accent: '#F472FF' },
+  { id: 'profile', label: 'Profile', icon: 'user', accent: '#D9FF5A' },
+];
 
 function NavItem({
   tab,
@@ -46,116 +43,71 @@ function NavItem({
   isActive: boolean;
   onPress: () => void;
 }) {
-  const scale        = useRef(new Animated.Value(1)).current;
-  const pillOpacity  = useRef(new Animated.Value(isActive ? 1 : 0)).current;
-  const pillScaleX   = useRef(new Animated.Value(isActive ? 1 : 0.5)).current;
-  const glowOpacity  = useRef(new Animated.Value(isActive ? 1 : 0)).current;
-  const lift         = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const glow = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const lift = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const pillOpacity = useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(pillOpacity, { toValue: isActive ? 1 : 0, useNativeDriver: true, ...Spring.snappy }),
-      Animated.spring(pillScaleX,  { toValue: isActive ? 1 : 0.5, useNativeDriver: true, ...Spring.bouncy }),
-      Animated.timing(glowOpacity, { toValue: isActive ? 1 : 0, duration: 250, useNativeDriver: true }),
-      Animated.spring(lift,        { toValue: isActive ? 1 : 0, useNativeDriver: true, ...Spring.smooth }),
+      Animated.spring(lift, { toValue: isActive ? 1 : 0, useNativeDriver: true, speed: 18, bounciness: 8 }),
+      Animated.timing(glow, { toValue: isActive ? 1 : 0, duration: 220, useNativeDriver: true }),
+      Animated.timing(pillOpacity, { toValue: isActive ? 1 : 0, duration: 220, useNativeDriver: true }),
     ]).start();
-  }, [glowOpacity, isActive, lift, pillOpacity, pillScaleX]);
+  }, [glow, isActive, lift, pillOpacity]);
 
-  const onPressIn  = () => Animated.spring(scale, { toValue: 0.84, useNativeDriver: true, ...Spring.snappy }).start();
-  const onPressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, ...Spring.snappy }).start();
-  const translateY = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
+  const translateY = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -4] });
+  const pressIn = () => Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 26, bounciness: 6 }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 26, bounciness: 6 }).start();
 
   return (
-    <TouchableOpacity
-      style={styles.navItem}
-      onPress={onPress}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      activeOpacity={1}
-    >
-      <Animated.View style={[styles.navItemInner, { transform: [{ scale }, { translateY }] }]}>
-
-        {/* Icon zone with pill highlight */}
-        <View style={styles.iconZone}>
-          {/* Pill background */}
-          <Animated.View style={[styles.pillWrap, { opacity: pillOpacity, transform: [{ scaleX: pillScaleX }] }]}>
+    <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={1} style={styles.itemTouch}>
+      <Animated.View style={[styles.itemInner, { transform: [{ scale }, { translateY }] }]}>
+        <Animated.View style={[styles.iconGlow, { opacity: glow, backgroundColor: tab.accent + '26' }]} />
+        <Animated.View style={[styles.iconShell, isActive && { borderColor: tab.accent + '55' }]}>
+          <Animated.View style={[styles.activePill, { opacity: pillOpacity }]}>
             <LinearGradient
-              colors={['rgba(0,255,156,0.24)', 'rgba(99,214,255,0.14)']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.pill}
+              colors={[tab.accent + '22', 'rgba(13,16,31,0.82)']}
+              style={styles.activePillFill}
             />
           </Animated.View>
-          {/* Outer glow halo */}
-          <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
-          {/* Icon */}
-          <Feather
-            name={tab.icon}
-            size={20}
-            color={isActive ? C.accent : C.textMuted}
-          />
-        </View>
-
-        {/* Label */}
-        <Text
-          style={[styles.label, isActive && styles.labelActive]}
-          numberOfLines={1}
-        >
-          {tab.label}
-        </Text>
-
-        {/* Active underline */}
-        <Animated.View
-          style={[styles.activeDot, { opacity: pillOpacity, transform: [{ scaleX: pillScaleX }] }]}
-        />
-
-
+          <Feather name={tab.icon} size={19} color={isActive ? tab.accent : '#8A93B6'} />
+        </Animated.View>
+        <Text style={[styles.label, isActive && { color: '#F7F8FF' }]} numberOfLines={1}>{tab.label}</Text>
+        <View style={[styles.underline, isActive && { backgroundColor: tab.accent, opacity: 1 }]} />
       </Animated.View>
     </TouchableOpacity>
   );
 }
 
-// ─── BottomNavBar ─────────────────────────────────────────────────────────────
-
 export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-
-  const TABS: Tab[] = [
-    { id: 'home',       label: 'Feed',       icon: TAB_ICONS.home       },
-    { id: 'explore',    label: 'Explore',    icon: TAB_ICONS.explore    },
-    { id: 'map',        label: 'Map',        icon: TAB_ICONS.map        },
-    { id: 'challenges', label: 'Challenges', icon: TAB_ICONS.challenges },
-    { id: 'messages',   label: 'Messages',   icon: TAB_ICONS.messages   },
-    { id: 'profile',    label: 'Profile',    icon: TAB_ICONS.profile    },
-  ];
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.ambientLeft} />
       <View style={styles.ambientRight} />
-      <View style={styles.bar}>
+      <View style={styles.barWrap}>
         <LinearGradient
-          colors={['rgba(125,255,208,0.08)', 'rgba(255,255,255,0.02)', 'rgba(99,214,255,0.06)']}
+          colors={['rgba(18,23,44,0.96)', 'rgba(10,14,28,0.96)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.barRim} />
-        {TABS.map((tab) => (
-          <NavItem
-            key={tab.id}
-            tab={tab}
-            isActive={activeTab === tab.id}
-            onPress={() => onTabChange(tab.id)}
-          />
-        ))}
+          style={styles.bar}
+        >
+          <View style={styles.barShine} />
+          {TABS.map((tab) => (
+            <NavItem
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onPress={() => onTabChange(tab.id)}
+            />
+          ))}
+        </LinearGradient>
       </View>
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -163,104 +115,101 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     backgroundColor: 'transparent',
   },
   ambientLeft: {
     position: 'absolute',
-    left: 28,
-    bottom: 18,
-    width: 92,
-    height: 46,
+    left: 22,
+    bottom: 20,
+    width: 120,
+    height: 62,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,255,156,0.08)',
+    backgroundColor: 'rgba(103,232,249,0.08)',
   },
   ambientRight: {
     position: 'absolute',
-    right: 28,
-    bottom: 18,
-    width: 88,
-    height: 42,
+    right: 18,
+    bottom: 16,
+    width: 108,
+    height: 56,
     borderRadius: 999,
-    backgroundColor: 'rgba(99,214,255,0.06)',
+    backgroundColor: 'rgba(139,92,255,0.08)',
   },
-  bar: {
+  barWrap: {
+    borderRadius: 30,
     overflow: 'hidden',
-    flexDirection: 'row',
-    paddingTop: S.sm + 1,
-    paddingHorizontal: S.xs + 2,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-    backgroundColor: C.glassDark,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.45,
-        shadowRadius: 24,
+        shadowOpacity: 0.4,
+        shadowRadius: 22,
       },
-      android: { elevation: 20 },
+      android: { elevation: 18 },
     }),
   },
-  barRim: {
+  bar: {
+    flexDirection: 'row',
+    paddingTop: 10,
+    paddingHorizontal: 4,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+  },
+  barShine: {
     position: 'absolute',
     top: 0,
-    left: 20,
-    right: 20,
+    left: 24,
+    right: 24,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  navItem: {
+  itemTouch: {
     flex: 1,
     alignItems: 'center',
   },
-  navItemInner: {
+  itemInner: {
     alignItems: 'center',
-    gap: S.xs - 1,
-    paddingHorizontal: S.xs,
-    paddingBottom: 4,
+    gap: 4,
+    paddingBottom: 6,
   },
-  iconZone: {
-    width: 46,
-    height: 34,
+  iconGlow: {
+    position: 'absolute',
+    top: -2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  iconShell: {
+    width: 48,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  pillWrap: {
-    position: 'absolute',
-    width: 46,
-    height: 30,
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  pill: {
-    flex: 1,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  glow: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0,255,156,0.16)',
+  activePill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  activePillFill: {
+    flex: 1,
   },
   label: {
-    ...T.labelS,
-    color: C.textMuted,
-    letterSpacing: 0.45,
+    color: '#8A93B6',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.25,
   },
-  labelActive: {
-    color: C.textPrimary,
-    fontWeight: '600',
-  },
-  activeDot: {
+  underline: {
     width: 18,
     height: 3,
     borderRadius: 999,
-    backgroundColor: C.accentWarm,
+    backgroundColor: 'transparent',
+    opacity: 0,
     marginTop: 2,
   },
 });

@@ -3765,22 +3765,33 @@ export default function RadioScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={ms.topBar}>
-        <View>
-          <Text style={ms.topTitle}>{t('radio.title')}</Text>
-          {rooms.length > 0 && (
-            <Text style={ms.topSub}>{rooms.length} {rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}</Text>
-          )}
+      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
+        <View style={ms.heroGlow} />
+        <Text style={ms.heroEyebrow}>Live broadcast</Text>
+        <View style={ms.topBar}>
+          <View style={{ flex: 1 }}>
+            <Text style={ms.topTitle}>{t('radio.title')}</Text>
+            <Text style={ms.topSub}>
+              {rooms.length > 0
+                ? `${rooms.length} ${rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}`
+                : 'Radio live, stanze utente e stazioni sempre accese'}
+            </Text>
+          </View>
+          <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
+            <View style={ms.liveDot} />
+            <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
-          <View style={ms.liveDot} />
-          <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Stazioni radio offline */}
       <View style={ms.stationsSection}>
-        <Text style={ms.stationsTitle}>📻 STAZIONI RADIO</Text>
+        <View style={ms.sectionHead}>
+          <Text style={ms.stationsTitle}>Station presets</Text>
+          <View style={ms.sectionBadge}>
+            <Text style={ms.sectionBadgeText}>{OFFLINE_STATIONS.length}</Text>
+          </View>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}>
           {OFFLINE_STATIONS.map(s => (
             <OfflineStationCard key={s.id} station={s} onPress={() => setSelectedStation(s)} />
@@ -3791,7 +3802,7 @@ export default function RadioScreen() {
       {/* Programmate (solo tue) */}
       {scheduledRooms.length > 0 && (
         <View style={ms.scheduledSection}>
-          <Text style={ms.scheduledTitle}>📅 PROGRAMMATE</Text>
+          <Text style={ms.scheduledTitle}>Scheduled sessions</Text>
           {scheduledRooms.map(r => {
             const eta = r.scheduledFor ? Math.max(0, Math.floor((r.scheduledFor.getTime() - Date.now()) / 60000)) : 0;
             const etaStr = eta >= 60 ? `${Math.floor(eta / 60)}h ${eta % 60}m` : `${eta}m`;
@@ -3818,7 +3829,7 @@ export default function RadioScreen() {
 
       {/* Stanze live utenti */}
       {!loading && rooms.length > 0 && (
-        <Text style={ms.liveSection}>🔴 IN DIRETTA</Text>
+        <Text style={ms.liveSection}>Live rooms</Text>
       )}
       {loading ? (
         <View style={ms.center}><ActivityIndicator color="#FF2D55" /></View>
@@ -3846,12 +3857,39 @@ export default function RadioScreen() {
 }
 
 const ms = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  topTitle: { fontSize: 16, fontWeight: '700', fontStyle: 'italic', color: '#fff' },
-  topSub: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', marginTop: 1 },
-  liveBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,45,85,0.15)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.3)' },
+  hero: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 14,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    padding: 18,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    right: -20,
+    top: -24,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(103,232,249,0.1)',
+  },
+  heroEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  topTitle: { fontSize: 28, fontWeight: '800', color: '#F7F8FF', letterSpacing: -0.8 },
+  topSub: { fontSize: 14, color: '#97A4C7', marginTop: 8, lineHeight: 20 },
+  liveBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', alignSelf: 'flex-start' },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF2D55' },
-  liveBtnTxt: { color: '#FF2D55', fontSize: 13, fontWeight: '600' },
+  liveBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle: { fontSize: 20, color: '#fff', fontStyle: 'italic', marginBottom: 8, fontWeight: '700' },
@@ -3859,14 +3897,17 @@ const ms = StyleSheet.create({
   emptyBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 24, backgroundColor: 'rgba(255,45,85,0.18)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   emptyBtnTxt: { color: '#FF2D55', fontSize: 15, fontWeight: '700' },
   scheduledSection: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
-  scheduledTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, marginBottom: 8 },
+  scheduledTitle: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 },
   scheduledCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,45,85,0.15)' },
   scheduledName: { color: '#fff', fontSize: 13, fontWeight: '600' },
   scheduledEta: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 },
   startNowBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(255,45,85,0.2)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   startNowTxt: { color: '#FF2D55', fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
   stationsSection: { marginBottom: 8 },
-  stationsTitle: { fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 2, paddingHorizontal: 16, marginBottom: 10 },
-  liveSection: { fontSize: 9, color: 'rgba(255,45,85,0.6)', fontFamily: 'monospace', letterSpacing: 2, paddingHorizontal: 16, marginBottom: 4, marginTop: 8 },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 },
+  sectionBadge: { minWidth: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.22)' },
+  sectionBadgeText: { color: '#D9FF5A', fontSize: 13, fontWeight: '800' },
+  stationsTitle: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  liveSection: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', paddingHorizontal: 16, marginBottom: 8, marginTop: 8 },
   emptyLive: { paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center' },
 });
