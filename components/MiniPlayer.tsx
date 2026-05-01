@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
     right: 14,
     borderRadius: 26,
     overflow: 'hidden',
+    zIndex: 40,
     ...Platform.select({
       ios: {
         shadowColor: '#67E8F9',
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.12,
         shadowRadius: 24,
       },
-      android: { elevation: 14 },
+      android: { elevation: 24 },
     }),
   },
   outerGlow: {
@@ -192,6 +193,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
+    zIndex: 2,
   },
   liveOrb: {
     position: 'absolute',

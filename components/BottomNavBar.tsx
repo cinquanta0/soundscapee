@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 14,
     backgroundColor: 'transparent',
+    zIndex: 20,
   },
   ambientLeft: {
     position: 'absolute',

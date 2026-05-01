@@ -1616,6 +1616,8 @@ if (loading) {
       {!isFullScreen && <ScrollView ref={mainScrollViewRef} style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
           <View style={styles.content}>
+            <StoriesRow userProfile={userProfile} />
+
             <FeedHeroCard
               title={t('home.heroTitle')}
               subtitle={t('home.heroSubtitle')}
@@ -1701,8 +1703,6 @@ if (loading) {
               onHowItWorks={() => setShowOnboarding(true)}
               onNewDrop={() => setShowPublishTypeModal(true)}
             />
-
-            <StoriesRow userProfile={userProfile} />
           </View>
         )}
 
