@@ -181,6 +181,13 @@ export async function startRadioPlayback(track: {
   }
   await ensurePlayerReady();
   await configurePlayerForRadio();
+  await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
+  await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
+  if (autoplay) {
+    await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
+  } else {
+    await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
+  }
   await TrackPlayer.reset();
   console.log(RADIO_LOG_PREFIX, 'player reset complete');
   await TrackPlayer.add(track);
@@ -195,9 +202,6 @@ export async function startRadioPlayback(track: {
   // Aspettiamo il bootstrap reale e, se non entra in Loading/Buffering/Playing,
   // facciamo un unico retry controllato.
   if (!autoplay) {
-    await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
-    await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
-    await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
     await syncActiveTrackMetadata({
       title: track.title,
       artist: track.artist,
@@ -282,8 +286,6 @@ export async function startRadioPlayback(track: {
   if (!reachedPlaying) {
     console.log(RADIO_LOG_PREFIX, 'startup ended without explicit playing state');
   }
-  await AsyncStorage.setItem(RNTP_SESSION_KEY, JSON.stringify({ type: 'radio', stationId: track.id })).catch(() => {});
-  await AsyncStorage.setItem(LIVE_STREAM_TRACK_KEY, JSON.stringify(track)).catch(() => {});
   await AsyncStorage.removeItem(LIVE_STREAM_USER_PAUSED_KEY).catch(() => {});
   await syncActiveTrackMetadata({
     title: track.title,

@@ -385,8 +385,14 @@ export default function App() {
     };
 
     syncMiniPlayer();
-    const sub = TP.addEventListener(S.Event?.PlaybackState, () => syncMiniPlayer());
-    return () => sub?.remove?.();
+    const subState = TP.addEventListener(S.Event?.PlaybackState, () => syncMiniPlayer());
+    const subTrack = S.Event?.PlaybackActiveTrackChanged
+      ? TP.addEventListener(S.Event.PlaybackActiveTrackChanged, () => syncMiniPlayer())
+      : null;
+    return () => {
+      subState?.remove?.();
+      subTrack?.remove?.();
+    };
   }, []);
 
   // UI States
