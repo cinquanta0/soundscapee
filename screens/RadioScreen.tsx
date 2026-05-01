@@ -2640,6 +2640,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const reloadStreamRef = useRef<(() => Promise<void>) | null>(null);
   const nowPlayingRef = useRef<NowPlayingInfo | null>(null);
   const [radioPrimed, setRadioPrimed] = useState(Platform.OS !== 'ios');
+  const [manualPlayHint, setManualPlayHint] = useState<string | null>(null);
   const queuedPlayRef = useRef(false);
   useEffect(() => { nowPlayingRef.current = nowPlaying; }, [nowPlaying]);
 
@@ -2655,6 +2656,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsBufferingStream(false);
         setError(false);
         setRadioPrimed(true);
+        setManualPlayHint(null);
         // iOS: forza sincronizzazione lock screen con metadati completi — passare {}
         // cancellerebbe l'artwork. Usiamo nowPlayingRef per evitare stale closure.
         if (Platform.OS === 'ios') {
@@ -2702,11 +2704,16 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setError(true);
         setLoading(false);
         setRadioPrimed(true);
+        setManualPlayHint(null);
       } else {
         setIsPlaying(false);
         setIsBufferingStream(false);
         if (state === State.Ready || state === State.Paused) {
           setRadioPrimed(true);
+          if (Platform.OS === 'ios' && !hasStartedPlayingRef.current) {
+            setManualPlayHint('Ora puoi premere Play');
+            setStatusLabel('In pausa');
+          }
         }
       }
     });
@@ -2833,11 +2840,40 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;
           if (Platform.OS === 'ios' && mounted) {
-            // Con autoplay disattivato su iOS, RNTP non garantisce sempre un evento
-            // Ready/Paused prima del tap utente. Se lasciamo radioPrimed a false,
-            // il Play resta bloccato su "Connessione..." senza invocare davvero play().
-            setRadioPrimed(true);
-            setStatusLabel('Tocca Play per avviare la radio');
+            setRadioPrimed(false);
+            setManualPlayHint('Attendi: sto preparando il tasto Play');
+            setStatusLabel('Connessione...');
+
+            const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+            let becameReady = false;
+            for (let attempt = 0; attempt < 18 && mounted; attempt += 1) {
+              await wait(350);
+              try {
+                const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+                const state = ps?.state ?? ps;
+                if (
+                  state === State.Ready ||
+                  state === State.Paused ||
+                  state === State.Playing
+                ) {
+                  if (mounted) {
+                    becameReady = true;
+                    setRadioPrimed(true);
+                    setManualPlayHint('Ora puoi premere Play');
+                    setStatusLabel(state === State.Playing ? 'In onda' : 'In pausa');
+                  }
+                  break;
+                }
+              } catch {}
+            }
+
+            if (mounted) {
+              setLoading(false);
+              if (!becameReady) {
+                setManualPlayHint('Attendi ancora un attimo prima di premere Play');
+              }
+            }
+            return;
           }
         };
 
@@ -2994,21 +3030,12 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
   const togglePlay = async () => {
     if (!TrackPlayer) return;
+    if (Platform.OS === 'ios' && !radioPrimed) return;
     if (isPlaying) {
       await pauseRadioPlayback();
     } else if (reloadStreamRef.current) {
-      if (Platform.OS === 'ios' && !radioPrimed) {
-        queuedPlayRef.current = true;
-        setStatusLabel('Connessione...');
-        return;
-      }
       await playRadioPlayback().catch(async () => reloadStreamRef.current?.());
     } else {
-      if (Platform.OS === 'ios' && !radioPrimed) {
-        queuedPlayRef.current = true;
-        setStatusLabel('Connessione...');
-        return;
-      }
       await playRadioPlayback();
     }
   };
@@ -3020,7 +3047,18 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     playRadioPlayback().catch(async () => reloadStreamRef.current?.());
   }, [radioPrimed, loading]);
 
-  const statusText = loading ? statusLabel : error ? 'Stream non disponibile' : isBufferingStream ? 'Connessione...' : isPlaying ? 'IN ONDA' : 'IN PAUSA';
+  const statusText = loading
+    ? statusLabel
+    : error
+      ? 'Stream non disponibile'
+      : Platform.OS === 'ios' && !radioPrimed
+        ? 'Connessione...'
+        : isBufferingStream
+          ? 'Connessione...'
+          : isPlaying
+            ? 'IN ONDA'
+            : 'IN PAUSA';
+  const playDisabled = loading || error || (Platform.OS === 'ios' && !radioPrimed);
   const today = new Date().getDay();
   const scheduleSlotsForLive = getScheduleSlots(station.id, today);
   const currentSlotIdx = getCurrentSlotIndex(scheduleSlotsForLive);
@@ -3177,9 +3215,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
 
           {/* Play/Pause */}
           <TouchableOpacity
-            style={[osp.playBtn, { backgroundColor: station.color, shadowColor: station.color, opacity: error ? 0.4 : 1 }]}
+            style={[osp.playBtn, { backgroundColor: station.color, shadowColor: station.color, opacity: playDisabled ? 0.45 : 1 }]}
             onPress={togglePlay}
-            disabled={loading || error}
+            disabled={playDisabled}
             activeOpacity={0.8}
           >
             {loading
@@ -3187,6 +3225,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
               : <Feather name={isPlaying ? 'pause' : 'play'} size={30} color="#fff" style={isPlaying ? undefined : { marginLeft: 3 }} />}
           </TouchableOpacity>
         </View>
+
+        {!!manualPlayHint && Platform.OS === 'ios' && !error && (
+          <View style={osp.errorBox}>
+            <Feather name={radioPrimed ? 'check-circle' : 'clock'} size={14} color="rgba(255,255,255,0.55)" />
+            <Text style={osp.errorTxt}>{manualPlayHint}</Text>
+          </View>
+        )}
 
         {error && (
           <View style={osp.errorBox}>
