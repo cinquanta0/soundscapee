@@ -1534,9 +1534,14 @@ const handleNotificationNavigation = async (data: any) => {
 if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0A0A0A', '#111111', '#0A0A0A']} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#00FF9C" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
+        <View style={styles.loadingAuraA} />
+        <View style={styles.loadingAuraB} />
+        <View style={styles.loadingPanel}>
+          <Text style={styles.loadingEyebrow}>SOUNDSCAPE</Text>
+          <ActivityIndicator size="large" color="#67E8F9" />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
       </View>
     );
   }
@@ -1702,8 +1707,11 @@ if (loading) {
         )}
 
     {activeTab === 'profile' && !userProfile && (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
-        <ActivityIndicator size="large" color="#00FF9C" />
+      <View style={styles.profileLoadingState}>
+        <View style={styles.profileLoadingOrb}>
+          <ActivityIndicator size="large" color="#67E8F9" />
+        </View>
+        <Text style={styles.profileLoadingText}>Sto preparando il profilo</Text>
       </View>
     )}
 
@@ -1724,11 +1732,11 @@ if (loading) {
       {/* Change background button — own profile only */}
       {userProfile?.id === auth.currentUser?.uid && (
         <TouchableOpacity
-          style={{ position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}
+          style={styles.profileThemeButton}
           onPress={() => setShowThemeModal(true)}
         >
           <Feather name="image" size={13} color="rgba(255,255,255,0.7)" />
-          <Text style={{ color: '#9A9A9A', fontSize: 11, fontWeight: '600' }}>Sfondo</Text>
+          <Text style={styles.profileThemeButtonText}>Sfondo</Text>
         </TouchableOpacity>
       )}
       <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} />
@@ -1737,31 +1745,29 @@ if (loading) {
       {!!userProfile?.bio && <Text style={styles.profileBio}>{userProfile.bio}</Text>}
 
       <View style={styles.profileStats}>
-  <View style={styles.profileStat}>
-    <Text style={styles.profileStatNumber}>{profileSounds.length}</Text>
-    <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
-  </View>
-  {/* Followers cliccabile */}
-  <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
-    <Text style={styles.profileStatNumber}>{followStats.followers}</Text>
-    <Text style={styles.profileStatLabel}>{t('profile.followers')}</Text>
-  </TouchableOpacity>
-  {/* Following cliccabile */}
-  <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowing}>
-    <Text style={styles.profileStatNumber}>{followStats.following}</Text>
-    <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
-  </TouchableOpacity>
-  <View style={styles.profileStat}>
-    <Text style={styles.profileStatNumber}>🔥 {userProfile?.streakCount || 0}</Text>
-    <Text style={styles.profileStatLabel}>{t('profile.streak')}</Text>
-  </View>
-</View>
+        <View style={styles.profileStat}>
+          <Text style={styles.profileStatNumber}>{profileSounds.length}</Text>
+          <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
+        </View>
+        <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
+          <Text style={styles.profileStatNumber}>{followStats.followers}</Text>
+          <Text style={styles.profileStatLabel}>{t('profile.followers')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowing}>
+          <Text style={styles.profileStatNumber}>{followStats.following}</Text>
+          <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
+        </TouchableOpacity>
+        <View style={styles.profileStat}>
+          <Text style={styles.profileStatNumber}>🔥 {userProfile?.streakCount || 0}</Text>
+          <Text style={styles.profileStatLabel}>{t('profile.streak')}</Text>
+        </View>
+      </View>
 
       
         {/* <<< AGGIUNGI QUI IL BOTTONE >>>
          Solo se NON è il tuo profilo! */}
       {userProfile && userProfile.id !== auth.currentUser?.uid && (
-        <View style={{ width: '100%', marginBottom: 8 }}>
+        <View style={styles.profileActionsStack}>
           {friendStatus === 'none' && (
             <TouchableOpacity
               style={[styles.profileButtonPrimary, loadingFriend && { opacity: 0.5 }]}
@@ -1781,7 +1787,7 @@ if (loading) {
             </TouchableOpacity>
           )}
           {friendStatus === 'pending_received' && (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={styles.profileDualActions}>
               <TouchableOpacity
                 style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
                 onPress={() => handleFriendAction('accept')}
@@ -1854,7 +1860,7 @@ if (loading) {
       )}
 
       {userProfile?.id === auth.currentUser?.uid && (
-        <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+        <View style={styles.profileDualActions}>
           <TouchableOpacity
             style={[styles.profileButtonPrimary, { flex: 1 }]}
             onPress={handleEditProfile}
@@ -3118,11 +3124,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#050816',
+  },
+  loadingAuraA: {
+    position: 'absolute',
+    right: -80,
+    top: 120,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(103,232,249,0.08)',
+  },
+  loadingAuraB: {
+    position: 'absolute',
+    left: -70,
+    bottom: 120,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(139,92,255,0.08)',
+  },
+  loadingPanel: {
+    minWidth: 220,
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    backgroundColor: 'rgba(9,12,28,0.84)',
+  },
+  loadingEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   loadingText: {
-    color: '#94a3b8',
-    fontSize: 16,
-    marginTop: 16,
+    color: '#F7F8FF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
@@ -3652,14 +3695,21 @@ const styles = StyleSheet.create({
   },
   profileStats: {
     flexDirection: 'row',
-    gap: 18,
+    gap: 10,
+    width: '100%',
     marginBottom: 16,
   },
   profileStat: {
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   profileStatNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#D7FF64',
   },
@@ -3671,14 +3721,65 @@ const styles = StyleSheet.create({
   profileButtonPrimary: {
     width: '100%',
     backgroundColor: '#D7FF64',
-    paddingVertical: 13,
-    borderRadius: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
     alignItems: 'center',
   },
   profileButtonPrimaryText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#07110B',
+  },
+  profileThemeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  profileThemeButtonText: {
+    color: '#9A9A9A',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  profileActionsStack: {
+    width: '100%',
+    marginBottom: 8,
+    gap: 8,
+  },
+  profileDualActions: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  profileLoadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    gap: 14,
+  },
+  profileLoadingOrb: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(103,232,249,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.22)',
+  },
+  profileLoadingText: {
+    color: '#97A4C7',
+    fontSize: 14,
+    fontWeight: '600',
   },
   recordingsSection: {
     marginTop: 8,
@@ -3776,9 +3877,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 80,
     right: 16,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: '#00FF9C',
     justifyContent: 'center',
     alignItems: 'center',
@@ -3792,7 +3893,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444',
   },
   fabIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
   modalOverlay: {
     flex: 1,
@@ -3856,54 +3957,54 @@ const styles = StyleSheet.create({
   },
   recordModal: {
     backgroundColor: '#161616',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 22,
+    padding: 18,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
   recordModalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   input: {
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     color: '#F7F8FF',
-    fontSize: 14,
-    marginBottom: 12,
+    fontSize: 13,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(163,177,255,0.14)',
   },
   textArea: {
-    height: 80,
+    height: 68,
     textAlignVertical: 'top',
   },
   moodLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#94a3b8',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   moodSelector: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 12,
   },
   moodOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
   },
   moodOptionText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#fff',
   },
@@ -3911,12 +4012,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#0A0A0A',
-    padding: 12,
+    padding: 10,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   recordModalInfoText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#00FF9C',
     fontWeight: '600',
   },
@@ -3927,24 +4028,24 @@ const styles = StyleSheet.create({
   recordModalButtonCancel: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   recordModalButtonCancelText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
   recordModalButtonPublish: {
     flex: 1,
     backgroundColor: '#00FF9C',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
 recordModalButtonPublishText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },

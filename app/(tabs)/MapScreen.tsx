@@ -221,8 +221,14 @@ export default function MapScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00FF9C" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
+        <View style={styles.loadingAuraA} />
+        <View style={styles.loadingAuraB} />
+        <View style={styles.loadingPanel}>
+          <Text style={styles.loadingEyebrow}>Sound map</Text>
+          <ActivityIndicator size="large" color="#67E8F9" />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
         {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
       </View>
     );
@@ -231,8 +237,14 @@ export default function MapScreen() {
   if (!userLocation) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>❌ {t('map.errors.cannotLoad')}</Text>
-        <Text style={styles.errorText}>{errorMsg}</Text>
+        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
+        <View style={styles.loadingAuraA} />
+        <View style={styles.loadingAuraB} />
+        <View style={styles.loadingPanel}>
+          <Text style={styles.loadingEyebrow}>Sound map</Text>
+          <Text style={styles.errorText}>❌ {t('map.errors.cannotLoad')}</Text>
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
         <TouchableOpacity style={styles.retryButton} onPress={initializeMap}>
           <Text style={styles.retryButtonText}>{t('common.ok')}</Text>
         </TouchableOpacity>
@@ -295,12 +307,20 @@ export default function MapScreen() {
         style={StyleSheet.absoluteFill}
       />
 
+      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.94)']} style={styles.heroCard}>
+        <View style={styles.heroGlow} />
+        <Text style={styles.heroEyebrow}>Geo discovery</Text>
+        <Text style={styles.heroTitle}>{t('map.title')}</Text>
+        <Text style={styles.heroSubtitle}>
+          Esplora i suoni vicini, passa alla vista globale e apri ogni drop direttamente dalla mappa.
+        </Text>
+      </LinearGradient>
+
       {/* Controlli superiori */}
       <View style={styles.topControls}>
         <TouchableOpacity style={styles.controlButton} onPress={toggleViewMode}>
-          <Text style={styles.controlButtonText}>
-            {viewMode === 'nearby' ? `📍 ${t('map.nearby')}` : `🌍 ${t('map.all')}`}
-          </Text>
+          <Text style={styles.controlButtonEyebrow}>MODE</Text>
+          <Text style={styles.controlButtonText}>{viewMode === 'nearby' ? t('map.nearby') : t('map.all')}</Text>
         </TouchableOpacity>
 
         {viewMode === 'nearby' && (
@@ -324,7 +344,7 @@ export default function MapScreen() {
 
       {/* Badge contatore */}
       <View style={styles.counterBadge}>
-        <Text style={styles.counterText}>🎵 {sounds.length}</Text>
+        <Text style={styles.counterText}>{sounds.length} drops</Text>
       </View>
 
       {/* Modal dettagli suono */}
@@ -365,6 +385,7 @@ export default function MapScreen() {
                 </View>
 
                 <View style={styles.detailsContent}>
+                  <Text style={styles.detailsEyebrow}>Map drop</Text>
                   <Text style={styles.soundTitle}>{selectedSound.title}</Text>
                   {selectedSound.description && (
                     <Text style={styles.soundDescription}>
@@ -431,13 +452,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0A0A0A',
     padding: 20,
   },
+  loadingAuraA: {
+    position: 'absolute',
+    right: -80,
+    top: 90,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(103,232,249,0.08)',
+  },
+  loadingAuraB: {
+    position: 'absolute',
+    left: -70,
+    bottom: 100,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(139,92,255,0.08)',
+  },
+  loadingPanel: {
+    alignItems: 'center',
+    gap: 14,
+    minWidth: 220,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    backgroundColor: 'rgba(9,12,28,0.84)',
+  },
+  loadingEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
   loadingText: {
-    color: '#94a3b8',
-    marginTop: 16,
-    fontSize: 16,
+    color: '#F7F8FF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   errorText: {
     color: '#ef4444',
@@ -447,15 +503,56 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 20,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#8B5CFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  heroCard: {
+    position: 'absolute',
+    top: 14,
+    left: 16,
+    right: 16,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    padding: 18,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    right: -18,
+    top: -22,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(103,232,249,0.12)',
+  },
+  heroEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  heroTitle: {
+    color: '#F7F8FF',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    color: '#97A4C7',
+    fontSize: 14,
+    lineHeight: 20,
+    maxWidth: '92%',
   },
   marker: {
     width: 40,
@@ -479,33 +576,41 @@ const styles = StyleSheet.create({
   },
   topControls: {
     position: 'absolute',
-    top: 50,
+    top: 150,
     left: 16,
     right: 16,
     flexDirection: 'row',
     gap: 8,
   },
   controlButton: {
-    backgroundColor: 'rgba(7, 10, 18, 0.82)',
+    backgroundColor: 'rgba(7, 10, 18, 0.88)',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 999,
+    paddingVertical: 11,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.18)',
+    borderColor: 'rgba(163,177,255,0.14)',
+  },
+  controlButtonEyebrow: {
+    color: '#67E8F9',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   controlButtonText: {
-    color: '#fff',
+    color: '#F7F8FF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   radiusControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 10, 18, 0.82)',
-    borderRadius: 999,
+    backgroundColor: 'rgba(7, 10, 18, 0.88)',
+    borderRadius: 20,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.18)',
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   radiusButton: {
     width: 32,
@@ -514,29 +619,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radiusButtonText: {
-    color: '#00FF9C',
+    color: '#67E8F9',
     fontSize: 20,
     fontWeight: '700',
   },
   radiusText: {
-    color: '#fff',
+    color: '#F7F8FF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     marginHorizontal: 8,
   },
   counterBadge: {
     position: 'absolute',
-    top: 110,
+    top: 214,
     left: 16,
-    backgroundColor: 'rgba(99,214,255,0.88)',
+    backgroundColor: 'rgba(217,255,90,0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
   counterText: {
-    color: '#fff',
+    color: '#07110B',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
@@ -544,12 +649,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   detailsCard: {
-    backgroundColor: 'rgba(12,16,24,0.98)',
+    backgroundColor: 'rgba(9,12,28,0.98)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.18)',
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -595,6 +700,14 @@ const styles = StyleSheet.create({
   },
   detailsContent: {
     marginBottom: 20,
+  },
+  detailsEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   soundTitle: {
     fontSize: 20,
@@ -645,17 +758,17 @@ const styles = StyleSheet.create({
   },
   playButton: {
     flex: 2,
-    backgroundColor: '#D7FF64',
+    backgroundColor: '#8B5CFF',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   playButtonActive: {
-    backgroundColor: '#63D6FF',
+    backgroundColor: '#67E8F9',
   },
   playButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#04110A',
+    color: '#fff',
   },
 });

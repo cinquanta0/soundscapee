@@ -1250,7 +1250,7 @@ export default function PodcastScreen() {
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, minHeight: 0 }}>
       <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
         <View style={sc.heroGlow} />
         <Text style={sc.heroEyebrow}>Podcast studio</Text>
@@ -1289,7 +1289,7 @@ export default function PodcastScreen() {
               onAddToPlaylist={() => openPlaylistModal(item)}
             />
           )}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         />
       )}

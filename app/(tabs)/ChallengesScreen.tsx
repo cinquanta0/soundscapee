@@ -236,9 +236,14 @@ export default function ChallengesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={C.accent} />
-        <Text style={styles.loadingText}>{t('challenges.loading')}</Text>
+        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
+        <View style={styles.loadingAuraA} />
+        <View style={styles.loadingAuraB} />
+        <View style={styles.loadingPanel}>
+          <Text style={styles.loadingEyebrow}>Sound challenges</Text>
+          <ActivityIndicator size="large" color="#67E8F9" />
+          <Text style={styles.loadingText}>{t('challenges.loading')}</Text>
+        </View>
       </View>
     );
   }
@@ -250,10 +255,12 @@ export default function ChallengesScreen() {
       <View style={styles.ambientB} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={styles.header}>
+        <View style={styles.headerGlow} />
+        <Text style={styles.headerEyebrow}>Competitive audio</Text>
         <Text style={styles.headerTitle}>{t('challenges.title')}</Text>
         <Text style={styles.headerSubtitle}>{t('challenges.subtitle')}</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {challenges.length === 0 ? (
@@ -270,7 +277,7 @@ export default function ChallengesScreen() {
               onPress={() => handleChallengePress(challenge)}
             >
               <LinearGradient
-                colors={['#003D25', '#001A10']}
+                colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.98)']}
                 style={styles.challengeGradient}
               >
                 <View style={styles.challengeHeader}>
@@ -586,20 +593,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingAuraA: {
+    position: 'absolute',
+    right: -80,
+    top: 90,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(103,232,249,0.08)',
+  },
+  loadingAuraB: {
+    position: 'absolute',
+    left: -70,
+    bottom: 100,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(139,92,255,0.08)',
+  },
+  loadingPanel: {
+    alignItems: 'center',
+    gap: 14,
+    minWidth: 220,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    backgroundColor: 'rgba(9,12,28,0.84)',
+  },
+  loadingEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
   loadingText: {
     ...T.body,
-    color: C.textSecondary,
-    marginTop: S.lg,
+    color: '#F7F8FF',
+    fontWeight: '700',
   },
   header: {
     padding: S.xl,
-    paddingTop: 60,
+    paddingTop: 28,
     marginHorizontal: S.lg,
     marginTop: S.md,
     borderWidth: 1,
-    borderColor: C.borderCanvas,
+    borderColor: 'rgba(163,177,255,0.14)',
     borderRadius: R.xxl,
-    backgroundColor: C.glassDark,
+    backgroundColor: 'rgba(17,22,45,0.96)',
+    overflow: 'hidden',
+  },
+  headerGlow: {
+    position: 'absolute',
+    right: -18,
+    top: -20,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(139,92,255,0.12)',
+  },
+  headerEyebrow: {
+    color: '#67E8F9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   headerTitle: {
     ...T.displayM,
@@ -619,7 +680,7 @@ const styles = StyleSheet.create({
     borderRadius: R.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: C.borderCanvas,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   challengeGradient: {
     padding: S.xl,
@@ -634,16 +695,16 @@ const styles = StyleSheet.create({
     fontSize: 48,
   },
   challengeTimer: {
-    backgroundColor: C.accentDim,
+    backgroundColor: 'rgba(103,232,249,0.12)',
     paddingHorizontal: S.md,
     paddingVertical: 6,
     borderRadius: R.full,
     borderWidth: 1,
-    borderColor: C.borderAccent,
+    borderColor: 'rgba(103,232,249,0.24)',
   },
   timerText: {
     ...T.labelS,
-    color: C.accent,
+    color: '#67E8F9',
     fontWeight: '700',
   },
   challengeTitle: {
@@ -674,7 +735,7 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
   },
   challengeButton: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#8B5CFF',
     paddingVertical: 14,
     borderRadius: R.sm,
     alignItems: 'center',
@@ -682,7 +743,7 @@ const styles = StyleSheet.create({
   challengeButtonText: {
     ...T.body,
     fontWeight: '700',
-    color: C.textOnAccent,
+    color: '#fff',
   },
   removeChallengeButton: {
     marginTop: S.md,
@@ -723,10 +784,10 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: R.full,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#D9FF5A',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#00FF9C',
+    shadowColor: '#D9FF5A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
@@ -734,16 +795,16 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 32,
-    color: C.textOnAccent,
+    color: '#07110B',
   },
 
   createModalContent: {
-    backgroundColor: C.bgCard,
+    backgroundColor: 'rgba(9,12,28,0.98)',
     borderRadius: R.xxl,
     width: '100%',
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: C.borderStrong,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   createForm: {
     padding: S.xl,
@@ -757,13 +818,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: C.bg,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: R.sm,
     padding: S.md,
     color: C.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   textArea: {
     height: 100,
@@ -784,15 +845,15 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: R.full,
-    backgroundColor: C.bg,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   emojiOptionSelected: {
-    borderColor: C.accent,
-    backgroundColor: C.accentDim,
+    borderColor: '#67E8F9',
+    backgroundColor: 'rgba(103,232,249,0.12)',
   },
   emojiText: {
     fontSize: 24,
@@ -803,16 +864,16 @@ const styles = StyleSheet.create({
   },
   durationOption: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     paddingVertical: S.md,
     borderRadius: R.sm,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   durationOptionSelected: {
-    borderColor: C.accent,
-    backgroundColor: C.accentDim,
+    borderColor: '#67E8F9',
+    backgroundColor: 'rgba(103,232,249,0.12)',
   },
   durationText: {
     ...T.body,
@@ -820,7 +881,7 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
   },
   createButton: {
-    backgroundColor: C.accent,
+    backgroundColor: '#8B5CFF',
     paddingVertical: S.lg,
     borderRadius: R.sm,
     alignItems: 'center',
@@ -830,7 +891,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     ...T.body,
     fontWeight: '700',
-    color: C.textOnAccent,
+    color: '#fff',
   },
 
   modalOverlay: {
@@ -841,12 +902,12 @@ const styles = StyleSheet.create({
     padding: S.lg,
   },
   modalContent: {
-    backgroundColor: C.bgCard,
+    backgroundColor: 'rgba(9,12,28,0.98)',
     borderRadius: R.xxl,
     width: '100%',
     height: '85%',
     borderWidth: 1,
-    borderColor: C.borderStrong,
+    borderColor: 'rgba(163,177,255,0.14)',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -893,12 +954,12 @@ const styles = StyleSheet.create({
     padding: S.lg,
   },
   soundItem: {
-    backgroundColor: C.bg,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: R.lg,
     padding: S.lg,
     marginBottom: S.md,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.14)',
     flexDirection: 'row',
     gap: S.md,
   },
@@ -906,15 +967,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: R.full,
-    backgroundColor: C.accentDim,
+    backgroundColor: 'rgba(103,232,249,0.12)',
     borderWidth: 1,
-    borderColor: C.borderAccent,
+    borderColor: 'rgba(103,232,249,0.24)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   rankText: {
     ...T.labelL,
-    color: C.accent,
+    color: '#67E8F9',
     fontWeight: '800',
   },
   soundInfo: {
@@ -949,7 +1010,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: R.full,
-    backgroundColor: C.accent,
+    backgroundColor: '#8B5CFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -962,7 +1023,7 @@ const styles = StyleSheet.create({
     gap: S.xs,
     backgroundColor: C.glass,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.14)',
     paddingHorizontal: S.md,
     paddingVertical: S.sm,
     borderRadius: R.full,
@@ -977,7 +1038,7 @@ const styles = StyleSheet.create({
   },
 
   participateButton: {
-    backgroundColor: C.accent,
+    backgroundColor: '#8B5CFF',
     marginHorizontal: S.lg,
     marginTop: S.lg,
     marginBottom: S.sm,
@@ -987,7 +1048,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: S.sm,
-    shadowColor: C.accent,
+    shadowColor: '#8B5CFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -996,6 +1057,6 @@ const styles = StyleSheet.create({
   participateButtonText: {
     ...T.body,
     fontWeight: '800',
-    color: C.textOnAccent,
+    color: '#fff',
   },
 });

@@ -101,6 +101,7 @@ export default function PodcastHubScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    minHeight: 0,
   },
   hero: {
     marginHorizontal: 16,
@@ -192,5 +193,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minHeight: 0,
   },
 });

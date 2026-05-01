@@ -3764,7 +3764,7 @@ export default function RadioScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, minHeight: 0 }}>
       <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
         <View style={ms.heroGlow} />
         <Text style={ms.heroEyebrow}>Live broadcast</Text>

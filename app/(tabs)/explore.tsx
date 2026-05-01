@@ -526,6 +526,7 @@ const styles = StyleSheet.create({
   },
   embeddedScreen: {
     flex: 1,
+    minHeight: 0,
   },
   center: {
     minHeight: 240,
