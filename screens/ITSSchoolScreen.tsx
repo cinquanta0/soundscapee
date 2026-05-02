@@ -821,7 +821,7 @@ export default function ITSSchoolScreen() {
                 {lessons.find((l) => l.id === selectedLessonId)?.title || 'Lezione'}
               </Text>
               <Text style={s.rowSub}>
-                {lessonAudioLoading ? t(‘school.audioLoading’) : lessonAudioUrl ? t(‘school.audioReady’) : t(‘school.audioNotAvailable’)}
+                {lessonAudioLoading ? t('school.audioLoading') : lessonAudioUrl ? t('school.audioReady') : t('school.audioNotAvailable')}
               </Text>
             </View>
             <TouchableOpacity
@@ -837,7 +837,7 @@ export default function ITSSchoolScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={s.emptyText}>{t(‘school.selectLessonAudio’)}</Text>
+          <Text style={s.emptyText}>{t('school.selectLessonAudio')}</Text>
         )}
       </View>
 
