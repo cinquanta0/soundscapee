@@ -3148,13 +3148,13 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           style={[osp.tab, !showPalinsesto && { borderBottomColor: station.color }]}
           onPress={() => setShowPalinsesto(false)}
         >
-          <Text style={[osp.tabTxt, !showPalinsesto && { color: '#fff', opacity: 1 }]}>ORA IN ONDA</Text>
+          <Text style={[osp.tabTxt, !showPalinsesto && { color: '#fff', opacity: 1 }]}>{t('radio.nowOnAir')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[osp.tab, showPalinsesto && { borderBottomColor: station.color }]}
           onPress={() => setShowPalinsesto(true)}
         >
-          <Text style={[osp.tabTxt, showPalinsesto && { color: '#fff', opacity: 1 }]}>PALINSESTO</Text>
+          <Text style={[osp.tabTxt, showPalinsesto && { color: '#fff', opacity: 1 }]}>{t('radio.schedule')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -3194,7 +3194,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           </View>
 
         {/* Info: "ORA IN ONDA", DJ, show, stazione */}
-        <Text style={osp.oraInOnda}>ORA IN ONDA</Text>
+        <Text style={osp.oraInOnda}>{t('radio.nowOnAir')}</Text>
           <Text style={osp.djName} numberOfLines={2}>{effectiveDjName}</Text>
           {effectiveShowName && effectiveShowName !== effectiveDjName ? (
             <Text style={osp.showName} numberOfLines={1}>{effectiveShowName}</Text>

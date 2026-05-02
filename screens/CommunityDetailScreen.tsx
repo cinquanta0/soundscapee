@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import { useTranslation } from 'react-i18next';
 import { auth } from '../firebaseConfig';
 import {
   Community, CommunityMessage, CommunityMember, JoinRequest,
@@ -22,12 +23,12 @@ function fmtDuration(s: number): string {
   return `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, t: (key: string, opts?: object) => string): string {
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return 'ora';
-  if (diff < 3600) return `${Math.floor(diff / 60)}min fa`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h fa`;
-  return date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+  if (diff < 60) return t('community.timeNow');
+  if (diff < 3600) return t('community.timeMin', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('community.timeH', { n: Math.floor(diff / 3600) });
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
 }
 
 // ─── Componente singolo messaggio vocale ──────────────────────────────────────
@@ -41,6 +42,7 @@ interface MessageBubbleProps {
 }
 
 function MessageBubble({ msg, isMe, isAdmin, onReact, onPin, onDelete }: MessageBubbleProps) {
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [showReactions, setShowReactions] = useState(false);
@@ -84,7 +86,7 @@ function MessageBubble({ msg, isMe, isAdmin, onReact, onPin, onDelete }: Message
       soundRef.current = sound;
       setIsPlaying(true);
     } catch {
-      Alert.alert('Errore', 'Impossibile riprodurre il messaggio');
+      Alert.alert(t('common.error'), t('community.errors.cannotPlay'));
     }
   };
 
@@ -129,7 +131,7 @@ function MessageBubble({ msg, isMe, isAdmin, onReact, onPin, onDelete }: Message
           </View>
         )}
 
-        <Text style={s.bubbleTime}>{timeAgo(msg.createdAt)}</Text>
+        <Text style={s.bubbleTime}>{timeAgo(msg.createdAt, t)}</Text>
       </View>
 
       {/* Menu reazioni + azioni */}
@@ -146,12 +148,12 @@ function MessageBubble({ msg, isMe, isAdmin, onReact, onPin, onDelete }: Message
             <View style={s.reactionMenuActions}>
               {isAdmin && (
                 <TouchableOpacity style={s.actionBtn} onPress={() => { onPin(); setShowReactions(false); }}>
-                  <Text style={s.actionBtnTxt}>{msg.isPinned ? '📌 Rimuovi pin' : '📌 Pinna'}</Text>
+                  <Text style={s.actionBtnTxt}>{msg.isPinned ? t('community.removePin') : t('community.pin')}</Text>
                 </TouchableOpacity>
               )}
               {(isMe || isAdmin) && (
                 <TouchableOpacity style={[s.actionBtn, s.actionBtnRed]} onPress={() => { onDelete(); setShowReactions(false); }}>
-                  <Text style={[s.actionBtnTxt, { color: '#FF3B30' }]}>🗑 Elimina</Text>
+                  <Text style={[s.actionBtnTxt, { color: '#FF3B30' }]}>{t('community.delete')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -171,6 +173,7 @@ interface Props {
 }
 
 export default function CommunityDetailScreen({ community, onClose, onCommunityDeleted, onViewProfile }: Props) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'requests'>('chat');
   const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [members, setMembers] = useState<CommunityMember[]>([]);
@@ -231,7 +234,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
   const startRecording = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { Alert.alert('Permesso microfono necessario'); return; }
+      if (!granted) { Alert.alert(t('community.errors.micPermission')); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
       const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
@@ -239,7 +242,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
       setRecordSeconds(0);
       recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
     } catch {
-      Alert.alert('Errore', 'Impossibile avviare la registrazione');
+      Alert.alert(t('common.error'), t('community.errors.cannotRecord'));
     }
   };
 
@@ -252,7 +255,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
       await sendVoiceMessage(community.id, uri, recordSeconds, caption);
       setCaption('');
     } catch {
-      Alert.alert('Errore', 'Impossibile inviare il messaggio');
+      Alert.alert(t('common.error'), t('community.errors.cannotSend'));
     } finally {
       setSending(false);
     }
@@ -267,9 +270,9 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
   };
 
   const handleDeleteMessage = (msg: CommunityMessage) => {
-    Alert.alert('Elimina messaggio', 'Vuoi eliminare questo messaggio?', [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Elimina', style: 'destructive', onPress: async () => {
+    Alert.alert(t('community.deleteMsgTitle'), t('community.deleteMsgDesc'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try { await deleteMessage(community.id, msg.id, msg.audioUrl); } catch {}
       }},
     ]);
@@ -277,7 +280,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
   const handleApprove = async (req: JoinRequest) => {
     try { await approveJoinRequest(community.id, req.userId, req.userName, req.userAvatar); }
-    catch { Alert.alert('Errore', 'Impossibile approvare'); }
+    catch { Alert.alert(t('common.error'), t('community.errors.cannotApprove')); }
   };
 
   const handleReject = async (req: JoinRequest) => {
@@ -295,26 +298,26 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
     const options: { text: string; onPress: () => void; style?: 'destructive' | 'cancel' }[] = [];
     if (isCurrentAdmin) {
       if (member.role === 'member') {
-        options.push({ text: '⭐ Promuovi a Moderatore', onPress: () => setMemberRole(community.id, member.userId, 'moderator').catch(() => {}) });
+        options.push({ text: t('community.promoteToMod'), onPress: () => setMemberRole(community.id, member.userId, 'moderator').catch(() => {}) });
       } else if (member.role === 'moderator') {
-        options.push({ text: '↓ Retrocedi a Membro', onPress: () => setMemberRole(community.id, member.userId, 'member').catch(() => {}) });
+        options.push({ text: t('community.demoteToMember'), onPress: () => setMemberRole(community.id, member.userId, 'member').catch(() => {}) });
       }
     }
-    options.push({ text: '🚫 Rimuovi dalla community', style: 'destructive', onPress: () => kickMember(community.id, member.userId).catch(() => {}) });
-    options.push({ text: 'Annulla', style: 'cancel', onPress: () => {} });
-    Alert.alert(member.userName, 'Azioni admin', options);
+    options.push({ text: t('community.kickMember'), style: 'destructive', onPress: () => kickMember(community.id, member.userId).catch(() => {}) });
+    options.push({ text: t('common.cancel'), style: 'cancel', onPress: () => {} });
+    Alert.alert(member.userName, t('community.adminActions'), options);
   };
 
   const handleDeleteCommunity = () => {
-    Alert.alert('Elimina community', `Vuoi eliminare "${community.name}"? Questa azione è irreversibile.`, [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Elimina', style: 'destructive', onPress: async () => {
+    Alert.alert(t('community.deleteCommunityTitle'), t('community.deleteCommunityDesc', { name: community.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try {
           await deleteCommunity(community.id);
           onCommunityDeleted?.();
           onClose();
         } catch (e: any) {
-          Alert.alert('Errore', e.message);
+          Alert.alert(t('common.error'), e.message);
         }
       }},
     ]);
@@ -322,14 +325,14 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
   const handleLeave = () => {
     if (myRole === 'admin') {
-      Alert.alert('Non puoi uscire', 'Sei l\'admin. Promuovi un altro membro come admin prima di uscire.');
+      Alert.alert(t('community.cannotLeaveTitle'), t('community.cannotLeaveDesc'));
       return;
     }
-    Alert.alert('Esci dalla community', 'Sei sicuro di voler uscire?', [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Esci', style: 'destructive', onPress: async () => {
+    Alert.alert(t('community.leaveTitle'), t('community.leaveDesc'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('community.leave'), style: 'destructive', onPress: async () => {
         try { await leaveCommunity(community.id); onClose(); }
-        catch { Alert.alert('Errore', 'Impossibile uscire dalla community'); }
+        catch { Alert.alert(t('common.error'), t('community.errors.cannotLeave')); }
       }},
     ]);
   };
@@ -348,20 +351,20 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
             <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>{selectedMember.userAvatar}</Text>
             <Text style={s.profileName}>{selectedMember.userName}</Text>
             <View style={[s.roleBadge, selectedMember.role === 'admin' && s.roleBadgeAdmin, selectedMember.role === 'moderator' && s.roleBadgeMod, { alignSelf: 'center', marginBottom: 16 }]}>
-              <Text style={s.roleTxt}>{selectedMember.role === 'admin' ? '👑 Admin' : selectedMember.role === 'moderator' ? '🛡 Mod' : '🎵 Membro'}</Text>
+              <Text style={s.roleTxt}>{selectedMember.role === 'admin' ? t('community.roleAdmin') : selectedMember.role === 'moderator' ? t('community.roleMod') : t('community.roleMember')}</Text>
             </View>
             {selectedMember.userId !== myUid && onViewProfile && (
               <TouchableOpacity style={s.adminActionsBtn} onPress={() => { setSelectedMember(null); onViewProfile(selectedMember.userId); }}>
-                <Text style={s.adminActionsTxt}>👤 Vai al profilo</Text>
+                <Text style={s.adminActionsTxt}>{t('community.goToProfile')}</Text>
               </TouchableOpacity>
             )}
             {isAdmin && selectedMember.userId !== myUid && (
               <TouchableOpacity style={[s.adminActionsBtn, { marginTop: 8 }]} onPress={() => { setSelectedMember(null); handleAdminActions(selectedMember); }}>
-                <Text style={s.adminActionsTxt}>⚙️ Azioni admin</Text>
+                <Text style={s.adminActionsTxt}>{t('community.adminActionsBtn')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={s.leaveBtn} onPress={() => setSelectedMember(null)}>
-              <Text style={s.leaveTxt}>Chiudi</Text>
+              <Text style={s.leaveTxt}>{t('common.close')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -376,13 +379,13 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
           <Text style={s.headerAvatar}>{com.avatar}</Text>
           <View>
             <Text style={s.headerName} numberOfLines={1}>{com.name}</Text>
-            <Text style={s.headerMeta}>{com.membersCount} membri · {com.isPublic ? '🌍 Pubblica' : '🔒 Privata'}</Text>
+            <Text style={s.headerMeta}>{t('community.membersInfo', { count: com.membersCount, visibility: com.isPublic ? t('community.public') : t('community.private') })}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {isMember && myRole !== 'admin' && (
             <TouchableOpacity style={s.leaveBtn} onPress={handleLeave}>
-              <Text style={s.leaveTxt}>Esci</Text>
+              <Text style={s.leaveTxt}>{t('community.leave')}</Text>
             </TouchableOpacity>
           )}
           {myRole === 'admin' && community.createdBy === myUid && (
@@ -396,7 +399,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
       {/* Tabs */}
       <View style={s.tabs}>
         {(['chat', 'members', ...(isAdmin ? (['requests'] as const) : ([] as const))] as const).map((tab) => {
-          const label = tab === 'chat' ? '💬 Chat' : tab === 'members' ? '👥 Membri' : `🔔 Richieste`;
+          const label = tab === 'chat' ? t('community.tabChat') : tab === 'members' ? t('community.tabMembers') : t('community.tabRequests');
           const badge = tab === 'requests' ? requestsBadge : 0;
           return (
             <TouchableOpacity key={tab} style={[s.tab, activeTab === tab && s.tabActive]} onPress={() => setActiveTab(tab)}>
@@ -414,7 +417,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
           {pinnedMsg && (
             <View style={s.pinnedBar}>
               <Text style={s.pinnedLabel}>📌 {pinnedMsg.senderName}</Text>
-              <Text style={s.pinnedCaption} numberOfLines={1}>{pinnedMsg.caption || `Vocale ${fmtDuration(pinnedMsg.audioDuration)}`}</Text>
+              <Text style={s.pinnedCaption} numberOfLines={1}>{pinnedMsg.caption || t('community.voiceAudio', { duration: fmtDuration(pinnedMsg.audioDuration) })}</Text>
             </View>
           )}
 
@@ -440,8 +443,8 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
               ListEmptyComponent={
                 <View style={s.center}>
                   <Text style={{ fontSize: 48, marginBottom: 12 }}>🎤</Text>
-                  <Text style={s.emptyTxt}>Nessun messaggio ancora</Text>
-                  <Text style={s.emptySubTxt}>Sii il primo a mandare un vocale!</Text>
+                  <Text style={s.emptyTxt}>{t('community.emptyChat')}</Text>
+                  <Text style={s.emptySubTxt}>{t('community.emptyChatHint')}</Text>
                 </View>
               }
             />
@@ -452,7 +455,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
             <View style={s.inputBar}>
               <TextInput
                 style={s.captionInput}
-                placeholder="Aggiungi una caption..."
+                placeholder={t('community.captionPlaceholder')}
                 placeholderTextColor="rgba(255,255,255,0.3)"
                 value={caption}
                 onChangeText={setCaption}
@@ -466,15 +469,15 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
                       <Text style={s.recTime}>{fmtDuration(recordSeconds)}</Text>
                     </View>
                     <TouchableOpacity style={s.discardBtn} onPress={() => stopRecording(true)}>
-                      <Text style={s.discardTxt}>✕ Annulla</Text>
+                      <Text style={s.discardTxt}>{t('community.discard')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[s.sendBtn, sending && s.sendBtnDisabled]} onPress={handleSend} disabled={sending}>
-                      {sending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.sendTxt}>➤ Invia</Text>}
+                      {sending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.sendTxt}>{t('community.send')}</Text>}
                     </TouchableOpacity>
                   </>
                 ) : (
                   <TouchableOpacity style={s.micBtn} onPress={startRecording}>
-                    <Text style={s.micIcon}>🎤 Tieni premuto per registrare</Text>
+                    <Text style={s.micIcon}>{t('community.holdToRecord')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -483,7 +486,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
 
           {!isMember && (
             <View style={s.notMemberBar}>
-              <Text style={s.notMemberTxt}>Unisciti alla community per partecipare alla chat</Text>
+              <Text style={s.notMemberTxt}>{t('community.joinToChat')}</Text>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -499,11 +502,11 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
             <TouchableOpacity style={s.memberRow} onPress={() => handleMemberAction(item)}>
               <Text style={s.memberAvatar}>{item.userAvatar}</Text>
               <View style={s.memberInfo}>
-                <Text style={s.memberName}>{item.userName}{item.userId === myUid ? ' (tu)' : ''}</Text>
-                <Text style={s.memberJoined}>Iscritto {timeAgo(item.joinedAt)}</Text>
+                <Text style={s.memberName}>{item.userName}{item.userId === myUid ? ` ${t('community.yourName')}` : ''}</Text>
+                <Text style={s.memberJoined}>{t('community.joinedAt', { time: timeAgo(item.joinedAt, t) })}</Text>
               </View>
               <View style={[s.roleBadge, item.role === 'admin' && s.roleBadgeAdmin, item.role === 'moderator' && s.roleBadgeMod]}>
-                <Text style={s.roleTxt}>{item.role === 'admin' ? '👑 Admin' : item.role === 'moderator' ? '🛡 Mod' : '🎵 Membro'}</Text>
+                <Text style={s.roleTxt}>{item.role === 'admin' ? t('community.roleAdmin') : item.role === 'moderator' ? t('community.roleMod') : t('community.roleMember')}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -519,7 +522,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
           ListEmptyComponent={
             <View style={s.center}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>✅</Text>
-              <Text style={s.emptyTxt}>Nessuna richiesta in attesa</Text>
+              <Text style={s.emptyTxt}>{t('community.noRequests')}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -527,7 +530,7 @@ export default function CommunityDetailScreen({ community, onClose, onCommunityD
               <Text style={s.memberAvatar}>{item.userAvatar}</Text>
               <View style={s.memberInfo}>
                 <Text style={s.memberName}>{item.userName}</Text>
-                <Text style={s.memberJoined}>Richiesta {timeAgo(item.requestedAt)}</Text>
+                <Text style={s.memberJoined}>{t('community.requestedAt', { time: timeAgo(item.requestedAt, t) })}</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity style={s.approveBtn} onPress={() => handleApprove(item)}>

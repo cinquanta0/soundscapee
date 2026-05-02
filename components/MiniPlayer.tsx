@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   title: string;
@@ -44,6 +45,7 @@ export default function MiniPlayer({
   onClose,
   onPress,
 }: Props) {
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(120)).current;
   const playScale = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(progress)).current;
@@ -114,7 +116,7 @@ export default function MiniPlayer({
           <View style={styles.statusRow}>
             <View style={styles.statusPill}>
               <View style={[styles.statusDot, { backgroundColor: isPlaying ? C.cyan : C.textMute }]} />
-              <Text style={styles.statusText}>{isPlaying ? 'NOW PLAYING' : 'READY'}</Text>
+              <Text style={styles.statusText}>{isPlaying ? t('player.nowPlaying') : t('player.ready')}</Text>
             </View>
           </View>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>

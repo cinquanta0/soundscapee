@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import { useTranslation } from 'react-i18next';
 import { auth } from '../firebaseConfig';
 import {
   Battle, listenToBattle, acceptBattle, rejectBattle, cancelBattle,
@@ -99,6 +100,7 @@ function CenterState({
 interface Props { battleId: string; onClose: () => void; }
 
 export default function BattleScreen({ battleId, onClose }: Props) {
+  const { t } = useTranslation();
   const [battle, setBattle] = useState<Battle | null>(null);
   const [recSecs, setRecSecs] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -145,7 +147,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       setIsUploading(false);
     } catch {
       setIsUploading(false);
-      Alert.alert('Errore upload', 'Riprova tra poco');
+      Alert.alert(t('battle.errors.uploadError'), t('battle.errors.uploadRetry'));
     }
   }, [battleId, uid]);
 
@@ -168,7 +170,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       }, 1000);
       maxTimerRef.current = setTimeout(() => stopRecordingRef.current(false), REC_SECS * 1000);
     } catch {
-      Alert.alert('Errore', 'Impossibile avviare la registrazione');
+      Alert.alert(t('common.error'), t('battle.errors.cannotStart'));
     }
   }, []);
 
@@ -221,13 +223,13 @@ export default function BattleScreen({ battleId, onClose }: Props) {
       previewRef.current = sound;
       setPreviewPlaying(who);
     } catch {
-      Alert.alert('Errore', 'Impossibile riprodurre la traccia');
+      Alert.alert(t('common.error'), t('battle.errors.cannotPlay'));
     }
   };
 
   const handleVote = async (votedForId: string) => {
     if (myVote) return;
-    if (isParticipant) { Alert.alert('Non puoi votare', 'I partecipanti non possono votare'); return; }
+    if (isParticipant) { Alert.alert(t('battle.errors.cannotVoteTitle'), t('battle.errors.cannotVoteDesc')); return; }
     try {
       await voteBattle(battleId, votedForId);
       setMyVote(votedForId);
@@ -238,7 +240,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
   if (!battle) {
     return (
-      <CenterState icon="⚔️" title="Sto sincronizzando la battle" description="Recupero round, partecipanti e stato live.">
+      <CenterState icon="⚔️" title={t('battle.syncingTitle')} description={t('battle.syncingDesc')}>
         <ActivityIndicator color="#67E8F9" size="large" />
       </CenterState>
     );
@@ -248,16 +250,16 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     return (
       <CenterState
         icon="⚔️"
-        title={`${battle.challengerName} ti sfida!`}
-        description="Registra 30 secondi sul tema dato. Poi sarà il pubblico a scegliere il migliore."
+        title={t('battle.challengeTitle', { name: battle.challengerName })}
+        description={t('battle.challengeDesc')}
       >
         <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
         <View style={s.rowBtns}>
           <TouchableOpacity style={s.rejectBtn} onPress={() => { rejectBattle(battleId); onClose(); }}>
-            <Text style={s.rejectTxt}>Rifiuta</Text>
+            <Text style={s.rejectTxt}>{t('battle.reject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.acceptBtn} onPress={() => acceptBattle(battleId)}>
-            <Text style={s.acceptTxt}>Accetta</Text>
+            <Text style={s.acceptTxt}>{t('battle.accept')}</Text>
           </TouchableOpacity>
         </View>
       </CenterState>
@@ -268,11 +270,11 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     return (
       <CenterState
         icon="😔"
-        title={battle.status === 'rejected' ? 'Sfida rifiutata' : 'Sfida annullata'}
-        description="La sessione non è più attiva. Puoi tornare all’app e lanciare una nuova battle."
+        title={battle.status === ‘rejected’ ? t(‘battle.rejectedTitle’) : t(‘battle.cancelledTitle’)}
+        description={t(‘battle.inactiveDesc’)}
       >
         <TouchableOpacity style={s.acceptBtn} onPress={onClose}>
-          <Text style={s.acceptTxt}>Chiudi</Text>
+          <Text style={s.acceptTxt}>{t('battle.close')}</Text>
         </TouchableOpacity>
       </CenterState>
     );
@@ -282,13 +284,13 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     return (
       <CenterState
         icon="⌛"
-        title={`In attesa di ${battle.opponentName}…`}
-        description="La battle partirà appena l’altro utente accetta l’invito."
+        title={t(‘battle.waitingTitle’, { name: battle.opponentName })}
+        description={t(‘battle.waitingDesc’)}
       >
         <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
         <ActivityIndicator color="#67E8F9" size="large" style={{ marginTop: 12 }} />
         <TouchableOpacity style={[s.rejectBtn, { marginTop: 24 }]} onPress={() => { cancelBattle(battleId); onClose(); }}>
-          <Text style={s.rejectTxt}>Annulla sfida</Text>
+          <Text style={s.rejectTxt}>{t('battle.cancelChallenge')}</Text>
         </TouchableOpacity>
       </CenterState>
     );
@@ -301,10 +303,10 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   const timeLeftLabel = () => {
     if (!battle.votingEndsAt) return '';
     const ms = battle.votingEndsAt.getTime() - Date.now();
-    if (ms <= 0) return 'Votazione chiusa';
+    if (ms <= 0) return t('battle.votingClosed');
     const h = Math.floor(ms / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
-    return `⏱ ${h}h ${m}m rimaste`;
+    return t('battle.timeLeft', { h, m });
   };
 
   return (
@@ -318,27 +320,27 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         <TouchableOpacity
           style={s.closeBtn}
           onPress={() => {
-            if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di uscire'); return; }
+            if (isRecording) { Alert.alert(t('battle.errors.recordingInProgress'), t('battle.errors.stopBeforeLeaving')); return; }
             onClose();
           }}
         >
           <Text style={s.closeTxt}>←</Text>
         </TouchableOpacity>
         <View style={s.headerMeta}>
-          <Text style={s.heroEyebrow}>SOUNDSCAPE BATTLE</Text>
+          <Text style={s.heroEyebrow}>{t('battle.eyebrow')}</Text>
           <View style={s.themePillSmall}><Text style={s.themePillSmallTxt}>🎯 {battle.theme}</Text></View>
         </View>
         {isChallenger && ['accepted', 'challenger_rec', 'opponent_rec'].includes(battle.status) ? (
           <TouchableOpacity
             style={s.cancelBtn}
             onPress={() => {
-              if (isRecording) { Alert.alert('Registrazione in corso', 'Fermati prima di annullare'); return; }
+              if (isRecording) { Alert.alert(t('battle.errors.recordingInProgress'), t('battle.errors.stopBeforeCancelling')); return; }
               Alert.alert(
-                'Annulla battaglia',
-                'Sei sicuro? La battaglia verrà rimossa definitivamente.',
+                t('battle.cancelTitle'),
+                t('battle.cancelConfirm'),
                 [
-                  { text: 'No', style: 'cancel' },
-                  { text: 'Annulla battaglia', style: 'destructive', onPress: () => { cancelBattle(battleId); onClose(); } },
+                  { text: t('common.no'), style: 'cancel' },
+                  { text: t('battle.cancelTitle'), style: 'destructive', onPress: () => { cancelBattle(battleId); onClose(); } },
                 ],
               );
             }}
@@ -352,10 +354,8 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
       <View style={s.stageCard}>
         <View style={s.introBlock}>
-          <Text style={s.heroTitle}>30 secondi. Un solo vincitore.</Text>
-          <Text style={s.heroSub}>
-            Registra il tuo round, ascolta l’avversario e lascia che sia il pubblico a decidere.
-          </Text>
+          <Text style={s.heroTitle}>{t(‘battle.tagline’)}</Text>
+          <Text style={s.heroSub}>{t(‘battle.subtitle’)}</Text>
         </View>
 
         <View style={s.vsRow}>
@@ -387,7 +387,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
             </View>
             <View style={s.voteBarMeta}>
               <Text style={s.voteBarLeft}>{Math.round((battle.challengerVotes / totalVotes) * 100)}%</Text>
-              <Text style={s.voteBarMid}>{totalVotes} voti totali</Text>
+              <Text style={s.voteBarMid}>{t('battle.totalVotes', { count: totalVotes })}</Text>
               <Text style={s.voteBarRight}>{Math.round((battle.opponentVotes / totalVotes) * 100)}%</Text>
             </View>
           </View>
@@ -396,11 +396,11 @@ export default function BattleScreen({ battleId, onClose }: Props) {
         <View style={s.controls}>
           {isRecording && (
             <View style={s.focusPanel}>
-              <Text style={s.focusLabel}>RECORDING LIVE</Text>
+              <Text style={s.focusLabel}>{t('battle.recordingLive')}</Text>
               <Text style={s.recordCountdown}>{fmtSec(REC_SECS - recSecs)}</Text>
               <TimerBar seconds={recSecs} total={REC_SECS} color="#67E8F9" />
               <TouchableOpacity style={s.stopBtn} onPress={() => stopRecording(false)}>
-                <Text style={s.stopBtnTxt}>⏹ Finito!</Text>
+                <Text style={s.stopBtnTxt}>{t('battle.stopBtn')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -408,22 +408,22 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           {isUploading && (
             <View style={s.focusPanel}>
               <ActivityIndicator color="#67E8F9" />
-              <Text style={s.statusTitle}>Upload in corso</Text>
-              <Text style={s.statusSub}>Sto inviando la tua traccia al round.</Text>
+              <Text style={s.statusTitle}>{t('battle.uploading')}</Text>
+              <Text style={s.statusSub}>{t('battle.uploadingDesc')}</Text>
             </View>
           )}
 
           {isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
             <TouchableOpacity style={s.startBtn} onPress={() => startChallengerRec(battleId)}>
-              <Text style={s.startBtnTxt}>⚔️ Inizia la battaglia!</Text>
+              <Text style={s.startBtnTxt}>{t('battle.startBtn')}</Text>
             </TouchableOpacity>
           )}
 
           {!isChallenger && battle.status === 'accepted' && !isRecording && !isUploading && (
             <View style={s.focusPanel}>
               <ActivityIndicator color="#8B5CF6" />
-              <Text style={s.statusTitle}>Aspetta che {battle.challengerName} inizi…</Text>
-              <Text style={s.statusSub}>La tua registrazione si sblocca appena parte il primo round.</Text>
+              <Text style={s.statusTitle}>{t('battle.waitingChallenger', { name: battle.challengerName })}</Text>
+              <Text style={s.statusSub}>{t('battle.waitingFirstRound')}</Text>
             </View>
           )}
 
@@ -432,16 +432,16 @@ export default function BattleScreen({ battleId, onClose }: Props) {
              (!isChallenger && battle.status === 'challenger_rec')) && (
             <View style={s.focusPanel}>
               <ActivityIndicator color="#8B5CF6" />
-              <Text style={s.statusTitle}>{isChallenger ? battle.opponentName : battle.challengerName} sta registrando…</Text>
-              <Text style={s.statusSub}>Quando finisce, la sfida passa automaticamente allo step successivo.</Text>
+              <Text style={s.statusTitle}>{t('battle.opponentRecording', { name: isChallenger ? battle.opponentName : battle.challengerName })}</Text>
+              <Text style={s.statusSub}>{t('battle.opponentRecordingDesc')}</Text>
             </View>
           )}
 
           {isParticipant && myTrackDone && !otherTrackDone && !votingOpen && !isDone && (
             <View style={s.focusPanel}>
               <ActivityIndicator color="#D9FF5A" />
-              <Text style={s.successTitle}>✓ Traccia caricata!</Text>
-              <Text style={s.statusSub}>In attesa di {isChallenger ? battle.opponentName : battle.challengerName}…</Text>
+              <Text style={s.successTitle}>{t('battle.trackUploaded')}</Text>
+              <Text style={s.statusSub}>{t('battle.waitingOpponent', { name: isChallenger ? battle.opponentName : battle.challengerName })}</Text>
             </View>
           )}
 
@@ -472,13 +472,13 @@ export default function BattleScreen({ battleId, onClose }: Props) {
                   style={[s.voteBtn, { borderColor: '#67E8F9', backgroundColor: 'rgba(103,232,249,0.12)' }]}
                   onPress={() => handleVote(battle.challengerId)}
                 >
-                  <Text style={{ color: '#67E8F9', fontWeight: '800', fontSize: 14 }}>Vote {battle.challengerName}</Text>
+                  <Text style={{ color: '#67E8F9', fontWeight: '800', fontSize: 14 }}>▶ {battle.challengerName}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.voteBtn, { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.12)' }]}
                   onPress={() => handleVote(battle.opponentId)}
                 >
-                  <Text style={{ color: '#8B5CF6', fontWeight: '800', fontSize: 14 }}>Vote {battle.opponentName}</Text>
+                  <Text style={{ color: '#8B5CF6', fontWeight: '800', fontSize: 14 }}>▶ {battle.opponentName}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -486,14 +486,14 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
           {votingOpen && !isParticipant && myVote && (
             <View style={s.focusPanel}>
-              <Text style={s.successTitle}>✓ Hai votato!</Text>
+              <Text style={s.successTitle}>{t('battle.voted')}</Text>
               <Text style={s.voteHint}>{timeLeftLabel()}</Text>
             </View>
           )}
 
           {votingOpen && isParticipant && (
             <View style={s.focusPanel}>
-              <Text style={s.statusTitle}>🗳 Votazione aperta al pubblico</Text>
+              <Text style={s.statusTitle}>{t('battle.votingOpenPublic')}</Text>
               <Text style={s.voteHint}>{timeLeftLabel()}</Text>
             </View>
           )}
@@ -501,11 +501,11 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           {isDone && (
             <View style={s.focusPanel}>
               <Text style={s.winnerTitle}>
-                🏆 {battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName} ha vinto!
+                {t('battle.winner', { name: battle.winnerId === battle.challengerId ? battle.challengerName : battle.opponentName })}
               </Text>
-              <Text style={s.voteHint}>{totalVotes} voti totali</Text>
+              <Text style={s.voteHint}>{t('battle.totalVotes', { count: totalVotes })}</Text>
               <TouchableOpacity style={[s.acceptBtn, { marginTop: 8 }]} onPress={onClose}>
-                <Text style={s.acceptTxt}>Chiudi</Text>
+                <Text style={s.acceptTxt}>{t('battle.close')}</Text>
               </TouchableOpacity>
             </View>
           )}

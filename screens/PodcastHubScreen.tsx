@@ -11,10 +11,10 @@ import ITSSchoolScreen from './ITSSchoolScreen';
 
 type PodcastView = 'feed' | 'school' | 'playlists' | 'podcastDetail' | 'playlistDetail';
 
-const TABS: { id: Exclude<PodcastView, 'podcastDetail' | 'playlistDetail'>; icon: React.ComponentProps<typeof Feather>['name']; labelKey: string; subtitle: string }[] = [
-  { id: 'feed', icon: 'mic', labelKey: 'podcast.tabFeed', subtitle: 'episodi e nuove uscite' },
-  { id: 'school', icon: 'book-open', labelKey: 'podcast.tabSchool', subtitle: 'format learning e ITS' },
-  { id: 'playlists', icon: 'layers', labelKey: 'podcast.tabPlaylists', subtitle: 'raccolte curate e mood mix' },
+const TABS: { id: Exclude<PodcastView, 'podcastDetail' | 'playlistDetail'>; icon: React.ComponentProps<typeof Feather>['name']; labelKey: string; subtitleKey: string }[] = [
+  { id: 'feed', icon: 'mic', labelKey: 'podcast.tabFeed', subtitleKey: 'podcast.tabFeedSubtitle' },
+  { id: 'school', icon: 'book-open', labelKey: 'podcast.tabSchool', subtitleKey: 'podcast.tabSchoolSubtitle' },
+  { id: 'playlists', icon: 'layers', labelKey: 'podcast.tabPlaylists', subtitleKey: 'podcast.tabPlaylistsSubtitle' },
 ];
 
 export default function PodcastHubScreen({ compact = false }: { compact?: boolean }) {
@@ -56,11 +56,9 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
           style={styles.hero}
         >
           <View style={styles.heroGlow} />
-          <Text style={styles.eyebrow}>Audio narratives</Text>
-          <Text style={styles.title}>Podcast hub</Text>
-          <Text style={styles.subtitle}>
-            Episodi, format scuola e playlist editoriali dentro una struttura più leggibile e coerente con il nuovo feed.
-          </Text>
+          <Text style={styles.eyebrow}>{t('podcast.hubEyebrow')}</Text>
+          <Text style={styles.title}>{t('podcast.hubTitle')}</Text>
+          <Text style={styles.subtitle}>{t('podcast.hubSubtitle')}</Text>
         </LinearGradient>
       )}
 
@@ -78,7 +76,7 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
                 <Feather name={tab.icon} size={16} color={active ? '#67E8F9' : '#94A0C3'} />
               </View>
               <Text style={[styles.tabTitle, active && styles.tabTitleActive]}>{t(tab.labelKey)}</Text>
-              {!compact && <Text style={styles.tabSubtitle}>{tab.subtitle}</Text>}
+              {!compact && <Text style={styles.tabSubtitle}>{t(tab.subtitleKey)}</Text>}
             </TouchableOpacity>
           );
         })}

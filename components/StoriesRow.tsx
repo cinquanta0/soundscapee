@@ -40,53 +40,55 @@ const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
   web: { mimeType: 'audio/webm', bitsPerSecond: 64000 },
 };
 
-// ─── Tutorial stories (hardcoded) ────────────────────────────────────────────
-const TUTORIAL_GROUPS: StoryGroup[] = [
-  {
-    id: 'tutorial_sound',
-    label: 'Pubblica un suono',
-    icon: '🎤',
-    screens: [
-      { emoji: '🎤', title: 'Registra', body: 'Tieni premuto il pulsante grande\nper catturare fino a 30 secondi\ndi audio' },
-      { emoji: '🎵', title: 'Titolo & Mood', body: 'Dai un nome al suono\ne scegli il mood che\nlo descrive meglio' },
-      { emoji: '📍', title: 'Posizione', body: 'Il suono viene geo-taggato\ne appare sulla mappa mondiale\nin tempo reale' },
-      { emoji: '🌍', title: 'Nel feed', body: 'Tutti gli utenti vicino a te\npossono ascoltarlo\nnel loro feed' },
-    ],
-  },
-  {
-    id: 'tutorial_map',
-    label: 'Usa la mappa',
-    icon: '🗺️',
-    screens: [
-      { emoji: '🗺️', title: 'Mappa mondiale', body: 'Ogni punto sulla mappa\nè un suono reale registrato\nin quel posto' },
-      { emoji: '👆', title: 'Tap sui punti', body: 'Tocca qualsiasi punto\nper ascoltare il suono\ndi quel luogo' },
-      { emoji: '🔍', title: 'Esplora', body: 'Zoom in e out per scoprire\nsuoni nascosti nelle\ncittà di tutto il mondo' },
-      { emoji: '🎯', title: 'Sei sulla mappa', body: 'I tuoi suoni appaiono\nautomaticamente nella\ntua posizione attuale' },
-    ],
-  },
-  {
-    id: 'tutorial_challenges',
-    label: 'Le Sfide',
-    icon: '🏆',
-    screens: [
-      { emoji: '🏆', title: 'Sfide settimanali', body: 'Ogni settimana una nuova\nsfida sonora con tema\ndiverso per tutti' },
-      { emoji: '🎤', title: 'Partecipa', body: 'Registra un suono che risponde\nalla sfida e\nsottomettilo' },
-      { emoji: '❤️', title: 'Vota', body: 'Dai like ai suoni\ndegli altri partecipanti\nper farli vincere' },
-      { emoji: '🥇', title: 'Vinci', body: 'I suoni con più like\nvincono la sfida\ndella settimana' },
-    ],
-  },
-  {
-    id: 'tutorial_communities',
-    label: 'Community',
-    icon: '👥',
-    screens: [
-      { emoji: '👥', title: 'Community', body: 'Gruppi di persone unite\nda interessi sonori\ncomuni' },
-      { emoji: '🎵', title: 'Unisciti', body: 'Entra nelle community\nche rispecchiano\ni tuoi gusti' },
-      { emoji: '📻', title: 'Condividi', body: 'Pubblica suoni\ndirettamente nella\ncommunity' },
-      { emoji: '🔔', title: 'Aggiornamenti', body: 'Ricevi notifiche dai\nnuovi suoni della\ncommunity' },
-    ],
-  },
-];
+// ─── Tutorial stories (i18n) ──────────────────────────────────────────────────
+function getTutorialGroups(t: (key: string) => string): StoryGroup[] {
+  return [
+    {
+      id: 'tutorial_sound',
+      label: t('tutorial.sound.label'),
+      icon: '🎤',
+      screens: [
+        { emoji: '🎤', title: t('tutorial.sound.step1.title'), body: t('tutorial.sound.step1.body') },
+        { emoji: '🎵', title: t('tutorial.sound.step2.title'), body: t('tutorial.sound.step2.body') },
+        { emoji: '📍', title: t('tutorial.sound.step3.title'), body: t('tutorial.sound.step3.body') },
+        { emoji: '🌍', title: t('tutorial.sound.step4.title'), body: t('tutorial.sound.step4.body') },
+      ],
+    },
+    {
+      id: 'tutorial_map',
+      label: t('tutorial.map.label'),
+      icon: '🗺️',
+      screens: [
+        { emoji: '🗺️', title: t('tutorial.map.step1.title'), body: t('tutorial.map.step1.body') },
+        { emoji: '👆', title: t('tutorial.map.step2.title'), body: t('tutorial.map.step2.body') },
+        { emoji: '🔍', title: t('tutorial.map.step3.title'), body: t('tutorial.map.step3.body') },
+        { emoji: '🎯', title: t('tutorial.map.step4.title'), body: t('tutorial.map.step4.body') },
+      ],
+    },
+    {
+      id: 'tutorial_challenges',
+      label: t('tutorial.challenges.label'),
+      icon: '🏆',
+      screens: [
+        { emoji: '🏆', title: t('tutorial.challenges.step1.title'), body: t('tutorial.challenges.step1.body') },
+        { emoji: '🎤', title: t('tutorial.challenges.step2.title'), body: t('tutorial.challenges.step2.body') },
+        { emoji: '❤️', title: t('tutorial.challenges.step3.title'), body: t('tutorial.challenges.step3.body') },
+        { emoji: '🥇', title: t('tutorial.challenges.step4.title'), body: t('tutorial.challenges.step4.body') },
+      ],
+    },
+    {
+      id: 'tutorial_communities',
+      label: t('tutorial.communities.label'),
+      icon: '👥',
+      screens: [
+        { emoji: '👥', title: t('tutorial.communities.step1.title'), body: t('tutorial.communities.step1.body') },
+        { emoji: '🎵', title: t('tutorial.communities.step2.title'), body: t('tutorial.communities.step2.body') },
+        { emoji: '📻', title: t('tutorial.communities.step3.title'), body: t('tutorial.communities.step3.body') },
+        { emoji: '🔔', title: t('tutorial.communities.step4.title'), body: t('tutorial.communities.step4.body') },
+      ],
+    },
+  ];
+}
 
 // ─── Animated border ring ─────────────────────────────────────────────────────
 function AnimatedRing({ viewed }: { viewed: boolean }) {
@@ -231,7 +233,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   };
 
   const openTutorial = () => {
-    setActiveGroups(TUTORIAL_GROUPS);
+    setActiveGroups(getTutorialGroups(t));
     setStartIdx(0);
     setViewerVisible(true);
   };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { C, T, S, R } from '../constants/design';
+import { useTranslation } from 'react-i18next';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface Props {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PodcastCard({ podcast, onPress }: Props) {
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
 
   const mins = podcast.duration ? Math.floor(podcast.duration / 60) : null;
@@ -60,7 +62,7 @@ export default function PodcastCard({ podcast, onPress }: Props) {
           </Text>
           {podcast.isITS && (
             <View style={s.itsBadge}>
-              <Text style={s.itsBadgeTxt}>SCUOLA</Text>
+              <Text style={s.itsBadgeTxt}>{t('podcast.schoolBadge')}</Text>
             </View>
           )}
         </View>

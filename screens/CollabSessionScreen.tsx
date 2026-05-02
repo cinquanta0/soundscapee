@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, TextInput, Modal, Pressable, Animated,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { auth } from '../firebaseConfig';
@@ -60,6 +61,7 @@ interface Props {
 }
 
 export default function CollabSessionScreen({ sessionId, onClose }: Props) {
+  const { t } = useTranslation();
   const [session, setSession] = useState<CollabSession | null>(null);
   const [recSeconds, setRecSeconds] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -180,7 +182,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       setIsUploading(false);
     } catch {
       setIsUploading(false);
-      Alert.alert('Errore upload', 'Riprova tra poco');
+      Alert.alert(t('collab.errors.uploadError'), t('collab.errors.uploadRetry'));
     }
   }, [sessionId, myUid]);
 
@@ -194,7 +196,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert('Permesso microfono negato', "Vai in Impostazioni e consenti l'accesso al microfono");
+        Alert.alert(t('collab.errors.micPermission'), t('collab.errors.micSettings'));
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: false });
@@ -216,7 +218,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         signalStopRecording(sessionId).catch(() => {});
       }, remaining);
     } catch {
-      Alert.alert('Errore', 'Impossibile avviare la registrazione');
+      Alert.alert(t('common.error'), t('collab.errors.cannotStart'));
     } finally {
       isStartingRef.current = false;
     }
@@ -246,20 +248,20 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   };
 
   const handleMix = async () => {
-    if (!bothUploaded) { Alert.alert('Aspetta', "Entrambe le tracce devono essere caricate"); return; }
+    if (!bothUploaded) { Alert.alert(t('collab.errors.waitBothTracks'), t('collab.errors.waitBothTracksDesc')); return; }
     try { await processCollab(sessionId); }
-    catch (e: any) { Alert.alert('Errore mix', e?.message || 'Impossibile mixare le tracce'); }
+    catch (e: any) { Alert.alert(t('collab.errors.mixError'), e?.message || t('collab.errors.cannotMix')); }
   };
 
   const handlePublish = async () => {
-    if (!title.trim()) { Alert.alert('Aggiungi un titolo'); return; }
+    if (!title.trim()) { Alert.alert(t('collab.errors.titleRequired')); return; }
     setPublishing(true);
     try {
       await publishCollabAsSound(sessionId, title.trim());
-      Alert.alert('✅ Pubblicato!', `"${title}" è ora sul feed di entrambi`);
+      Alert.alert(t('collab.errors.published'), t('collab.errors.publishedDesc', { title }));
       setShowPublish(false);
       onClose();
-    } catch { Alert.alert('Errore', 'Impossibile pubblicare'); }
+    } catch { Alert.alert(t('common.error'), t('collab.errors.cannotPublish')); }
     finally { setPublishing(false); }
   };
 
@@ -289,21 +291,19 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         <View style={s.inviteCard}>
           <Text style={s.inviteEmoji}>{session.hostAvatar}</Text>
           <Text style={s.inviteTitle}>{session.hostName}</Text>
-          <Text style={s.inviteSub}>ti invita a una</Text>
+          <Text style={s.inviteSub}>{t('collab.invitedTo')}</Text>
           <View style={s.modeBadge}>
-            <Text style={s.modeBadgeTxt}>{session.mode === 'sync' ? '🎙 Sessione Sync' : '🔄 Sessione a Turni'}</Text>
+            <Text style={s.modeBadgeTxt}>{session.mode === 'sync' ? t('collab.syncSession') : t('collab.turnsSession')}</Text>
           </View>
           <Text style={s.inviteDesc}>
-            {session.mode === 'sync'
-              ? 'Registrate insieme in tempo reale — il mix viene pubblicato con entrambi i vostri nomi'
-              : 'Prima registra il tuo giro, poi lui aggiunge la sua voce sopra'}
+            {session.mode === 'sync' ? t('collab.syncDesc') : t('collab.turnsDesc')}
           </Text>
           <View style={s.inviteActions}>
             <TouchableOpacity style={s.rejectBtn} onPress={() => { rejectCollab(sessionId); onClose(); }}>
-              <Text style={s.rejectTxt}>✕ Rifiuta</Text>
+              <Text style={s.rejectTxt}>{t('collab.reject')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.acceptBtn} onPress={() => acceptCollab(sessionId)}>
-              <Text style={s.acceptTxt}>🎙 Accetta</Text>
+              <Text style={s.acceptTxt}>{t('collab.accept')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -317,8 +317,8 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>{session.status === 'rejected' ? '😔' : '❌'}</Text>
-          <Text style={s.inviteTitle}>{session.status === 'rejected' ? `${otherName} ha rifiutato` : 'Sessione annullata'}</Text>
-          <TouchableOpacity style={s.acceptBtn} onPress={onClose}><Text style={s.acceptTxt}>Chiudi</Text></TouchableOpacity>
+          <Text style={s.inviteTitle}>{session.status === 'rejected' ? t('collab.rejected', { name: otherName }) : t('collab.cancelled')}</Text>
+          <TouchableOpacity style={s.acceptBtn} onPress={onClose}><Text style={s.acceptTxt}>{t('collab.close')}</Text></TouchableOpacity>
         </View>
       </View>
     );
@@ -331,10 +331,10 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <ActivityIndicator color="#a855f7" size="large" style={{ marginBottom: 16 }} />
-          <Text style={s.inviteTitle}>In attesa di {session?.guestName ?? '…'}</Text>
-          <Text style={s.inviteSub}>Hai inviato un invito per una {session?.mode === 'sync' ? 'sessione sync' : 'sessione a turni'}</Text>
+          <Text style={s.inviteTitle}>{t('collab.waitingForGuest', { name: session?.guestName ?? '…' })}</Text>
+          <Text style={s.inviteSub}>{t('collab.hostSentInvite')} {session?.mode === 'sync' ? t('collab.syncSession') : t('collab.turnsSession')}</Text>
           <TouchableOpacity style={[s.rejectBtn, { marginTop: 24 }]} onPress={() => { cancelCollab(sessionId); onClose(); }}>
-            <Text style={s.rejectTxt}>Annulla invito</Text>
+            <Text style={s.rejectTxt}>{t('collab.cancelInvite')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -343,12 +343,12 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 
   // ── Schermata sessione attiva ──────────────────────────────────────────────────
   const statusLabel = () => {
-    if (session.status === 'mixing') return '⚙️ Mixando le tracce…';
-    if (isUploading) return '☁️ Caricando la tua traccia…';
-    if (session.status === 'uploading') return myTrackUploaded ? (bothUploaded ? '✅ Entrambe le tracce pronte' : `⏳ In attesa di ${otherName}…`) : '☁️ Caricamento…';
+    if (session.status === 'mixing') return t('collab.mixing');
+    if (isUploading) return t('collab.uploadingTrack');
+    if (session.status === 'uploading') return myTrackUploaded ? (bothUploaded ? t('collab.bothReady') : t('collab.waitingFor', { name: otherName })) : t('collab.uploading');
     if (isRecording) return `⏺ ${fmtSec(recSeconds)} / ${fmtSec(MAX_RECORD_SECS)}`;
-    if (session.mode === 'turns' && !isMyTurn) return `⏳ Turno di ${otherName}`;
-    return session.status === 'accepted' ? (isHost ? 'Premi ⏺ per iniziare' : 'Pronto, aspetta il via') : '';
+    if (session.mode === 'turns' && !isMyTurn) return t('collab.opponentTurn', { name: otherName });
+    return session.status === 'accepted' ? (isHost ? t('collab.pressRecord') : t('collab.waitForSignal')) : '';
   };
 
   return (
@@ -358,15 +358,15 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.closeBtn} onPress={() => {
-          Alert.alert('Esci dalla sessione?', 'La sessione verrà annullata', [
-            { text: 'Rimani', style: 'cancel' },
-            { text: 'Esci', style: 'destructive', onPress: () => { cancelCollab(sessionId); onClose(); } },
+          Alert.alert(t('collab.exitTitle'), t('collab.exitDesc'), [
+            { text: t('collab.stay'), style: 'cancel' },
+            { text: t('collab.exit'), style: 'destructive', onPress: () => { cancelCollab(sessionId); onClose(); } },
           ]);
         }}>
           <Text style={s.closeTxt}>✕</Text>
         </TouchableOpacity>
         <View style={s.modePill}>
-          <Text style={s.modePillTxt}>{session.mode === 'sync' ? '🎙 SYNC' : '🔄 TURNI'}</Text>
+          <Text style={s.modePillTxt}>{session.mode === 'sync' ? t('collab.syncSession') : t('collab.turnsSession')}</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -378,7 +378,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
           <Text style={s.participantName}>{session.hostName}</Text>
           <Text style={s.participantRole}>Host</Text>
           <PulseWave active={isRecording && isHost} color="#a855f7" />
-          {session.hostTrackUrl && <Text style={s.trackDone}>✓ Traccia pronta</Text>}
+          {session.hostTrackUrl && <Text style={s.trackDone}>{t('collab.trackReady')}</Text>}
         </View>
 
         <View style={s.vsCircle}>
@@ -390,7 +390,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
           <Text style={s.participantName}>{session.guestName}</Text>
           <Text style={s.participantRole}>Guest</Text>
           <PulseWave active={isRecording && !isHost} color="#00FF9C" />
-          {session.guestTrackUrl && <Text style={s.trackDone}>✓ Traccia pronta</Text>}
+          {session.guestTrackUrl && <Text style={s.trackDone}>{t('collab.trackReady')}</Text>}
         </View>
       </View>
 
@@ -404,7 +404,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         {(session.status === 'accepted' || session.status === 'recording') && (
           <TouchableOpacity style={[s.micBtn, micOn && s.micBtnOn]} onPress={handleToggleMic} disabled={!agoraJoined}>
             <Text style={s.micIcon}>{micOn ? '🎙' : '🔇'}</Text>
-            <Text style={s.micLabel}>{micOn ? 'Mic on' : 'Mic off'}</Text>
+            <Text style={s.micLabel}>{micOn ? t('collab.micOn') : t('collab.micOff')}</Text>
           </TouchableOpacity>
         )}
 
@@ -421,7 +421,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
               <Text style={s.recBtnIcon}>{isRecording ? '⏹' : '⏺'}</Text>
             </View>
             <Text style={s.recBtnLabel}>
-              {isRecording ? 'Stop' : (canPressRecord ? 'Registra' : (session.mode === 'turns' ? `Turno di ${otherName}` : 'In attesa…'))}
+              {isRecording ? t('collab.stop') : (canPressRecord ? t('collab.record') : (session.mode === 'turns' ? t('collab.opponentTurn', { name: otherName }) : t('collab.waitingTurn')))}
             </Text>
           </TouchableOpacity>
         )}
@@ -432,14 +432,14 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         {/* Turns mode: avanza turno */}
         {session.mode === 'turns' && isHost && myTrackUploaded && !otherTrackUploaded && session.currentTurn === 0 && (
           <TouchableOpacity style={s.actionBtn} onPress={() => advanceTurn(sessionId)}>
-            <Text style={s.actionBtnTxt}>🔄 Passa il turno a {session.guestName}</Text>
+            <Text style={s.actionBtnTxt}>{t('collab.passTurn', { name: session.guestName })}</Text>
           </TouchableOpacity>
         )}
 
         {/* Mix — quando entrambe le tracce sono pronte */}
         {bothUploaded && session.status === 'uploading' && isHost && (
           <TouchableOpacity style={s.mixBtn} onPress={handleMix}>
-            <Text style={s.mixBtnTxt}>✨ Mixa e ascolta</Text>
+            <Text style={s.mixBtnTxt}>{t('collab.mixBtn')}</Text>
           </TouchableOpacity>
         )}
 
@@ -447,7 +447,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         {session.status === 'mixing' && (
           <View style={{ alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color="#a855f7" size="large" />
-            <Text style={s.statusLabel}>FFmpeg sta lavorando…</Text>
+            <Text style={s.statusLabel}>{t('collab.ffmpegWorking')}</Text>
           </View>
         )}
       </View>
@@ -456,24 +456,24 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       <Modal visible={showPublish} transparent animationType="slide">
         <View style={s.publishOverlay}>
           <View style={s.publishCard}>
-            <Text style={s.publishTitle}>🎉 Il mix è pronto!</Text>
+            <Text style={s.publishTitle}>{t('collab.mixReady')}</Text>
             <TouchableOpacity style={s.previewBtn} onPress={handlePreview}>
-              <Text style={s.previewBtnTxt}>{previewPlaying ? '⏹ Stop' : '▶ Ascolta il mix'}</Text>
+              <Text style={s.previewBtnTxt}>{previewPlaying ? t('collab.stopPreview') : t('collab.listenMix')}</Text>
             </TouchableOpacity>
             <TextInput
               style={s.titleInput}
-              placeholder="Titolo del duetto..."
+              placeholder={t('collab.duetPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={title}
               onChangeText={setTitle}
             />
-            <Text style={s.publishHint}>Verrà pubblicato sul feed di entrambi con i credits</Text>
+            <Text style={s.publishHint}>{t('collab.publishHint')}</Text>
             <View style={s.publishActions}>
               <TouchableOpacity style={s.publishCancel} onPress={() => setShowPublish(false)}>
-                <Text style={s.publishCancelTxt}>Dopo</Text>
+                <Text style={s.publishCancelTxt}>{t('collab.later')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.publishBtn, publishing && { opacity: 0.5 }]} onPress={handlePublish} disabled={publishing}>
-                {publishing ? <ActivityIndicator color="#fff" /> : <Text style={s.publishBtnTxt}>📤 Pubblica</Text>}
+                {publishing ? <ActivityIndicator color="#fff" /> : <Text style={s.publishBtnTxt}>{t('collab.publish')}</Text>}
               </TouchableOpacity>
             </View>
           </View>

@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export type TabId = 'home' | 'explore' | 'map' | 'challenges' | 'communities' | 'profile' | 'messages';
 
@@ -34,6 +35,16 @@ const TABS: Tab[] = [
   { id: 'profile', label: 'Profile', icon: 'user', accent: '#4F7CFF' },
 ];
 
+const NAV_KEYS: Record<TabId, string> = {
+  home: 'nav.home',
+  explore: 'nav.explore',
+  map: 'nav.map',
+  challenges: 'nav.challenges',
+  communities: 'nav.communities',
+  messages: 'nav.messages',
+  profile: 'nav.profile',
+};
+
 function NavItem({
   tab,
   isActive,
@@ -43,6 +54,7 @@ function NavItem({
   isActive: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const scale = useRef(new Animated.Value(1)).current;
   const glow = useRef(new Animated.Value(isActive ? 1 : 0)).current;
   const lift = useRef(new Animated.Value(isActive ? 1 : 0)).current;
@@ -73,7 +85,7 @@ function NavItem({
           </Animated.View>
           <Feather name={tab.icon} size={19} color={isActive ? tab.accent : '#8A93B6'} />
         </Animated.View>
-        <Text style={[styles.label, isActive && { color: '#F7F8FF' }]} numberOfLines={1}>{tab.label}</Text>
+        <Text style={[styles.label, isActive && { color: '#F7F8FF' }]} numberOfLines={1}>{t(NAV_KEYS[tab.id])}</Text>
         <View style={[styles.underline, isActive && { backgroundColor: tab.accent, opacity: 1 }]} />
       </Animated.View>
     </TouchableOpacity>
