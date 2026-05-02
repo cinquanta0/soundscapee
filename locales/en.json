@@ -40,11 +40,17 @@
     "errors": {
       "invalidEmail": "Please enter a valid email address",
       "emptyPassword": "Please enter your password",
-      "passwordTooShort": "Password must be at least 8 characters"
+      "passwordTooShort": "Password must be at least 8 characters",
+      "emailInUse": "This email is already registered",
+      "invalidCredential": "Invalid email or password",
+      "wrongPassword": "Wrong password",
+      "tooManyRequests": "Too many attempts. Please try again later"
     },
     "success": {
-      "accountCreated": "Account created successfully!"
+      "accountCreated": "Account created! Check your email to verify."
     },
+    "resetSent": "Recovery email sent! Check your inbox.",
+    "forgotDesc": "Enter your email and we'll send you a link to reset your password.",
     "logoutConfirm": "Do you want to sign out?",
     "logoutAction": "Sign out"
   },

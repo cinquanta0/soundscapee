@@ -40,11 +40,17 @@
     "errors": {
       "invalidEmail": "Por favor, insira um endereço de e-mail válido",
       "emptyPassword": "Por favor, insira sua senha",
-      "passwordTooShort": "A senha deve ter pelo menos 8 caracteres"
+      "passwordTooShort": "A senha deve ter pelo menos 8 caracteres",
+      "emailInUse": "Este e-mail já está registrado",
+      "invalidCredential": "E-mail ou senha inválidos",
+      "wrongPassword": "Senha incorreta",
+      "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde"
     },
     "success": {
-      "accountCreated": "Conta criada com sucesso!"
+      "accountCreated": "Conta criada! Verifique seu e-mail."
     },
+    "resetSent": "E-mail de recuperação enviado! Verifique sua caixa de entrada.",
+    "forgotDesc": "Insira seu e-mail e enviaremos um link para redefinir sua senha.",
     "logoutConfirm": "Deseja sair?",
     "logoutAction": "Sair"
   },

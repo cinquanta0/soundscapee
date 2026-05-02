@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { auth, functions } from '../firebaseConfig';
@@ -19,7 +14,6 @@ import {
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { useRouter } from 'expo-router';
-import { C, T, S, R } from '../constants/design';
 import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen() {
@@ -45,7 +39,7 @@ export default function LoginScreen() {
     try {
       if (isForgot) {
         await sendPasswordResetEmail(auth, emailTrimmed);
-        setSuccessMsg('Email di recupero inviata! Controlla la tua casella di posta.');
+        setSuccessMsg(t('auth.resetSent'));
         setLoading(false);
         return;
       }
@@ -76,237 +70,353 @@ export default function LoginScreen() {
     } catch (error: any) {
       const code = error?.code || '';
       const em = t('common.error');
-      if (code === 'auth/email-already-in-use') Alert.alert(em, 'Email già registrata. Prova ad accedere.');
-      else if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') Alert.alert(em, 'Email o password errati.');
-      else if (code === 'auth/wrong-password') Alert.alert(em, 'Password errata.');
-      else if (code === 'auth/too-many-requests') Alert.alert(em, 'Troppi tentativi. Riprova tra qualche minuto.');
+      if (code === 'auth/email-already-in-use') Alert.alert(em, t('auth.errors.emailInUse'));
+      else if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') Alert.alert(em, t('auth.errors.invalidCredential'));
+      else if (code === 'auth/wrong-password') Alert.alert(em, t('auth.errors.wrongPassword'));
+      else if (code === 'auth/too-many-requests') Alert.alert(em, t('auth.errors.tooManyRequests'));
       else Alert.alert(em, error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={[C.bg, C.bgElevated, C.bg]} style={StyleSheet.absoluteFill} />
+  const reset = () => { setIsForgot(false); setIsSignUp(false); setSuccessMsg(''); };
 
-      <View style={styles.content}>
+  return (
+    <KeyboardAvoidingView
+      style={s.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+
+      {/* Ambient orbs */}
+      <View style={s.orbA} />
+      <View style={s.orbB} />
+      <View style={s.orbC} />
+
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logo}>🎧</Text>
-          <Text style={styles.title}>SoundScape</Text>
-          <Text style={styles.subtitle}>{t('auth.subtitle')}</Text>
+        <View style={s.logoWrap}>
+          <Text style={s.logoEmoji}>🎧</Text>
+          <Text style={s.eyebrow}>SOUNDSCAPE</Text>
+          <Text style={s.tagline}>{t('auth.subtitle')}</Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
+        {/* Card */}
+        <View style={s.card}>
+          {/* Card header */}
+          <Text style={s.cardTitle}>
+            {isForgot ? t('auth.forgotPassword') : isSignUp ? t('auth.signUp') : t('auth.signIn')}
+          </Text>
+
           {isForgot && (
-            <Text style={styles.forgotDesc}>
-              Inserisci la tua email e ti mandiamo un link per reimpostare la password.
-            </Text>
+            <Text style={s.cardDesc}>{t('auth.forgotDesc')}</Text>
           )}
 
-          {successMsg ? (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>{successMsg}</Text>
+          {/* Success message */}
+          {!!successMsg && (
+            <View style={s.successBox}>
+              <Text style={s.successTxt}>{successMsg}</Text>
             </View>
-          ) : null}
+          )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#94a3b8"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!loading}
-          />
-
-          {!isForgot && (
+          {/* Email */}
+          <View style={s.inputWrap}>
+            <Text style={s.inputLabel}>EMAIL</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#94a3b8"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+              style={s.input}
+              placeholder="you@example.com"
+              placeholderTextColor="rgba(255,255,255,0.25)"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
               editable={!loading}
             />
+          </View>
+
+          {/* Password */}
+          {!isForgot && (
+            <View style={s.inputWrap}>
+              <Text style={s.inputLabel}>PASSWORD</Text>
+              <TextInput
+                style={s.input}
+                placeholder="••••••••"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!loading}
+              />
+            </View>
           )}
 
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleEmailAuth}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {isForgot ? t('common.send') : isSignUp ? t('auth.signUp') : t('auth.signIn')}
-              </Text>
-            )}
-          </TouchableOpacity>
-
+          {/* Forgot link */}
           {!isForgot && !isSignUp && (
             <TouchableOpacity
               onPress={() => { setIsForgot(true); setSuccessMsg(''); }}
               disabled={loading}
+              style={s.forgotWrap}
             >
-              <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
+              <Text style={s.forgotTxt}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
           )}
 
-          {isForgot ? (
-            <TouchableOpacity onPress={() => { setIsForgot(false); setSuccessMsg(''); }} disabled={loading}>
-              <Text style={styles.switchText}>{t('auth.alreadyHaveAccount')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => { setIsSignUp(!isSignUp); setSuccessMsg(''); }}
-              disabled={loading}
+          {/* Primary button */}
+          <TouchableOpacity
+            style={[s.primaryBtn, loading && { opacity: 0.6 }]}
+            onPress={handleEmailAuth}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#67E8F9', '#4FC8E0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.primaryBtnGrad}
             >
-              <Text style={styles.switchText}>
-                {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.noAccount')}
-              </Text>
-            </TouchableOpacity>
-          )}
+              {loading
+                ? <ActivityIndicator color="#050816" />
+                : <Text style={s.primaryBtnTxt}>
+                    {isForgot ? t('common.send') : isSignUp ? t('auth.signUp') : t('auth.signIn')}
+                  </Text>
+              }
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Switch mode */}
+          <View style={s.switchRow}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerTxt}>{t('common.or')}</Text>
+            <View style={s.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={s.secondaryBtn}
+            onPress={isForgot ? reset : () => { setIsSignUp(!isSignUp); setSuccessMsg(''); }}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Text style={s.secondaryBtnTxt}>
+              {isForgot
+                ? t('auth.alreadyHaveAccount')
+                : isSignUp
+                  ? t('auth.alreadyHaveAccount')
+                  : t('auth.noAccount')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Info */}
-        <Text style={styles.infoText}>{t('auth.termsInfo')}</Text>
-      </View>
-    </SafeAreaView>
+        <Text style={s.terms}>{t('auth.termsInfo')}</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const s = StyleSheet.create({
+  root: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#050816',
   },
-  content: {
-    flex: 1,
-    padding: S.xxl,
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
-  logoContainer: {
+
+  // Orbs
+  orbA: {
+    position: 'absolute',
+    top: -60,
+    right: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(103,232,249,0.07)',
+  },
+  orbB: {
+    position: 'absolute',
+    bottom: 80,
+    left: -100,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(139,92,255,0.08)',
+  },
+  orbC: {
+    position: 'absolute',
+    top: '40%',
+    right: -60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(217,255,90,0.05)',
+  },
+
+  // Logo
+  logoWrap: {
     alignItems: 'center',
-    marginBottom: S.huge,
+    marginBottom: 40,
   },
-  logo: {
-    fontSize: 80,
-    marginBottom: S.lg,
+  logoEmoji: {
+    fontSize: 72,
+    marginBottom: 16,
   },
-  title: {
-    ...T.displayL,
-    color: C.textPrimary,
-    marginBottom: S.sm,
+  eyebrow: {
+    color: '#67E8F9',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 4,
+    marginBottom: 10,
+  },
+  tagline: {
+    color: '#97A4C7',
+    fontSize: 14,
     textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 260,
   },
-  subtitle: {
-    ...T.bodyL,
-    color: C.textSecondary,
+
+  // Card
+  card: {
+    backgroundColor: 'rgba(9,12,28,0.82)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.14)',
+    padding: 28,
+    marginBottom: 24,
+  },
+  cardTitle: {
+    color: '#F7F8FF',
+    fontSize: 22,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  cardDesc: {
+    color: '#97A4C7',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+
+  // Success
+  successBox: {
+    backgroundColor: 'rgba(103,232,249,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.25)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+  },
+  successTxt: {
+    color: '#67E8F9',
+    fontSize: 13,
     textAlign: 'center',
+    fontWeight: '600',
   },
-  form: {
-    marginBottom: S.xxl,
+
+  // Inputs
+  inputWrap: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: '#67E8F9',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: C.bgInput,
-    borderRadius: R.sm,
-    paddingHorizontal: S.lg,
-    paddingVertical: 14,
-    color: C.textPrimary,
-    fontSize: 16,
-    marginBottom: S.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(163,177,255,0.18)',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    color: '#F7F8FF',
+    fontSize: 15,
   },
-  primaryButton: {
-    backgroundColor: C.accent,
-    borderRadius: R.sm,
-    paddingVertical: S.lg,
+
+  // Forgot
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -4,
+  },
+  forgotTxt: {
+    color: '#67E8F9',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Primary button
+  primaryBtn: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: '#67E8F9',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  primaryBtnGrad: {
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: S.sm,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  primaryButtonText: {
-    ...T.body,
-    color: C.textOnAccent,
-    fontWeight: '700',
+  primaryBtnTxt: {
+    color: '#050816',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  switchText: {
-    ...T.body,
-    color: C.accent,
-    textAlign: 'center',
-    marginTop: S.lg,
-  },
-  divider: {
+
+  // Divider
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: S.xxl,
+    marginVertical: 20,
+    gap: 12,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: C.border,
+    backgroundColor: 'rgba(163,177,255,0.12)',
   },
-  dividerText: {
-    ...T.label,
-    color: C.textMuted,
-    paddingHorizontal: S.lg,
-    fontWeight: '600',
+  dividerTxt: {
+    color: '#4A5270',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  anonymousButton: {
-    backgroundColor: C.glass,
-    borderRadius: R.sm,
-    paddingVertical: S.lg,
+
+  // Secondary button
+  secondaryBtn: {
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.borderStrong,
   },
-  anonymousButtonText: {
-    ...T.body,
-    color: C.textPrimary,
+  secondaryBtnTxt: {
+    color: '#97A4C7',
+    fontSize: 14,
     fontWeight: '600',
   },
-  infoText: {
-    ...T.label,
-    color: C.textMuted,
+
+  // Terms
+  terms: {
+    color: '#3A4260',
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: S.xxl,
-    lineHeight: 18,
-  },
-  forgotLink: {
-    ...T.bodyS,
-    color: C.accent,
-    textAlign: 'right',
-    marginTop: S.xs,
-    marginBottom: S.sm,
-  },
-  forgotDesc: {
-    ...T.body,
-    color: C.textSecondary,
-    marginBottom: S.lg,
-    textAlign: 'center',
-  },
-  successBox: {
-    backgroundColor: C.accentDim,
-    borderWidth: 1,
-    borderColor: C.borderAccent,
-    borderRadius: R.sm,
-    padding: S.md,
-    marginBottom: S.lg,
-  },
-  successText: {
-    ...T.body,
-    color: C.accent,
-    textAlign: 'center',
+    lineHeight: 17,
   },
 });
