@@ -270,8 +270,8 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     return (
       <CenterState
         icon="😔"
-        title={battle.status === ‘rejected’ ? t(‘battle.rejectedTitle’) : t(‘battle.cancelledTitle’)}
-        description={t(‘battle.inactiveDesc’)}
+        title={battle.status === 'rejected' ? t('battle.rejectedTitle') : t('battle.cancelledTitle')}
+        description={t('battle.inactiveDesc')}
       >
         <TouchableOpacity style={s.acceptBtn} onPress={onClose}>
           <Text style={s.acceptTxt}>{t('battle.close')}</Text>
@@ -284,8 +284,8 @@ export default function BattleScreen({ battleId, onClose }: Props) {
     return (
       <CenterState
         icon="⌛"
-        title={t(‘battle.waitingTitle’, { name: battle.opponentName })}
-        description={t(‘battle.waitingDesc’)}
+        title={t('battle.waitingTitle', { name: battle.opponentName })}
+        description={t('battle.waitingDesc')}
       >
         <View style={s.themePill}><Text style={s.themePillTxt}>🎯 {battle.theme}</Text></View>
         <ActivityIndicator color="#67E8F9" size="large" style={{ marginTop: 12 }} />
@@ -354,8 +354,8 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
       <View style={s.stageCard}>
         <View style={s.introBlock}>
-          <Text style={s.heroTitle}>{t(‘battle.tagline’)}</Text>
-          <Text style={s.heroSub}>{t(‘battle.subtitle’)}</Text>
+          <Text style={s.heroTitle}>{t('battle.tagline')}</Text>
+          <Text style={s.heroSub}>{t('battle.subtitle')}</Text>
         </View>
 
         <View style={s.vsRow}>
