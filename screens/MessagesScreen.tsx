@@ -192,7 +192,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
         <View style={ms.header}>
           <View style={{ flex: 1 }}>
             <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
-            <Text style={ms.headerSub}>{t(‘messages.inboxSubtitle’)}</Text>
+            <Text style={ms.headerSub}>{t('messages.inboxSubtitle')}</Text>
           </View>
           <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
             <Feather name="plus" size={15} color="#060913" />
