@@ -722,7 +722,13 @@
       "cannotApproveSubmission": "Approvazione fallita",
       "cannotRejectSubmission": "Rifiuto fallito",
       "cannotGrade": "Salvataggio voto fallito",
-      "cannotUpdateRole": "Impossibile aggiornare ruolo"
+      "cannotUpdateRole": "Impossibile aggiornare ruolo",
+      "invalidUid": "UID non valido. Deve essere alfanumerico, 20-128 caratteri.",
+      "cannotPlayLesson": "Impossibile riprodurre questa lezione.",
+      "cannotSelectFile": "Impossibile selezionare il file",
+      "micPermissionDenied": "Permesso microfono negato",
+      "cannotStartRecording": "Impossibile avviare la registrazione",
+      "cannotUpdatePhoto": "Errore aggiornamento foto"
     },
     "onboarding": {
       "slide1Title": "Benvenuto nella Scuola ITS",
@@ -774,7 +780,22 @@
       "emailNotVerified": "email non verificata",
       "domainOk": "dominio scolastico",
       "domainNotOk": "dominio non scolastico"
-    }
+    },
+    "audioFileDefault": "File audio",
+    "audioRecorded": "AUDIO REGISTRATO",
+    "tabSearch": "Cerca",
+    "tabRecord": "Registra",
+    "tabFile": "File",
+    "recordingReady": "Registrazione pronta",
+    "readyToRecord": "Pronto a registrare",
+    "chooseAudioFile": "Scegli file audio",
+    "selectedLessonAudio": "Audio lezione selezionata",
+    "audioLoading": "Caricamento audio...",
+    "audioReady": "Pronta per l'ascolto",
+    "audioNotAvailable": "Audio non disponibile",
+    "stop": "Stop",
+    "play": "Play",
+    "selectLessonAudio": "Seleziona una lezione per ascoltare l'audio."
   },
   "chat": {
     "voiceMessages": "messaggi vocali",

@@ -493,7 +493,7 @@ export default function ITSSchoolScreen() {
     const uid = adminUid.trim();
     if (!uid) return;
     if (!/^[a-zA-Z0-9]{20,128}$/.test(uid)) {
-      Alert.alert(t('common.error'), 'UID non valido. Deve essere alfanumerico, 20-128 caratteri.');
+      Alert.alert(t('common.error'), t('school.errors.invalidUid'));
       return;
     }
     setBusy(true);
@@ -539,7 +539,7 @@ export default function ITSSchoolScreen() {
       lessonSoundRef.current = sound;
       setLessonAudioPlaying(true);
     } catch {
-      Alert.alert(t('common.error'), 'Impossibile riprodurre questa lezione.');
+      Alert.alert(t('common.error'), t('school.errors.cannotPlayLesson'));
       setLessonAudioPlaying(false);
     } finally {
       setLessonAudioLoading(false);
@@ -554,10 +554,10 @@ export default function ITSSchoolScreen() {
         clearLocalAudio();
         setPickedAudio(null);
         setLocalAudioUri(res.assets[0].uri);
-        setLocalAudioName(res.assets[0].name || 'File audio');
+        setLocalAudioName(res.assets[0].name || t('school.audioFileDefault'));
       }
     } catch (e: any) {
-      Alert.alert(t('common.error'), 'Impossibile selezionare il file');
+      Alert.alert(t('common.error'), t('school.errors.cannotSelectFile'));
     }
   };
 
@@ -565,7 +565,7 @@ export default function ITSSchoolScreen() {
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert(t('common.error'), 'Permesso microfono negato');
+        Alert.alert(t('common.error'), t('school.errors.micPermissionDenied'));
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -581,7 +581,7 @@ export default function ITSSchoolScreen() {
       clearLocalAudio();
       setPickedAudio(null);
     } catch (err: any) {
-      Alert.alert(t('common.error'), 'Impossibile avviare registrazione');
+      Alert.alert(t('common.error'), t('school.errors.cannotStartRecording'));
       setIsRecording(false);
     }
   };
@@ -593,7 +593,7 @@ export default function ITSSchoolScreen() {
       const uri = recordingRef.current.getURI();
       if (uri) {
         setLocalAudioUri(uri);
-        setLocalAudioName('AUDIO REGISTRATO');
+        setLocalAudioName(t('school.audioRecorded'));
       }
     } catch (err) {}
     setIsRecording(false);
@@ -616,7 +616,7 @@ export default function ITSSchoolScreen() {
         await loadClasses(roleMode);
       }
     } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message || 'Errore aggiornamento foto');
+      Alert.alert(t('common.error'), e?.message || t('school.errors.cannotUpdatePhoto'));
     } finally {
       setUploadingClassPhoto(false);
     }
@@ -695,13 +695,13 @@ export default function ITSSchoolScreen() {
       <Text style={s.fieldLabel}>{t('school.audioSection')}</Text>
       <View style={s.audioModeTabs}>
         <TouchableOpacity style={[s.audioModeTab, audioMode === 'search' && s.audioModeTabActive]} onPress={() => setAudioMode('search')}>
-          <Text style={[s.audioModeTxt, audioMode === 'search' && s.audioModeTxtActive]}>Cerca</Text>
+          <Text style={[s.audioModeTxt, audioMode === 'search' && s.audioModeTxtActive]}>{t('school.tabSearch')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.audioModeTab, audioMode === 'record' && s.audioModeTabActive]} onPress={() => setAudioMode('record')}>
-          <Text style={[s.audioModeTxt, audioMode === 'record' && s.audioModeTxtActive]}>Registra</Text>
+          <Text style={[s.audioModeTxt, audioMode === 'record' && s.audioModeTxtActive]}>{t('school.tabRecord')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.audioModeTab, audioMode === 'file' && s.audioModeTabActive]} onPress={() => setAudioMode('file')}>
-          <Text style={[s.audioModeTxt, audioMode === 'file' && s.audioModeTxtActive]}>File</Text>
+          <Text style={[s.audioModeTxt, audioMode === 'file' && s.audioModeTxtActive]}>{t('school.tabFile')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -734,7 +734,7 @@ export default function ITSSchoolScreen() {
       {audioMode === 'record' && (
         <View style={s.recordSection}>
           <Text style={s.recordTime}>
-            {isRecording ? `00:${String(recordSeconds).padStart(2, '0')}` : localAudioUri && audioMode === 'record' ? 'Registrazione pronta' : 'Pronto a registrare'}
+            {isRecording ? `00:${String(recordSeconds).padStart(2, '0')}` : localAudioUri && audioMode === 'record' ? t('school.recordingReady') : t('school.readyToRecord')}
           </Text>
           <TouchableOpacity
             style={[s.recordBtn, isRecording && s.recordBtnActive]}
@@ -756,7 +756,7 @@ export default function ITSSchoolScreen() {
       {audioMode === 'file' && (
         <View style={s.fileSection}>
           <TouchableOpacity style={s.btnBlue} onPress={handlePickAudioFile}>
-            <Text style={s.btnBlueTxt}>Scegli file audio</Text>
+            <Text style={s.btnBlueTxt}>{t('school.chooseAudioFile')}</Text>
           </TouchableOpacity>
           {localAudioUri && audioMode === 'file' && (
             <View style={s.pickedRow}>
@@ -813,7 +813,7 @@ export default function ITSSchoolScreen() {
       {/* Publish / Submit form */}
       <View style={[s.card, contentCardStyle]}>
         <View style={[s.cardAccent, { backgroundColor: roleMode === 'teacher' ? C.gold : C.green }]} />
-        <Text style={s.cardLabel}>Audio lezione selezionata</Text>
+        <Text style={s.cardLabel}>{t('school.selectedLessonAudio')}</Text>
         {selectedLessonId ? (
           <View style={s.inlineRow}>
             <View style={{ flex: 1 }}>
@@ -821,7 +821,7 @@ export default function ITSSchoolScreen() {
                 {lessons.find((l) => l.id === selectedLessonId)?.title || 'Lezione'}
               </Text>
               <Text style={s.rowSub}>
-                {lessonAudioLoading ? 'Caricamento audio...' : lessonAudioUrl ? 'Pronta per l’ascolto' : 'Audio non disponibile'}
+                {lessonAudioLoading ? t(‘school.audioLoading’) : lessonAudioUrl ? t(‘school.audioReady’) : t(‘school.audioNotAvailable’)}
               </Text>
             </View>
             <TouchableOpacity
@@ -832,12 +832,12 @@ export default function ITSSchoolScreen() {
               {lessonAudioLoading ? (
                 <ActivityIndicator color={C.blue} size="small" />
               ) : (
-                <Text style={s.btnBlueTxt}>{lessonAudioPlaying ? 'Stop' : 'Play'}</Text>
+                <Text style={s.btnBlueTxt}>{lessonAudioPlaying ? t('school.stop') : t('school.play')}</Text>
               )}
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={s.emptyText}>Seleziona una lezione per ascoltare l’audio.</Text>
+          <Text style={s.emptyText}>{t(‘school.selectLessonAudio’)}</Text>
         )}
       </View>
 

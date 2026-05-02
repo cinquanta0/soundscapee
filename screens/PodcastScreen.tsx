@@ -186,9 +186,9 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   };
 
   const handleDeleteComment = (commentId: string) => {
-    Alert.alert('Elimina commento', 'Sicuro?', [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Elimina', style: 'destructive', onPress: () => deletePodcastComment(podcast.id, commentId).catch(() => {}) },
+    Alert.alert(t('podcast.deleteCommentTitle'), t('podcast.deleteCommentMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deletePodcastComment(podcast.id, commentId).catch(() => {}) },
     ]);
   };
 
@@ -659,14 +659,17 @@ function SoundSearchView({
 
 const PODCAST_TUTORIAL_KEY = '@soundscape/podcast_tutorial_seen';
 
-const TUTORIAL_STEPS = [
-  { emoji: '✏️', title: 'Titolo & Descrizione', body: 'Dai un nome al tuo podcast e spiega di cosa parla. Il titolo è obbligatorio.' },
-  { emoji: '🎙', title: 'Registra la tua voce', body: 'Premi il pulsante rosso per registrare direttamente dal microfono. Toccalo di nuovo per fermarti.' },
-  { emoji: '📂', title: 'Oppure importa un file', body: 'Scegli un audio dal dispositivo o cerca un suono già caricato su SoundScape.' },
-  { emoji: '🚀', title: 'Copertina & Pubblica', body: 'Aggiungi una copertina opzionale, poi premi Pubblica per condividere il tuo podcast con tutti.' },
-];
+function getTutorialSteps(t: (key: string) => string) {
+  return [
+    { emoji: '✏️', title: t('podcast.tutorialStep1Title'), body: t('podcast.tutorialStep1Body') },
+    { emoji: '🎙', title: t('podcast.tutorialStep2Title'), body: t('podcast.tutorialStep2Body') },
+    { emoji: '📂', title: t('podcast.tutorialStep3Title'), body: t('podcast.tutorialStep3Body') },
+    { emoji: '🚀', title: t('podcast.tutorialStep4Title'), body: t('podcast.tutorialStep4Body') },
+  ];
+}
 
 function TutorialCard({ step, total, onNext, onSkip }: { step: number; total: number; onNext: () => void; onSkip: () => void }) {
+  const { t } = useTranslation();
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -679,21 +682,21 @@ function TutorialCard({ step, total, onNext, onSkip }: { step: number; total: nu
     return () => anim.stop();
   }, [step]);
 
-  const info = TUTORIAL_STEPS[step - 1];
+  const info = getTutorialSteps(t)[step - 1];
   const isLast = step === total;
   return (
     <View style={tc.card}>
       <View style={tc.header}>
         <Animated.Text style={[tc.emoji, { opacity: pulse }]}>{info.emoji}</Animated.Text>
-        <Text style={tc.stepLabel}>Guida · {step}/{total}</Text>
+        <Text style={tc.stepLabel}>{t('podcast.tutorialLabel', { step, total })}</Text>
         <TouchableOpacity onPress={onSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={tc.skip}>Salta</Text>
+          <Text style={tc.skip}>{t('podcast.tutorialSkip')}</Text>
         </TouchableOpacity>
       </View>
       <Text style={tc.title}>{info.title}</Text>
       <Text style={tc.body}>{info.body}</Text>
       <TouchableOpacity style={tc.nextBtn} onPress={onNext}>
-        <Text style={tc.nextTxt}>{isLast ? 'Ho capito ✓' : 'Avanti →'}</Text>
+        <Text style={tc.nextTxt}>{isLast ? t('podcast.tutorialDone') : t('podcast.tutorialNext')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -854,7 +857,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
       if (uri) {
         setAudioUri(uri);
         setSoundscapeAudioUrl(null);
-        setAudioName('AUDIO REGISTRATO');
+        setAudioName(t('podcast.audioRecorded'));
         setAudioDuration(secs);
         // Carica preview player
         try {
@@ -1015,12 +1018,12 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
               onPress={() => setIsITS((v) => !v)}
             >
               <Text style={[pm.itsToggleText, isITS && pm.itsToggleTextActive]}>
-                {isITS ? 'Scuola: ON' : 'Scuola: OFF'}
+                {isITS ? t('podcast.schoolOn') : t('podcast.schoolOff')}
               </Text>
             </TouchableOpacity>
             <TextInput
               style={[pm.input, pm.categoryInput]}
-              placeholder="Categoria (opzionale)"
+              placeholder={t('podcast.categoryPlaceholder')}
               placeholderTextColor="#4A4D56"
               value={category}
               onChangeText={setCategory}
@@ -1041,7 +1044,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
                   <View style={pm.recDot} />
                   <Text style={pm.recTimer}>{fmtRecSecs(recordSeconds)}</Text>
-                  <Text style={pm.recHint}>· tocca per fermare</Text>
+                  <Text style={pm.recHint}>{t('podcast.tapToStop')}</Text>
                 </View>
               </TouchableOpacity>
             ) : hasPreview ? (
@@ -1052,7 +1055,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
                     <Text style={{ fontSize: 20, color: C.textOnAccent }}>{previewPlaying ? '⏸' : '▶'}</Text>
                   </TouchableOpacity>
                   <View style={{ flex: 1 }}>
-                    <Text style={pm.previewLabel}>✅ REGISTRAZIONE PRONTA</Text>
+                    <Text style={pm.previewLabel}>{t('podcast.recordingReady')}</Text>
                     <View style={pm.previewBarBg}>
                       <View style={[pm.previewBarFill, { width: `${audioDuration > 0 ? Math.min(100, (previewPos / audioDuration) * 100) : 0}%` as any }]} />
                     </View>
@@ -1072,7 +1075,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
                 style={[pm.pickBtn, { borderColor: 'rgba(255,59,48,0.4)', marginBottom: 2 }]}
                 onPress={startRecording}
               >
-                <Text style={pm.pickBtnTxt}>🎙 Registra ora</Text>
+                <Text style={pm.pickBtnTxt}>{t('podcast.recordNow')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1194,7 +1197,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
 
   const ensureNotAnonymous = () => {
     if (auth.currentUser?.isAnonymous) {
-      Alert.alert('Funzione non disponibile', 'Le playlist non sono disponibili con account ospite.');
+      Alert.alert(t('podcast.guestNotAllowedTitle'), t('podcast.guestNotAllowedMsg'));
       return false;
     }
     return true;
@@ -1209,7 +1212,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
       const list = await getUserPlaylists();
       setPlaylists(list);
     } catch (error: any) {
-      Alert.alert('Errore', error?.message || 'Impossibile caricare le playlist.');
+      Alert.alert(t('common.error'), error?.message || t('podcast.errors.cannotLoadPlaylists'));
     } finally {
       setLoadingPlaylists(false);
     }
@@ -1226,7 +1229,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
       setPlaylists((prev) => [created, ...prev]);
       setNewPlaylistName('');
     } catch (error: any) {
-      Alert.alert('Errore', error?.message || 'Impossibile creare la playlist.');
+      Alert.alert(t('common.error'), error?.message || t('podcast.errors.cannotCreatePlaylist'));
     } finally {
       setCreatingPlaylist(false);
     }
@@ -1236,10 +1239,10 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
     if (!playlistTarget) return;
     try {
       await addPodcastToPlaylist(playlist.id, playlistTarget.id);
-      Alert.alert('Fatto', `"${playlistTarget.title}" aggiunto a "${playlist.name}".`);
+      Alert.alert(t('podcast.done'), t('podcast.addedToPlaylistMsg', { title: playlistTarget.title, name: playlist.name }));
       setPlaylistModalVisible(false);
     } catch (error: any) {
-      Alert.alert('Errore', error?.message || 'Impossibile aggiungere il podcast alla playlist.');
+      Alert.alert(t('common.error'), error?.message || t('podcast.errors.cannotAddToPlaylist'));
     }
   };
 
@@ -1270,7 +1273,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
             <View style={sc.topBar}>
               <View style={{ flex: 1 }}>
                 <Text style={sc.topBarTitle}>{t('podcast.header')}</Text>
-                <Text style={sc.topBarSub}>Episodi, voci e format editoriali con una struttura più pulita.</Text>
+                <Text style={sc.topBarSub}>{t('podcast.studioSubtitle')}</Text>
               </View>
               <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
                 <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
@@ -1330,7 +1333,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
           <View style={pm.sheet}>
             <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
             <View style={pm.handle} />
-            <Text style={pm.sheetTitle}>Aggiungi a playlist</Text>
+            <Text style={pm.sheetTitle}>{t('podcast.addToPlaylistTitle')}</Text>
             {!!playlistTarget && (
               <Text style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 12 }} numberOfLines={1}>
                 {playlistTarget.title}
@@ -1340,7 +1343,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               <TextInput
                 style={[pm.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Nuova playlist..."
+                placeholder={t('podcast.newPlaylistPlaceholder')}
                 placeholderTextColor="#4A4D56"
                 value={newPlaylistName}
                 onChangeText={setNewPlaylistName}
@@ -1351,7 +1354,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
                 onPress={handleCreatePlaylist}
                 disabled={!newPlaylistName.trim() || creatingPlaylist}
               >
-                {creatingPlaylist ? <ActivityIndicator color="#050508" size="small" /> : <Text style={pm.publishTxt}>Crea</Text>}
+                {creatingPlaylist ? <ActivityIndicator color="#050508" size="small" /> : <Text style={pm.publishTxt}>{t('common.create')}</Text>}
               </TouchableOpacity>
             </View>
 
@@ -1369,18 +1372,18 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
                     </View>
                     <View style={pc.info}>
                       <Text style={pc.title} numberOfLines={1}>{item.name}</Text>
-                      <Text style={pc.duration}>{item.podcastIds.length} episodi</Text>
+                      <Text style={pc.duration}>{t('podcast.episodesCount', { count: item.podcastIds.length })}</Text>
                     </View>
                   </TouchableOpacity>
                 )}
                 ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                ListEmptyComponent={<Text style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingVertical: 16 }}>Nessuna playlist</Text>}
+                ListEmptyComponent={<Text style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingVertical: 16 }}>{t('podcast.noPlaylists')}</Text>}
               />
             )}
 
             <View style={pm.actions}>
               <TouchableOpacity style={pm.cancelBtn} onPress={() => setPlaylistModalVisible(false)}>
-                <Text style={pm.cancelTxt}>Chiudi</Text>
+                <Text style={pm.cancelTxt}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
           </View>
