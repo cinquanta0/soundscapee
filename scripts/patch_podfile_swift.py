@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 
@@ -22,7 +23,9 @@ with open(PODFILE, "r", encoding="utf-8") as f:
 updated = content
 changes = []
 
-if "$expo_updates_create_updates_resources" not in updated:
+disable_updates_resources = os.environ.get("DISABLE_EXPO_UPDATES_RESOURCES") == "1"
+
+if disable_updates_resources and "$expo_updates_create_updates_resources" not in updated:
     updated = DISABLE_UPDATES_SCRIPT + updated
     changes.append("disabled expo-updates resource generation")
 
