@@ -3769,6 +3769,18 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>
+      {compact && (
+        <View style={ms.compactActionsRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={ms.compactCaption}>{t('radio.liveBroadcast')}</Text>
+            <Text style={ms.compactTitle}>{t('radio.title')}</Text>
+          </View>
+          <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
+            <View style={ms.liveDot} />
+            <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {!compact && (
         <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
           <View style={ms.heroGlow} />
@@ -3842,6 +3854,10 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
       ) : rooms.length === 0 ? (
         <View style={ms.emptyLive}>
           <Text style={ms.emptyDesc}>{t('radio.emptyDesc')}</Text>
+          <TouchableOpacity style={[ms.liveBtn, { marginTop: 18 }]} onPress={() => setShowCreate(true)}>
+            <View style={ms.liveDot} />
+            <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -3863,6 +3879,34 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
 }
 
 const ms = StyleSheet.create({
+  compactActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  compactCaption: {
+    color: '#67E8F9',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  compactTitle: {
+    color: '#F7F8FF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
   hero: {
     marginHorizontal: 16,
     marginTop: 4,

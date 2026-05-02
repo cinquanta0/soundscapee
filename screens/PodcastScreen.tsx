@@ -1251,6 +1251,17 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>
+      {compact && (
+        <View style={sc.compactActionsRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={sc.compactCaption}>Podcast studio</Text>
+            <Text style={sc.compactTitle}>{t('podcast.header')}</Text>
+          </View>
+          <TouchableOpacity style={sc.publishBtn} onPress={() => setShowPublish(true)}>
+            <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {!compact && (
         <>
           <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
@@ -1279,6 +1290,9 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
           <Text style={{ fontSize: 48, marginBottom: 12 }}>🎙</Text>
           <Text style={sc.emptyTitle}>{t('podcast.empty')}</Text>
           <Text style={sc.emptyDesc}>{t('podcast.emptyDesc')}</Text>
+          <TouchableOpacity style={[sc.publishBtn, { marginTop: 18 }]} onPress={() => setShowPublish(true)}>
+            <Text style={sc.publishBtnTxt}>{t('podcast.publishBtn')}</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -1442,6 +1456,34 @@ const pc = StyleSheet.create({
 });
 
 const sc = StyleSheet.create({
+  compactActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(163,177,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  compactCaption: {
+    color: '#67E8F9',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  compactTitle: {
+    color: '#F7F8FF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
   hero: {
     marginHorizontal: 16,
     marginTop: 4,
