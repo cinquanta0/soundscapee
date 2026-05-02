@@ -3854,10 +3854,6 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
       ) : rooms.length === 0 ? (
         <View style={ms.emptyLive}>
           <Text style={ms.emptyDesc}>{t('radio.emptyDesc')}</Text>
-          <TouchableOpacity style={[ms.liveBtn, { marginTop: 18 }]} onPress={() => setShowCreate(true)}>
-            <View style={ms.liveDot} />
-            <Text style={ms.liveBtnTxt}>{t('radio.liveBtn')}</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
