@@ -312,6 +312,34 @@ export async function playRadioPlayback() {
     await TrackPlayer.retry?.().catch(() => {});
   }
   await TrackPlayer.play();
+
+  // iOS: il primo play() manuale su un live stream può restare bloccato in
+  // Buffering/Loading senza mai raggiungere Playing (bug AVPlayer su stream ICY/HLS).
+  // Stesso pattern "second kick" usato in startRadioPlayback: dopo 500ms,
+  // se lo stream non è ancora in Playing, forziamo pause→play per sbloccarlo.
+  if (Platform.OS !== 'ios') return;
+  const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  let kicked = false;
+  for (let i = 0; i < 6; i++) {
+    await wait(500);
+    try {
+      const ps2 = await TrackPlayer.getPlaybackState().catch(() => null);
+      const s2 = ps2?.state ?? ps2;
+      if (s2 === State?.Playing) return;
+      if (!kicked && (
+        s2 === State?.Buffering ||
+        s2 === State?.Loading ||
+        s2 === State?.Ready ||
+        s2 === State?.Paused
+      )) {
+        console.log(RADIO_LOG_PREFIX, 'playRadioPlayback iOS kick', { attempt: i, state: s2 });
+        await TrackPlayer.pause().catch(() => {});
+        await wait(180);
+        await TrackPlayer.play().catch(() => {});
+        kicked = true;
+      }
+    } catch {}
+  }
 }
 
 export async function pauseRadioPlayback() {

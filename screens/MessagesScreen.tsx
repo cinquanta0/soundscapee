@@ -28,15 +28,16 @@ interface OtherUser {
   avatar: string;
 }
 
-function timeAgo(d: Date) {
+function timeAgo(d: Date, t: (key: string, opts?: object) => string) {
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return 'ora';
+  if (diff < 60) return t('messages.timeNow');
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}g`;
+  return `${Math.floor(diff / 86400)}${t('messages.timeDaysAbbr')}`;
 }
 
 function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }) {
+  const { t } = useTranslation();
   const isMe = conv.lastSenderId === auth.currentUser?.uid;
   const initial = conv.otherUserName[0]?.toUpperCase() || '?';
   return (
@@ -55,11 +56,11 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
       <View style={cr.info}>
         <View style={cr.top}>
           <Text style={cr.name}>{conv.otherUserName}</Text>
-          <Text style={cr.time}>{timeAgo(conv.lastTimestamp)}</Text>
+          <Text style={cr.time}>{timeAgo(conv.lastTimestamp, t)}</Text>
         </View>
         <View style={cr.bottom}>
           <Text style={cr.preview} numberOfLines={1}>
-            {isMe ? 'Tu' : 'Audio'} · {conv.lastDuration}s
+            {isMe ? t('messages.you') : t('messages.audio')} · {conv.lastDuration}s
           </Text>
           {isMe && (
             <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#67E8F9' : '#687392' }]}>
@@ -109,7 +110,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
       <View style={nm.sheet}>
         <LinearGradient colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.98)']} style={[StyleSheet.absoluteFill, { borderRadius: 28 }]} />
         <View style={nm.handle} />
-        <Text style={nm.eyebrow}>New conversation</Text>
+        <Text style={nm.eyebrow}>{t('messages.newConvEyebrow')}</Text>
         <Text style={nm.title}>{t('messages.newConversation')}</Text>
         <TextInput
           style={nm.input}
@@ -187,11 +188,11 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
 
       <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
         <View style={ms.heroGlow} />
-        <Text style={ms.eyebrow}>Voice inbox</Text>
+        <Text style={ms.eyebrow}>{t('messages.voiceInbox')}</Text>
         <View style={ms.header}>
           <View style={{ flex: 1 }}>
             <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
-            <Text style={ms.headerSub}>Messaggi vocali, reply rapidi e conversazioni audio in un’unica inbox.</Text>
+            <Text style={ms.headerSub}>{t(‘messages.inboxSubtitle’)}</Text>
           </View>
           <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
             <Feather name="plus" size={15} color="#060913" />
@@ -200,7 +201,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
       </LinearGradient>
 
       <View style={ms.sectionHead}>
-        <Text style={ms.sectionCaption}>Conversations</Text>
+        <Text style={ms.sectionCaption}>{t('messages.conversations')}</Text>
         <View style={ms.sectionBadge}>
           <Text style={ms.sectionBadgeText}>{totalUnread}</Text>
         </View>

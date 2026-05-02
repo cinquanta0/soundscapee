@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 const C = {
   bgCard: '#101428',
@@ -93,6 +94,7 @@ export function FeedHomeHeader({
   onOpenNotifications,
   onOpenProfile,
 }: HeaderProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.headerWrap}>
       <LinearGradient
@@ -113,10 +115,10 @@ export function FeedHomeHeader({
             <View style={styles.metaRow}>
               <View style={styles.liveBadge}>
                 <View style={styles.liveDot} />
-                <Text style={styles.liveBadgeText}>ON AIR</Text>
+                <Text style={styles.liveBadgeText}>{t('feed.onAir')}</Text>
               </View>
-              <Text style={styles.metaText}>{soundsCount} drops attivi</Text>
-              <Text style={styles.metaAccent}>streak {streakCount}</Text>
+              <Text style={styles.metaText}>{t('feed.dropsActive', { count: soundsCount })}</Text>
+              <Text style={styles.metaAccent}>{t('feed.streak', { count: streakCount })}</Text>
             </View>
           </View>
         </View>
@@ -147,6 +149,7 @@ export function FeedHeroCard({
   isRecording,
   onPress,
 }: HeroProps) {
+  const { t } = useTranslation();
   return (
     <LinearGradient
       colors={['#151735', '#0C1831', '#0A0E1F']}
@@ -164,7 +167,7 @@ export function FeedHeroCard({
 
       <View style={styles.heroTopPill}>
         <Feather name="radio" size={12} color={C.cyan} />
-        <Text style={styles.heroTopPillText}>Broadcast Studio</Text>
+        <Text style={styles.heroTopPillText}>{t('feed.broadcastStudio')}</Text>
       </View>
 
       <Text style={styles.heroTitle}>{title}</Text>
@@ -224,22 +227,23 @@ export function FeedMoodChips({ items, activeId, onSelect }: MoodProps) {
 }
 
 export function FeedQuickActions({ onHowItWorks, onNewDrop }: QuickActionsProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.quickRow}>
       <TouchableOpacity style={styles.quickCard} onPress={onHowItWorks}>
         <View style={[styles.quickOrb, { borderColor: 'rgba(103,232,249,0.35)' }]}>
           <Feather name="zap" size={18} color={C.cyan} />
         </View>
-        <Text style={styles.quickTitle}>How it flows</Text>
-        <Text style={styles.quickCaption}>capisci feed, radio e drop in 20s</Text>
+        <Text style={styles.quickTitle}>{t('feed.howItFlows')}</Text>
+        <Text style={styles.quickCaption}>{t('feed.howItFlowsCaption')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.quickCard} onPress={onNewDrop}>
         <View style={[styles.quickOrb, { borderColor: 'rgba(79,124,255,0.35)' }]}>
           <Ionicons name="add" size={22} color={C.blue} />
         </View>
-        <Text style={styles.quickTitle}>New drop</Text>
-        <Text style={styles.quickCaption}>pubblica audio, backstage o live</Text>
+        <Text style={styles.quickTitle}>{t('feed.newDrop')}</Text>
+        <Text style={styles.quickCaption}>{t('feed.newDropCaption')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -263,6 +267,7 @@ export function FeedSoundCard({
   onDelete,
   onOpenBackstage,
 }: CardProps) {
+  const { t } = useTranslation();
   const waveform = Array.from({ length: 32 }, (_, i) => {
     let h = 0;
     const seed = post.id || 'x';
@@ -284,9 +289,11 @@ export function FeedSoundCard({
           <View style={{ flex: 1 }}>
             <View style={styles.userLine}>
               <Text style={styles.userName}>{post.username}</Text>
-              <View style={styles.verifiedDot}>
-                <Feather name="check" size={9} color="#050816" />
-              </View>
+              {post.isVerified && (
+                <View style={styles.verifiedDot}>
+                  <Feather name="check" size={9} color="#050816" />
+                </View>
+              )}
             </View>
             <Text style={styles.userMeta}>{timeLabel}</Text>
           </View>
@@ -308,7 +315,7 @@ export function FeedSoundCard({
           {post.isCollab && post.collaboratorName ? (
             <View style={styles.collabPill}>
               <Feather name="mic" size={11} color={C.pink} />
-              <Text style={styles.collabText}>with {post.collaboratorName}</Text>
+              <Text style={styles.collabText}>{t('feed.collabWith', { name: post.collaboratorName })}</Text>
             </View>
           ) : null}
           <Text style={styles.cardTitle}>{post.title}</Text>
@@ -316,7 +323,7 @@ export function FeedSoundCard({
         </View>
         <View style={styles.signalBadge}>
           <Text style={styles.signalValue}>{post.listens ?? 0}</Text>
-          <Text style={styles.signalLabel}>listens</Text>
+          <Text style={styles.signalLabel}>{t('feed.listens')}</Text>
         </View>
       </View>
 
@@ -343,7 +350,7 @@ export function FeedSoundCard({
 
         <View style={styles.wavePanel}>
           <View style={styles.waveTopLine}>
-            <Text style={styles.waveLabel}>{busy ? 'buffering' : isPlaying ? 'playing now' : 'ready to play'}</Text>
+            <Text style={styles.waveLabel}>{busy ? t('feed.buffering') : isPlaying ? t('feed.playingNow') : t('feed.readyToPlay')}</Text>
             <Text style={styles.waveTime}>{isPlaying ? `${playPosition}s` : (post.duration > 0 ? `${post.duration}s` : '?s')}</Text>
           </View>
           <View style={styles.waveBars}>
@@ -379,7 +386,7 @@ export function FeedSoundCard({
           {onOpenBackstage ? (
             <TouchableOpacity style={styles.backstagePill} onPress={onOpenBackstage}>
               <Feather name="video" size={12} color={C.cyan} />
-              <Text style={styles.backstageText}>Backstage</Text>
+              <Text style={styles.backstageText}>{t('feed.backstage')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -395,13 +402,14 @@ export function FeedSoundCard({
 }
 
 export function FeedEmptyState() {
+  const { t } = useTranslation();
   return (
     <LinearGradient colors={['rgba(16,20,40,0.9)', 'rgba(10,12,24,0.95)']} style={styles.emptyState}>
       <View style={styles.emptyOrb}>
         <Feather name="mic-off" size={26} color={C.cyan} />
       </View>
-      <Text style={styles.emptyTitle}>Nessun suono trovato</Text>
-      <Text style={styles.emptyCaption}>Prova un mood diverso o pubblica il tuo primo drop.</Text>
+      <Text style={styles.emptyTitle}>{t('feed.emptyTitle')}</Text>
+      <Text style={styles.emptyCaption}>{t('feed.emptyCaption')}</Text>
     </LinearGradient>
   );
 }

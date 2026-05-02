@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -472,6 +473,8 @@ const STATION_SCHEDULES: Record<string, { weekday: ScheduleSlot[]; monday?: Sche
       { startHour: 15, endHour: 18, djName: 'Claves',                                showName: 'Claves' },
       { startHour: 18, endHour: 19, djName: 'Albertino, Fargetta, Molella e Prezioso', showName: 'Deejay Time' },
       { startHour: 19, endHour: 21, djName: 'Wad',                                   showName: 'One Two One Two con Wad' },
+      { startHour: 21, endHour: 22, djName: 'Ilario',                                showName: 'm2o Chart con Ilario',           djPhotoUrl: M2O_CHART_URI },
+      { startHour: 22, endHour: 23, djName: 'DJ Shorty',                             showName: 'La Mezcla con Shorty' },
       { startHour: 23, endHour: 24, djName: 'Albertino',                             showName: 'Dance Revolution con Albertino' },
     ],
   },
@@ -1053,6 +1056,7 @@ function elapsedStr(ms: number): string {
 // ─── HOST PANEL ───────────────────────────────────────────────────────────────
 function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [room, setRoom] = useState(initialRoom);
   const [ending, setEnding] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -1511,7 +1515,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
               </View>
             }
           />
-          <View style={hm.chatInputRow}>
+          <View style={[hm.chatInputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <TextInput style={hm.chatInput} placeholder={t('radio.chatPlaceholderHost')}
               placeholderTextColor="rgba(255,255,255,0.25)" value={chatInput}
               onChangeText={setChatInput} onSubmitEditing={handleSendChat} returnKeyType="send" />
@@ -1709,7 +1713,7 @@ const hm = StyleSheet.create({
   chatUser: { fontSize: 11, color: '#FF2D55', fontWeight: '700', marginBottom: 3, fontFamily: 'monospace' },
   chatSystem: { color: '#FFD700' },
   chatText: { fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 19 },
-  chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingBottom: 28 },
+  chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
   chatInput: { flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   chatSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF2D55', alignItems: 'center', justifyContent: 'center' },
   chatSendTxt: { color: '#fff', fontSize: 18, fontWeight: '700' },
@@ -1733,6 +1737,7 @@ const hm = StyleSheet.create({
 // ─── LISTENER SCREEN ──────────────────────────────────────────────────────────
 function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [room, setRoom] = useState(initialRoom);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isInGap, setIsInGap] = useState(false);
@@ -2139,44 +2144,46 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         </ScrollView>
       )}
 
-      {/* Suggest modal */}
+      {/* Suggest sheet — view inline per evitare Modal annidato (non funziona su iOS) */}
       {showSuggest && (
-        <Modal visible animationType="slide" transparent onRequestClose={() => setShowSuggest(false)}>
-          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' }}>
-            <View style={{ backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, maxHeight: '70%' }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>🎵 Suggerisci un suono</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
-              {loadingSounds ? (
-                <ActivityIndicator color="#FF2D55" style={{ marginTop: 20 }} />
-              ) : userSounds.length === 0 ? (
-                <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                  <Text style={{ fontSize: 32, marginBottom: 10 }}>🎵</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
-                    nessun suono caricato{'\n'}registra un suono nella Home!
-                  </Text>
-                </View>
-              ) : (
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {userSounds.map(s => (
-                    <TouchableOpacity
-                      key={s.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
-                      onPress={() => handleSuggest(s)}
-                    >
-                      <Text style={{ fontSize: 22 }}>🎧</Text>
-                      <Text style={{ flex: 1, color: '#fff', fontSize: 13, fontWeight: '500' }} numberOfLines={2}>{s.title}</Text>
-                      <Text style={{ color: '#FF2D55', fontSize: 12, fontWeight: '700' }}>Suggerisci →</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-              <TouchableOpacity style={{ marginTop: 12, padding: 12, alignItems: 'center' }} onPress={() => setShowSuggest(false)}>
-                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Annulla</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <TouchableOpacity
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }]}
+          activeOpacity={1}
+          onPress={() => setShowSuggest(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, maxHeight: '70%' }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>🎵 Suggerisci un suono</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
+            {loadingSounds ? (
+              <ActivityIndicator color="#FF2D55" style={{ marginTop: 20 }} />
+            ) : userSounds.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+                <Text style={{ fontSize: 32, marginBottom: 10 }}>🎵</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+                  nessun suono caricato{'\n'}registra un suono nella Home!
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {userSounds.map(s => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
+                    onPress={() => handleSuggest(s)}
+                  >
+                    <Text style={{ fontSize: 22 }}>🎧</Text>
+                    <Text style={{ flex: 1, color: '#fff', fontSize: 13, fontWeight: '500' }} numberOfLines={2}>{s.title}</Text>
+                    <Text style={{ color: '#FF2D55', fontSize: 12, fontWeight: '700' }}>Suggerisci →</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={{ marginTop: 12, padding: 12, alignItems: 'center' }} onPress={() => setShowSuggest(false)}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Annulla</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       )}
 
       {/* Tab: CHAT */}
@@ -2215,7 +2222,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             ))}
           </View>
           {/* Input row */}
-          <View style={lm.chatInputRow}>
+          <View style={[lm.chatInputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <TouchableOpacity
               style={[lm.handBtn, myHandRaise && (isPicked ? lm.handBtnPicked : lm.handBtnRaised)]}
               onPress={handleHandRaise}
@@ -2284,7 +2291,7 @@ const lm = StyleSheet.create({
   chatUser: { fontSize: 11, color: '#FF2D55', fontWeight: '700', marginBottom: 3, fontFamily: 'monospace' },
   chatSystem: { color: '#FFD700' },
   chatText: { fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 19 },
-  chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingBottom: 28 },
+  chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
   chatInput: { flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   chatSendBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FF2D55', alignItems: 'center', justifyContent: 'center' },
   chatSendTxt: { color: '#fff', fontSize: 17, fontWeight: '700' },
@@ -2623,10 +2630,12 @@ function SlotPhoto({ uri, color, isCurrent, initials }: { uri: string; color: st
 }
 
 function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBufferingStream, setIsBufferingStream] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [statusLabel, setStatusLabel] = useState('Ricerca stream...');
+  const [statusLabel, setStatusLabel] = useState('');
   const [error, setError] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
   const [djImgError, setDjImgError] = useState(false);
@@ -2711,8 +2720,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         if (state === State.Ready || state === State.Paused) {
           setRadioPrimed(true);
           if (Platform.OS === 'ios' && !hasStartedPlayingRef.current) {
-            setManualPlayHint('Ora puoi premere Play');
-            setStatusLabel('In pausa');
+            setManualPlayHint(t('radio.iosHintReady'));
+            setStatusLabel(t('radio.paused'));
           }
         }
       }
@@ -2764,7 +2773,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
                 setLoading(false);
                 setIsPlaying(activeState === State.Playing || activeState === State.Buffering);
                 setIsBufferingStream(activeState === State.Buffering || activeState === State.Loading);
-                setStatusLabel(activeState === State.Paused ? 'In pausa' : 'In onda');
+                setStatusLabel(activeState === State.Paused ? t('radio.paused') : t('radio.onAirLabel'));
                 streamUrlRef.current = activeTrack.url as string;
               }
               return; // Sessione ripristinata — non riavviare lo stream
@@ -2772,7 +2781,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           } catch {}
         }
         if (mounted) setStatusLabel(
-          FALLBACK_STREAM_URLS[station.searchName] ? 'Connessione...' : 'Ricerca stream...'
+          FALLBACK_STREAM_URLS[station.searchName] ? t('radio.connecting') : t('radio.searchingStream')
         );
         // Avvia fetchNowPlaying subito in parallelo con tutto il setup del player.
         // Il setup richiede ~1s+ (fetchRadioBrowserUrl + 600ms sleep + setupPlayer):
@@ -2841,8 +2850,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           streamUrlRef.current = url;
           if (Platform.OS === 'ios' && mounted) {
             setRadioPrimed(false);
-            setManualPlayHint('Attendi: sto preparando il tasto Play');
-            setStatusLabel('Connessione...');
+            setManualPlayHint(t('radio.iosHintPreparing'));
+            setStatusLabel(t('radio.connecting'));
 
             const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
             let becameReady = false;
@@ -2859,8 +2868,8 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
                   if (mounted) {
                     becameReady = true;
                     setRadioPrimed(true);
-                    setManualPlayHint('Ora puoi premere Play');
-                    setStatusLabel(state === State.Playing ? 'In onda' : 'In pausa');
+                    setManualPlayHint(t('radio.iosHintReady'));
+                    setStatusLabel(state === State.Playing ? t('radio.onAirLabel') : t('radio.paused'));
                   }
                   break;
                 }
@@ -2870,7 +2879,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             if (mounted) {
               setLoading(false);
               if (!becameReady) {
-                setManualPlayHint('Attendi ancora un attimo prima di premere Play');
+                setManualPlayHint(t('radio.iosHintWait'));
               }
             }
             return;
@@ -3050,15 +3059,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
   const statusText = loading
     ? statusLabel
     : error
-      ? 'Stream non disponibile'
+      ? t('radio.streamError')
       : Platform.OS === 'ios' && !radioPrimed
-        ? 'Connessione...'
+        ? t('radio.connecting')
         : isBufferingStream
-          ? 'Connessione...'
+          ? t('radio.connecting')
           : isPlaying
-            ? 'IN ONDA'
-            : 'IN PAUSA';
-  const playDisabled = loading || error || (Platform.OS === 'ios' && !radioPrimed);
+            ? t('radio.statusPlaying')
+            : t('radio.statusPaused');
+  const playDisabled = loading || (Platform.OS === 'ios' && !radioPrimed);
   const today = new Date().getDay();
   const scheduleSlotsForLive = getScheduleSlots(station.id, today);
   const currentSlotIdx = getCurrentSlotIndex(scheduleSlotsForLive);
@@ -3125,7 +3134,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
       <View style={[osp.orb, { backgroundColor: station.color + '18' }]} />
 
       {/* Header */}
-      <View style={osp.header}>
+      <View style={[osp.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={onClose} style={osp.closeBtn} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
           <Feather name="chevron-down" size={22} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
@@ -3222,7 +3231,9 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
           >
             {loading
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Feather name={isPlaying ? 'pause' : 'play'} size={30} color="#fff" style={isPlaying ? undefined : { marginLeft: 3 }} />}
+              : error
+                ? <Feather name="refresh-cw" size={26} color="#fff" />
+                : <Feather name={isPlaying ? 'pause' : 'play'} size={30} color="#fff" style={isPlaying ? undefined : { marginLeft: 3 }} />}
           </TouchableOpacity>
         </View>
 
@@ -3236,7 +3247,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         {error && (
           <View style={osp.errorBox}>
             <Feather name="wifi-off" size={14} color="rgba(255,255,255,0.3)" />
-            <Text style={osp.errorTxt}>Stream temporaneamente non disponibile</Text>
+            <Text style={osp.errorTxt}>{t('radio.streamError')}</Text>
           </View>
         )}
 
@@ -3244,13 +3255,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         {Platform.OS !== 'ios' && isPlaying && (
           <View style={osp.androidTip}>
             <Text style={osp.androidTipIcon}>💡</Text>
-            <Text style={osp.androidTipTxt}>
-              Su Xiaomi/Huawei: vai in{' '}
-              <Text style={{ fontWeight: '700' }}>Impostazioni → App → Soundscape → Batteria</Text>
-              {' '}e scegli{' '}
-              <Text style={{ fontWeight: '700' }}>{'"Nessuna restrizione"'}</Text>
-              {' '}per ascoltare in background.
-            </Text>
+            <Text style={osp.androidTipTxt}>{t('radio.batteryTip')}</Text>
           </View>
         )}
       </View>
@@ -3439,7 +3444,6 @@ const osp = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 40 : 58,
     paddingBottom: 8,
   },
   closeBtn: {
@@ -3768,14 +3772,14 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
       {!compact && (
         <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
           <View style={ms.heroGlow} />
-          <Text style={ms.heroEyebrow}>Live broadcast</Text>
+          <Text style={ms.heroEyebrow}>{t('radio.liveBroadcast')}</Text>
           <View style={ms.topBar}>
             <View style={{ flex: 1 }}>
               <Text style={ms.topTitle}>{t('radio.title')}</Text>
               <Text style={ms.topSub}>
                 {rooms.length > 0
-                  ? `${rooms.length} ${rooms.length === 1 ? 'stazione attiva' : 'stazioni attive'}`
-                  : 'Radio live, stanze utente e stazioni sempre accese'}
+                  ? `${rooms.length} ${rooms.length === 1 ? t('radio.stationActive') : t('radio.stationsActive')}`
+                  : t('radio.liveSubtitle')}
               </Text>
             </View>
             <TouchableOpacity style={ms.liveBtn} onPress={() => setShowCreate(true)}>
@@ -3789,7 +3793,7 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
       {/* Stazioni radio offline */}
       <View style={ms.stationsSection}>
         <View style={ms.sectionHead}>
-          <Text style={ms.stationsTitle}>Station presets</Text>
+          <Text style={ms.stationsTitle}>{t('radio.stationPresets')}</Text>
           <View style={ms.sectionBadge}>
             <Text style={ms.sectionBadgeText}>{OFFLINE_STATIONS.length}</Text>
           </View>
@@ -3831,7 +3835,7 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
 
       {/* Stanze live utenti */}
       {!loading && rooms.length > 0 && (
-        <Text style={ms.liveSection}>Live rooms</Text>
+        <Text style={ms.liveSection}>{t('radio.liveRooms')}</Text>
       )}
       {loading ? (
         <View style={ms.center}><ActivityIndicator color="#FF2D55" /></View>
