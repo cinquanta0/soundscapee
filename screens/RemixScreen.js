@@ -584,11 +584,11 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       {/* Banner stato processing */}
       {isPublishing && (
         <View style={styles.processingBanner}>
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color="#00FF9C" />
           <Text style={styles.processingText}>
             {processingStatus === 'processing'
-              ? '⚙️ Elaborazione audio in corso...'
-              : '📤 Caricamento...'}
+              ? 'Elaborazione audio in corso...'
+              : 'Caricamento...'}
           </Text>
         </View>
       )}
@@ -826,7 +826,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                       </Text>
                     </View>
                     <View style={styles.soundPickerAction}>
-                      <Feather name="plus-circle" size={22} color="#fff" />
+                      <Feather name="plus-circle" size={22} color="#001A0D" />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -865,13 +865,13 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 style={[styles.saveModalButton, styles.confirmButton]}
                 onPress={saveRemix}
               >
-                <Text style={styles.saveModalButtonText}>💾 Locale</Text>
+                <Text style={styles.accentButtonText}>Locale</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveModalButton, styles.publishButton]}
                 onPress={publishRemix}
               >
-                <Text style={styles.saveModalButtonText}>🌐 Pubblica</Text>
+                <Text style={styles.accentButtonText}>Pubblica</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1307,18 +1307,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#00FF9C',
   },
   publishButton: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: '#00FF9C',
   },
   processingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#7c3aed',
+    backgroundColor: '#0A0A0A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,255,156,0.25)',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   processingText: {
-    color: '#fff',
+    color: '#94a3b8',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1326,6 +1328,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  accentButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#001A0D',
   },
   // Remix Item Styles
   remixItem: {

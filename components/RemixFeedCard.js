@@ -8,9 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  toggleRemixLike, 
-  incrementRemixPlays 
+import { Feather } from '@expo/vector-icons';
+import {
+  toggleRemixLike,
+  incrementRemixPlays
 } from '../services/remixService';
 
 /**
@@ -95,7 +96,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
         end={{ x: 1, y: 0 }}
         style={styles.remixBadge}
       >
-        <Text style={styles.remixBadgeText}>🎛️ REMIX</Text>
+        <Text style={styles.remixBadgeText}>REMIX</Text>
       </LinearGradient>
 
       {/* Header */}
@@ -119,9 +120,9 @@ export default function RemixFeedCard({ remix, onPlay }) {
             <Text style={styles.statusText}>Pronto</Text>
           </View>
         ) : (
-          <View style={[styles.statusBadge, { backgroundColor: '#eab30820' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: 'rgba(234,179,8,0.12)', borderColor: 'rgba(234,179,8,0.3)' }]}>
             <View style={[styles.statusDot, { backgroundColor: '#eab308' }]} />
-            <Text style={styles.statusText}>Processing</Text>
+            <Text style={[styles.statusText, { color: '#eab308' }]}>Processing</Text>
           </View>
         )}
       </View>
@@ -163,9 +164,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
               colors={['#00FF9C', '#00C4A0']}
               style={styles.playButtonGradient}
             >
-              <Text style={styles.playButtonIcon}>
-                {isPlaying ? '⏸' : '▶️'}
-              </Text>
+              <Feather name={isPlaying ? 'pause' : 'play'} size={18} color="#001A0D" />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -196,19 +195,17 @@ export default function RemixFeedCard({ remix, onPlay }) {
               style={styles.actionButton}
               onPress={handleLike}
             >
-              <Text style={styles.actionIcon}>
-                {isLiked ? '❤️' : '🤍'}
-              </Text>
+              <Feather name="heart" size={14} color={isLiked ? '#ef4444' : '#94a3b8'} />
               <Text style={styles.actionText}>{localLikes}</Text>
             </TouchableOpacity>
 
             <View style={styles.actionButton}>
-              <Text style={styles.actionIcon}>▶️</Text>
+              <Feather name="play" size={14} color="#94a3b8" />
               <Text style={styles.actionText}>{remix.plays || 0}</Text>
             </View>
 
             <View style={styles.actionButton}>
-              <Text style={styles.actionIcon}>🔗</Text>
+              <Feather name="share-2" size={14} color="#94a3b8" />
               <Text style={styles.actionText}>{remix.shares || 0}</Text>
             </View>
           </View>
@@ -288,7 +285,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10b98120',
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -297,12 +296,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10b981',
+    backgroundColor: '#00FF9C',
   },
   statusText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#10b981',
+    color: '#00FF9C',
   },
   content: {
     padding: 12,
