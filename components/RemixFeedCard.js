@@ -91,7 +91,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
     <View style={styles.card}>
       {/* Gradient Badge */}
       <LinearGradient
-        colors={['#00FF9C', '#00C4A0']}
+        colors={['#8b5cf6', '#a855f7']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.remixBadge}
@@ -161,10 +161,10 @@ export default function RemixFeedCard({ remix, onPlay }) {
             disabled={!remix.isProcessed || isPlaying}
           >
             <LinearGradient
-              colors={['#00FF9C', '#00C4A0']}
+              colors={['#8b5cf6', '#a855f7']}
               style={styles.playButtonGradient}
             >
-              <Feather name={isPlaying ? 'pause' : 'play'} size={18} color="#001A0D" />
+              <Feather name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -176,7 +176,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
                   styles.waveBar,
                   {
                     height: h,
-                    backgroundColor: remix.isProcessed ? '#00FF9C' : 'rgba(255,255,255,0.08)',
+                    backgroundColor: remix.isProcessed ? '#a855f7' : 'rgba(255,255,255,0.08)',
                   },
                 ]}
               />
@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(0,255,156,0.12)',
+    backgroundColor: 'rgba(168,85,247,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.25)',
+    borderColor: 'rgba(168,85,247,0.35)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -296,12 +296,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#a855f7',
   },
   statusText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#00FF9C',
+    color: '#a855f7',
   },
   content: {
     padding: 12,

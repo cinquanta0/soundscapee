@@ -208,7 +208,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
       {stats && (
         <View style={styles.statsCard}>
           <View style={styles.statsTitleRow}>
-            <Feather name="bar-chart-2" size={15} color="#00FF9C" />
+            <Feather name="bar-chart-2" size={15} color="#a855f7" />
             <Text style={styles.statsTitle}>Stats Remix</Text>
           </View>
           <View style={styles.statsGrid}>
@@ -359,7 +359,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
               <View style={styles.detailsStats}>
                 <View style={styles.detailsStat}>
-                  <Feather name="play-circle" size={20} color="#00FF9C" style={{ marginBottom: 4 }} />
+                  <Feather name="play-circle" size={20} color="#a855f7" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.plays || 0}</Text>
                 </View>
                 <View style={styles.detailsStat}>
@@ -367,7 +367,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
                   <Text style={styles.detailsStatNumber}>{selectedRemix.likes || 0}</Text>
                 </View>
                 <View style={styles.detailsStat}>
-                  <Feather name="share-2" size={20} color="#94a3b8" style={{ marginBottom: 4 }} />
+                  <Feather name="share-2" size={20} color="#a855f7" style={{ marginBottom: 4 }} />
                   <Text style={styles.detailsStatNumber}>{selectedRemix.shares || 0}</Text>
                 </View>
               </View>
@@ -397,7 +397,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
       activeOpacity={0.8}
     >
       <LinearGradient
-        colors={isPlaying ? ['#001A0D', '#002A18'] : ['#161616', '#161616']}
+        colors={isPlaying ? ['#0e4f66', '#1e6fa0'] : ['#161616', 'rgba(255,255,255,0.08)']}
         style={styles.remixCardGradient}
       >
         <View style={styles.remixCardHeader}>
@@ -409,7 +409,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
               {isLoadingAudio ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Feather name={isPlaying ? 'square' : 'play'} size={16} color={isPlaying ? '#fff' : '#001A0D'} />
+                <Feather name={isPlaying ? 'square' : 'play'} size={16} color="#fff" />
               )}
             </TouchableOpacity>
           ) : (
@@ -437,7 +437,7 @@ function RemixCard({ remix, onPress, onPlay, onDelete, isSelected, isPlaying, is
 
         <View style={styles.remixCardStats}>
           <View style={styles.remixCardStat}>
-            <Feather name="play-circle" size={12} color="#00FF9C" />
+            <Feather name="play-circle" size={12} color="#a855f7" />
             <Text style={styles.remixCardStatText}>{remix.plays || 0}</Text>
           </View>
           <View style={styles.remixCardStat}>
@@ -465,25 +465,25 @@ const styles = StyleSheet.create({
   container: { marginTop: 16 },
   loadingContainer: { padding: 40, alignItems: 'center' },
 
-  statsCard: { borderRadius: 16, padding: 20, marginBottom: 16, backgroundColor: '#161616', borderWidth: 1, borderColor: 'rgba(0,255,156,0.15)' },
+  statsCard: { borderRadius: 16, padding: 20, marginBottom: 16, backgroundColor: '#161616', borderWidth: 1, borderColor: 'rgba(168,85,247,0.2)' },
   statsTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   statsTitle: { fontSize: 14, fontWeight: '600', color: '#94a3b8', marginLeft: 8 },
   statsGrid: { flexDirection: 'row', justifyContent: 'space-around' },
   statItem: { alignItems: 'center' },
-  statNumber: { fontSize: 24, fontWeight: '800', color: '#00FF9C' },
+  statNumber: { fontSize: 24, fontWeight: '800', color: '#a855f7' },
   statLabel: { fontSize: 11, color: '#94a3b8', marginTop: 4 },
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  createButton: { backgroundColor: '#00FF9C', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  createButtonText: { fontSize: 13, fontWeight: '600', color: '#001A0D' },
+  createButton: { backgroundColor: '#a855f7', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  createButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 
   emptyState: { backgroundColor: '#161616', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontSize: 16, color: '#94a3b8', marginBottom: 4 },
   emptySubtext: { fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 20 },
-  emptyButton: { backgroundColor: '#00FF9C', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
-  emptyButtonText: { fontSize: 14, fontWeight: '600', color: '#001A0D' },
+  emptyButton: { backgroundColor: '#a855f7', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+  emptyButtonText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 
   remixScroll: { marginBottom: 16 },
 
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   remixCardSelected: { transform: [{ scale: 1.05 }] },
   remixCardGradient: { padding: 16, minHeight: 200 },
   remixCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  remixPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00FF9C', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
+  remixPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#a855f7', justifyContent: 'center', alignItems: 'center' },
   remixPlayBtnActive: { backgroundColor: '#ef4444' },
   remixPlayIcon: { fontSize: 16, color: '#fff' },
   remixIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
@@ -503,11 +503,12 @@ const styles = StyleSheet.create({
   remixCardMetaText: { fontSize: 11, color: '#94a3b8' },
   remixCardStats: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   remixCardStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+
   remixCardStatIcon: { fontSize: 12 },
   remixCardStatText: { fontSize: 12, color: '#cbd5e1', fontWeight: '600' },
   remixCardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 'auto' },
-  remixStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF9C' },
-  remixStatusText: { fontSize: 10, color: '#94a3b8' },
+  remixStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#a855f7' },
+  remixStatusText: { fontSize: 10, color: '#a855f7' },
 
   detailsCard: { backgroundColor: '#161616', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -515,11 +516,11 @@ const styles = StyleSheet.create({
   detailsClose: { fontSize: 20, color: '#94a3b8' },
 
   playerBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A0A0A', borderRadius: 12, padding: 12, marginBottom: 12, gap: 12 },
-  playerPlayBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#00FF9C', justifyContent: 'center', alignItems: 'center' },
+  playerPlayBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#a855f7', justifyContent: 'center', alignItems: 'center' },
   playerPlayIcon: { fontSize: 20 },
   playerProgress: { flex: 1 },
   playerProgressBg: { height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
-  playerProgressFill: { height: '100%', backgroundColor: '#00FF9C', borderRadius: 2 },
+  playerProgressFill: { height: '100%', backgroundColor: '#a855f7', borderRadius: 2 },
   playerTimes: { flexDirection: 'row', justifyContent: 'space-between' },
   playerTime: { fontSize: 11, color: '#64748b' },
 
@@ -532,6 +533,6 @@ const styles = StyleSheet.create({
   detailsStat: { alignItems: 'center' },
   detailsStatIcon: { fontSize: 20, marginBottom: 4 },
   detailsStatNumber: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  statusBadge: { backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignSelf: 'center', marginBottom: 12 },
-  statusText: { fontSize: 12, fontWeight: '600', color: '#00FF9C' },
+  statusBadge: { backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.35)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignSelf: 'center', marginBottom: 12 },
+  statusText: { fontSize: 12, fontWeight: '600', color: '#a855f7' },
 });

@@ -584,7 +584,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       {/* Banner stato processing */}
       {isPublishing && (
         <View style={styles.processingBanner}>
-          <ActivityIndicator size="small" color="#00FF9C" />
+          <ActivityIndicator size="small" color="#fff" />
           <Text style={styles.processingText}>
             {processingStatus === 'processing'
               ? 'Elaborazione audio in corso...'
@@ -601,7 +601,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
               style={styles.backButton}
               onPress={onClose}
             >
-              <Feather name="arrow-left" size={20} color="#00FF9C" />
+              <Feather name="arrow-left" size={20} color="#a855f7" />
             </TouchableOpacity>
           )}
           <Text style={styles.title} numberOfLines={1}>{t('remix.title')}</Text>
@@ -711,9 +711,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                   onValueChange={(val) => 
                     trimTrack(selectedTrack.id, val, selectedTrack.endTime)
                   }
-                  minimumTrackTintColor="#00FF9C"
+                  minimumTrackTintColor="#a855f7"
                   maximumTrackTintColor="rgba(255,255,255,0.08)"
-                  thumbTintColor="#00FF9C"
+                  thumbTintColor="#a855f7"
                 />
               </View>
               <View style={styles.sliderRow}>
@@ -726,9 +726,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                   onValueChange={(val) => 
                     trimTrack(selectedTrack.id, selectedTrack.startTime, val)
                   }
-                  minimumTrackTintColor="#00FF9C"
+                  minimumTrackTintColor="#a855f7"
                   maximumTrackTintColor="rgba(255,255,255,0.08)"
-                  thumbTintColor="#00FF9C"
+                  thumbTintColor="#a855f7"
                 />
               </View>
             </View>
@@ -746,9 +746,9 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 onValueChange={(val) => 
                   updateTrack(selectedTrack.id, { volume: val })
                 }
-                minimumTrackTintColor="#00FF9C"
+                minimumTrackTintColor="#a855f7"
                 maximumTrackTintColor="rgba(255,255,255,0.08)"
-                thumbTintColor="#00FF9C"
+                thumbTintColor="#a855f7"
               />
             </View>
           </View>
@@ -826,7 +826,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                       </Text>
                     </View>
                     <View style={styles.soundPickerAction}>
-                      <Feather name="plus-circle" size={22} color="#001A0D" />
+                      <Feather name="plus-circle" size={22} color="#fff" />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -1062,7 +1062,7 @@ const styles = StyleSheet.create({
   },
   trackDragging: {
     opacity: 0.8,
-    shadowColor: '#00FF9C',
+    shadowColor: '#a855f7',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#00FF9C',
+    color: '#a855f7',
   },
   transportButtons: {
     flexDirection: 'row',
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playButton: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#a855f7',
     width: 72,
     height: 72,
     borderRadius: 36,
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   soundPickerAction: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#a855f7',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1304,23 +1304,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   confirmButton: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#8b5cf6',
   },
   publishButton: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: '#a855f7',
   },
   processingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#0A0A0A',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,255,156,0.25)',
+    backgroundColor: '#7c3aed',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   processingText: {
-    color: '#94a3b8',
+    color: '#fff',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1332,7 +1330,7 @@ const styles = StyleSheet.create({
   accentButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#001A0D',
+    color: '#fff',
   },
   // Remix Item Styles
   remixItem: {
@@ -1439,7 +1437,7 @@ function TrackComponent({
           top: index * 70,
           left: trackLeft,
           width: trackWidth,
-          borderColor: isSelected ? '#00FF9C' : track.color,
+          borderColor: isSelected ? '#a855f7' : track.color,
           backgroundColor: track.color + '40',
         },
         isDragging && styles.trackDragging,
