@@ -164,9 +164,12 @@ export default function PodcastPlayer({ podcast, onFinish, autoPlay = false }: P
     if (isPlaying) {
       await soundRef.current.pauseAsync().catch(() => {});
     } else {
+      if (duration > 0 && position >= duration - 0.25) {
+        await soundRef.current.setPositionAsync(0).catch(() => {});
+      }
       await soundRef.current.playAsync().catch(() => {});
     }
-  }, [isPlaying, loading]);
+  }, [duration, isPlaying, loading, position]);
 
   const skip = useCallback(async (secs: number) => {
     if (!soundRef.current || !duration) return;

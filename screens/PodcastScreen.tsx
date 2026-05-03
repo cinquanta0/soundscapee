@@ -242,7 +242,28 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
 
   const togglePlay = async () => {
     if (!TrackPlayer) return;
-    if (isPlaying) await TrackPlayer.pause(); else await TrackPlayer.play();
+    if (isPlaying) {
+      await TrackPlayer.pause();
+      return;
+    }
+
+    try {
+      const [progress, playbackState] = await Promise.all([
+        TrackPlayer.getProgress().catch(() => null),
+        TrackPlayer.getPlaybackState().catch(() => null),
+      ]);
+      const state = playbackState?.state ?? playbackState;
+      const currentPosition = progress?.position ?? position;
+      const currentDuration = progress?.duration || duration;
+      const isEndedState = state === State.Ended;
+      const isAtTrackEnd = currentDuration > 0 && currentPosition >= currentDuration - 0.25;
+
+      if (isEndedState || isAtTrackEnd) {
+        await TrackPlayer.seekTo(0).catch(() => {});
+      }
+    } catch {}
+
+    await TrackPlayer.play();
   };
 
   const seekTo = async (ratio: number) => {
