@@ -90,7 +90,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
     <View style={styles.card}>
       {/* Gradient Badge */}
       <LinearGradient
-        colors={['#8b5cf6', '#3b82f6']}
+        colors={['#00FF9C', '#00C4A0']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.remixBadge}
@@ -160,7 +160,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
             disabled={!remix.isProcessed || isPlaying}
           >
             <LinearGradient
-              colors={['#8b5cf6', '#3b82f6']}
+              colors={['#00FF9C', '#00C4A0']}
               style={styles.playButtonGradient}
             >
               <Text style={styles.playButtonIcon}>
@@ -177,7 +177,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
                   styles.waveBar,
                   {
                     height: h,
-                    backgroundColor: remix.isProcessed ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
+                    backgroundColor: remix.isProcessed ? '#00FF9C' : 'rgba(255,255,255,0.08)',
                   },
                 ]}
               />
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   remixBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fff',
+    color: '#001A0D',
     letterSpacing: 0.5,
   },
   header: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: 'rgba(0, 255, 156, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },

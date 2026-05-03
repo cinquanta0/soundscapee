@@ -206,7 +206,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
     <View style={styles.container}>
       {/* Stats Card */}
       {stats && (
-        <LinearGradient colors={['#00FF9C', '#3b82f6']} style={styles.statsCard}>
+        <LinearGradient colors={['#00FF9C', '#00A876']} style={styles.statsCard}>
           <Text style={styles.statsTitle}>📊 Le Tue Stats Remix</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>

@@ -3726,7 +3726,7 @@ const styles = StyleSheet.create({
   },
   profileButtonPrimary: {
     width: '100%',
-    backgroundColor: '#67E8F9',
+    backgroundColor: '#00FF9C',
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
@@ -3858,7 +3858,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recordingPlayButton: {
-    backgroundColor: '#D9FF5A',
+    backgroundColor: '#00FF9C',
     width: 40,
     height: 40,
     borderRadius: 20,
