@@ -77,6 +77,7 @@ module.exports = ({ config }) => ({
     "expo-router",
     "expo-notifications",
     "./plugins/withRNTP",
+    "./plugins/withCallKeep",
     [
       "expo-splash-screen",
       {

@@ -1,7 +1,7 @@
 import React, {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
-import { Alert, Vibration, Platform } from 'react-native';
+import { Alert, Platform, Vibration } from 'react-native';
 import { Audio } from 'expo-av';
 import { doc, getDoc } from 'firebase/firestore';
 import {
@@ -9,6 +9,7 @@ import {
   ChannelProfileType, ClientRoleType,
   AudioProfileType, AudioScenarioType,
 } from 'react-native-agora';
+import RNCallKeep from 'react-native-callkeep';
 import { auth, db } from '../firebaseConfig';
 import { destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
 import {
@@ -57,30 +58,84 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const missedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubCallRef = useRef<(() => void) | null>(null);
-  const unsubIncomingRef = useRef<(() => void) | null>(null);
   const phaseRef = useRef<CallPhase>(null);
+  const incomingCallRef = useRef<Call | null>(null);
+  const cleaningUpRef = useRef(false);
 
-  // Keep phaseRef in sync
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { incomingCallRef.current = call; }, [call]);
+
+  // ─── CallKeep setup ────────────────────────────────────────────────────────
+  useEffect(() => {
+    RNCallKeep.setup({
+      ios: {
+        appName: 'SoundScape',
+        supportsVideo: false,
+        maximumCallGroups: '1',
+        maximumCallsPerCallGroup: '1',
+      },
+      android: {
+        alertTitle: 'Autorizzazione chiamate',
+        alertDescription: 'SoundScape ha bisogno di gestire le chiamate audio',
+        cancelButton: 'Annulla',
+        okButton: 'OK',
+        additionalPermissions: [],
+        selfManaged: false,
+      },
+    }).catch(() => {});
+
+    const onAnswerCall = ({ callUUID }: { callUUID: string }) => {
+      const incoming = incomingCallRef.current;
+      if (incoming && incoming.id === callUUID) {
+        _doAccept(incoming);
+      }
+    };
+
+    const onEndCall = ({ callUUID }: { callUUID: string }) => {
+      if (callIdRef.current === callUUID && phaseRef.current !== null) {
+        updateCallStatus(callUUID, 'ended').catch(() => {});
+        _finalize('ended');
+      }
+    };
+
+    const onMuteCall = ({ muted }: { muted: boolean }) => {
+      setIsMuted(muted);
+      engineRef.current?.muteLocalAudioStream(muted);
+    };
+
+    RNCallKeep.addEventListener('answerCall', onAnswerCall);
+    RNCallKeep.addEventListener('endCall', onEndCall);
+    RNCallKeep.addEventListener('didPerformSetMutedCallAction', onMuteCall);
+
+    return () => {
+      RNCallKeep.removeEventListener('answerCall');
+      RNCallKeep.removeEventListener('endCall');
+      RNCallKeep.removeEventListener('didPerformSetMutedCallAction');
+    };
+  }, []);
 
   // ─── Listen for incoming calls ─────────────────────────────────────────────
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
-
-    const unsub = listenForIncomingCall(uid, (incomingCall) => {
-      // Only show if we're idle
-      if (!incomingCall || phaseRef.current !== null) return;
-      setCall(incomingCall);
+    const unsub = listenForIncomingCall(uid, (incoming) => {
+      if (!incoming || phaseRef.current !== null) return;
+      setCall(incoming);
       setPhase('incoming');
       _startRinging();
+      // Show native CallKit / ConnectionService screen
+      RNCallKeep.displayIncomingCall(
+        incoming.id,
+        incoming.callerName,
+        incoming.callerName,
+        'generic',
+        false,
+      );
     });
-    unsubIncomingRef.current = unsub;
     return () => unsub();
   }, []);
 
   // ─── Agora engine ──────────────────────────────────────────────────────────
-
   const _initEngine = useCallback((): IRtcEngine => {
     const engine = createAgoraRtcEngine();
     engine.initialize({
@@ -95,25 +150,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     );
 
     const handler: IRtcEngineEventHandler = {
-      onJoinChannelSuccess: () => {
-        // My side joined; wait for remote to join
-      },
+      onJoinChannelSuccess: () => {},
       onUserJoined: () => {
-        // Remote party connected → go active
+        if (callIdRef.current) RNCallKeep.setCurrentCallActive(callIdRef.current);
         setPhase('active');
         setDuration(0);
-        durationTimerRef.current = setInterval(() => {
-          setDuration((d) => d + 1);
-        }, 1000);
+        durationTimerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
       },
       onUserOffline: () => {
-        // Remote party hung up
-        _finalize('ended');
-        updateCallStatus(callIdRef.current!, 'ended').catch(() => {});
+        if (!cleaningUpRef.current) {
+          updateCallStatus(callIdRef.current!, 'ended').catch(() => {});
+          _finalize('ended');
+        }
       },
-      onError: (err) => {
-        console.error('[CALL] Agora error:', err);
-      },
+      onError: (err) => console.error('[CALL] Agora error:', err),
     };
     engine.registerEventHandler(handler);
     engineRef.current = engine;
@@ -121,37 +171,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ─── Vibration ─────────────────────────────────────────────────────────────
-
   const _startRinging = () => {
-    if (Platform.OS === 'android') {
-      Vibration.vibrate([0, 600, 400, 600, 400, 600], true);
-    } else {
-      Vibration.vibrate();
-    }
+    if (Platform.OS === 'android') Vibration.vibrate([0, 600, 400, 600, 400, 600], true);
+    else Vibration.vibrate();
   };
-
   const _stopRinging = () => Vibration.cancel();
 
   // ─── Cleanup ───────────────────────────────────────────────────────────────
-
   const _finalize = useCallback((reason: string) => {
-    _stopRinging();
+    if (cleaningUpRef.current) return;
+    cleaningUpRef.current = true;
 
-    if (missedTimerRef.current) {
-      clearTimeout(missedTimerRef.current);
-      missedTimerRef.current = null;
-    }
-    if (durationTimerRef.current) {
-      clearInterval(durationTimerRef.current);
-      durationTimerRef.current = null;
-    }
+    _stopRinging();
+    if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
+    if (durationTimerRef.current) { clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
     unsubCallRef.current?.();
     unsubCallRef.current = null;
+
+    if (callIdRef.current) {
+      try { RNCallKeep.endCall(callIdRef.current); } catch {}
+    }
 
     engineRef.current?.leaveChannel();
     engineRef.current?.release();
     engineRef.current = null;
-    callIdRef.current = null;
 
     setEndReason(reason);
     setPhase('ended');
@@ -163,97 +206,27 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setPhase(null);
       setCall(null);
       setEndReason(null);
+      callIdRef.current = null;
+      cleaningUpRef.current = false;
     }, 2000);
   }, []);
 
-  // ─── Public actions ────────────────────────────────────────────────────────
-
-  const initiateCall = useCallback(async (
-    calleeId: string,
-    calleeName: string,
-    calleeAvatar: string,
-  ) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Mic permission
-    const { status } = await Audio.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Microfono', 'Per chiamare hai bisogno di abilitare il microfono.');
-      return;
-    }
-
-    // Fetch caller profile
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
-    const callerAvatar: string = snap.data()?.avatar || '🎵';
-
-    // Stop radio / any active Agora session
-    try { destroyAgoraEngine(); } catch {}
-
-    // Create Firestore call doc
-    const callId = await createCall({ calleeId, calleeName, calleeAvatar, callerName, callerAvatar });
-    callIdRef.current = callId;
-
-    const callDoc: Call = {
-      id: callId,
-      callerId: user.uid,
-      calleeId,
-      callerName,
-      callerAvatar,
-      calleeName,
-      calleeAvatar,
-      status: 'ringing',
-      type: 'audio',
-      channelName: callId,
-      createdAt: new Date(),
-    };
-    setCall(callDoc);
-    setPhase('ringing');
-
-    // Join Agora channel (caller side)
-    const engine = _initEngine();
-    const token = await fetchAgoraToken(callId).catch(() => null);
-    engine.joinChannel(token ?? '', callId, 0, {
-      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
-      publishMicrophoneTrack: true,
-      autoSubscribeAudio: true,
-    });
-
-    // Send push notification to callee
-    notifyIncomingCall(calleeId, callerName, callerAvatar, callId).catch(() => {});
-
-    // Listen for callee's response
-    unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
-      if (!updated) return;
-      if (updated.status === 'declined') _finalize('declined');
-      else if (updated.status === 'missed') _finalize('missed');
-      else if (updated.status === 'ended' && phaseRef.current !== null) _finalize('ended');
-    });
-
-    // Timeout → missed
-    missedTimerRef.current = setTimeout(() => {
-      updateCallStatus(callId, 'missed').catch(() => {});
-      _finalize('missed');
-    }, RING_TIMEOUT_MS);
-  }, [_initEngine, _finalize]);
-
-  const acceptCall = useCallback(async (incoming: Call) => {
+  // ─── Internal accept (shared between in-app UI and CallKeep event) ─────────
+  const _doAccept = useCallback(async (incoming: Call) => {
     _stopRinging();
 
     const { status } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Microfono', 'Per rispondere hai bisogno di abilitare il microfono.');
+      Alert.alert('Microfono', 'Per rispondere devi abilitare il microfono.');
       await updateCallStatus(incoming.id, 'declined');
-      setPhase(null);
-      setCall(null);
+      try { RNCallKeep.rejectCall(incoming.id); } catch {}
+      setPhase(null); setCall(null);
       return;
     }
 
     callIdRef.current = incoming.id;
     setCall(incoming);
     setPhase('connecting');
-
     await updateCallStatus(incoming.id, 'active');
 
     try { destroyAgoraEngine(); } catch {}
@@ -266,13 +239,74 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
 
     unsubCallRef.current = listenForCallUpdates(incoming.id, (updated) => {
-      if (!updated) return;
-      if (updated.status === 'ended' && phaseRef.current !== null) _finalize('ended');
+      if (updated?.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
   }, [_initEngine, _finalize]);
 
+  // ─── Public actions ────────────────────────────────────────────────────────
+  const initiateCall = useCallback(async (
+    calleeId: string, calleeName: string, calleeAvatar: string,
+  ) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Microfono', 'Per chiamare devi abilitare il microfono.');
+      return;
+    }
+
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
+    const callerAvatar: string = snap.data()?.avatar || '🎵';
+
+    try { destroyAgoraEngine(); } catch {}
+
+    const callId = await createCall({ calleeId, calleeName, calleeAvatar, callerName, callerAvatar });
+    callIdRef.current = callId;
+
+    const callDoc: Call = {
+      id: callId, callerId: user.uid, calleeId,
+      callerName, callerAvatar, calleeName, calleeAvatar,
+      status: 'ringing', type: 'audio', channelName: callId, createdAt: new Date(),
+    };
+    setCall(callDoc);
+    setPhase('ringing');
+
+    // Notify CallKeep about outgoing call
+    RNCallKeep.startCall(callId, calleeName, calleeName, 'generic', false);
+
+    const engine = _initEngine();
+    const token = await fetchAgoraToken(callId).catch(() => null);
+    engine.joinChannel(token ?? '', callId, 0, {
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: true,
+      autoSubscribeAudio: true,
+    });
+
+    notifyIncomingCall(calleeId, callerName, callerAvatar, callId).catch(() => {});
+
+    unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
+      if (!updated) return;
+      if (updated.status === 'declined') _finalize('declined');
+      else if (updated.status === 'missed') _finalize('missed');
+      else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
+    });
+
+    missedTimerRef.current = setTimeout(() => {
+      updateCallStatus(callId, 'missed').catch(() => {});
+      _finalize('missed');
+    }, RING_TIMEOUT_MS);
+  }, [_initEngine, _finalize]);
+
+  const acceptCall = useCallback(async (incoming: Call) => {
+    RNCallKeep.acceptIncomingCallAnswer(incoming.id);
+    await _doAccept(incoming);
+  }, [_doAccept]);
+
   const declineCall = useCallback(async (incoming: Call) => {
     _stopRinging();
+    try { RNCallKeep.rejectCall(incoming.id); } catch {}
     setPhase(null);
     setCall(null);
     await updateCallStatus(incoming.id, 'declined').catch(() => {});
@@ -287,6 +321,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
       engineRef.current?.muteLocalAudioStream(!m);
+      if (callIdRef.current) RNCallKeep.setMutedCall(callIdRef.current, !m);
       return !m;
     });
   }, []);
@@ -301,8 +336,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   return (
     <CallContext.Provider value={{
       call, phase, isMuted, isSpeaker, duration, endReason,
-      initiateCall, acceptCall, declineCall, endCall,
-      toggleMute, toggleSpeaker,
+      initiateCall, acceptCall, declineCall, endCall, toggleMute, toggleSpeaker,
     }}>
       {children}
     </CallContext.Provider>
