@@ -981,8 +981,9 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
         category: category.trim() || undefined,
       });
       onDone();
-    } catch {
-      Alert.alert(t('common.error'), t('podcast.errors.cannotPublish'));
+    } catch (error: any) {
+      console.error('Podcast publish error', error);
+      Alert.alert(t('common.error'), error?.message || t('podcast.errors.cannotPublish'));
     } finally {
       setLoading(false);
     }

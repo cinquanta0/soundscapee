@@ -4,10 +4,8 @@ import {
   setDoc, getDoc, increment, onSnapshot, Unsubscribe,
   arrayUnion, arrayRemove,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
-import { db, storage, functions } from '../firebaseConfig';
-import { auth } from '../firebaseConfig';
+import { auth, db, functions } from '../firebaseConfig';
 import { uploadFileWithFallback } from './storageUpload';
 
 export interface Podcast {
@@ -311,10 +309,8 @@ export async function publishPodcast(params: {
   // Upload cover se presente (immagine — usa uploadBytes va bene)
   let coverUrl: string | null = null;
   if (params.coverUri) {
-    const coverBlob = await (await fetch(params.coverUri)).blob();
-    const coverRef = ref(storage, `podcast/${user.uid}/cover_${Date.now()}.jpg`);
-    await uploadBytes(coverRef, coverBlob, { contentType: 'image/jpeg' });
-    coverUrl = await getDownloadURL(coverRef);
+    const coverPath = `podcast/${user.uid}/cover_${Date.now()}.jpg`;
+    coverUrl = await uploadFileWithFallback(coverPath, params.coverUri, 'image/jpeg');
   }
 
   const docRef = await addDoc(collection(db, 'podcast'), {
@@ -774,10 +770,8 @@ export async function updatePodcast(
     if (params.newCoverUri === null) {
       updates.coverUrl = null;
     } else {
-      const coverBlob = await (await fetch(params.newCoverUri)).blob();
-      const coverRef = ref(storage, `podcast/${user.uid}/cover_${Date.now()}.jpg`);
-      await uploadBytes(coverRef, coverBlob, { contentType: 'image/jpeg' });
-      updates.coverUrl = await getDownloadURL(coverRef);
+      const coverPath = `podcast/${user.uid}/cover_${Date.now()}.jpg`;
+      updates.coverUrl = await uploadFileWithFallback(coverPath, params.newCoverUri, 'image/jpeg');
     }
   }
 
