@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, StatusBar, Dimensions, Animated,
-  Alert, Vibration, TextInput, KeyboardAvoidingView, Platform,
+  Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
 import {
   Messaggio, listenMessaggi, inviaMessaggio, inviaTestoMessaggio,
@@ -91,6 +92,7 @@ function MessageBubble({
   onReact,
   onToggleMenu,
   menuOpen,
+  openUpwards,
   playingId,
   playingPosition,
 }: {
@@ -101,6 +103,7 @@ function MessageBubble({
   onReact: (msg: Messaggio, emoji: string) => void;
   onToggleMenu: (msg: Messaggio) => void;
   menuOpen: boolean;
+  openUpwards: boolean;
   playingId: string | null;
   playingPosition: number;
 }) {
@@ -118,6 +121,28 @@ function MessageBubble({
 
   return (
     <View style={[bs.row, isMine ? bs.rowRight : bs.rowLeft]}>
+      {menuOpen && openUpwards && (
+        <View style={[bs.menu, isMine ? bs.menuMine : bs.menuTheirs, bs.menuAbove]}>
+          <View style={bs.menuEmojiRow}>
+            {REACTION_EMOJIS.map((emoji) => (
+              <TouchableOpacity key={emoji} style={bs.menuEmojiBtn} onPress={() => onReact(msg, emoji)}>
+                <Text style={bs.menuEmojiTxt}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={bs.menuActions}>
+            <TouchableOpacity style={bs.menuActionBtn} onPress={() => onReply(msg)}>
+              <Text style={bs.menuActionTxt}>{t('chat.reply')}</Text>
+            </TouchableOpacity>
+            {isMine && (
+              <TouchableOpacity style={[bs.menuActionBtn, bs.menuActionBtnDanger]} onPress={() => onDelete(msg)}>
+                <Text style={[bs.menuActionTxt, bs.menuActionTxtDanger]}>{t('common.delete')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       <TouchableOpacity
         style={[bs.bubble, isMine ? bs.bubbleMine : bs.bubbleTheirs]}
         onPress={() => {
@@ -182,7 +207,7 @@ function MessageBubble({
         </View>
       </TouchableOpacity>
 
-      {menuOpen && (
+      {menuOpen && !openUpwards && (
         <View style={[bs.menu, isMine ? bs.menuMine : bs.menuTheirs]}>
           <View style={bs.menuEmojiRow}>
             {REACTION_EMOJIS.map((emoji) => (
@@ -281,6 +306,7 @@ interface Props {
 
 export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, onBack, onViewProfile }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Messaggio[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingPosition, setPlayingPosition] = useState(0);
@@ -288,20 +314,43 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Messaggio['replyTo'] | null>(null);
   const [menuMessageId, setMenuMessageId] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const loadedIdRef = useRef<string | null>(null);
   const listRef = useRef<FlatList<Messaggio>>(null);
+  const autoScrollRef = useRef(true);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const unsub = listenMessaggi(conversationId, (msgs) => {
+      const prevLastId = lastMessageIdRef.current;
+      const nextLastId = msgs[msgs.length - 1]?.id;
+      lastMessageIdRef.current = nextLastId ?? null;
       setMessages(msgs);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      if (autoScrollRef.current || prevLastId !== nextLastId) {
+        setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      }
     });
     return () => {
       unsub();
       soundRef.current?.unloadAsync();
     };
   }, [conversationId]);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, () => {
+      setKeyboardVisible(true);
+      closeMenu();
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     messages
@@ -454,9 +503,14 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   };
 
   const initial = otherUserName[0]?.toUpperCase() || '?';
+  const listBottomPadding = keyboardVisible ? 24 : 120 + insets.bottom;
 
   return (
-    <KeyboardAvoidingView style={cs.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={cs.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+    >
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#050508', '#0D0D1A']} style={StyleSheet.absoluteFill} />
 
@@ -483,6 +537,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         ref={listRef}
         data={messages}
         keyExtractor={(m) => m.id}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <MessageBubble
             msg={item}
@@ -492,12 +547,19 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             onReact={handleReact}
             onToggleMenu={(msg) => setMenuMessageId((current) => current === msg.id ? null : msg.id)}
             menuOpen={menuMessageId === item.id}
+            openUpwards={messages.slice(-2).some((m) => m.id === item.id)}
             playingId={playingId}
             playingPosition={playingPosition}
           />
         )}
         onScrollBeginDrag={closeMenu}
-        contentContainerStyle={cs.list}
+        onScroll={({ nativeEvent }) => {
+          const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+          const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
+          autoScrollRef.current = distanceFromBottom < 120;
+        }}
+        scrollEventThrottle={16}
+        contentContainerStyle={[cs.list, { paddingBottom: listBottomPadding }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={cs.empty}>
@@ -507,7 +569,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         }
       />
 
-      <View style={cs.inputShell}>
+      <View style={[cs.inputShell, { paddingBottom: Math.max(insets.bottom + 10, 22) }]}>
         {replyTo && (
           <View style={cs.replyBar}>
             <View style={{ flex: 1 }}>
@@ -548,9 +610,11 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             : <RecordButton onSend={handleSendAudio} />}
         </View>
 
-        <Text style={cs.inputHintTxt}>
-          {sending ? t('chat.sending') : t('chat.holdHint')}
-        </Text>
+        {!keyboardVisible && (
+          <Text style={cs.inputHintTxt}>
+            {sending ? t('chat.sending') : t('chat.holdHint')}
+          </Text>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -589,6 +653,7 @@ const bs = StyleSheet.create({
   check: { fontSize: 11, color: C.textMute },
   checkRead: { color: C.cyan },
   menu: { width: SW * 0.76, marginTop: 6, borderRadius: 18, padding: 10, borderWidth: 1, backgroundColor: 'rgba(7,11,24,0.96)' },
+  menuAbove: { marginTop: 0, marginBottom: 6 },
   menuMine: { borderColor: 'rgba(103,232,249,0.22)' },
   menuTheirs: { borderColor: 'rgba(139,92,255,0.22)' },
   menuEmojiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
