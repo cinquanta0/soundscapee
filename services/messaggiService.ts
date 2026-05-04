@@ -1,7 +1,8 @@
 import {
-  collection, addDoc, getDocs, query, where, orderBy,
+  collection, addDoc, query, where, orderBy,
   limit, serverTimestamp, doc, updateDoc, onSnapshot,
-  setDoc, getDoc, deleteDoc, Timestamp, Unsubscribe, increment,
+  setDoc, getDoc, deleteDoc, Unsubscribe, increment,
+  arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
@@ -13,12 +14,16 @@ export interface Messaggio {
   conversationId: string;
   senderId: string;
   receiverId: string;
-  audioUrl: string;
-  duration: number;
-  waveform: number[]; // valori 0-1, 20 barre
+  type: 'audio' | 'text';
+  audioUrl?: string;
+  text?: string;
+  duration?: number;
+  waveform?: number[];
   timestamp: Date;
   ascoltato: boolean;
-  soundRef?: string; // ID del suono se condiviso dal feed
+  reactions?: Record<string, string[]>; // emoji → [uid, ...]
+  replyTo?: { id: string; senderName: string; preview: string };
+  soundRef?: string;
   soundTitle?: string;
   statusReply?: boolean;
   statusReplyLabel?: string;
@@ -26,24 +31,24 @@ export interface Messaggio {
 }
 
 export interface Conversazione {
-  id: string; // sorted `${uid1}_${uid2}`
+  id: string;
   participants: string[];
   otherUserId: string;
   otherUserName: string;
   otherUserAvatar: string;
   lastDuration: number;
+  lastText: string;
+  lastType: 'audio' | 'text';
   lastSenderId: string;
   lastTimestamp: Date;
   unread: number;
   lastMessageAscoltato: boolean;
 }
 
-// conversationId deterministico
 export function convId(a: string, b: string) {
   return [a, b].sort().join('_');
 }
 
-// Genera waveform casuale deterministica basata su seed (messageId)
 export function genWaveform(seed: string, bars = 20): number[] {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
@@ -77,6 +82,8 @@ export function listenConversazioni(
         otherUserName: data[`name_${otherId}`] || 'Utente',
         otherUserAvatar: data[`avatar_${otherId}`] || '🎵',
         lastDuration: data.lastDuration || 0,
+        lastText: data.lastText || '',
+        lastType: (data.lastType as 'audio' | 'text') ?? 'audio',
         lastSenderId: data.lastSenderId || '',
         lastTimestamp: data.updatedAt?.toDate() ?? new Date(),
         unread: data[`unread_${userId}`] || 0,
@@ -102,11 +109,14 @@ export function listenMessaggi(
   return onSnapshot(q, (snap) => {
     cb(snap.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as Omit<Messaggio, 'id' | 'timestamp'>),
+      ...(d.data() as Omit<Messaggio, 'id' | 'timestamp' | 'type'>),
+      type: (d.data().type as 'audio' | 'text') ?? 'audio',
       timestamp: d.data().timestamp?.toDate() ?? new Date(),
     })));
   }, (err) => console.error('[MESSAGGI] listenMessaggi error:', err.code, err.message));
 }
+
+// ─── Send audio message ───────────────────────────────────────────────────────
 
 export async function inviaMessaggio(params: {
   receiverId: string;
@@ -114,6 +124,7 @@ export async function inviaMessaggio(params: {
   receiverAvatar: string;
   audioUri: string;
   duration: number;
+  replyTo?: { id: string; senderName: string; preview: string };
   soundRef?: string;
   soundTitle?: string;
   statusReply?: boolean;
@@ -124,19 +135,20 @@ export async function inviaMessaggio(params: {
   if (!user) throw new Error('Non autenticato');
 
   const cId = convId(user.uid, params.receiverId);
-
   const storagePath = `messaggi/${cId}/${Date.now()}.m4a`;
   const audioUrl = await uploadFileWithFallback(storagePath, params.audioUri, 'audio/mp4');
 
-  const msgRef = await addDoc(collection(db, 'messaggi'), {
+  await addDoc(collection(db, 'messaggi'), {
     conversationId: cId,
     senderId: user.uid,
     receiverId: params.receiverId,
+    type: 'audio',
     audioUrl,
     duration: params.duration,
     waveform: genWaveform(`${cId}${Date.now()}`),
     timestamp: serverTimestamp(),
     ascoltato: false,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
     ...(params.soundRef ? { soundRef: params.soundRef, soundTitle: params.soundTitle } : {}),
     ...(params.statusReply ? {
       statusReply: true,
@@ -145,70 +157,124 @@ export async function inviaMessaggio(params: {
     } : {}),
   });
 
-  // Aggiorna/crea conversation
-  const convRef = doc(db, 'conversations', cId);
-  const senderProfile = await getDoc(doc(db, 'users', user.uid));
-  const sName = senderProfile.data()?.username || senderProfile.data()?.displayName || 'Utente';
-  const sAvatar = senderProfile.data()?.avatar || '🎵';
-
-  await setDoc(convRef, {
-    participants: [user.uid, params.receiverId].sort(),
-    [`name_${user.uid}`]: sName,
-    [`avatar_${user.uid}`]: sAvatar,
-    [`name_${params.receiverId}`]: params.receiverName,
-    [`avatar_${params.receiverId}`]: params.receiverAvatar,
-    lastDuration: params.duration,
-    lastSenderId: user.uid,
-    updatedAt: serverTimestamp(),
-    [`unread_${params.receiverId}`]: increment(1),
-    lastMessageAscoltato: false,
-  }, { merge: true });
+  await _updateConversation(cId, user.uid, params.receiverId, params.receiverName, params.receiverAvatar, {
+    type: 'audio', duration: params.duration,
+  });
 }
 
-export async function eliminaMessaggio(messageId: string, conversationId: string, audioUrl: string): Promise<void> {
+// ─── Send text message ────────────────────────────────────────────────────────
+
+export async function inviaTestoMessaggio(params: {
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar: string;
+  text: string;
+  replyTo?: { id: string; senderName: string; preview: string };
+}): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
 
-  // Verifica ownership: il documento deve appartenere al mittente corrente
+  const cId = convId(user.uid, params.receiverId);
+
+  await addDoc(collection(db, 'messaggi'), {
+    conversationId: cId,
+    senderId: user.uid,
+    receiverId: params.receiverId,
+    type: 'text',
+    text: params.text,
+    timestamp: serverTimestamp(),
+    ascoltato: false,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+  });
+
+  await _updateConversation(cId, user.uid, params.receiverId, params.receiverName, params.receiverAvatar, {
+    type: 'text', text: params.text.slice(0, 60),
+  });
+}
+
+// ─── Reactions ────────────────────────────────────────────────────────────────
+
+export async function toggleReazione(messageId: string, emoji: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) return;
+  const msgRef = doc(db, 'messaggi', messageId);
+  const snap = await getDoc(msgRef);
+  if (!snap.exists()) return;
+  const current: string[] = snap.data().reactions?.[emoji] ?? [];
+  const hasReacted = current.includes(user.uid);
+  await updateDoc(msgRef, {
+    [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid),
+  });
+}
+
+// ─── Delete ───────────────────────────────────────────────────────────────────
+
+export async function eliminaMessaggio(messageId: string, conversationId: string, audioUrl?: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+
   const msgRef = doc(db, 'messaggi', messageId);
   const msgSnap = await getDoc(msgRef);
-  if (!msgSnap.exists() || msgSnap.data().senderId !== user.uid) {
-    throw new Error('Non autorizzato');
+  if (!msgSnap.exists() || msgSnap.data().senderId !== user.uid) throw new Error('Non autorizzato');
+
+  if (msgSnap.data().type !== 'text' && audioUrl) {
+    try {
+      const match = audioUrl.match(/\/o\/([^?]+)/);
+      if (match) await deleteObject(ref(storage, decodeURIComponent(match[1])));
+    } catch {}
   }
 
-  // Cancella il file da Firebase Storage (best-effort, non blocca se fallisce)
-  try {
-    // L'URL è del tipo: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token=...
-    const match = audioUrl.match(/\/o\/([^?]+)/);
-    if (match) {
-      const storagePath = decodeURIComponent(match[1]);
-      const storageRef = ref(storage, storagePath);
-      await deleteObject(storageRef);
-    }
-  } catch { /* file già eliminato o non trovato — ok */ }
-
-  // Cancella il documento Firestore
   await deleteDoc(msgRef);
 
-  // Aggiorna la conversation (decrementa unread del ricevente se non ascoltato)
   try {
     const data = msgSnap.data();
     if (!data.ascoltato) {
-      const convRef = doc(db, 'conversations', conversationId);
-      await updateDoc(convRef, {
+      await updateDoc(doc(db, 'conversations', conversationId), {
         [`unread_${data.receiverId}`]: increment(-1),
       });
     }
-  } catch { /* non critico */ }
+  } catch {}
 }
+
+// ─── Mark as read ─────────────────────────────────────────────────────────────
 
 export async function segnaAscoltato(messageId: string, conversationId: string): Promise<void> {
   const user = auth.currentUser;
   if (!user) return;
   await updateDoc(doc(db, 'messaggi', messageId), { ascoltato: true });
-  const convRef = doc(db, 'conversations', conversationId);
-  await updateDoc(convRef, {
+  await updateDoc(doc(db, 'conversations', conversationId), {
     [`unread_${user.uid}`]: 0,
     lastMessageAscoltato: true,
   });
+}
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+async function _updateConversation(
+  cId: string,
+  senderId: string,
+  receiverId: string,
+  receiverName: string,
+  receiverAvatar: string,
+  last: { type: 'audio'; duration: number } | { type: 'text'; text: string },
+) {
+  const convRef = doc(db, 'conversations', cId);
+  const senderProfile = await getDoc(doc(db, 'users', senderId));
+  const sName = senderProfile.data()?.username || senderProfile.data()?.displayName || 'Utente';
+  const sAvatar = senderProfile.data()?.avatar || '🎵';
+
+  await setDoc(convRef, {
+    participants: [senderId, receiverId].sort(),
+    [`name_${senderId}`]: sName,
+    [`avatar_${senderId}`]: sAvatar,
+    [`name_${receiverId}`]: receiverName,
+    [`avatar_${receiverId}`]: receiverAvatar,
+    lastSenderId: senderId,
+    lastType: last.type,
+    lastDuration: last.type === 'audio' ? last.duration : 0,
+    lastText: last.type === 'text' ? last.text : '',
+    updatedAt: serverTimestamp(),
+    [`unread_${receiverId}`]: increment(1),
+    lastMessageAscoltato: false,
+  }, { merge: true });
 }

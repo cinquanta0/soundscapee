@@ -489,15 +489,16 @@
     "newConversation": "Neue Unterhaltung",
     "searchPlaceholder": "Nach Benutzername suchen...",
     "emptyTitle": "keine Nachrichten",
-    "emptyDesc": "starte eine Sprachunterhaltung!",
+    "emptyDesc": "starte eine private Unterhaltung!",
     "newConvBtn": "+ neue Unterhaltung",
     "newBtn": "+ neu",
     "defaultUser": "Benutzer",
-    "voiceInbox": "Spracheingang",
+    "voiceInbox": "Private Inbox",
     "conversations": "Gespräche",
-    "inboxSubtitle": "Sprachnachrichten, schnelle Antworten und Audio-Gespräche in einer Inbox.",
+    "inboxSubtitle": "Sprachnachrichten, Text, schnelle Antworten und Reaktionen in einer Inbox.",
     "you": "Du",
     "audio": "Audio",
+    "text": "Nachricht",
     "newConvEyebrow": "Neues Gespräch",
     "timeNow": "jetzt",
     "timeDaysAbbr": "T"
@@ -799,17 +800,25 @@
   },
   "chat": {
     "voiceMessages": "Sprachnachrichten",
+    "privateMessages": "private Nachrichten",
     "holdToRecord": "Mikrofon gedrückt halten zum Aufnehmen",
+    "empty": "Schreibe eine Nachricht oder halte das Mikrofon gedrückt, um zu starten",
     "recHint": "Aufn. {{elapsed}}s — loslassen zum Senden",
     "sending": "Wird gesendet...",
-    "holdHint": "🎤 gedrückt halten zum Aufnehmen",
+    "holdHint": "Schreiben oder 🎤 gedrückt halten zum Aufnehmen",
+    "textPlaceholder": "Schreibe eine Nachricht...",
+    "reply": "Antworten",
+    "replyingTo": "Antwort an {{name}}",
+    "voicePreview": "Sprachnachricht · {{seconds}}s",
+    "statusReply": "Statusantwort",
     "deleteMessage": "Nachricht löschen",
-    "deleteConfirm": "Diese Sprachnachricht löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteConfirm": "Diese Nachricht löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleted": "Nachricht gelöscht",
     "errors": {
       "cannotRecord": "Aufnahme konnte nicht gestartet werden.",
       "cannotSend": "Nachricht konnte nicht gesendet werden.",
-      "cannotDelete": "Nachricht konnte nicht gelöscht werden."
+      "cannotDelete": "Nachricht konnte nicht gelöscht werden.",
+      "cannotReact": "Reaktion konnte nicht hinzugefügt werden."
     }
   },
   "onboarding": {

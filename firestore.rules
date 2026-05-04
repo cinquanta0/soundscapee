@@ -611,10 +611,15 @@ service cloud.firestore {
       allow list: if isAuth();
       // Solo il mittente autenticato può creare
       allow create: if isAuth() && request.resource.data.senderId == request.auth.uid;
-      // Solo il destinatario può aggiornare (segna come ascoltato)
-      allow update: if isAuth() &&
-                    resource.data.receiverId == request.auth.uid &&
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ascoltato']);
+      // Il destinatario segna come ascoltato; entrambi i partecipanti possono reagire
+      allow update: if isAuth() && (
+                      (resource.data.receiverId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ascoltato']))
+                      ||
+                      ((resource.data.senderId == request.auth.uid ||
+                        resource.data.receiverId == request.auth.uid) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
+                    );
       // Solo il mittente può eliminare il proprio messaggio
       allow delete: if isAuth() && resource.data.senderId == request.auth.uid;
     }

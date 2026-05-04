@@ -489,15 +489,16 @@
     "newConversation": "New conversation",
     "searchPlaceholder": "Search by username...",
     "emptyTitle": "no messages",
-    "emptyDesc": "start a voice conversation!",
+    "emptyDesc": "start a private conversation!",
     "newConvBtn": "+ new conversation",
     "newBtn": "+ new",
     "defaultUser": "User",
-    "voiceInbox": "Voice inbox",
+    "voiceInbox": "Private inbox",
     "conversations": "Conversations",
-    "inboxSubtitle": "Voice messages, quick replies and audio conversations all in one inbox.",
+    "inboxSubtitle": "Voice messages, text, quick replies and reactions in one inbox.",
     "you": "You",
     "audio": "Audio",
+    "text": "Message",
     "newConvEyebrow": "New conversation",
     "timeNow": "now",
     "timeDaysAbbr": "d"
@@ -799,17 +800,25 @@
   },
   "chat": {
     "voiceMessages": "voice messages",
+    "privateMessages": "private messages",
     "holdToRecord": "Hold the microphone to record",
+    "empty": "Write a message or hold the microphone to start",
     "recHint": "rec {{elapsed}}s — release to send",
     "sending": "Sending...",
-    "holdHint": "Hold 🎤 to record",
+    "holdHint": "Type or hold 🎤 to record",
+    "textPlaceholder": "Write a message...",
+    "reply": "Reply",
+    "replyingTo": "Replying to {{name}}",
+    "voicePreview": "Voice · {{seconds}}s",
+    "statusReply": "Status reply",
     "deleteMessage": "Delete message",
-    "deleteConfirm": "Delete this voice message? This cannot be undone.",
+    "deleteConfirm": "Delete this message? This cannot be undone.",
     "deleted": "Message deleted",
     "errors": {
       "cannotRecord": "Cannot start recording.",
       "cannotSend": "Cannot send the message.",
-      "cannotDelete": "Cannot delete the message."
+      "cannotDelete": "Cannot delete the message.",
+      "cannotReact": "Cannot add the reaction."
     }
   },
   "onboarding": {

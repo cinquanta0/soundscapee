@@ -489,15 +489,16 @@
     "newConversation": "Nova conversa",
     "searchPlaceholder": "Pesquisar por nome de usuário...",
     "emptyTitle": "sem mensagens",
-    "emptyDesc": "inicie uma conversa de voz!",
+    "emptyDesc": "inicie uma conversa privada!",
     "newConvBtn": "+ nova conversa",
     "newBtn": "+ novo",
     "defaultUser": "Usuário",
-    "voiceInbox": "Caixa de voz",
+    "voiceInbox": "Caixa privada",
     "conversations": "Conversas",
-    "inboxSubtitle": "Mensagens de voz, respostas rápidas e conversas de áudio em uma caixa.",
+    "inboxSubtitle": "Mensagens de voz, texto, respostas rápidas e reações em uma caixa.",
     "you": "Eu",
     "audio": "Áudio",
+    "text": "Mensagem",
     "newConvEyebrow": "Nova conversa",
     "timeNow": "agora",
     "timeDaysAbbr": "d"
@@ -799,17 +800,25 @@
   },
   "chat": {
     "voiceMessages": "mensagens de voz",
+    "privateMessages": "mensagens privadas",
     "holdToRecord": "Segure o microfone para gravar",
+    "empty": "Escreva uma mensagem ou segure o microfone para começar",
     "recHint": "grav. {{elapsed}}s — solte para enviar",
     "sending": "Enviando...",
-    "holdHint": "Segure 🎤 para gravar",
+    "holdHint": "Digite ou segure 🎤 para gravar",
+    "textPlaceholder": "Escreva uma mensagem...",
+    "reply": "Responder",
+    "replyingTo": "Respondendo a {{name}}",
+    "voicePreview": "Voz · {{seconds}}s",
+    "statusReply": "Resposta ao status",
     "deleteMessage": "Excluir mensagem",
-    "deleteConfirm": "Excluir esta mensagem de voz? Esta ação é irreversível.",
+    "deleteConfirm": "Excluir esta mensagem? Esta ação é irreversível.",
     "deleted": "Mensagem excluída",
     "errors": {
       "cannotRecord": "Não é possível iniciar a gravação.",
       "cannotSend": "Não é possível enviar a mensagem.",
-      "cannotDelete": "Não é possível excluir a mensagem."
+      "cannotDelete": "Não é possível excluir a mensagem.",
+      "cannotReact": "Não foi possível adicionar a reação."
     }
   },
   "onboarding": {

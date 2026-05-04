@@ -489,15 +489,16 @@
     "newConversation": "Nouvelle conversation",
     "searchPlaceholder": "Rechercher par nom d'utilisateur...",
     "emptyTitle": "aucun message",
-    "emptyDesc": "commencez une conversation vocale !",
+    "emptyDesc": "commencez une conversation privée !",
     "newConvBtn": "+ nouvelle conversation",
     "newBtn": "+ nouveau",
     "defaultUser": "Utilisateur",
-    "voiceInbox": "Boîte vocale",
+    "voiceInbox": "Boîte privée",
     "conversations": "Conversations",
-    "inboxSubtitle": "Messages vocaux, réponses rapides et conversations audio dans une seule boîte.",
+    "inboxSubtitle": "Messages vocaux, texte, réponses rapides et réactions dans une seule boîte.",
     "you": "Moi",
     "audio": "Audio",
+    "text": "Message",
     "newConvEyebrow": "Nouvelle conversation",
     "timeNow": "maintenant",
     "timeDaysAbbr": "j"
@@ -799,17 +800,25 @@
   },
   "chat": {
     "voiceMessages": "messages vocaux",
+    "privateMessages": "messages privés",
     "holdToRecord": "Maintenez le microphone pour enregistrer",
+    "empty": "Écrivez un message ou maintenez le microphone pour commencer",
     "recHint": "rec {{elapsed}}s — relâchez pour envoyer",
     "sending": "Envoi en cours...",
-    "holdHint": "Maintenez 🎤 pour enregistrer",
+    "holdHint": "Écrivez ou maintenez 🎤 pour enregistrer",
+    "textPlaceholder": "Écrivez un message...",
+    "reply": "Répondre",
+    "replyingTo": "Réponse à {{name}}",
+    "voicePreview": "Vocal · {{seconds}}s",
+    "statusReply": "Réponse au statut",
     "deleteMessage": "Supprimer le message",
-    "deleteConfirm": "Supprimer ce message vocal ? Cette action est irréversible.",
+    "deleteConfirm": "Supprimer ce message ? Cette action est irréversible.",
     "deleted": "Message supprimé",
     "errors": {
       "cannotRecord": "Impossible de démarrer l'enregistrement.",
       "cannotSend": "Impossible d'envoyer le message.",
-      "cannotDelete": "Impossible de supprimer le message."
+      "cannotDelete": "Impossible de supprimer le message.",
+      "cannotReact": "Impossible d'ajouter la réaction."
     }
   },
   "onboarding": {

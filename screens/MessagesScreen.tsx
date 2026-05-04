@@ -40,6 +40,9 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
   const { t } = useTranslation();
   const isMe = conv.lastSenderId === auth.currentUser?.uid;
   const initial = conv.otherUserName[0]?.toUpperCase() || '?';
+  const preview = conv.lastType === 'text'
+    ? `${isMe ? `${t('messages.you')}: ` : ''}${conv.lastText || t('messages.text')}`
+    : `${isMe ? t('messages.you') : t('messages.audio')} · ${conv.lastDuration}s`;
   return (
     <TouchableOpacity style={cr.row} onPress={onPress} activeOpacity={0.86}>
       <View style={cr.avatarWrap}>
@@ -59,9 +62,7 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
           <Text style={cr.time}>{timeAgo(conv.lastTimestamp, t)}</Text>
         </View>
         <View style={cr.bottom}>
-          <Text style={cr.preview} numberOfLines={1}>
-            {isMe ? t('messages.you') : t('messages.audio')} · {conv.lastDuration}s
-          </Text>
+          <Text style={cr.preview} numberOfLines={1}>{preview}</Text>
           {isMe && (
             <Text style={[cr.check, { color: conv.lastMessageAscoltato ? '#67E8F9' : '#687392' }]}>
               {conv.lastMessageAscoltato ? '✓✓' : '✓'}

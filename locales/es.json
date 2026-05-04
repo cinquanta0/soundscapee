@@ -489,15 +489,16 @@
     "newConversation": "Nueva conversación",
     "searchPlaceholder": "Buscar por nombre de usuario...",
     "emptyTitle": "sin mensajes",
-    "emptyDesc": "¡inicia una conversación de voz!",
+    "emptyDesc": "¡inicia una conversación privada!",
     "newConvBtn": "+ nueva conversación",
     "newBtn": "+ nuevo",
     "defaultUser": "Usuario",
-    "voiceInbox": "Bandeja de voz",
+    "voiceInbox": "Bandeja privada",
     "conversations": "Conversaciones",
-    "inboxSubtitle": "Mensajes de voz, respuestas rápidas y conversaciones de audio en una bandeja.",
+    "inboxSubtitle": "Mensajes de voz, texto, respuestas rápidas y reacciones en una bandeja.",
     "you": "Tú",
     "audio": "Audio",
+    "text": "Mensaje",
     "newConvEyebrow": "Nueva conversación",
     "timeNow": "ahora",
     "timeDaysAbbr": "d"
@@ -799,17 +800,25 @@
   },
   "chat": {
     "voiceMessages": "mensajes de voz",
+    "privateMessages": "mensajes privados",
     "holdToRecord": "Mantén presionado el micrófono para grabar",
+    "empty": "Escribe un mensaje o mantén presionado el micrófono para empezar",
     "recHint": "rec {{elapsed}}s — suelta para enviar",
     "sending": "Enviando...",
-    "holdHint": "Mantén presionado 🎤 para grabar",
+    "holdHint": "Escribe o mantén presionado 🎤 para grabar",
+    "textPlaceholder": "Escribe un mensaje...",
+    "reply": "Responder",
+    "replyingTo": "Respondiendo a {{name}}",
+    "voicePreview": "Voz · {{seconds}}s",
+    "statusReply": "Respuesta al estado",
     "deleteMessage": "Eliminar mensaje",
-    "deleteConfirm": "¿Eliminar este mensaje de voz? Esta acción es irreversible.",
+    "deleteConfirm": "¿Eliminar este mensaje? Esta acción es irreversible.",
     "deleted": "Mensaje eliminado",
     "errors": {
       "cannotRecord": "No se puede iniciar la grabación.",
       "cannotSend": "No se puede enviar el mensaje.",
-      "cannotDelete": "No se puede eliminar el mensaje."
+      "cannotDelete": "No se puede eliminar el mensaje.",
+      "cannotReact": "No se puede agregar la reacción."
     }
   },
   "onboarding": {

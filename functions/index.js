@@ -553,14 +553,14 @@ exports.onFollowCreated = onDocumentCreated(
   }
 );
 
-// ── Trigger: nuovo messaggio vocale privato ───────────────────────────────────
+// ── Trigger: nuovo messaggio privato ──────────────────────────────────────────
 exports.onMessageCreated = onDocumentCreated(
   { document: 'messaggi/{msgId}', region: 'europe-west1' },
   async (event) => {
     const msg = event.data?.data();
     if (!msg) return;
 
-    const { senderId, receiverId, duration, statusReply, statusId } = msg;
+    const { senderId, receiverId, duration, statusReply, statusId, type, text } = msg;
     if (!receiverId || senderId === receiverId) return;
 
     const db = admin.firestore();
@@ -570,13 +570,17 @@ exports.onMessageCreated = onDocumentCreated(
     if (statusReply) {
       await sendNotificationToUser(db, receiverId, {
         title: '💬 Ha risposto al tuo stato!',
-        body: `${senderName} ha risposto al tuo stato${duration ? ` (${duration}s)` : ''}`,
+        body: type === 'text'
+          ? `${senderName} ha risposto al tuo stato: ${String(text || '').slice(0, 80)}`
+          : `${senderName} ha risposto al tuo stato${duration ? ` (${duration}s)` : ''}`,
         data: { type: 'status_reply', senderId, ...(statusId ? { statusId } : {}) },
       });
     } else {
       await sendNotificationToUser(db, receiverId, {
-        title: '🎤 Nuovo messaggio vocale!',
-        body: `${senderName} ti ha inviato un messaggio${duration ? ` di ${duration}s` : ''}`,
+        title: type === 'text' ? '💬 Nuovo messaggio!' : '🎤 Nuovo messaggio vocale!',
+        body: type === 'text'
+          ? `${senderName}: ${String(text || '').slice(0, 100)}`
+          : `${senderName} ti ha inviato un messaggio${duration ? ` di ${duration}s` : ''}`,
         data: { type: 'message', senderId },
       });
     }
