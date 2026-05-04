@@ -3042,10 +3042,15 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
     if (Platform.OS === 'ios' && !radioPrimed) return;
     if (isPlaying) {
       await pauseRadioPlayback();
-    } else if (reloadStreamRef.current) {
-      await playRadioPlayback().catch(async () => reloadStreamRef.current?.());
     } else {
-      await playRadioPlayback();
+      await playRadioPlayback().catch(() => {});
+      // iOS: se dopo il ciclo kick lo stream non è partito, ricarica da zero
+      if (Platform.OS === 'ios') {
+        const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+        const s = ps?.state ?? ps;
+        const alive = s === State.Playing || s === State.Buffering || s === State.Loading;
+        if (!alive) reloadStreamRef.current?.();
+      }
     }
   };
 
