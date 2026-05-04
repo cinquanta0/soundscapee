@@ -752,6 +752,7 @@ const tc = StyleSheet.create({
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { t } = useTranslation();
+  const TUTORIAL_STEPS = getTutorialSteps(t);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isITS, setIsITS] = useState(false);
