@@ -14,6 +14,7 @@ import {
   Messaggio, listenMessaggi, inviaMessaggio, inviaTestoMessaggio,
   segnaAscoltato, eliminaMessaggio, genWaveform, toggleReazione,
 } from '../services/messaggiService';
+import { useCall } from '../context/CallContext';
 
 const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
   isMeteringEnabled: true,
@@ -502,6 +503,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     }
   };
 
+  const { initiateCall, phase: callPhase } = useCall();
   const initial = otherUserName[0]?.toUpperCase() || '?';
   const listBottomPadding = keyboardVisible ? 24 : 120 + insets.bottom;
 
@@ -530,6 +532,14 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             <Text style={cs.headerName}>{otherUserName}</Text>
             <Text style={cs.headerSub}>{t('chat.privateMessages')}</Text>
           </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[cs.callBtn, !!callPhase && cs.callBtnDisabled]}
+          onPress={() => initiateCall(otherUserId, otherUserName, otherUserAvatar)}
+          disabled={!!callPhase}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={cs.callBtnTxt}>📞</Text>
         </TouchableOpacity>
       </View>
 
@@ -702,4 +712,7 @@ const cs = StyleSheet.create({
   sendBtnDisabled: { opacity: 0.45 },
   sendBtnTxt: { color: '#08111E', fontSize: 20, fontWeight: '800' },
   inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
+  callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
+  callBtnDisabled: { opacity: 0.3 },
+  callBtnTxt: { fontSize: 16 },
 });

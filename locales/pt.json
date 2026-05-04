@@ -821,6 +821,28 @@
       "cannotReact": "Não foi possível adicionar a reação."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Chamada de voz",
+    "incoming": "Chamada recebida",
+    "calling": "Chamando...",
+    "connecting": "Conectando...",
+    "connected": "Em chamada",
+    "ended": "Chamada encerrada",
+    "declined": "Chamada recusada",
+    "missed": "Chamada perdida",
+    "accept": "Atender",
+    "decline": "Recusar",
+    "cancel": "Cancelar",
+    "end": "Encerrar",
+    "mute": "Silenciar",
+    "unmute": "Ativar",
+    "speaker": "Alto-falante",
+    "earpiece": "Fone de ouvido",
+    "errors": {
+      "failed": "Não foi possível iniciar a chamada.",
+      "busy": "Usuário ocupado."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — O Mundo Soa",
     "slide1_subtitle": "A rede social dos sons do mundo real",

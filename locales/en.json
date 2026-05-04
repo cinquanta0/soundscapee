@@ -821,6 +821,28 @@
       "cannotReact": "Cannot add the reaction."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Voice call",
+    "incoming": "Incoming call",
+    "calling": "Calling...",
+    "connecting": "Connecting...",
+    "connected": "In call",
+    "ended": "Call ended",
+    "declined": "Call declined",
+    "missed": "Missed call",
+    "accept": "Answer",
+    "decline": "Decline",
+    "cancel": "Cancel",
+    "end": "End",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "speaker": "Speaker",
+    "earpiece": "Earpiece",
+    "errors": {
+      "failed": "Could not start the call.",
+      "busy": "User is busy."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — The World Sounds",
     "slide1_subtitle": "The social network for real-world sounds",

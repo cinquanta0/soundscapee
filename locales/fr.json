@@ -821,6 +821,28 @@
       "cannotReact": "Impossible d'ajouter la réaction."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Appel vocal",
+    "incoming": "Appel entrant",
+    "calling": "Appel en cours...",
+    "connecting": "Connexion...",
+    "connected": "En appel",
+    "ended": "Appel terminé",
+    "declined": "Appel refusé",
+    "missed": "Appel manqué",
+    "accept": "Répondre",
+    "decline": "Refuser",
+    "cancel": "Annuler",
+    "end": "Terminer",
+    "mute": "Couper le micro",
+    "unmute": "Activer le micro",
+    "speaker": "Haut-parleur",
+    "earpiece": "Écouteur",
+    "errors": {
+      "failed": "Impossible de démarrer l'appel.",
+      "busy": "Utilisateur occupé."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — Le Monde Sonne",
     "slide1_subtitle": "Le réseau social des sons du monde réel",

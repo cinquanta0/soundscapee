@@ -252,6 +252,39 @@ export async function markNotificationAsRead(notificationId) {
 }
 
 /**
+ * Invia notifica per chiamata in arrivo
+ */
+export async function notifyIncomingCall(calleeId, callerName, callerAvatar, callId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', calleeId));
+    const data = userDoc.data();
+    if (!data) return;
+
+    // Supports both old pushToken (string) and new pushTokens (array)
+    const tokens = data.pushTokens ?? (data.pushToken ? [data.pushToken] : []);
+    if (!tokens.length) return;
+
+    const messages = tokens.map((token) => ({
+      to: token,
+      sound: 'default',
+      title: `📞 ${callerName} ti sta chiamando`,
+      body: 'Chiamata vocale in arrivo',
+      data: { type: 'incoming_call', callId, callerName, callerAvatar },
+      priority: 'high',
+      channelId: 'default',
+    }));
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages),
+    });
+  } catch (error) {
+    console.error('Errore notifica chiamata:', error);
+  }
+}
+
+/**
  * Segna tutte le notifiche di un utente come lette
  */
 export async function markAllNotificationsAsRead(userId) {

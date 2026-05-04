@@ -821,6 +821,28 @@
       "cannotReact": "No se puede agregar la reacción."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Llamada de voz",
+    "incoming": "Llamada entrante",
+    "calling": "Llamando...",
+    "connecting": "Conectando...",
+    "connected": "En llamada",
+    "ended": "Llamada finalizada",
+    "declined": "Llamada rechazada",
+    "missed": "Llamada perdida",
+    "accept": "Responder",
+    "decline": "Rechazar",
+    "cancel": "Cancelar",
+    "end": "Finalizar",
+    "mute": "Silenciar",
+    "unmute": "Activar",
+    "speaker": "Altavoz",
+    "earpiece": "Auricular",
+    "errors": {
+      "failed": "No se pudo iniciar la llamada.",
+      "busy": "Usuario ocupado."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — El Mundo Suena",
     "slide1_subtitle": "La red social de los sonidos del mundo real",

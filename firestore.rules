@@ -623,5 +623,18 @@ service cloud.firestore {
       // Solo il mittente può eliminare il proprio messaggio
       allow delete: if isAuth() && resource.data.senderId == request.auth.uid;
     }
+
+    match /calls/{callId} {
+      allow read: if isAuth() &&
+                   (resource.data.callerId == request.auth.uid ||
+                    resource.data.calleeId == request.auth.uid);
+      allow list: if isAuth();
+      allow create: if isAuth() && request.resource.data.callerId == request.auth.uid;
+      allow update: if isAuth() &&
+                     (resource.data.callerId == request.auth.uid ||
+                      resource.data.calleeId == request.auth.uid) &&
+                     request.resource.data.callerId == resource.data.callerId;
+      allow delete: if false;
+    }
   }
 }

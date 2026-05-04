@@ -821,6 +821,28 @@
       "cannotReact": "Reaktion konnte nicht hinzugefügt werden."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Sprachanruf",
+    "incoming": "Eingehender Anruf",
+    "calling": "Wird angerufen...",
+    "connecting": "Verbinden...",
+    "connected": "Im Gespräch",
+    "ended": "Anruf beendet",
+    "declined": "Anruf abgelehnt",
+    "missed": "Verpasster Anruf",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "cancel": "Abbrechen",
+    "end": "Beenden",
+    "mute": "Stummschalten",
+    "unmute": "Reaktivieren",
+    "speaker": "Lautsprecher",
+    "earpiece": "Hörer",
+    "errors": {
+      "failed": "Anruf konnte nicht gestartet werden.",
+      "busy": "Benutzer ist beschäftigt."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — Die Welt klingt",
     "slide1_subtitle": "Das soziale Netzwerk für Klänge aus der echten Welt",

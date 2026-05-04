@@ -9,6 +9,8 @@ import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacit
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
+import { CallProvider } from '../context/CallContext';
+import CallScreen from '../screens/CallScreen';
 
 // Mantieni lo splash screen visibile mentre i font caricano
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -158,11 +160,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <CallProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </>
+      <CallScreen />
+    </CallProvider>
   );
 }

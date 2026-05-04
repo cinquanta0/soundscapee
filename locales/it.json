@@ -821,6 +821,28 @@
       "cannotReact": "Impossibile aggiungere la reaction."
     }
   },
+  "call": {
+    "soundscape": "SoundScape · Chiamata vocale",
+    "incoming": "Chiamata in arrivo",
+    "calling": "Chiamata in corso...",
+    "connecting": "Connessione...",
+    "connected": "In chiamata",
+    "ended": "Chiamata terminata",
+    "declined": "Chiamata rifiutata",
+    "missed": "Chiamata persa",
+    "accept": "Rispondi",
+    "decline": "Rifiuta",
+    "cancel": "Annulla",
+    "end": "Termina",
+    "mute": "Silenzia",
+    "unmute": "Riattiva",
+    "speaker": "Altoparlante",
+    "earpiece": "Auricolare",
+    "errors": {
+      "failed": "Impossibile avviare la chiamata.",
+      "busy": "Utente occupato."
+    }
+  },
   "onboarding": {
     "slide1_title": "SoundScape — Il Mondo Suona",
     "slide1_subtitle": "Il social network dei suoni del mondo reale",
