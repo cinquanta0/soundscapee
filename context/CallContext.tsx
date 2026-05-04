@@ -4,14 +4,10 @@ import React, {
 import { Alert, Platform, Vibration } from 'react-native';
 import { Audio } from 'expo-av';
 import { doc, getDoc } from 'firebase/firestore';
-import {
-  createAgoraRtcEngine, IRtcEngine, IRtcEngineEventHandler,
-  ChannelProfileType, ClientRoleType,
-  AudioProfileType, AudioScenarioType,
-} from 'react-native-agora';
+import { IRtcEngine, IRtcEngineEventHandler, ClientRoleType } from 'react-native-agora';
 import RNCallKeep from 'react-native-callkeep';
 import { auth, db } from '../firebaseConfig';
-import { destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
+import { getCallEngine, fetchAgoraToken } from '../services/agoraService';
 import {
   Call, CallPhase,
   createCall, updateCallStatus,
@@ -137,17 +133,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Agora engine ──────────────────────────────────────────────────────────
   const _initEngine = useCallback((): IRtcEngine => {
-    const engine = createAgoraRtcEngine();
-    engine.initialize({
-      appId: AGORA_APP_ID,
-      channelProfile: ChannelProfileType.ChannelProfileCommunication,
-    });
-    engine.enableAudio();
-    engine.setEnableSpeakerphone(false);
-    engine.setAudioProfile(
-      AudioProfileType.AudioProfileDefault,
-      AudioScenarioType.AudioScenarioChatRoom,
-    );
+    // Reuse the singleton engine from agoraService — avoids double-init crash on iOS
+    const engine = getCallEngine();
 
     const handler: IRtcEngineEventHandler = {
       onJoinChannelSuccess: () => {},
@@ -229,7 +216,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setPhase('connecting');
     await updateCallStatus(incoming.id, 'active');
 
-    try { destroyAgoraEngine(); } catch {}
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
       console.error('[CALL] Engine init failed:', e);
@@ -266,7 +252,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
     const callerAvatar: string = snap.data()?.avatar || '🎵';
 
-    try { destroyAgoraEngine(); } catch {}
 
     const callId = await createCall({ calleeId, calleeName, calleeAvatar, callerName, callerAvatar });
     callIdRef.current = callId;

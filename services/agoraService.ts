@@ -32,6 +32,26 @@ function getEngine(): IRtcEngine {
   return _engine;
 }
 
+export function getCallEngine(): IRtcEngine {
+  if (_engine) {
+    // Reuse existing engine — leave current channel first
+    _engine.leaveChannel();
+  } else {
+    _engine = createAgoraRtcEngine();
+    _engine.initialize({
+      appId: AGORA_APP_ID,
+      channelProfile: ChannelProfileType.ChannelProfileCommunication,
+    });
+  }
+  _engine.enableAudio();
+  _engine.setEnableSpeakerphone(false);
+  _engine.setAudioProfile(
+    AudioProfileType.AudioProfileDefault,
+    AudioScenarioType.AudioScenarioChatRoom,
+  );
+  return _engine;
+}
+
 export function destroyAgoraEngine(): void {
   _engine?.leaveChannel();
   _engine?.release();
