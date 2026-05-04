@@ -230,7 +230,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     await updateCallStatus(incoming.id, 'active');
 
     try { destroyAgoraEngine(); } catch {}
-    const engine = _initEngine();
+    let engine: ReturnType<typeof _initEngine>;
+    try { engine = _initEngine(); } catch (e) {
+      console.error('[CALL] Engine init failed:', e);
+      await updateCallStatus(incoming.id, 'ended').catch(() => {});
+      setPhase(null); setCall(null); callIdRef.current = null;
+      return;
+    }
     const token = await fetchAgoraToken(incoming.channelName).catch(() => null);
     engine.joinChannel(token ?? '', incoming.channelName, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
@@ -273,10 +279,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setCall(callDoc);
     setPhase('ringing');
 
-    // Notify CallKeep about outgoing call
-    RNCallKeep.startCall(callId, calleeName, calleeName, 'generic', false);
+    // Notify CallKeep about outgoing call (best-effort — non-fatal if CallKeep not ready)
+    try { RNCallKeep.startCall(callId, calleeName, calleeName, 'generic', false); } catch {}
 
-    const engine = _initEngine();
+    let engine: ReturnType<typeof _initEngine>;
+    try { engine = _initEngine(); } catch (e) {
+      console.error('[CALL] Engine init failed:', e);
+      await updateCallStatus(callId, 'ended').catch(() => {});
+      setPhase(null); setCall(null); callIdRef.current = null;
+      Alert.alert('Errore', 'Impossibile avviare la chiamata.');
+      return;
+    }
     const token = await fetchAgoraToken(callId).catch(() => null);
     engine.joinChannel(token ?? '', callId, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
