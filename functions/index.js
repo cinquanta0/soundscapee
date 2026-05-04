@@ -385,6 +385,22 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
   }
 }
 
+function getAddedReaction(beforeReactions = {}, afterReactions = {}) {
+  const emojis = new Set([
+    ...Object.keys(beforeReactions || {}),
+    ...Object.keys(afterReactions || {}),
+  ]);
+
+  for (const emoji of emojis) {
+    const beforeUsers = Array.isArray(beforeReactions?.[emoji]) ? beforeReactions[emoji] : [];
+    const afterUsers = Array.isArray(afterReactions?.[emoji]) ? afterReactions[emoji] : [];
+    const addedUser = afterUsers.find((uid) => !beforeUsers.includes(uid));
+    if (addedUser) return { emoji, userId: addedUser };
+  }
+
+  return null;
+}
+
 // ── HTTPS callable: converti WebM → M4A ──────────────────────────────────────
 // Chiamata dal sito web dopo ogni upload di un suono .webm.
 // Usa onCall (HTTPS) invece di un trigger Firestore → nessun permesso EventArc.
@@ -560,7 +576,7 @@ exports.onMessageCreated = onDocumentCreated(
     const msg = event.data?.data();
     if (!msg) return;
 
-    const { senderId, receiverId, duration, statusReply, statusId, type, text } = msg;
+    const { senderId, receiverId, duration, statusReply, statusId, type, text, replyTo } = msg;
     if (!receiverId || senderId === receiverId) return;
 
     const db = admin.firestore();
@@ -575,6 +591,14 @@ exports.onMessageCreated = onDocumentCreated(
           : `${senderName} ha risposto al tuo stato${duration ? ` (${duration}s)` : ''}`,
         data: { type: 'status_reply', senderId, ...(statusId ? { statusId } : {}) },
       });
+    } else if (replyTo?.id) {
+      await sendNotificationToUser(db, receiverId, {
+        title: '↩️ Ha risposto al tuo messaggio!',
+        body: type === 'text'
+          ? `${senderName}: ${String(text || '').slice(0, 100)}`
+          : `${senderName} ti ha risposto con un vocale${duration ? ` di ${duration}s` : ''}`,
+        data: { type: 'message_reply', senderId, replyToId: replyTo.id },
+      });
     } else {
       await sendNotificationToUser(db, receiverId, {
         title: type === 'text' ? '💬 Nuovo messaggio!' : '🎤 Nuovo messaggio vocale!',
@@ -584,6 +608,46 @@ exports.onMessageCreated = onDocumentCreated(
         data: { type: 'message', senderId },
       });
     }
+  }
+);
+
+// ── Trigger: reaction su messaggio privato ────────────────────────────────────
+exports.onMessageReactionUpdated = onDocumentUpdated(
+  { document: 'messaggi/{msgId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+
+    const beforeReactions = before.reactions ?? {};
+    const afterReactions = after.reactions ?? {};
+    const beforeStr = JSON.stringify(beforeReactions);
+    const afterStr = JSON.stringify(afterReactions);
+    if (beforeStr === afterStr) return;
+
+    const added = getAddedReaction(beforeReactions, afterReactions);
+    if (!added?.userId) return;
+
+    const ownerId = after.senderId;
+    const reactorId = added.userId;
+    if (!ownerId || !reactorId || ownerId === reactorId) return;
+
+    const db = admin.firestore();
+    const reactorDoc = await db.collection('users').doc(reactorId).get();
+    const reactorName = reactorDoc.data()?.username || reactorDoc.data()?.displayName || 'Qualcuno';
+    const preview = after.type === 'text'
+      ? String(after.text || '').slice(0, 80)
+      : `Vocale${after.duration ? ` · ${after.duration}s` : ''}`;
+
+    await sendNotificationToUser(db, ownerId, {
+      title: `${added.emoji} Nuova reaction!`,
+      body: `${reactorName} ha reagito al tuo messaggio${preview ? `: ${preview}` : ''}`,
+      data: {
+        type: 'message_reaction',
+        senderId: reactorId,
+        emoji: added.emoji,
+      },
+    });
   }
 );
 

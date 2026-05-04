@@ -1506,7 +1506,9 @@ const handleNotificationNavigation = async (data: any) => {
     case 'streak_reminder':
       setActiveTab('home');
       break;
-    case 'message': {
+    case 'message':
+    case 'message_reply':
+    case 'message_reaction': {
       const senderId = data.senderId;
       if (!senderId) { setActiveTab('messages'); break; }
       try {
