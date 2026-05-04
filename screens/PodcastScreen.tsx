@@ -990,7 +990,14 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
   };
 
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={showSearch ? () => setShowSearch(false) : onClose}>
+    <Modal
+      visible
+      animationType="fade"
+      transparent
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      onRequestClose={showSearch ? () => setShowSearch(false) : onClose}
+    >
       <View style={pm.overlay}>
         <View style={pm.sheet}>
           <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
