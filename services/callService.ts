@@ -157,14 +157,13 @@ export function listenForIncomingCall(
   const unsub1 = onSnapshot(q1, (snap) => {
     r1 = snap.empty ? null : toCall(snap.docs[0]);
     emit();
-  });
+  }, (err) => console.warn('[calls] q1 error:', err.message));
 
   const unsub2 = onSnapshot(q2, (snap) => {
     const found = snap.empty ? null : toCall(snap.docs[0]);
-    // Skip if it's the same call r1 already handles (avoids duplicate emit for new 1:1 calls)
     r2 = found && r1?.id !== found.id ? found : null;
     emit();
-  });
+  }, (err) => console.warn('[calls] q2 error:', err.message));
 
   return () => { unsub1(); unsub2(); };
 }
