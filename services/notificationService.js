@@ -55,9 +55,7 @@ export async function registerForPushNotifications(userId) {
     });
     // Registra il background task che mostra la schermata di chiamata nativa
     try {
-      const isRegistered = await Notifications.getRegisteredTasksAsync()
-        .then((tasks) => tasks.some((t) => t.taskName === SOUNDSCAPE_CALL_TASK))
-        .catch(() => false);
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(SOUNDSCAPE_CALL_TASK).catch(() => false);
       if (!isRegistered) {
         await Notifications.registerTaskAsync(SOUNDSCAPE_CALL_TASK);
       }
