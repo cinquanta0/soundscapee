@@ -1,11 +1,8 @@
 // services/notificationService.js
 import * as Notifications from 'expo-notifications';
-import * as TaskManager from 'expo-task-manager';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-
-const SOUNDSCAPE_CALL_TASK = 'SOUNDSCAPE_INCOMING_CALL';
 
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -45,23 +42,6 @@ export async function registerForPushNotifications(userId) {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#06b6d4',
     });
-    await Notifications.setNotificationChannelAsync('calls', {
-      name: 'Chiamate in arrivo',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 500, 300, 500, 300, 500],
-      lightColor: '#00FF9C',
-      sound: 'default',
-      bypassDnd: true,
-    });
-    // Registra il background task che mostra la schermata di chiamata nativa
-    try {
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(SOUNDSCAPE_CALL_TASK).catch(() => false);
-      if (!isRegistered) {
-        await Notifications.registerTaskAsync(SOUNDSCAPE_CALL_TASK);
-      }
-    } catch (e) {
-      console.warn('[CALL TASK] registerTaskAsync skipped:', e?.message);
-    }
   }
 
   if (IS_EXPO_GO) {
