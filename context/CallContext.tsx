@@ -32,7 +32,7 @@ const ck = {
   acceptIncomingCallAnswer: (id: string) => { try { RNCallKeep?.acceptIncomingCallAnswer(id); } catch {} },
   rejectCall: (id: string) => { try { RNCallKeep?.rejectCall(id); } catch {} },
   setMutedCall: (id: string, m: boolean) => { try { RNCallKeep?.setMutedCall(id, m); } catch {} },
-  getInitialEvents: (): any[] => { try { return RNCallKeep?.getInitialEvents?.() ?? []; } catch { return []; } },
+  getInitialEvents: (): Promise<any[]> => { try { return RNCallKeep?.getInitialEvents?.() ?? Promise.resolve([]); } catch { return Promise.resolve([]); } },
 };
 
 const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID ?? '';
@@ -131,14 +131,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.addEventListener('endCall', onEndCall);
     ck.addEventListener('didPerformSetMutedCallAction', onMuteCall);
 
-    const initials = ck.getInitialEvents();
-    for (const evt of initials) {
-      if (evt.name === 'RNCallKeepAnswerCall') {
-        pendingAcceptUUIDRef.current = evt.data?.callUUID ?? null;
-      } else if (evt.name === 'RNCallKeepEndCall') {
-        updateCallStatus(evt.data?.callUUID, 'declined').catch(() => {});
+    ck.getInitialEvents().then((initials: any[]) => {
+      for (const evt of initials) {
+        if (evt.name === 'RNCallKeepAnswerCall') {
+          pendingAcceptUUIDRef.current = evt.data?.callUUID ?? null;
+        } else if (evt.name === 'RNCallKeepEndCall') {
+          updateCallStatus(evt.data?.callUUID, 'declined').catch(() => {});
+        }
       }
-    }
+    }).catch(() => {});
 
     return () => {
       ck.removeEventListener('answerCall');
