@@ -2,9 +2,11 @@ import React, {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
 import { Alert, Platform, Vibration } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   IRtcEngine, IRtcEngineEventHandler, ClientRoleType,
 } from 'react-native-agora';
@@ -150,23 +152,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Listen for incoming calls ─────────────────────────────────────────────
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-    const unsub = listenForIncomingCall(uid, (incoming) => {
-      if (!incoming || phaseRef.current !== null) return;
-      setCall(incoming);
+    let unsubCall: (() => void) | null = null;
 
-      if (pendingAcceptUUIDRef.current === incoming.id) {
-        pendingAcceptUUIDRef.current = null;
-        _doAccept(incoming);
-        return;
-      }
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      unsubCall?.();
+      unsubCall = null;
+      if (!user) return;
 
-      setPhase('incoming');
-      _startRinging();
-      ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
+      unsubCall = listenForIncomingCall(user.uid, (incoming) => {
+        if (!incoming || phaseRef.current !== null) return;
+        setCall(incoming);
+
+        if (pendingAcceptUUIDRef.current === incoming.id) {
+          pendingAcceptUUIDRef.current = null;
+          _doAccept(incoming);
+          return;
+        }
+
+        setPhase('incoming');
+        _startRinging();
+        ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
+      });
     });
-    return () => unsub();
+
+    return () => { unsubCall?.(); unsubAuth(); };
   }, []);
 
   // ─── Agora engine ──────────────────────────────────────────────────────────
@@ -189,6 +198,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }, 1000);
         const uid = auth.currentUser?.uid;
         if (uid) updateDoc(doc(db, 'users', uid), { inCall: true }).catch(() => {});
+        if (Platform.OS === 'android') {
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Chiamata in corso',
+              body: 'Tocca per tornare alla chiamata',
+              sticky: true,
+              autoDismiss: false,
+              data: { callActive: true },
+            },
+            trigger: null,
+          }).catch(() => {});
+        }
       },
       onUserOffline: () => {
         if (!cleaningUpRef.current) {
@@ -220,6 +241,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (durationTimerRef.current) { clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
     unsubCallRef.current?.();
     unsubCallRef.current = null;
+    if (Platform.OS === 'android') Notifications.dismissAllNotificationsAsync().catch(() => {});
 
     if (callIdRef.current) ck.endCall(callIdRef.current);
 
