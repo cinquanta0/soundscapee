@@ -61,26 +61,46 @@ function AvatarBubble({ avatar, size = 90, pulse = false, color = '#67E8F9' }: {
   );
 }
 
+function GroupAvatars({ profiles }: { profiles: Record<string, { name: string; avatar: string }> }) {
+  const entries = Object.values(profiles).slice(0, 4);
+  return (
+    <View style={s.groupAvatarRow}>
+      {entries.map((p, i) => (
+        <View
+          key={i}
+          style={[s.groupAvatarBubble, { marginLeft: i > 0 ? -16 : 0, zIndex: entries.length - i }]}
+        >
+          <Text style={{ fontSize: 26 }}>{p.avatar}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function CallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
-    call, phase, isMuted, isSpeaker, duration, endReason,
-    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker,
+    call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
+    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording,
   } = useCall();
 
   const visible = phase !== null;
 
   if (!visible || !call) return null;
 
-  const isMyCaller = call.callerId !== call.calleeId;
-  const displayName = phase === 'incoming' ? call.callerName : call.calleeName;
-  const displayAvatar = phase === 'incoming' ? call.callerAvatar : call.calleeAvatar;
+  const isGroup = call.type === 'group';
+  const displayName = isGroup
+    ? call.calleeName
+    : (phase === 'incoming' ? call.callerName : call.calleeName);
+  const displayAvatar = isGroup
+    ? call.calleeAvatar
+    : (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar);
 
   const statusText = () => {
     switch (phase) {
       case 'ringing': return t('call.calling');
-      case 'incoming': return t('call.incoming');
+      case 'incoming': return isGroup ? '👥 Chiamata di gruppo' : t('call.incoming');
       case 'connecting': return t('call.connecting');
       case 'active': return fmtDuration(duration);
       case 'ended': {
@@ -112,32 +132,39 @@ export default function CallScreen() {
         style={[StyleSheet.absoluteFill]}
       />
 
-      {/* Ambient glow */}
       <View style={[s.glow, { backgroundColor: phase === 'incoming' ? 'rgba(0,255,156,0.06)' : 'rgba(103,232,249,0.06)' }]} />
 
       <View style={[s.container, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
 
-        {/* Top section */}
         <View style={s.topSection}>
-          <Text style={s.typeLabel}>{t('call.soundscape')}</Text>
+          <Text style={s.typeLabel}>
+            {isGroup ? '👥 SoundScape Group' : 'SoundScape'}
+          </Text>
         </View>
 
-        {/* Avatar + name */}
         <View style={s.center}>
-          <AvatarBubble
-            avatar={displayAvatar}
-            size={100}
-            pulse={phase === 'incoming' || phase === 'ringing'}
-            color={phase === 'incoming' ? '#00FF9C' : '#67E8F9'}
-          />
+          {isGroup && call.participantProfiles && phase === 'active' ? (
+            <GroupAvatars profiles={call.participantProfiles} />
+          ) : (
+            <AvatarBubble
+              avatar={displayAvatar}
+              size={100}
+              pulse={phase === 'incoming' || phase === 'ringing'}
+              color={phase === 'incoming' ? '#00FF9C' : '#67E8F9'}
+            />
+          )}
           <Text style={s.name}>{displayName}</Text>
           <Text style={[s.status, { color: statusColor() }]}>{statusText()}</Text>
+          {isRecording && phase === 'active' && (
+            <View style={s.recBadge}>
+              <View style={s.recDot} />
+              <Text style={s.recLabel}>REC</Text>
+            </View>
+          )}
         </View>
 
-        {/* Bottom actions */}
         <View style={s.actions}>
 
-          {/* INCOMING CALL */}
           {phase === 'incoming' && (
             <View style={s.incomingRow}>
               <TouchableOpacity style={s.declineBtn} onPress={() => declineCall(call)}>
@@ -150,7 +177,6 @@ export default function CallScreen() {
             </View>
           )}
 
-          {/* RINGING / CONNECTING */}
           {(phase === 'ringing' || phase === 'connecting') && (
             <View style={s.singleBtnRow}>
               <TouchableOpacity style={s.endBtn} onPress={endCall}>
@@ -160,7 +186,6 @@ export default function CallScreen() {
             </View>
           )}
 
-          {/* ACTIVE CALL */}
           {phase === 'active' && (
             <>
               <View style={s.activeRow}>
@@ -191,10 +216,19 @@ export default function CallScreen() {
                   <Text style={s.actionLabel}>{isSpeaker ? t('call.earpiece') : t('call.speaker')}</Text>
                 </View>
               </View>
+
+              <View style={s.recRow}>
+                <TouchableOpacity
+                  style={[s.recBtn, isRecording && s.recBtnActive]}
+                  onPress={toggleRecording}
+                >
+                  <Text style={s.recBtnIcon}>{isRecording ? '⏹' : '⏺'}</Text>
+                  <Text style={s.recBtnLabel}>{isRecording ? 'Ferma' : 'Registra'}</Text>
+                </TouchableOpacity>
+              </View>
             </>
           )}
 
-          {/* ENDED */}
           {phase === 'ended' && (
             <View style={s.endedNote}>
               <Text style={s.endedTxt}>{statusText()}</Text>
@@ -250,6 +284,21 @@ const s = StyleSheet.create({
     borderRadius: 70,
     borderWidth: 1.5,
   },
+  groupAvatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  groupAvatarBubble: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 2,
+    borderColor: 'rgba(103,232,249,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: {
     fontSize: 26,
     fontWeight: '700',
@@ -261,12 +310,35 @@ const s = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     letterSpacing: 0.06,
   },
+  recBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,92,121,0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,92,121,0.4)',
+  },
+  recDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF5C79',
+  },
+  recLabel: {
+    color: '#FF5C79',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
   actions: {
     width: '100%',
     alignItems: 'center',
     paddingBottom: 16,
   },
-  // Incoming
   incomingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,7 +375,6 @@ const s = StyleSheet.create({
   btnIcon: {
     fontSize: 22,
   },
-  // Ringing/Connecting
   singleBtnRow: {
     alignItems: 'center',
     gap: 10,
@@ -327,7 +398,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
-  // Active call
   activeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -363,7 +433,33 @@ const s = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     textAlign: 'center',
   },
-  // Ended
+  recRow: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  recBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  recBtnActive: {
+    backgroundColor: 'rgba(255,92,121,0.12)',
+    borderColor: 'rgba(255,92,121,0.4)',
+  },
+  recBtnIcon: {
+    fontSize: 16,
+  },
+  recBtnLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
   endedNote: {
     marginTop: 24,
     paddingHorizontal: 24,

@@ -1,11 +1,19 @@
 import {
-  collection, addDoc, doc, updateDoc, onSnapshot,
+  collection, addDoc, doc, updateDoc, getDoc, onSnapshot,
   serverTimestamp, Unsubscribe, query, where, limit,
+  getDocs, orderBy, increment,
 } from 'firebase/firestore';
-import { db, auth } from '../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage } from '../firebaseConfig';
 
 export type CallStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed' | 'busy';
 export type CallPhase = 'ringing' | 'incoming' | 'connecting' | 'active' | 'ended' | null;
+export type CallType = 'audio' | 'group';
+
+export interface ParticipantProfile {
+  name: string;
+  avatar: string;
+}
 
 export interface Call {
   id: string;
@@ -16,12 +24,35 @@ export interface Call {
   calleeName: string;
   calleeAvatar: string;
   status: CallStatus;
-  type: 'audio';
+  type: CallType;
   channelName: string;
   createdAt: Date;
+  duration?: number;
+  invitees?: string[];
+  participantProfiles?: Record<string, ParticipantProfile>;
 }
 
 const CALL_TIMEOUT_MS = 45_000;
+
+function parseCallDoc(d: any): Call {
+  const data = d.data();
+  return {
+    id: d.id,
+    callerId: data.callerId,
+    calleeId: data.calleeId || '',
+    callerName: data.callerName ?? 'Utente',
+    callerAvatar: data.callerAvatar ?? '🎵',
+    calleeName: data.calleeName ?? 'Utente',
+    calleeAvatar: data.calleeAvatar ?? '🎵',
+    status: data.status as CallStatus,
+    type: (data.type as CallType) ?? 'audio',
+    channelName: data.channelName || d.id,
+    createdAt: data.createdAt?.toDate() ?? new Date(),
+    duration: data.duration,
+    invitees: data.invitees,
+    participantProfiles: data.participantProfiles,
+  };
+}
 
 export async function createCall(params: {
   calleeId: string;
@@ -42,6 +73,41 @@ export async function createCall(params: {
     calleeAvatar: params.calleeAvatar,
     status: 'ringing',
     type: 'audio',
+    invitees: [params.calleeId],
+    channelName: '',
+    createdAt: serverTimestamp(),
+  });
+
+  await updateDoc(docRef, { channelName: docRef.id });
+  return docRef.id;
+}
+
+export async function createGroupCall(params: {
+  inviteeIds: string[];
+  inviteeProfiles: Record<string, ParticipantProfile>;
+  callerName: string;
+  callerAvatar: string;
+}): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+
+  const firstId = params.inviteeIds[0] ?? '';
+  const firstProfile = params.inviteeProfiles[firstId] ?? { name: 'Utente', avatar: '🎵' };
+
+  const docRef = await addDoc(collection(db, 'calls'), {
+    callerId: user.uid,
+    calleeId: firstId,
+    callerName: params.callerName,
+    callerAvatar: params.callerAvatar,
+    calleeName: firstProfile.name,
+    calleeAvatar: firstProfile.avatar,
+    status: 'ringing',
+    type: 'group',
+    invitees: params.inviteeIds,
+    participantProfiles: {
+      [user.uid]: { name: params.callerName, avatar: params.callerAvatar },
+      ...params.inviteeProfiles,
+    },
     channelName: '',
     createdAt: serverTimestamp(),
   });
@@ -62,32 +128,72 @@ export function listenForIncomingCall(
   userId: string,
   cb: (call: Call | null) => void,
 ): Unsubscribe {
-  const q = query(
+  function toCall(d: any): Call | null {
+    const data = d.data();
+    const createdAt = data.createdAt?.toDate() ?? new Date();
+    if (Date.now() - createdAt.getTime() > CALL_TIMEOUT_MS) return null;
+    return parseCallDoc(d);
+  }
+
+  let r1: Call | null = null;
+  let r2: Call | null = null;
+
+  const emit = () => cb(r1 ?? r2);
+
+  const q1 = query(
     collection(db, 'calls'),
     where('calleeId', '==', userId),
     where('status', '==', 'ringing'),
     limit(1),
   );
-  return onSnapshot(q, (snap) => {
-    if (snap.empty) { cb(null); return; }
-    const d = snap.docs[0];
-    const data = d.data();
-    const createdAt = data.createdAt?.toDate() ?? new Date();
-    if (Date.now() - createdAt.getTime() > CALL_TIMEOUT_MS) { cb(null); return; }
-    cb({
-      id: d.id,
-      callerId: data.callerId,
-      calleeId: data.calleeId,
-      callerName: data.callerName ?? 'Utente',
-      callerAvatar: data.callerAvatar ?? '🎵',
-      calleeName: data.calleeName ?? 'Utente',
-      calleeAvatar: data.calleeAvatar ?? '🎵',
-      status: data.status as CallStatus,
-      type: 'audio',
-      channelName: data.channelName || d.id,
-      createdAt,
-    });
+
+  const q2 = query(
+    collection(db, 'calls'),
+    where('invitees', 'array-contains', userId),
+    where('status', '==', 'ringing'),
+    limit(1),
+  );
+
+  const unsub1 = onSnapshot(q1, (snap) => {
+    r1 = snap.empty ? null : toCall(snap.docs[0]);
+    emit();
   });
+
+  const unsub2 = onSnapshot(q2, (snap) => {
+    const found = snap.empty ? null : toCall(snap.docs[0]);
+    // Skip if it's the same call r1 already handles (avoids duplicate emit for new 1:1 calls)
+    r2 = found && r1?.id !== found.id ? found : null;
+    emit();
+  });
+
+  return () => { unsub1(); unsub2(); };
+}
+
+export async function getCallHistory(userId: string, limitN = 50): Promise<Call[]> {
+  const colRef = collection(db, 'calls');
+
+  const [callerSnap, calleeSnap] = await Promise.all([
+    getDocs(query(colRef, where('callerId', '==', userId), orderBy('createdAt', 'desc'), limit(limitN))),
+    getDocs(query(colRef, where('calleeId', '==', userId), orderBy('createdAt', 'desc'), limit(limitN))),
+  ]);
+
+  const seen = new Set<string>();
+  const calls: Call[] = [];
+
+  for (const snap of [callerSnap, calleeSnap]) {
+    for (const d of snap.docs) {
+      if (seen.has(d.id)) continue;
+      seen.add(d.id);
+      calls.push(parseCallDoc(d));
+    }
+  }
+
+  calls.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return calls.slice(0, limitN);
+}
+
+export async function updateCallDuration(callId: string, duration: number): Promise<void> {
+  await updateDoc(doc(db, 'calls', callId), { duration });
 }
 
 export function listenForCallUpdates(
@@ -96,19 +202,47 @@ export function listenForCallUpdates(
 ): Unsubscribe {
   return onSnapshot(doc(db, 'calls', callId), (snap) => {
     if (!snap.exists()) { cb(null); return; }
-    const data = snap.data();
-    cb({
-      id: snap.id,
-      callerId: data.callerId,
-      calleeId: data.calleeId,
-      callerName: data.callerName ?? 'Utente',
-      callerAvatar: data.callerAvatar ?? '🎵',
-      calleeName: data.calleeName ?? 'Utente',
-      calleeAvatar: data.calleeAvatar ?? '🎵',
-      status: data.status as CallStatus,
-      type: 'audio',
-      channelName: data.channelName || snap.id,
-      createdAt: data.createdAt?.toDate() ?? new Date(),
-    });
+    cb(parseCallDoc(snap));
   });
+}
+
+export async function publishCallRecording(
+  filePath: string,
+  callId: string,
+  otherPartyName: string,
+  durationSecs: number,
+): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Non autenticato');
+
+  const userSnap = await getDoc(doc(db, 'users', user.uid));
+  const userData = userSnap.data();
+
+  const filename = `call_${callId}_${Date.now()}.aac`;
+  const storageRef = ref(storage, `sounds/${user.uid}/${filename}`);
+
+  const response = await fetch(filePath);
+  const blob = await response.blob();
+  await uploadBytes(storageRef, blob, { contentType: 'audio/aac' });
+  const audioUrl = await getDownloadURL(storageRef);
+
+  await addDoc(collection(db, 'sounds'), {
+    userId: user.uid,
+    username: userData?.username || userData?.displayName || 'Anonimo',
+    userAvatar: userData?.avatar || '🎧',
+    title: `Chiamata con ${otherPartyName}`,
+    description: '',
+    mood: 'Conversazione',
+    audioUrl,
+    duration: durationSecs,
+    location: null,
+    likes: 0,
+    comments: 0,
+    listens: 0,
+    tags: ['chiamata', 'conversazione'],
+    createdAt: serverTimestamp(),
+    isPublic: true,
+  });
+
+  await updateDoc(doc(db, 'users', user.uid), { recordingsCount: increment(1) });
 }

@@ -1486,9 +1486,7 @@ exports.onCollabInvite = onDocumentCreated(
   },
 );
 
-// ── Chiamata in arrivo — notifica push al callee ──────────────────────────────
-// Il background task SOUNDSCAPE_INCOMING_CALL in index.js intercetta questa notifica
-// e chiama RNCallKeep.displayIncomingCall() → schermata nativa di chiamata su Android.
+// ── Chiamata in arrivo — notifica push al callee (o a tutti gli invitees per group call) ───
 exports.onCallCreated = onDocumentCreated(
   { document: 'calls/{callId}', region: 'europe-west1' },
   async (event) => {
@@ -1496,19 +1494,26 @@ exports.onCallCreated = onDocumentCreated(
     if (!call || call.status !== 'ringing') return;
 
     const db = admin.firestore();
-    const { calleeId, callerName, callerAvatar } = call;
+    const { calleeId, callerName, callerAvatar, invitees, type } = call;
     const callId = event.params.callId;
 
-    await sendNotificationToUser(db, calleeId, {
-      title: `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
-      body: 'Chiamata vocale in arrivo',
-      data: {
-        type: 'incoming_call',
-        callId,
-        callerName: callerName ?? 'Utente',
-        callerAvatar: callerAvatar ?? '',
-        channelId: 'calls',
-      },
-    });
+    const isGroup = type === 'group';
+    const targets = isGroup && Array.isArray(invitees) && invitees.length > 0
+      ? invitees
+      : [calleeId];
+
+    await Promise.all(targets.map((uid) =>
+      sendNotificationToUser(db, uid, {
+        title: `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
+        body: isGroup ? 'Chiamata di gruppo in arrivo' : 'Chiamata vocale in arrivo',
+        data: {
+          type: 'incoming_call',
+          callId,
+          callerName: callerName ?? 'Utente',
+          callerAvatar: callerAvatar ?? '',
+          channelId: 'calls',
+        },
+      })
+    ));
   },
 );

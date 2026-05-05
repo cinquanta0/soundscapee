@@ -11,6 +11,8 @@ import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
 import ChatScreen from './ChatScreen';
+import CallHistoryScreen from './CallHistoryScreen';
+import GroupCallSetupModal from './GroupCallSetupModal';
 
 const C = {
   text: '#F7F8FF',
@@ -152,6 +154,8 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const [conversations, setConversations] = useState<Conversazione[]>([]);
   const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(initialChat ?? null);
   const [showNewConv, setShowNewConv] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
+  const [showGroupCall, setShowGroupCall] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const me = auth.currentUser;
 
@@ -181,6 +185,15 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
     );
   }
 
+  if (showCallHistory) {
+    return (
+      <CallHistoryScreen
+        userId={me!.uid}
+        onClose={() => setShowCallHistory(false)}
+      />
+    );
+  }
+
   return (
     <View style={ms.container}>
       <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
@@ -195,9 +208,17 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
             <Text style={ms.headerTitle}>{t('nav.messages')}</Text>
             <Text style={ms.headerSub}>{t('messages.inboxSubtitle')}</Text>
           </View>
-          <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
-            <Feather name="plus" size={15} color="#060913" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={[ms.newBtn, { backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)' }]} onPress={() => setShowGroupCall(true)}>
+              <Feather name="users" size={15} color="#00FF9C" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[ms.newBtn, { backgroundColor: 'rgba(103,232,249,0.10)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.25)' }]} onPress={() => setShowCallHistory(true)}>
+              <Feather name="phone" size={15} color="#67E8F9" />
+            </TouchableOpacity>
+            <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
+              <Feather name="plus" size={15} color="#060913" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -243,6 +264,8 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
           onClose={() => setShowNewConv(false)}
         />
       )}
+
+      <GroupCallSetupModal visible={showGroupCall} onClose={() => setShowGroupCall(false)} />
     </View>
   );
 }

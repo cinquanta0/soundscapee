@@ -3,19 +3,21 @@ import React, {
 } from 'react';
 import { Alert, Platform, Vibration } from 'react-native';
 import { Audio } from 'expo-av';
-import { doc, getDoc } from 'firebase/firestore';
-import { IRtcEngine, IRtcEngineEventHandler, ClientRoleType } from 'react-native-agora';
+import * as FileSystem from 'expo-file-system/legacy';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import {
+  IRtcEngine, IRtcEngineEventHandler, ClientRoleType,
+  AudioFileRecordingType, AudioRecordingQualityType,
+} from 'react-native-agora';
 import { auth, db } from '../firebaseConfig';
 import { getCallEngine, destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
 import {
-  Call, CallPhase,
-  createCall, updateCallStatus,
+  Call, CallPhase, ParticipantProfile,
+  createCall, createGroupCall, updateCallStatus,
   listenForIncomingCall, listenForCallUpdates,
+  updateCallDuration, publishCallRecording,
 } from '../services/callService';
 
-// CallKit (react-native-callkeep) is Android-only in this build.
-// On iOS the in-app Modal UI handles calls; CallKit requires a paid
-// Apple Developer account + VoIP push certificates which are not available here.
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
   RNCallKeep = require('react-native-callkeep').default;
@@ -42,14 +44,17 @@ interface CallContextValue {
   phase: CallPhase;
   isMuted: boolean;
   isSpeaker: boolean;
+  isRecording: boolean;
   duration: number;
   endReason: string | null;
   initiateCall: (calleeId: string, calleeName: string, calleeAvatar: string) => Promise<void>;
+  initiateGroupCall: (inviteeIds: string[], inviteeProfiles: Record<string, ParticipantProfile>) => Promise<void>;
   acceptCall: (call: Call) => Promise<void>;
   declineCall: (call: Call) => Promise<void>;
   endCall: () => Promise<void>;
   toggleMute: () => void;
   toggleSpeaker: () => void;
+  toggleRecording: () => void;
 }
 
 const CallContext = createContext<CallContextValue | null>(null);
@@ -65,6 +70,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<CallPhase>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [endReason, setEndReason] = useState<string | null>(null);
 
@@ -76,9 +82,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const phaseRef = useRef<CallPhase>(null);
   const incomingCallRef = useRef<Call | null>(null);
   const cleaningUpRef = useRef(false);
-  // UUID della chiamata risposta dal CallKeep nativo mentre l'app era in background:
-  // quando il Firestore listener porta il documento, auto-accept invece di mostrare incoming screen.
   const pendingAcceptUUIDRef = useRef<string | null>(null);
+  const durationRef = useRef<number>(0);
+  const isRecordingRef = useRef<boolean>(false);
+  const recordingPathRef = useRef<string | null>(null);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -125,8 +132,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.addEventListener('endCall', onEndCall);
     ck.addEventListener('didPerformSetMutedCallAction', onMuteCall);
 
-    // Gestisce eventi CallKeep che sono scattati mentre l'app era in background/killed.
-    // getInitialEvents() restituisce la coda di eventi non ancora processati.
     const initials = ck.getInitialEvents();
     for (const evt of initials) {
       if (evt.name === 'RNCallKeepAnswerCall') {
@@ -151,8 +156,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (!incoming || phaseRef.current !== null) return;
       setCall(incoming);
 
-      // Se l'utente ha già risposto dalla schermata nativa CallKeep (app in background),
-      // auto-accept direttamente invece di mostrare di nuovo l'incoming screen.
       if (pendingAcceptUUIDRef.current === incoming.id) {
         pendingAcceptUUIDRef.current = null;
         _doAccept(incoming);
@@ -168,7 +171,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Agora engine ──────────────────────────────────────────────────────────
   const _initEngine = useCallback((): IRtcEngine => {
-    // Reuse the singleton engine from agoraService — avoids double-init crash on iOS
     const engine = getCallEngine();
 
     const handler: IRtcEngineEventHandler = {
@@ -177,7 +179,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
         setPhase('active');
         setDuration(0);
-        durationTimerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+        durationRef.current = 0;
+        durationTimerRef.current = setInterval(() => {
+          setDuration((d) => {
+            const next = d + 1;
+            durationRef.current = next;
+            return next;
+          });
+        }, 1000);
+        const uid = auth.currentUser?.uid;
+        if (uid) updateDoc(doc(db, 'users', uid), { inCall: true }).catch(() => {});
       },
       onUserOffline: () => {
         if (!cleaningUpRef.current) {
@@ -212,6 +223,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     if (callIdRef.current) ck.endCall(callIdRef.current);
 
+    // Persist call duration
+    if (callIdRef.current && durationRef.current > 0) {
+      updateCallDuration(callIdRef.current, durationRef.current).catch(() => {});
+    }
+
+    // Clear inCall flag
+    const uid = auth.currentUser?.uid;
+    if (uid) updateDoc(doc(db, 'users', uid), { inCall: false }).catch(() => {});
+
+    // Handle recording — stop engine, then prompt publish after engine is destroyed
+    const wasRecording = isRecordingRef.current;
+    const recPath = recordingPathRef.current;
+    const otherName = incomingCallRef.current?.callerName || incomingCallRef.current?.calleeName || 'Utente';
+    const callIdSnap = callIdRef.current;
+    const durSnap = durationRef.current;
+
+    if (wasRecording) {
+      engineRef.current?.stopAudioRecording();
+      isRecordingRef.current = false;
+      recordingPathRef.current = null;
+      setIsRecording(false);
+    }
+
     destroyAgoraEngine();
     engineRef.current = null;
 
@@ -220,6 +254,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setIsMuted(false);
     setIsSpeaker(false);
     setDuration(0);
+    durationRef.current = 0;
 
     setTimeout(() => {
       setPhase(null);
@@ -227,10 +262,28 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setEndReason(null);
       callIdRef.current = null;
       cleaningUpRef.current = false;
+
+      // Offer to publish recording after UI is clear
+      if (wasRecording && recPath) {
+        FileSystem.getInfoAsync(recPath).then((info) => {
+          if (!info.exists) return;
+          Alert.alert(
+            '🎙 Registrazione',
+            `Pubblica la registrazione della chiamata con ${otherName}?`,
+            [
+              { text: 'No', style: 'cancel' },
+              {
+                text: 'Pubblica',
+                onPress: () => publishCallRecording(recPath, callIdSnap ?? '', otherName, durSnap).catch(() => {}),
+              },
+            ],
+          );
+        }).catch(() => {});
+      }
     }, 2000);
   }, []);
 
-  // ─── Internal accept (shared between in-app UI and CallKeep event) ─────────
+  // ─── Internal accept ───────────────────────────────────────────────────────
   const _doAccept = useCallback(async (incoming: Call) => {
     _stopRinging();
 
@@ -267,7 +320,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
   }, [_initEngine, _finalize]);
 
-  // ─── Public actions ────────────────────────────────────────────────────────
+  // ─── Public: 1:1 call ─────────────────────────────────────────────────────
   const initiateCall = useCallback(async (
     calleeId: string, calleeName: string, calleeAvatar: string,
   ) => {
@@ -283,7 +336,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
     const callerAvatar: string = snap.data()?.avatar || '🎵';
-
 
     const callId = await createCall({ calleeId, calleeName, calleeAvatar, callerName, callerAvatar });
     callIdRef.current = callId;
@@ -313,7 +365,80 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       autoSubscribeAudio: true,
     });
 
-    // La notifica push è gestita da Cloud Function onCallCreated (FCM data-only → displayIncomingCall).
+    unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
+      if (!updated) return;
+      if (updated.status === 'declined') _finalize('declined');
+      else if (updated.status === 'missed') _finalize('missed');
+      else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
+    });
+
+    missedTimerRef.current = setTimeout(() => {
+      updateCallStatus(callId, 'missed').catch(() => {});
+      _finalize('missed');
+    }, RING_TIMEOUT_MS);
+  }, [_initEngine, _finalize]);
+
+  // ─── Public: group call ───────────────────────────────────────────────────
+  const initiateGroupCall = useCallback(async (
+    inviteeIds: string[],
+    inviteeProfiles: Record<string, ParticipantProfile>,
+  ) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Microfono', 'Per chiamare devi abilitare il microfono.');
+      return;
+    }
+
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
+    const callerAvatar: string = snap.data()?.avatar || '🎵';
+
+    const callId = await createGroupCall({ inviteeIds, inviteeProfiles, callerName, callerAvatar });
+    callIdRef.current = callId;
+
+    const firstId = inviteeIds[0] ?? '';
+    const firstProfile = inviteeProfiles[firstId] ?? { name: 'Gruppo', avatar: '👥' };
+    const groupName = inviteeIds.length > 1
+      ? `${firstProfile.name} +${inviteeIds.length - 1}`
+      : firstProfile.name;
+
+    const callDoc: Call = {
+      id: callId,
+      callerId: user.uid,
+      calleeId: firstId,
+      callerName,
+      callerAvatar,
+      calleeName: groupName,
+      calleeAvatar: firstProfile.avatar,
+      status: 'ringing',
+      type: 'group',
+      channelName: callId,
+      createdAt: new Date(),
+      invitees: inviteeIds,
+      participantProfiles: { [user.uid]: { name: callerName, avatar: callerAvatar }, ...inviteeProfiles },
+    };
+    setCall(callDoc);
+    setPhase('ringing');
+
+    ck.startCall(callId, groupName, groupName, 'generic', false);
+
+    let engine: ReturnType<typeof _initEngine>;
+    try { engine = _initEngine(); } catch (e) {
+      console.error('[CALL] Engine init failed:', e);
+      await updateCallStatus(callId, 'ended').catch(() => {});
+      setPhase(null); setCall(null); callIdRef.current = null;
+      Alert.alert('Errore', 'Impossibile avviare la chiamata di gruppo.');
+      return;
+    }
+    const token = await fetchAgoraToken(callId).catch(() => null);
+    engine.joinChannel(token ?? '', callId, 0, {
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: true,
+      autoSubscribeAudio: true,
+    });
 
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;
@@ -362,10 +487,33 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const toggleRecording = useCallback(() => {
+    if (!engineRef.current || phaseRef.current !== 'active') return;
+
+    if (isRecordingRef.current) {
+      engineRef.current.stopAudioRecording();
+      isRecordingRef.current = false;
+      recordingPathRef.current = null;
+      setIsRecording(false);
+    } else {
+      const docDir = (FileSystem.documentDirectory ?? '').replace(/^file:\/\//, '');
+      const path = `${docDir}call_${callIdRef.current ?? Date.now()}.aac`;
+      engineRef.current.startAudioRecording({
+        filePath: path,
+        recordingQuality: AudioRecordingQualityType.AudioRecordingQualityHigh,
+        fileRecordingType: AudioFileRecordingType.AudioFileRecordingMixed,
+      });
+      recordingPathRef.current = path;
+      isRecordingRef.current = true;
+      setIsRecording(true);
+    }
+  }, []);
+
   return (
     <CallContext.Provider value={{
-      call, phase, isMuted, isSpeaker, duration, endReason,
-      initiateCall, acceptCall, declineCall, endCall, toggleMute, toggleSpeaker,
+      call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
+      initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
+      toggleMute, toggleSpeaker, toggleRecording,
     }}>
       {children}
     </CallContext.Provider>

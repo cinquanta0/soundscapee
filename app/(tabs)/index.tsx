@@ -115,6 +115,7 @@ import BattleScreen from '../../screens/BattleScreen';
 import { createCollabSession, listenToIncomingCollab, CollabSession } from '../../services/collabService';
 import { createBattle, listenToIncomingBattle, Battle } from '../../services/battleService';
 import MessagesScreen from '../../screens/MessagesScreen';
+import { useCall } from '../../context/CallContext';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
 import MiniPlayer from '../../components/MiniPlayer';
@@ -209,6 +210,7 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
 
 export default function App() {
   const { t } = useTranslation();
+  const { initiateCall } = useCall();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
@@ -1824,6 +1826,23 @@ if (loading) {
               <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>{t('profile.friendsButton')}</Text>
             </TouchableOpacity>
           )}
+          {/* Bottone Chiamata */}
+          <TouchableOpacity
+            style={[styles.profileButtonPrimary, {
+              backgroundColor: 'rgba(0,255,156,0.12)',
+              borderWidth: 1,
+              borderColor: 'rgba(0,255,156,0.4)',
+              marginTop: 8,
+              opacity: userProfile.inCall ? 0.4 : 1
+            }]}
+            disabled={userProfile.inCall === true}
+            onPress={() => initiateCall(userProfile.id, userProfile.username || userProfile.displayName || 'Utente', userProfile.photoURL || '🎵')}
+          >
+            <Text style={[styles.profileButtonPrimaryText, { color: '#00FF9C' }]}>
+              {userProfile.inCall ? '🔴 In chiamata' : '📞 Chiama'}
+            </Text>
+          </TouchableOpacity>
+
           {/* Bottone Collab — sempre visibile su profili altrui */}
           <TouchableOpacity
             style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginTop: 8 }]}
