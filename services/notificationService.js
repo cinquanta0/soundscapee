@@ -3,7 +3,6 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import messaging from '@react-native-firebase/messaging';
 
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -84,8 +83,11 @@ export async function registerForPushNotifications(userId) {
     }
 
     // Salva il token FCM nativo Android (usato per FCM data-only → displayIncomingCall da background)
+    // Lazy require: @react-native-firebase/messaging richiede il native module — non disponibile
+    // nelle build vecchie prima del rebuild. Il require dentro try/catch evita crash all'avvio.
     if (Platform.OS === 'android' && userId) {
       try {
+        const messaging = require('@react-native-firebase/messaging').default;
         const fcmAndroidToken = await messaging().getToken();
         if (fcmAndroidToken) {
           await mergeUserDocIfExists(userId, { fcmAndroidToken });
