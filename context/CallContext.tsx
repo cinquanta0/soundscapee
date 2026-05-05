@@ -5,15 +5,34 @@ import { Alert, Platform, Vibration } from 'react-native';
 import { Audio } from 'expo-av';
 import { doc, getDoc } from 'firebase/firestore';
 import { IRtcEngine, IRtcEngineEventHandler, ClientRoleType } from 'react-native-agora';
-import RNCallKeep from 'react-native-callkeep';
 import { auth, db } from '../firebaseConfig';
-import { getCallEngine, fetchAgoraToken } from '../services/agoraService';
+import { getCallEngine, destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
 import {
   Call, CallPhase,
   createCall, updateCallStatus,
   listenForIncomingCall, listenForCallUpdates,
 } from '../services/callService';
 import { notifyIncomingCall } from '../services/notificationService';
+
+// CallKit (react-native-callkeep) is Android-only in this build.
+// On iOS the in-app Modal UI handles calls; CallKit requires a paid
+// Apple Developer account + VoIP push certificates which are not available here.
+let RNCallKeep: any = null;
+if (Platform.OS === 'android') {
+  RNCallKeep = require('react-native-callkeep').default;
+}
+const ck = {
+  setup: (cfg: any) => RNCallKeep ? RNCallKeep.setup(cfg) : Promise.resolve(),
+  addEventListener: (evt: string, cb: any) => RNCallKeep?.addEventListener(evt, cb),
+  removeEventListener: (evt: string) => RNCallKeep?.removeEventListener(evt),
+  displayIncomingCall: (...a: any[]) => { try { RNCallKeep?.displayIncomingCall(...a); } catch {} },
+  startCall: (...a: any[]) => { try { RNCallKeep?.startCall(...a); } catch {} },
+  setCurrentCallActive: (id: string) => { try { RNCallKeep?.setCurrentCallActive(id); } catch {} },
+  endCall: (id: string) => { try { RNCallKeep?.endCall(id); } catch {} },
+  acceptIncomingCallAnswer: (id: string) => { try { RNCallKeep?.acceptIncomingCallAnswer(id); } catch {} },
+  rejectCall: (id: string) => { try { RNCallKeep?.rejectCall(id); } catch {} },
+  setMutedCall: (id: string, m: boolean) => { try { RNCallKeep?.setMutedCall(id, m); } catch {} },
+};
 
 const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID ?? '';
 const RING_TIMEOUT_MS = 45_000;
@@ -61,9 +80,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
 
-  // ─── CallKeep setup ────────────────────────────────────────────────────────
+  // ─── CallKeep setup (Android only) ───────────────────────────────────────
   useEffect(() => {
-    RNCallKeep.setup({
+    ck.setup({
       ios: {
         appName: 'SoundScape',
         supportsVideo: false,
@@ -99,14 +118,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       engineRef.current?.muteLocalAudioStream(muted);
     };
 
-    RNCallKeep.addEventListener('answerCall', onAnswerCall);
-    RNCallKeep.addEventListener('endCall', onEndCall);
-    RNCallKeep.addEventListener('didPerformSetMutedCallAction', onMuteCall);
+    ck.addEventListener('answerCall', onAnswerCall);
+    ck.addEventListener('endCall', onEndCall);
+    ck.addEventListener('didPerformSetMutedCallAction', onMuteCall);
 
     return () => {
-      RNCallKeep.removeEventListener('answerCall');
-      RNCallKeep.removeEventListener('endCall');
-      RNCallKeep.removeEventListener('didPerformSetMutedCallAction');
+      ck.removeEventListener('answerCall');
+      ck.removeEventListener('endCall');
+      ck.removeEventListener('didPerformSetMutedCallAction');
     };
   }, []);
 
@@ -119,14 +138,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setCall(incoming);
       setPhase('incoming');
       _startRinging();
-      // Show native CallKit / ConnectionService screen
-      RNCallKeep.displayIncomingCall(
-        incoming.id,
-        incoming.callerName,
-        incoming.callerName,
-        'generic',
-        false,
-      );
+      ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
     });
     return () => unsub();
   }, []);
@@ -139,7 +151,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const handler: IRtcEngineEventHandler = {
       onJoinChannelSuccess: () => {},
       onUserJoined: () => {
-        if (callIdRef.current) RNCallKeep.setCurrentCallActive(callIdRef.current);
+        if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
         setPhase('active');
         setDuration(0);
         durationTimerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
@@ -175,12 +187,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     unsubCallRef.current?.();
     unsubCallRef.current = null;
 
-    if (callIdRef.current) {
-      try { RNCallKeep.endCall(callIdRef.current); } catch {}
-    }
+    if (callIdRef.current) ck.endCall(callIdRef.current);
 
-    engineRef.current?.leaveChannel();
-    engineRef.current?.release();
+    destroyAgoraEngine();
     engineRef.current = null;
 
     setEndReason(reason);
@@ -206,7 +215,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (status !== 'granted') {
       Alert.alert('Microfono', 'Per rispondere devi abilitare il microfono.');
       await updateCallStatus(incoming.id, 'declined');
-      try { RNCallKeep.rejectCall(incoming.id); } catch {}
+      ck.rejectCall(incoming.id);
       setPhase(null); setCall(null);
       return;
     }
@@ -264,8 +273,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setCall(callDoc);
     setPhase('ringing');
 
-    // Notify CallKeep about outgoing call (best-effort — non-fatal if CallKeep not ready)
-    try { RNCallKeep.startCall(callId, calleeName, calleeName, 'generic', false); } catch {}
+    ck.startCall(callId, calleeName, calleeName, 'generic', false);
 
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
@@ -298,13 +306,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, [_initEngine, _finalize]);
 
   const acceptCall = useCallback(async (incoming: Call) => {
-    RNCallKeep.acceptIncomingCallAnswer(incoming.id);
+    ck.acceptIncomingCallAnswer(incoming.id);
     await _doAccept(incoming);
   }, [_doAccept]);
 
   const declineCall = useCallback(async (incoming: Call) => {
     _stopRinging();
-    try { RNCallKeep.rejectCall(incoming.id); } catch {}
+    ck.rejectCall(incoming.id);
     setPhase(null);
     setCall(null);
     await updateCallStatus(incoming.id, 'declined').catch(() => {});
@@ -319,7 +327,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
       engineRef.current?.muteLocalAudioStream(!m);
-      if (callIdRef.current) RNCallKeep.setMutedCall(callIdRef.current, !m);
+      if (callIdRef.current) ck.setMutedCall(callIdRef.current, !m);
       return !m;
     });
   }, []);
