@@ -1486,9 +1486,9 @@ exports.onCollabInvite = onDocumentCreated(
   },
 );
 
-// ── Chiamata in arrivo — FCM data-only per background/killed Android ──────────
-// Invia un messaggio FCM data-only (nessun banner) al token nativo Android del callee.
-// Il background handler in index.js intercetta e chiama displayIncomingCall().
+// ── Chiamata in arrivo — notifica push al callee ──────────────────────────────
+// Il background task SOUNDSCAPE_INCOMING_CALL in index.js intercetta questa notifica
+// e chiama RNCallKeep.displayIncomingCall() → schermata nativa di chiamata su Android.
 exports.onCallCreated = onDocumentCreated(
   { document: 'calls/{callId}', region: 'europe-west1' },
   async (event) => {
@@ -1499,29 +1499,16 @@ exports.onCallCreated = onDocumentCreated(
     const { calleeId, callerName, callerAvatar } = call;
     const callId = event.params.callId;
 
-    try {
-      const userDoc = await db.collection('users').doc(calleeId).get();
-      if (!userDoc.exists) return;
-
-      const { fcmAndroidToken } = userDoc.data();
-      if (!fcmAndroidToken) return;
-
-      await admin.messaging().send({
-        token: fcmAndroidToken,
-        data: {
-          type: 'incoming_call',
-          callId,
-          callerName: callerName ?? 'Utente',
-          callerAvatar: callerAvatar ?? '',
-        },
-        android: {
-          priority: 'high',
-          ttl: 45000,
-        },
-      });
-      console.log(`[onCallCreated] FCM data-only inviato a ${calleeId}`);
-    } catch (err) {
-      console.error('[onCallCreated] FCM error:', err?.message);
-    }
+    await sendNotificationToUser(db, calleeId, {
+      title: `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
+      body: 'Chiamata vocale in arrivo',
+      data: {
+        type: 'incoming_call',
+        callId,
+        callerName: callerName ?? 'Utente',
+        callerAvatar: callerAvatar ?? '',
+        channelId: 'calls',
+      },
+    });
   },
 );

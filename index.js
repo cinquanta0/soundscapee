@@ -13,37 +13,40 @@ try {
   console.warn('[RNTP] registerPlaybackService skipped:', e?.message);
 }
 
-// ─── FCM background handler — chiamate in arrivo (Android) ───────────────────
-// Intercetta messaggi FCM data-only quando l'app è in background o killed.
-// La Cloud Function onCallCreated invia un data-only message con type='incoming_call'.
-// Questo handler mostra la schermata nativa di chiamata tramite CallKeep ConnectionService.
-const { Platform } = require('react-native');
-if (Platform.OS === 'android') {
-  try {
-    const messaging = require('@react-native-firebase/messaging').default;
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      if (remoteMessage?.data?.type !== 'incoming_call') return;
-      const { callId, callerName } = remoteMessage.data;
-      try {
-        const RNCallKeep = require('react-native-callkeep').default;
-        await RNCallKeep.setup({
-          android: {
-            alertTitle: 'Autorizzazione chiamate',
-            alertDescription: 'SoundScape ha bisogno di gestire le chiamate audio',
-            cancelButton: 'Annulla',
-            okButton: 'OK',
-            additionalPermissions: [],
-            selfManaged: false,
-          },
-        }).catch(() => {});
-        RNCallKeep.displayIncomingCall(callId, callerName, callerName, 'generic', false);
-      } catch (ckErr) {
-        console.warn('[FCM call] CallKeep error:', ckErr?.message);
-      }
-    });
-  } catch (e) {
-    console.warn('[FCM] background handler skipped:', e?.message);
-  }
+// ─── Background notification task — chiamate in arrivo (Android) ─────────────
+// Quando arriva una notifica push con type='incoming_call' e l'app è in background
+// o killed, questo task mostra la schermata nativa di chiamata tramite CallKeep.
+// expo-task-manager è già incluso in Expo SDK — nessun native module aggiuntivo.
+const SOUNDSCAPE_CALL_TASK = 'SOUNDSCAPE_INCOMING_CALL';
+try {
+  const TaskManager = require('expo-task-manager');
+  TaskManager.defineTask(SOUNDSCAPE_CALL_TASK, async ({ data, error }) => {
+    if (error || !data) return;
+    const notifData = data?.notification?.request?.content?.data ?? {};
+    if (notifData.type !== 'incoming_call') return;
+    const { callId, callerName } = notifData;
+    if (!callId) return;
+    try {
+      const { Platform } = require('react-native');
+      if (Platform.OS !== 'android') return;
+      const RNCallKeep = require('react-native-callkeep').default;
+      await RNCallKeep.setup({
+        android: {
+          alertTitle: 'Autorizzazione chiamate',
+          alertDescription: 'SoundScape ha bisogno di gestire le chiamate audio',
+          cancelButton: 'Annulla',
+          okButton: 'OK',
+          additionalPermissions: [],
+          selfManaged: false,
+        },
+      }).catch(() => {});
+      RNCallKeep.displayIncomingCall(callId, callerName ?? 'Utente', callerName ?? 'Utente', 'generic', false);
+    } catch (ckErr) {
+      console.warn('[CALL TASK] CallKeep error:', ckErr?.message);
+    }
+  });
+} catch (e) {
+  console.warn('[CALL TASK] defineTask skipped:', e?.message);
 }
 
 require('expo-router/entry');

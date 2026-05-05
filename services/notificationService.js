@@ -1,8 +1,11 @@
 // services/notificationService.js
 import * as Notifications from 'expo-notifications';
+import * as TaskManager from 'expo-task-manager';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+
+const SOUNDSCAPE_CALL_TASK = 'SOUNDSCAPE_INCOMING_CALL';
 
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -42,6 +45,25 @@ export async function registerForPushNotifications(userId) {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#06b6d4',
     });
+    await Notifications.setNotificationChannelAsync('calls', {
+      name: 'Chiamate in arrivo',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 300, 500, 300, 500],
+      lightColor: '#00FF9C',
+      sound: 'default',
+      bypassDnd: true,
+    });
+    // Registra il background task che mostra la schermata di chiamata nativa
+    try {
+      const isRegistered = await Notifications.getRegisteredTasksAsync()
+        .then((tasks) => tasks.some((t) => t.taskName === SOUNDSCAPE_CALL_TASK))
+        .catch(() => false);
+      if (!isRegistered) {
+        await Notifications.registerTaskAsync(SOUNDSCAPE_CALL_TASK);
+      }
+    } catch (e) {
+      console.warn('[CALL TASK] registerTaskAsync skipped:', e?.message);
+    }
   }
 
   if (IS_EXPO_GO) {
@@ -82,20 +104,6 @@ export async function registerForPushNotifications(userId) {
       await mergeUserDocIfExists(userId, { pushTokens: arrayUnion(token), updatedAt: new Date() });
     }
 
-    // Salva il token FCM nativo Android (usato per FCM data-only → displayIncomingCall da background)
-    // Lazy require: @react-native-firebase/messaging richiede il native module — non disponibile
-    // nelle build vecchie prima del rebuild. Il require dentro try/catch evita crash all'avvio.
-    if (Platform.OS === 'android' && userId) {
-      try {
-        const messaging = require('@react-native-firebase/messaging').default;
-        const fcmAndroidToken = await messaging().getToken();
-        if (fcmAndroidToken) {
-          await mergeUserDocIfExists(userId, { fcmAndroidToken });
-        }
-      } catch (e) {
-        console.warn('[FCM] getToken error:', e?.message);
-      }
-    }
   } else {
     console.log('⚠️ Devi usare un dispositivo fisico per le notifiche push');
   }
