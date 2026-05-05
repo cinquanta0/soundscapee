@@ -1485,3 +1485,43 @@ exports.onCollabInvite = onDocumentCreated(
     });
   },
 );
+
+// ── Chiamata in arrivo — FCM data-only per background/killed Android ──────────
+// Invia un messaggio FCM data-only (nessun banner) al token nativo Android del callee.
+// Il background handler in index.js intercetta e chiama displayIncomingCall().
+exports.onCallCreated = onDocumentCreated(
+  { document: 'calls/{callId}', region: 'europe-west1' },
+  async (event) => {
+    const call = event.data?.data();
+    if (!call || call.status !== 'ringing') return;
+
+    const db = admin.firestore();
+    const { calleeId, callerName, callerAvatar } = call;
+    const callId = event.params.callId;
+
+    try {
+      const userDoc = await db.collection('users').doc(calleeId).get();
+      if (!userDoc.exists) return;
+
+      const { fcmAndroidToken } = userDoc.data();
+      if (!fcmAndroidToken) return;
+
+      await admin.messaging().send({
+        token: fcmAndroidToken,
+        data: {
+          type: 'incoming_call',
+          callId,
+          callerName: callerName ?? 'Utente',
+          callerAvatar: callerAvatar ?? '',
+        },
+        android: {
+          priority: 'high',
+          ttl: 45000,
+        },
+      });
+      console.log(`[onCallCreated] FCM data-only inviato a ${calleeId}`);
+    } catch (err) {
+      console.error('[onCallCreated] FCM error:', err?.message);
+    }
+  },
+);

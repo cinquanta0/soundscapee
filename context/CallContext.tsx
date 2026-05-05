@@ -12,7 +12,6 @@ import {
   createCall, updateCallStatus,
   listenForIncomingCall, listenForCallUpdates,
 } from '../services/callService';
-import { notifyIncomingCall } from '../services/notificationService';
 
 // CallKit (react-native-callkeep) is Android-only in this build.
 // On iOS the in-app Modal UI handles calls; CallKit requires a paid
@@ -32,6 +31,7 @@ const ck = {
   acceptIncomingCallAnswer: (id: string) => { try { RNCallKeep?.acceptIncomingCallAnswer(id); } catch {} },
   rejectCall: (id: string) => { try { RNCallKeep?.rejectCall(id); } catch {} },
   setMutedCall: (id: string, m: boolean) => { try { RNCallKeep?.setMutedCall(id, m); } catch {} },
+  getInitialEvents: (): any[] => { try { return RNCallKeep?.getInitialEvents?.() ?? []; } catch { return []; } },
 };
 
 const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID ?? '';
@@ -76,6 +76,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const phaseRef = useRef<CallPhase>(null);
   const incomingCallRef = useRef<Call | null>(null);
   const cleaningUpRef = useRef(false);
+  // UUID della chiamata risposta dal CallKeep nativo mentre l'app era in background:
+  // quando il Firestore listener porta il documento, auto-accept invece di mostrare incoming screen.
+  const pendingAcceptUUIDRef = useRef<string | null>(null);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -122,6 +125,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.addEventListener('endCall', onEndCall);
     ck.addEventListener('didPerformSetMutedCallAction', onMuteCall);
 
+    // Gestisce eventi CallKeep che sono scattati mentre l'app era in background/killed.
+    // getInitialEvents() restituisce la coda di eventi non ancora processati.
+    const initials = ck.getInitialEvents();
+    for (const evt of initials) {
+      if (evt.name === 'RNCallKeepAnswerCall') {
+        pendingAcceptUUIDRef.current = evt.data?.callUUID ?? null;
+      } else if (evt.name === 'RNCallKeepEndCall') {
+        updateCallStatus(evt.data?.callUUID, 'declined').catch(() => {});
+      }
+    }
+
     return () => {
       ck.removeEventListener('answerCall');
       ck.removeEventListener('endCall');
@@ -136,6 +150,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const unsub = listenForIncomingCall(uid, (incoming) => {
       if (!incoming || phaseRef.current !== null) return;
       setCall(incoming);
+
+      // Se l'utente ha già risposto dalla schermata nativa CallKeep (app in background),
+      // auto-accept direttamente invece di mostrare di nuovo l'incoming screen.
+      if (pendingAcceptUUIDRef.current === incoming.id) {
+        pendingAcceptUUIDRef.current = null;
+        _doAccept(incoming);
+        return;
+      }
+
       setPhase('incoming');
       _startRinging();
       ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
@@ -290,7 +313,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       autoSubscribeAudio: true,
     });
 
-    notifyIncomingCall(calleeId, callerName, callerAvatar, callId).catch(() => {});
+    // La notifica push è gestita da Cloud Function onCallCreated (FCM data-only → displayIncomingCall).
 
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;

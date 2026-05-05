@@ -13,4 +13,37 @@ try {
   console.warn('[RNTP] registerPlaybackService skipped:', e?.message);
 }
 
+// ─── FCM background handler — chiamate in arrivo (Android) ───────────────────
+// Intercetta messaggi FCM data-only quando l'app è in background o killed.
+// La Cloud Function onCallCreated invia un data-only message con type='incoming_call'.
+// Questo handler mostra la schermata nativa di chiamata tramite CallKeep ConnectionService.
+const { Platform } = require('react-native');
+if (Platform.OS === 'android') {
+  try {
+    const messaging = require('@react-native-firebase/messaging').default;
+    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+      if (remoteMessage?.data?.type !== 'incoming_call') return;
+      const { callId, callerName } = remoteMessage.data;
+      try {
+        const RNCallKeep = require('react-native-callkeep').default;
+        await RNCallKeep.setup({
+          android: {
+            alertTitle: 'Autorizzazione chiamate',
+            alertDescription: 'SoundScape ha bisogno di gestire le chiamate audio',
+            cancelButton: 'Annulla',
+            okButton: 'OK',
+            additionalPermissions: [],
+            selfManaged: false,
+          },
+        }).catch(() => {});
+        RNCallKeep.displayIncomingCall(callId, callerName, callerName, 'generic', false);
+      } catch (ckErr) {
+        console.warn('[FCM call] CallKeep error:', ckErr?.message);
+      }
+    });
+  } catch (e) {
+    console.warn('[FCM] background handler skipped:', e?.message);
+  }
+}
+
 require('expo-router/entry');

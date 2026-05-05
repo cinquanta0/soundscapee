@@ -60,6 +60,7 @@ module.exports = ({ config }) => ({
       "android.permission.MODIFY_AUDIO_SETTINGS",
       "android.permission.FOREGROUND_SERVICE",
       "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      "android.permission.FOREGROUND_SERVICE_PHONE_CALL",
       "android.permission.POST_NOTIFICATIONS",
       "android.permission.WAKE_LOCK",
     ],
@@ -74,6 +75,8 @@ module.exports = ({ config }) => ({
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
     "expo-router",
     "expo-notifications",
     "./plugins/withRNTP",

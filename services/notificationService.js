@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import messaging from '@react-native-firebase/messaging';
 
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -80,6 +81,18 @@ export async function registerForPushNotifications(userId) {
     // Salva il token nell'array pushTokens (supporta multi-device)
     if (userId && token) {
       await mergeUserDocIfExists(userId, { pushTokens: arrayUnion(token), updatedAt: new Date() });
+    }
+
+    // Salva il token FCM nativo Android (usato per FCM data-only → displayIncomingCall da background)
+    if (Platform.OS === 'android' && userId) {
+      try {
+        const fcmAndroidToken = await messaging().getToken();
+        if (fcmAndroidToken) {
+          await mergeUserDocIfExists(userId, { fcmAndroidToken });
+        }
+      } catch (e) {
+        console.warn('[FCM] getToken error:', e?.message);
+      }
     }
   } else {
     console.log('⚠️ Devi usare un dispositivo fisico per le notifiche push');
