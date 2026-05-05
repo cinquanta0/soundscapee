@@ -7,7 +7,6 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import {
   IRtcEngine, IRtcEngineEventHandler, ClientRoleType,
-  AudioFileRecordingType, AudioRecordingQualityType,
 } from 'react-native-agora';
 import { auth, db } from '../firebaseConfig';
 import { getCallEngine, destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
@@ -500,8 +499,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const path = `${docDir}call_${callIdRef.current ?? Date.now()}.aac`;
       engineRef.current.startAudioRecording({
         filePath: path,
-        recordingQuality: AudioRecordingQualityType.AudioRecordingQualityHigh,
-        fileRecordingType: AudioFileRecordingType.AudioFileRecordingMixed,
+        quality: 2,
+        fileRecordingType: 3,
       });
       recordingPathRef.current = path;
       isRecordingRef.current = true;

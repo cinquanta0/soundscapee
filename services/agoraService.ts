@@ -47,7 +47,7 @@ export function getCallEngine(): IRtcEngine {
   _engine.setEnableSpeakerphone(false);
   _engine.setAudioProfile(
     AudioProfileType.AudioProfileDefault,
-    AudioScenarioType.AudioScenarioChatRoom,
+    AudioScenarioType.AudioScenarioChatroom,
   );
   return _engine;
 }
