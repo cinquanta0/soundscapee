@@ -87,6 +87,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const durationRef = useRef<number>(0);
   const isRecordingRef = useRef<boolean>(false);
   const recordingPathRef = useRef<string | null>(null);
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -160,7 +161,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
-        if (!incoming || phaseRef.current !== null) return;
+        if (!incoming) {
+          // Caller cancelled/missed before we answered — dismiss incoming screen
+          if (phaseRef.current === 'incoming') {
+            _stopRinging();
+            ck.rejectCall(incomingCallRef.current?.id ?? '');
+            setPhase(null);
+            setCall(null);
+          }
+          return;
+        }
+        if (phaseRef.current !== null) return;
         setCall(incoming);
 
         if (pendingAcceptUUIDRef.current === incoming.id) {
@@ -185,6 +196,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const handler: IRtcEngineEventHandler = {
       onJoinChannelSuccess: () => {},
       onUserJoined: () => {
+        // Cancel the missed-call timer — the other party has joined
+        if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
+        // Cancel the drop timer if reconnect succeeded
+        if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
         if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
         setPhase('active');
         setDuration(0);
@@ -211,7 +226,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }).catch(() => {});
         }
       },
-      onUserOffline: () => {
+      onUserOffline: (_conn: any, _uid: number, reason: number) => {
+        // reason 1 = UserOfflineDropped (connection lost/timeout)
+        // Give 30s for Agora to reconnect before ending the call.
+        // If onUserJoined fires again (reconnect succeeded), the timer is cancelled.
+        // reason 0 = UserOfflineQuit (intentional leave) → end immediately
+        if (reason === 1) {
+          if (!dropTimerRef.current) {
+            dropTimerRef.current = setTimeout(() => {
+              dropTimerRef.current = null;
+              if (!cleaningUpRef.current) {
+                updateCallStatus(callIdRef.current!, 'ended').catch(() => {});
+                _finalize('ended');
+              }
+            }, 30_000);
+          }
+          return;
+        }
         if (!cleaningUpRef.current) {
           updateCallStatus(callIdRef.current!, 'ended').catch(() => {});
           _finalize('ended');
@@ -238,6 +269,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     _stopRinging();
     if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
+    if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
     if (durationTimerRef.current) { clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
     unsubCallRef.current?.();
     unsubCallRef.current = null;

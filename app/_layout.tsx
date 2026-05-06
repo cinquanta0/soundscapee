@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -80,6 +81,20 @@ export default function RootLayout() {
   // Initialise i18n as early as possible
   useEffect(() => {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
+  }, []);
+
+  // OTA updates — listen for available updates and reload immediately
+  useEffect(() => {
+    if (!Updates.isEnabled) return;
+    const sub = Updates.addListener(async (event) => {
+      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
+        try {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        } catch {}
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   // Controlla se la build è ancora supportata e se c'è maintenance mode
