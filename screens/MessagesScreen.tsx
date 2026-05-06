@@ -232,7 +232,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
       {conversations.length === 0 ? (
         <View style={ms.empty}>
           <View style={ms.emptyOrb}>
-            <Feather name="message-circle" size={28} color="#67E8F9" />
+            <Text style={{ fontSize: 28 }}>📨</Text>
           </View>
           <Text style={ms.emptyTitle}>{t('messages.emptyTitle')}</Text>
           <Text style={ms.emptyDesc}>{t('messages.emptyDesc')}</Text>
