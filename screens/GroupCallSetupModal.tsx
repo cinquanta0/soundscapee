@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  Modal, ActivityIndicator, StatusBar, Platform,
+  Modal, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useCall } from '../context/CallContext';
 import { ParticipantProfile } from '../services/callService';
 
 const MAX_PARTICIPANTS = 3;
+const FEATHER_AVATARS = new Set(['music', 'headphones', 'radio', 'mic', 'speaker', 'disc', 'volume-2', 'play-circle', 'star', 'zap', 'heart', 'sun', 'moon', 'cloud', 'wind', 'droplet']);
 
 interface Friend {
   id: string;
@@ -73,6 +74,7 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
   const renderItem = ({ item }: { item: Friend }) => {
     const isSel = selected.has(item.id);
     const isDisabled = !isSel && selected.size >= MAX_PARTICIPANTS - 1;
+    const isFeatherAvatar = FEATHER_AVATARS.has(item.avatar);
     return (
       <TouchableOpacity
         style={[st.row, isSel && st.rowSelected, isDisabled && st.rowDisabled]}
@@ -80,7 +82,11 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
         activeOpacity={0.75}
       >
         <View style={[st.avatar, isSel && { borderColor: '#00FF9C' }]}>
-          <Text style={st.avatarTxt}>{item.avatar || item.username[0]?.toUpperCase()}</Text>
+          {isFeatherAvatar ? (
+            <Feather name={item.avatar as any} size={20} color="#F7F8FF" />
+          ) : (
+            <Text style={st.avatarTxt}>{item.avatar || item.username[0]?.toUpperCase()}</Text>
+          )}
         </View>
         <Text style={[st.name, isSel && { color: '#F7F8FF' }]}>{item.username}</Text>
         <View style={[st.check, isSel && st.checkSelected]}>

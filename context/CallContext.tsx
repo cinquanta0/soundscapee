@@ -15,6 +15,7 @@ import { getCallEngine, destroyAgoraEngine, fetchAgoraToken } from '../services/
 import {
   Call, CallPhase, ParticipantProfile,
   createCall, createGroupCall, updateCallStatus,
+  updateParticipantCallStatus,
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
@@ -88,6 +89,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const isRecordingRef = useRef<boolean>(false);
   const recordingPathRef = useRef<string | null>(null);
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteUsersRef = useRef<Set<number>>(new Set());
+  const acceptingCallRef = useRef(false);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -113,7 +116,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     const onAnswerCall = ({ callUUID }: { callUUID: string }) => {
       const incoming = incomingCallRef.current;
-      if (incoming && incoming.id === callUUID) {
+      if (incoming && incoming.id === callUUID && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
         _doAccept(incoming);
       }
     };
@@ -192,41 +195,56 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // ─── Agora engine ──────────────────────────────────────────────────────────
   const _initEngine = useCallback((): IRtcEngine => {
     const engine = getCallEngine();
+    remoteUsersRef.current.clear();
 
     const handler: IRtcEngineEventHandler = {
       onJoinChannelSuccess: () => {},
-      onUserJoined: () => {
+      onUserJoined: (_conn: any, remoteUid: number) => {
+        remoteUsersRef.current.add(remoteUid);
+        const becameActive = phaseRef.current !== 'active';
         // Cancel the missed-call timer — the other party has joined
         if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
         // Cancel the drop timer if reconnect succeeded
         if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
         if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
-        setPhase('active');
-        setDuration(0);
-        durationRef.current = 0;
-        durationTimerRef.current = setInterval(() => {
-          setDuration((d) => {
-            const next = d + 1;
-            durationRef.current = next;
-            return next;
-          });
-        }, 1000);
-        const uid = auth.currentUser?.uid;
-        if (uid) updateDoc(doc(db, 'users', uid), { inCall: true }).catch(() => {});
-        if (Platform.OS === 'android') {
-          Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Chiamata in corso',
-              body: 'Tocca per tornare alla chiamata',
-              sticky: true,
-              autoDismiss: false,
-              data: { callActive: true },
-            },
-            trigger: null,
-          }).catch(() => {});
+        if (becameActive) {
+          setDuration(0);
+          durationRef.current = 0;
+          if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+          durationTimerRef.current = setInterval(() => {
+            setDuration((d) => {
+              const next = d + 1;
+              durationRef.current = next;
+              return next;
+            });
+          }, 1000);
+          const uid = auth.currentUser?.uid;
+          if (uid) updateDoc(doc(db, 'users', uid), { inCall: true }).catch(() => {});
+          if (Platform.OS === 'android') {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Chiamata in corso',
+                body: 'Tocca per tornare alla chiamata',
+                sticky: true,
+                autoDismiss: false,
+                data: { callActive: true },
+              },
+              trigger: null,
+            }).catch(() => {});
+          }
         }
+        setPhase('active');
       },
-      onUserOffline: (_conn: any, _uid: number, reason: number) => {
+      onUserOffline: (_conn: any, remoteUid: number, reason: number) => {
+        remoteUsersRef.current.delete(remoteUid);
+        if (remoteUsersRef.current.size > 0) return;
+        const currentCall = incomingCallRef.current;
+        if (
+          currentCall?.type === 'group'
+          && (currentCall.invitees ?? []).some((uid) => currentCall.participantStatuses?.[uid] === 'ringing')
+        ) {
+          return;
+        }
         // reason 1 = UserOfflineDropped (connection lost/timeout)
         // Give 30s for Agora to reconnect before ending the call.
         // If onUserJoined fires again (reconnect succeeded), the timer is cancelled.
@@ -266,6 +284,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const _finalize = useCallback((reason: string) => {
     if (cleaningUpRef.current) return;
     cleaningUpRef.current = true;
+    acceptingCallRef.current = false;
 
     _stopRinging();
     if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
@@ -302,6 +321,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     destroyAgoraEngine();
     engineRef.current = null;
+    remoteUsersRef.current.clear();
 
     setEndReason(reason);
     setPhase('ended');
@@ -339,13 +359,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Internal accept ───────────────────────────────────────────────────────
   const _doAccept = useCallback(async (incoming: Call) => {
+    if (acceptingCallRef.current) return;
+    acceptingCallRef.current = true;
     _stopRinging();
 
     const { status } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Microfono', 'Per rispondere devi abilitare il microfono.');
-      await updateCallStatus(incoming.id, 'declined');
+      if (incoming.type === 'group') {
+        await updateParticipantCallStatus(incoming.id, auth.currentUser?.uid ?? '', 'declined').catch(() => {});
+      } else {
+        await updateCallStatus(incoming.id, 'declined');
+      }
       ck.rejectCall(incoming.id);
+      acceptingCallRef.current = false;
       setPhase(null); setCall(null);
       return;
     }
@@ -353,12 +380,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     callIdRef.current = incoming.id;
     setCall(incoming);
     setPhase('connecting');
-    await updateCallStatus(incoming.id, 'active');
+    await updateParticipantCallStatus(
+      incoming.id,
+      auth.currentUser?.uid ?? '',
+      'active',
+      'active',
+    ).catch(() => updateCallStatus(incoming.id, 'active'));
 
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
       console.error('[CALL] Engine init failed:', e);
       await updateCallStatus(incoming.id, 'ended').catch(() => {});
+      acceptingCallRef.current = false;
       setPhase(null); setCall(null); callIdRef.current = null;
       return;
     }
@@ -370,6 +403,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
 
     unsubCallRef.current = listenForCallUpdates(incoming.id, (updated) => {
+      if (updated) setCall(updated);
       if (updated?.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
   }, [_initEngine, _finalize]);
@@ -421,7 +455,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;
-      if (updated.status === 'declined') _finalize('declined');
+      setCall(updated);
+      if (updated.status === 'declined' && updated.type !== 'group') _finalize('declined');
+      else if (
+        updated.type === 'group'
+        && updated.status === 'declined'
+        && !(updated.invitees ?? []).some((uid) => updated.participantStatuses?.[uid] === 'ringing' || updated.participantStatuses?.[uid] === 'active')
+      ) _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
@@ -496,7 +536,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;
-      if (updated.status === 'declined') _finalize('declined');
+      setCall(updated);
+      if (updated.status === 'declined' && updated.type !== 'group') _finalize('declined');
+      else if (
+        updated.type === 'group'
+        && updated.status === 'declined'
+        && !(updated.invitees ?? []).some((uid) => updated.participantStatuses?.[uid] === 'ringing' || updated.participantStatuses?.[uid] === 'active')
+      ) _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
@@ -508,7 +554,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, [_initEngine, _finalize]);
 
   const acceptCall = useCallback(async (incoming: Call) => {
-    ck.acceptIncomingCallAnswer(incoming.id);
     await _doAccept(incoming);
   }, [_doAccept]);
 
@@ -517,6 +562,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.rejectCall(incoming.id);
     setPhase(null);
     setCall(null);
+    if (incoming.type === 'group') {
+      const uid = auth.currentUser?.uid ?? '';
+      await updateParticipantCallStatus(incoming.id, uid, 'declined').catch(() => {});
+      const snap = await getDoc(doc(db, 'calls', incoming.id)).catch(() => null);
+      const data = snap?.data();
+      if (data) {
+        const invitees = Array.isArray(data.invitees) ? data.invitees : [];
+        const someoneStillPendingOrActive = invitees.some((id: string) => {
+          const state = data.participantStatuses?.[id];
+          return state === 'ringing' || state === 'active';
+        });
+        if (!someoneStillPendingOrActive) {
+          await updateCallStatus(incoming.id, 'declined').catch(() => {});
+        }
+      }
+      return;
+    }
     await updateCallStatus(incoming.id, 'declined').catch(() => {});
   }, []);
 

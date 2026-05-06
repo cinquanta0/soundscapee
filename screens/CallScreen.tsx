@@ -4,9 +4,21 @@ import {
   Modal, StatusBar, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useCall } from '../context/CallContext';
+import { auth } from '../firebaseConfig';
+
+const FEATHER_TO_EMOJI: Record<string, string> = {
+  music: '🎵', headphones: '🎧', radio: '📻', mic: '🎤', speaker: '🔊',
+  disc: '💿', 'volume-2': '🔊', 'play-circle': '▶️', star: '⭐', zap: '⚡',
+  heart: '❤️', sun: '☀️', moon: '🌙', cloud: '☁️', wind: '💨', droplet: '💧',
+};
+
+function isFeatherIcon(avatar: string | undefined): boolean {
+  return !!avatar && avatar in FEATHER_TO_EMOJI;
+}
 
 function fmtDuration(s: number) {
   const m = Math.floor(s / 60).toString().padStart(2, '0');
@@ -51,11 +63,16 @@ function AvatarBubble({ avatar, size = 90, pulse = false, color = '#67E8F9' }: {
   pulse?: boolean;
   color?: string;
 }) {
+  const iconSize = size * 0.38;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: size + 40, height: size + 40 }}>
       {pulse && <PulseRing color={color} />}
       <View style={[s.avatarBubble, { width: size, height: size, borderRadius: size / 2, borderColor: color + '50' }]}>
-        <Text style={{ fontSize: size * 0.5 }}>{avatar}</Text>
+        {isFeatherIcon(avatar) ? (
+          <Feather name={avatar as any} size={iconSize} color="#F7F8FF" />
+        ) : (
+          <Text style={{ fontSize: size * 0.5 }}>{avatar}</Text>
+        )}
       </View>
     </View>
   );
@@ -70,7 +87,11 @@ function GroupAvatars({ profiles }: { profiles: Record<string, { name: string; a
           key={i}
           style={[s.groupAvatarBubble, { marginLeft: i > 0 ? -16 : 0, zIndex: entries.length - i }]}
         >
-          <Text style={{ fontSize: 26 }}>{p.avatar}</Text>
+          {isFeatherIcon(p.avatar) ? (
+            <Feather name={p.avatar as any} size={22} color="#F7F8FF" />
+          ) : (
+            <Text style={{ fontSize: 26 }}>{p.avatar}</Text>
+          )}
         </View>
       ))}
     </View>
@@ -89,13 +110,17 @@ export default function CallScreen() {
 
   if (!visible || !call) return null;
 
+  const myUid = auth.currentUser?.uid;
   const isGroup = call.type === 'group';
+  const amCaller = call.callerId === myUid;
+  const remoteName = amCaller ? call.calleeName : call.callerName;
+  const remoteAvatar = amCaller ? call.calleeAvatar : call.callerAvatar;
   const displayName = isGroup
-    ? call.calleeName
-    : (phase === 'incoming' ? call.callerName : call.calleeName);
+    ? (phase === 'incoming' ? call.callerName : call.calleeName)
+    : remoteName;
   const displayAvatar = isGroup
-    ? call.calleeAvatar
-    : (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar);
+    ? (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar)
+    : remoteAvatar;
 
   const statusText = () => {
     switch (phase) {

@@ -1836,7 +1836,7 @@ if (loading) {
               opacity: userProfile.inCall ? 0.4 : 1
             }]}
             disabled={userProfile.inCall === true}
-            onPress={() => initiateCall(userProfile.id, userProfile.username || userProfile.displayName || 'Utente', userProfile.photoURL || '🎵')}
+            onPress={() => initiateCall(userProfile.id, userProfile.username || userProfile.displayName || 'Utente', userProfile.avatar || '🎵')}
           >
             <Text style={[styles.profileButtonPrimaryText, { color: '#00FF9C' }]}>
               {userProfile.inCall ? '🔴 In chiamata' : '📞 Chiama'}

@@ -625,14 +625,17 @@ service cloud.firestore {
     }
 
     match /calls/{callId} {
+      function isCallParticipant() {
+        return resource.data.callerId == request.auth.uid ||
+          resource.data.calleeId == request.auth.uid ||
+          (resource.data.invitees is list && resource.data.invitees.hasAny([request.auth.uid]));
+      }
       allow read: if isAuth() &&
-                   (resource.data.callerId == request.auth.uid ||
-                    resource.data.calleeId == request.auth.uid);
+                   isCallParticipant();
       allow list: if isAuth();
       allow create: if isAuth() && request.resource.data.callerId == request.auth.uid;
       allow update: if isAuth() &&
-                     (resource.data.callerId == request.auth.uid ||
-                      resource.data.calleeId == request.auth.uid) &&
+                     isCallParticipant() &&
                      request.resource.data.callerId == resource.data.callerId;
       allow delete: if false;
     }

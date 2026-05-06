@@ -9,6 +9,7 @@ import { db, auth, storage } from '../firebaseConfig';
 export type CallStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed' | 'busy';
 export type CallPhase = 'ringing' | 'incoming' | 'connecting' | 'active' | 'ended' | null;
 export type CallType = 'audio' | 'group';
+export type ParticipantCallStatus = 'calling' | 'ringing' | 'active' | 'declined' | 'missed' | 'left';
 
 export interface ParticipantProfile {
   name: string;
@@ -30,6 +31,7 @@ export interface Call {
   duration?: number;
   invitees?: string[];
   participantProfiles?: Record<string, ParticipantProfile>;
+  participantStatuses?: Record<string, ParticipantCallStatus>;
 }
 
 const CALL_TIMEOUT_MS = 45_000;
@@ -51,7 +53,23 @@ function parseCallDoc(d: any): Call {
     duration: data.duration,
     invitees: data.invitees,
     participantProfiles: data.participantProfiles,
+    participantStatuses: data.participantStatuses,
   };
+}
+
+function buildParticipantStatuses(callerId: string, invitees: string[]): Record<string, ParticipantCallStatus> {
+  const statuses: Record<string, ParticipantCallStatus> = { [callerId]: 'calling' };
+  invitees.forEach((uid) => {
+    statuses[uid] = 'ringing';
+  });
+  return statuses;
+}
+
+function isPendingIncomingCall(call: Call, userId: string): boolean {
+  if (call.type === 'group') {
+    return ['ringing', 'active'].includes(call.status) && call.participantStatuses?.[userId] === 'ringing';
+  }
+  return call.status === 'ringing';
 }
 
 export async function createCall(params: {
@@ -74,6 +92,7 @@ export async function createCall(params: {
     status: 'ringing',
     type: 'audio',
     invitees: [params.calleeId],
+    participantStatuses: buildParticipantStatuses(user.uid, [params.calleeId]),
     channelName: '',
     createdAt: serverTimestamp(),
   });
@@ -104,6 +123,7 @@ export async function createGroupCall(params: {
     status: 'ringing',
     type: 'group',
     invitees: params.inviteeIds,
+    participantStatuses: buildParticipantStatuses(user.uid, params.inviteeIds),
     participantProfiles: {
       [user.uid]: { name: params.callerName, avatar: params.callerAvatar },
       ...params.inviteeProfiles,
@@ -124,6 +144,23 @@ export async function updateCallStatus(callId: string, status: CallStatus): Prom
   });
 }
 
+export async function updateParticipantCallStatus(
+  callId: string,
+  userId: string,
+  status: ParticipantCallStatus,
+  overallStatus?: CallStatus,
+): Promise<void> {
+  const updates: Record<string, unknown> = {
+    [`participantStatuses.${userId}`]: status,
+  };
+  if (overallStatus) {
+    updates.status = overallStatus;
+    if (overallStatus === 'active') updates.answeredAt = serverTimestamp();
+    if (['ended', 'declined', 'missed'].includes(overallStatus)) updates.endedAt = serverTimestamp();
+  }
+  await updateDoc(doc(db, 'calls', callId), updates);
+}
+
 export function listenForIncomingCall(
   userId: string,
   cb: (call: Call | null) => void,
@@ -132,7 +169,8 @@ export function listenForIncomingCall(
     const data = d.data();
     const createdAt = data.createdAt?.toDate() ?? new Date();
     if (Date.now() - createdAt.getTime() > CALL_TIMEOUT_MS) return null;
-    return parseCallDoc(d);
+    const call = parseCallDoc(d);
+    return isPendingIncomingCall(call, userId) ? call : null;
   }
 
   let r1: Call | null = null;
@@ -150,8 +188,8 @@ export function listenForIncomingCall(
   const q2 = query(
     collection(db, 'calls'),
     where('invitees', 'array-contains', userId),
-    where('status', '==', 'ringing'),
-    limit(1),
+    orderBy('createdAt', 'desc'),
+    limit(5),
   );
 
   const unsub1 = onSnapshot(q1, (snap) => {
@@ -160,7 +198,7 @@ export function listenForIncomingCall(
   }, (err) => console.warn('[calls] q1 error:', err.message));
 
   const unsub2 = onSnapshot(q2, (snap) => {
-    const found = snap.empty ? null : toCall(snap.docs[0]);
+    const found = snap.docs.map((d) => toCall(d)).find(Boolean) ?? null;
     r2 = found && r1?.id !== found.id ? found : null;
     emit();
   }, (err) => console.warn('[calls] q2 error:', err.message));
@@ -171,15 +209,16 @@ export function listenForIncomingCall(
 export async function getCallHistory(userId: string, limitN = 50): Promise<Call[]> {
   const colRef = collection(db, 'calls');
 
-  const [callerSnap, calleeSnap] = await Promise.all([
+  const [callerSnap, calleeSnap, inviteeSnap] = await Promise.all([
     getDocs(query(colRef, where('callerId', '==', userId), orderBy('createdAt', 'desc'), limit(limitN))),
     getDocs(query(colRef, where('calleeId', '==', userId), orderBy('createdAt', 'desc'), limit(limitN))),
+    getDocs(query(colRef, where('invitees', 'array-contains', userId), limit(limitN))),
   ]);
 
   const seen = new Set<string>();
   const calls: Call[] = [];
 
-  for (const snap of [callerSnap, calleeSnap]) {
+  for (const snap of [callerSnap, calleeSnap, inviteeSnap]) {
     for (const d of snap.docs) {
       if (seen.has(d.id)) continue;
       seen.add(d.id);
