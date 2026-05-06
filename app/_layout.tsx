@@ -5,7 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
@@ -63,6 +63,8 @@ export default function RootLayout() {
   const [i18nReady, setI18nReady] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
+  const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
+  const otaFetchStartedRef = useRef(false);
 
   // Precarica font vettoriali — fondamentale su Android per evitare icone trasparenti
   const [fontsLoaded] = useFonts({
@@ -83,19 +85,22 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
   }, []);
 
-  // OTA updates — listen for available updates and reload immediately
+  // OTA updates — download available updates and reload when pending
   useEffect(() => {
     if (!Updates.isEnabled) return;
-    const sub = Updates.addListener(async (event) => {
-      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
-        try {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        } catch {}
-      }
-    });
-    return () => sub.remove();
-  }, []);
+    if (isUpdatePending) {
+      Updates.reloadAsync().catch(() => {});
+      return;
+    }
+    if (!isUpdateAvailable || otaFetchStartedRef.current) return;
+    otaFetchStartedRef.current = true;
+    Updates.fetchUpdateAsync()
+      .then((result) => {
+        if (result.isNew) return Updates.reloadAsync();
+        return undefined;
+      })
+      .catch(() => {});
+  }, [isUpdateAvailable, isUpdatePending]);
 
   // Controlla se la build è ancora supportata e se c'è maintenance mode
   useEffect(() => {
