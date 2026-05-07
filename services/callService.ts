@@ -274,7 +274,13 @@ export function listenForIncomingCall(
   }, (err) => console.warn('[calls] q1 error:', err.message));
 
   const unsub2 = onSnapshot(q2, (snap) => {
-    const found = snap.docs.map((d) => toCall(d)).find(Boolean) ?? null;
+    const found = snap.docs
+      .map((d) => {
+        const rawType = d.data()?.type;
+        if (rawType !== 'group') return null;
+        return toCall(d);
+      })
+      .find(Boolean) ?? null;
     r2 = found && r1?.id !== found.id ? found : null;
     emit();
   }, (err) => console.warn('[calls] q2 error:', err.message));

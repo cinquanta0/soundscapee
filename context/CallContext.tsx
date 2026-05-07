@@ -108,6 +108,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const appStateRef = useRef(AppState.currentState);
   const callkeepIncomingVisibleRef = useRef(false);
   const ringtoneStartingRef = useRef(false);
+  const dismissedIncomingIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -117,6 +118,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       appStateRef.current = nextState;
       if (nextState === 'active') {
         _stopRinging();
+        if (phaseRef.current === 'incoming') {
+          callkeepIncomingVisibleRef.current = false;
+          setUseSystemIncomingUI(false);
+          _startRinging();
+        }
       }
     });
     return () => sub.remove();
@@ -221,6 +227,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
         if (!incoming) {
+          dismissedIncomingIdsRef.current.clear();
           // Caller cancelled/missed before we answered — dismiss incoming screen
           if (phaseRef.current === 'incoming') {
             _stopRinging();
@@ -234,6 +241,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         }
+        if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
         if (phaseRef.current !== null) return;
         setCall(incoming);
 
@@ -459,6 +467,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     acceptingCallRef.current = true;
     callkeepIncomingVisibleRef.current = false;
     setUseSystemIncomingUI(false);
+    dismissedIncomingIdsRef.current.delete(incoming.id);
     _stopRinging();
 
     const { status } = await Audio.requestPermissionsAsync();
@@ -664,6 +673,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, [_doAccept]);
 
   const declineCall = useCallback(async (incoming: Call) => {
+    dismissedIncomingIdsRef.current.add(incoming.id);
     _stopRinging();
     if (callkeepIncomingVisibleRef.current) {
       ck.rejectCall(incoming.id);
