@@ -1,7 +1,7 @@
 import React, {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
-import { Alert, Platform, Vibration } from 'react-native';
+import { Alert, AppState, Platform, Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -51,6 +51,7 @@ function hasActiveOrRingingParticipants(participantStatuses?: Record<string, str
 interface CallContextValue {
   call: Call | null;
   phase: CallPhase;
+  useSystemIncomingUI: boolean;
   isMuted: boolean;
   isSpeaker: boolean;
   isRecording: boolean;
@@ -81,6 +82,7 @@ export function useCall(): CallContextValue {
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const [call, setCall] = useState<Call | null>(null);
   const [phase, setPhase] = useState<CallPhase>(null);
+  const [useSystemIncomingUI, setUseSystemIncomingUI] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -103,9 +105,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const remoteUsersRef = useRef<Set<number>>(new Set());
   const acceptingCallRef = useRef(false);
   const ringtoneRef = useRef<Audio.Sound | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+  const callkeepIncomingVisibleRef = useRef(false);
+  const ringtoneStartingRef = useRef(false);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      appStateRef.current = nextState;
+      if (nextState === 'active') {
+        _stopRinging();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -152,6 +167,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.setAvailable(true);
 
     const onAnswerCall = ({ callUUID }: { callUUID: string }) => {
+      callkeepIncomingVisibleRef.current = false;
+      setUseSystemIncomingUI(false);
       const incoming = incomingCallRef.current;
       if (incoming && incoming.id === callUUID && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
         _doAccept(incoming);
@@ -159,6 +176,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
 
     const onEndCall = ({ callUUID }: { callUUID: string }) => {
+      callkeepIncomingVisibleRef.current = false;
+      setUseSystemIncomingUI(false);
       if (callIdRef.current === callUUID && phaseRef.current !== null) {
         updateCallStatus(callUUID, 'ended').catch(() => {});
         _finalize('ended');
@@ -205,7 +224,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           // Caller cancelled/missed before we answered — dismiss incoming screen
           if (phaseRef.current === 'incoming') {
             _stopRinging();
-            ck.rejectCall(incomingCallRef.current?.id ?? '');
+            if (callkeepIncomingVisibleRef.current) {
+              ck.rejectCall(incomingCallRef.current?.id ?? '');
+              callkeepIncomingVisibleRef.current = false;
+              setUseSystemIncomingUI(false);
+            }
             setPhase(null);
             setCall(null);
           }
@@ -221,8 +244,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
 
         setPhase('incoming');
+        const isForeground = appStateRef.current === 'active';
+        if (Platform.OS === 'android' && !isForeground) {
+          callkeepIncomingVisibleRef.current = true;
+          setUseSystemIncomingUI(true);
+          ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
+          return;
+        }
+        callkeepIncomingVisibleRef.current = false;
+        setUseSystemIncomingUI(false);
         _startRinging();
-        ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
       });
     });
 
@@ -312,6 +343,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Vibration ─────────────────────────────────────────────────────────────
   const _startRinging = () => {
+    if (ringtoneRef.current || ringtoneStartingRef.current) return;
+    ringtoneStartingRef.current = true;
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
@@ -322,13 +355,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       shouldPlay: true,
       volume: 1,
     }).then(({ sound }) => {
-      ringtoneRef.current?.unloadAsync().catch(() => {});
+      ringtoneStartingRef.current = false;
       ringtoneRef.current = sound;
-    }).catch(() => {});
+    }).catch(() => {
+      ringtoneStartingRef.current = false;
+    });
     if (Platform.OS === 'android') Vibration.vibrate([0, 600, 400, 600, 400, 600], true);
     else Vibration.vibrate();
   };
   const _stopRinging = () => {
+    ringtoneStartingRef.current = false;
     Vibration.cancel();
     const ringtone = ringtoneRef.current;
     ringtoneRef.current = null;
@@ -345,6 +381,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     acceptingCallRef.current = false;
 
     _stopRinging();
+    callkeepIncomingVisibleRef.current = false;
+    setUseSystemIncomingUI(false);
     if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
     if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
     if (durationTimerRef.current) { clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
@@ -419,6 +457,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const _doAccept = useCallback(async (incoming: Call) => {
     if (acceptingCallRef.current) return;
     acceptingCallRef.current = true;
+    callkeepIncomingVisibleRef.current = false;
+    setUseSystemIncomingUI(false);
     _stopRinging();
 
     const { status } = await Audio.requestPermissionsAsync();
@@ -625,7 +665,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const declineCall = useCallback(async (incoming: Call) => {
     _stopRinging();
-    ck.rejectCall(incoming.id);
+    if (callkeepIncomingVisibleRef.current) {
+      ck.rejectCall(incoming.id);
+      callkeepIncomingVisibleRef.current = false;
+      setUseSystemIncomingUI(false);
+    }
     setPhase(null);
     setCall(null);
     if (incoming.type === 'group') {
@@ -708,7 +752,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CallContext.Provider value={{
-      call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
+      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason,
       initiateCall, initiateGroupCall, acceptCall, declineCall, endCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,
     }}>

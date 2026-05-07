@@ -115,12 +115,12 @@ export default function CallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
-    call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
+    call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason,
     acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording, inviteParticipantsToCurrentCall,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
 
-  const visible = phase !== null;
+  const visible = phase !== null && !(Platform.OS === 'android' && phase === 'incoming' && useSystemIncomingUI);
 
   if (!visible || !call) return null;
 
