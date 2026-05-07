@@ -36,6 +36,30 @@ export interface Call {
 
 const CALL_TIMEOUT_MS = 45_000;
 
+function isGroupCallFinished(statuses: Record<string, ParticipantCallStatus> = {}): boolean {
+  return !Object.values(statuses).some((status) => ['calling', 'ringing', 'active'].includes(status));
+}
+
+function buildGroupCallUpdate(
+  statuses: Record<string, ParticipantCallStatus>,
+): Record<string, unknown> {
+  if (isGroupCallFinished(statuses)) {
+    return {
+      status: 'ended',
+      endedAt: serverTimestamp(),
+    };
+  }
+  if (Object.values(statuses).some((status) => status === 'active')) {
+    return {
+      status: 'active',
+      answeredAt: serverTimestamp(),
+    };
+  }
+  return {
+    status: 'ringing',
+  };
+}
+
 function parseCallDoc(d: any): Call {
   const data = d.data();
   return {
@@ -159,6 +183,58 @@ export async function updateParticipantCallStatus(
     if (['ended', 'declined', 'missed'].includes(overallStatus)) updates.endedAt = serverTimestamp();
   }
   await updateDoc(doc(db, 'calls', callId), updates);
+}
+
+export async function leaveGroupCall(callId: string, userId: string): Promise<CallStatus> {
+  const callRef = doc(db, 'calls', callId);
+  const snap = await getDoc(callRef);
+  if (!snap.exists()) return 'ended';
+
+  const call = parseCallDoc(snap);
+  const nextStatuses = {
+    ...(call.participantStatuses ?? {}),
+    [userId]: 'left' as ParticipantCallStatus,
+  };
+  const overall = buildGroupCallUpdate(nextStatuses);
+
+  await updateDoc(callRef, {
+    [`participantStatuses.${userId}`]: 'left',
+    ...overall,
+  });
+
+  return (overall.status as CallStatus) ?? 'ended';
+}
+
+export async function inviteParticipantsToCall(
+  callId: string,
+  inviteeIds: string[],
+  inviteeProfiles: Record<string, ParticipantProfile>,
+): Promise<void> {
+  if (!inviteeIds.length) return;
+
+  const callRef = doc(db, 'calls', callId);
+  const snap = await getDoc(callRef);
+  if (!snap.exists()) throw new Error('Chiamata non trovata');
+
+  const call = parseCallDoc(snap);
+  const nextInvitees = Array.from(new Set([...(call.invitees ?? []), ...inviteeIds]));
+  const nextProfiles = {
+    ...(call.participantProfiles ?? {}),
+    ...inviteeProfiles,
+  };
+  const nextStatuses = { ...(call.participantStatuses ?? {}) };
+  inviteeIds.forEach((uid) => {
+    if (!nextStatuses[uid] || ['declined', 'missed', 'left'].includes(nextStatuses[uid])) {
+      nextStatuses[uid] = 'ringing';
+    }
+  });
+
+  await updateDoc(callRef, {
+    invitees: nextInvitees,
+    participantProfiles: nextProfiles,
+    participantStatuses: nextStatuses,
+    status: call.status === 'ended' ? 'ringing' : call.status,
+  });
 }
 
 export function listenForIncomingCall(

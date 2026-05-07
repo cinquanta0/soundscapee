@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useCall } from '../context/CallContext';
 import { auth } from '../firebaseConfig';
+import GroupCallSetupModal from './GroupCallSetupModal';
 
 const FEATHER_TO_EMOJI: Record<string, string> = {
   music: '🎵', headphones: '🎧', radio: '📻', mic: '🎤', speaker: '🔊',
@@ -98,13 +99,26 @@ function GroupAvatars({ profiles }: { profiles: Record<string, { name: string; a
   );
 }
 
+function statusLabel(status?: string) {
+  switch (status) {
+    case 'calling': return 'host';
+    case 'ringing': return 'sta squillando';
+    case 'active': return 'in chiamata';
+    case 'left': return 'uscito';
+    case 'declined': return 'rifiutata';
+    case 'missed': return 'persa';
+    default: return 'in attesa';
+  }
+}
+
 export default function CallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
     call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
-    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording,
+    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording, inviteParticipantsToCurrentCall,
   } = useCall();
+  const [showInviteModal, setShowInviteModal] = React.useState(false);
 
   const visible = phase !== null;
 
@@ -121,6 +135,9 @@ export default function CallScreen() {
   const displayAvatar = isGroup
     ? (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar)
     : remoteAvatar;
+  const participantEntries = isGroup
+    ? Object.entries(call.participantProfiles ?? {})
+    : [];
 
   const statusText = () => {
     switch (phase) {
@@ -129,6 +146,7 @@ export default function CallScreen() {
       case 'connecting': return t('call.connecting');
       case 'active': return fmtDuration(duration);
       case 'ended': {
+        if (endReason === 'left') return 'Sei uscito dalla chiamata';
         if (endReason === 'declined') return t('call.declined');
         if (endReason === 'missed') return t('call.missed');
         return t('call.ended');
@@ -180,6 +198,35 @@ export default function CallScreen() {
           )}
           <Text style={s.name}>{displayName}</Text>
           <Text style={[s.status, { color: statusColor() }]}>{statusText()}</Text>
+          {isGroup && participantEntries.length > 0 && (
+            <View style={s.participantsCard}>
+              {participantEntries.map(([uid, profile]) => (
+                <View key={uid} style={s.participantRow}>
+                  <View style={s.participantLeft}>
+                    <View style={s.participantMiniAvatar}>
+                      {isFeatherIcon(profile.avatar) ? (
+                        <Feather name={profile.avatar as any} size={14} color="#F7F8FF" />
+                      ) : (
+                        <Text style={s.participantMiniAvatarText}>{profile.avatar}</Text>
+                      )}
+                    </View>
+                    <Text style={s.participantName}>
+                      {profile.name}
+                      {uid === myUid ? ' (tu)' : ''}
+                    </Text>
+                  </View>
+                  <Text style={[
+                    s.participantStatus,
+                    call.participantStatuses?.[uid] === 'active' && s.participantStatusActive,
+                    ['left', 'declined', 'missed'].includes(call.participantStatuses?.[uid] ?? '') && s.participantStatusMuted,
+                  ]}
+                  >
+                    {statusLabel(call.participantStatuses?.[uid])}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
           {isRecording && phase === 'active' && (
             <View style={s.recBadge}>
               <View style={s.recDot} />
@@ -228,7 +275,7 @@ export default function CallScreen() {
                   <TouchableOpacity style={s.endBtn} onPress={endCall}>
                     <Text style={s.btnIcon}>✕</Text>
                   </TouchableOpacity>
-                  <Text style={s.actionLabel}>{t('call.end')}</Text>
+                  <Text style={s.actionLabel}>{isGroup ? 'Esci' : t('call.end')}</Text>
                 </View>
 
                 <View style={s.actionItem}>
@@ -243,6 +290,14 @@ export default function CallScreen() {
               </View>
 
               <View style={s.recRow}>
+                {isGroup && (
+                  <TouchableOpacity
+                    style={s.secondaryBtn}
+                    onPress={() => setShowInviteModal(true)}
+                  >
+                    <Text style={s.secondaryBtnLabel}>➕ Aggiungi</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={[s.recBtn, isRecording && s.recBtnActive]}
                   onPress={toggleRecording}
@@ -261,6 +316,16 @@ export default function CallScreen() {
           )}
         </View>
       </View>
+
+      {isGroup && (
+        <GroupCallSetupModal
+          visible={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          mode="invite"
+          existingParticipantIds={Object.keys(call.participantProfiles ?? {})}
+          onInviteParticipants={inviteParticipantsToCurrentCall}
+        />
+      )}
     </Modal>
   );
 }
@@ -461,6 +526,73 @@ const s = StyleSheet.create({
   recRow: {
     marginTop: 20,
     alignItems: 'center',
+    gap: 12,
+  },
+  participantsCard: {
+    width: '100%',
+    maxWidth: 340,
+    marginTop: 6,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 10,
+  },
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  participantLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  participantMiniAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  participantMiniAvatarText: {
+    fontSize: 12,
+  },
+  participantName: {
+    color: '#F7F8FF',
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  participantStatus: {
+    color: '#97A4C7',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  participantStatusActive: {
+    color: '#00FF9C',
+  },
+  participantStatusMuted: {
+    color: '#FF8AA0',
+  },
+  secondaryBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(103,232,249,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.3)',
+  },
+  secondaryBtnLabel: {
+    color: '#67E8F9',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontWeight: '700',
   },
   recBtn: {
     flexDirection: 'row',

@@ -76,7 +76,13 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     "expo-router",
-    "expo-notifications",
+    [
+      "expo-notifications",
+      {
+        defaultChannel: "default",
+        sounds: ["./assets/sounds/soundscape_call.wav"],
+      },
+    ],
     "./plugins/withRNTP",
     "./plugins/withCallKeep",
     [

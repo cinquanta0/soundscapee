@@ -16,6 +16,7 @@ import {
   Call, CallPhase, ParticipantProfile,
   createCall, createGroupCall, updateCallStatus,
   updateParticipantCallStatus,
+  leaveGroupCall, inviteParticipantsToCall,
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
@@ -36,10 +37,16 @@ const ck = {
   rejectCall: (id: string) => { try { RNCallKeep?.rejectCall(id); } catch {} },
   setMutedCall: (id: string, m: boolean) => { try { RNCallKeep?.setMutedCall(id, m); } catch {} },
   getInitialEvents: (): Promise<any[]> => { try { return RNCallKeep?.getInitialEvents?.() ?? Promise.resolve([]); } catch { return Promise.resolve([]); } },
+  setAvailable: (available: boolean) => { try { RNCallKeep?.setAvailable?.(available); } catch {} },
+  backToForeground: () => { try { RNCallKeep?.backToForeground?.(); } catch {} },
+  setForegroundServiceSettings: (cfg: any) => { try { RNCallKeep?.setForegroundServiceSettings?.(cfg); } catch {} },
 };
-
-const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID ?? '';
 const RING_TIMEOUT_MS = 45_000;
+const CALL_SOUND = require('../assets/sounds/soundscape_call.wav');
+
+function hasActiveOrRingingParticipants(participantStatuses?: Record<string, string>) {
+  return Object.values(participantStatuses ?? {}).some((status) => ['calling', 'ringing', 'active'].includes(status));
+}
 
 interface CallContextValue {
   call: Call | null;
@@ -54,6 +61,10 @@ interface CallContextValue {
   acceptCall: (call: Call) => Promise<void>;
   declineCall: (call: Call) => Promise<void>;
   endCall: () => Promise<void>;
+  inviteParticipantsToCurrentCall: (
+    inviteeIds: string[],
+    inviteeProfiles: Record<string, ParticipantProfile>,
+  ) => Promise<void>;
   toggleMute: () => void;
   toggleSpeaker: () => void;
   toggleRecording: () => void;
@@ -91,15 +102,35 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteUsersRef = useRef<Set<number>>(new Set());
   const acceptingCallRef = useRef(false);
+  const ringtoneRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    Notifications.setNotificationChannelAsync('calls', {
+      name: 'calls',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'soundscape_call.wav',
+      enableVibrate: true,
+      vibrationPattern: [0, 800, 500, 800],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      lightColor: '#00FF9C',
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+    }).catch(() => {});
+  }, []);
 
   // ─── CallKeep setup (Android only) ───────────────────────────────────────
   useEffect(() => {
     ck.setup({
       ios: {
         appName: 'SoundScape',
+        ringtoneSound: 'soundscape_call.wav',
         supportsVideo: false,
         maximumCallGroups: '1',
         maximumCallsPerCallGroup: '1',
@@ -113,6 +144,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         selfManaged: false,
       },
     }).catch(() => {});
+    ck.setForegroundServiceSettings({
+      channelId: 'calls',
+      channelName: 'Chiamate SoundScape',
+      notificationTitle: 'SoundScape gestisce una chiamata in background',
+    });
+    ck.setAvailable(true);
 
     const onAnswerCall = ({ callUUID }: { callUUID: string }) => {
       const incoming = incomingCallRef.current;
@@ -275,10 +312,31 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Vibration ─────────────────────────────────────────────────────────────
   const _startRinging = () => {
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: false,
+    }).catch(() => {});
+    Audio.Sound.createAsync(CALL_SOUND, {
+      isLooping: true,
+      shouldPlay: true,
+      volume: 1,
+    }).then(({ sound }) => {
+      ringtoneRef.current?.unloadAsync().catch(() => {});
+      ringtoneRef.current = sound;
+    }).catch(() => {});
     if (Platform.OS === 'android') Vibration.vibrate([0, 600, 400, 600, 400, 600], true);
     else Vibration.vibrate();
   };
-  const _stopRinging = () => Vibration.cancel();
+  const _stopRinging = () => {
+    Vibration.cancel();
+    const ringtone = ringtoneRef.current;
+    ringtoneRef.current = null;
+    if (ringtone) {
+      ringtone.stopAsync().catch(() => {});
+      ringtone.unloadAsync().catch(() => {});
+    }
+  };
 
   // ─── Cleanup ───────────────────────────────────────────────────────────────
   const _finalize = useCallback((reason: string) => {
@@ -386,6 +444,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       'active',
       'active',
     ).catch(() => updateCallStatus(incoming.id, 'active'));
+    ck.backToForeground();
 
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
@@ -404,7 +463,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     unsubCallRef.current = listenForCallUpdates(incoming.id, (updated) => {
       if (updated) setCall(updated);
-      if (updated?.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
+      const myUid = auth.currentUser?.uid ?? '';
+      if (!updated) return;
+      if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
+      if (updated.type === 'group' && updated.participantStatuses?.[myUid] === 'left' && !cleaningUpRef.current) _finalize('left');
     });
   }, [_initEngine, _finalize]);
 
@@ -437,6 +499,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setPhase('ringing');
 
     ck.startCall(callId, calleeName, calleeName, 'generic', false);
+    ck.backToForeground();
 
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
@@ -460,7 +523,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       else if (
         updated.type === 'group'
         && updated.status === 'declined'
-        && !(updated.invitees ?? []).some((uid) => updated.participantStatuses?.[uid] === 'ringing' || updated.participantStatuses?.[uid] === 'active')
+        && !hasActiveOrRingingParticipants(updated.participantStatuses)
       ) _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
@@ -513,11 +576,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date(),
       invitees: inviteeIds,
       participantProfiles: { [user.uid]: { name: callerName, avatar: callerAvatar }, ...inviteeProfiles },
+      participantStatuses: { [user.uid]: 'calling', ...Object.fromEntries(inviteeIds.map((id) => [id, 'ringing'])) },
     };
     setCall(callDoc);
     setPhase('ringing');
 
     ck.startCall(callId, groupName, groupName, 'generic', false);
+    ck.backToForeground();
 
     let engine: ReturnType<typeof _initEngine>;
     try { engine = _initEngine(); } catch (e) {
@@ -541,9 +606,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       else if (
         updated.type === 'group'
         && updated.status === 'declined'
-        && !(updated.invitees ?? []).some((uid) => updated.participantStatuses?.[uid] === 'ringing' || updated.participantStatuses?.[uid] === 'active')
+        && !hasActiveOrRingingParticipants(updated.participantStatuses)
       ) _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
+      else if (updated.type === 'group' && updated.participantStatuses?.[user.uid] === 'left' && !cleaningUpRef.current) _finalize('left');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
 
@@ -584,9 +650,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const endCall = useCallback(async () => {
     if (!callIdRef.current) return;
+    if (incomingCallRef.current?.type === 'group') {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      await leaveGroupCall(callIdRef.current, uid).catch(() => {});
+      _finalize('left');
+      return;
+    }
     await updateCallStatus(callIdRef.current, 'ended').catch(() => {});
     _finalize('ended');
   }, [_finalize]);
+
+  const inviteParticipantsToCurrentCall = useCallback(async (
+    inviteeIds: string[],
+    inviteeProfiles: Record<string, ParticipantProfile>,
+  ) => {
+    if (!callIdRef.current || incomingCallRef.current?.type !== 'group') return;
+    await inviteParticipantsToCall(callIdRef.current, inviteeIds, inviteeProfiles);
+  }, []);
 
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
@@ -628,7 +709,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   return (
     <CallContext.Provider value={{
       call, phase, isMuted, isSpeaker, isRecording, duration, endReason,
-      initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
+      initiateCall, initiateGroupCall, acceptCall, declineCall, endCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,
     }}>
       {children}

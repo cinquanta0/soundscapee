@@ -42,6 +42,20 @@ export async function registerForPushNotifications(userId) {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#06b6d4',
     });
+    await Notifications.setNotificationChannelAsync('calls', {
+      name: 'calls',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'soundscape_call.wav',
+      enableVibrate: true,
+      vibrationPattern: [0, 800, 500, 800],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      lightColor: '#00FF9C',
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+    });
   }
 
   if (IS_EXPO_GO) {
@@ -267,7 +281,7 @@ export async function notifyIncomingCall(calleeId, callerName, callerAvatar, cal
 
     const messages = tokens.map((token) => ({
       to: token,
-      sound: 'default',
+      sound: 'soundscape_call.wav',
       title: `📞 ${callerName} ti sta chiamando`,
       body: 'Chiamata vocale in arrivo',
       data: { type: 'incoming_call', callId, callerName, callerAvatar },

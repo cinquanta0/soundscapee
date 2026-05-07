@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Modal, ActivityIndicator, StatusBar,
@@ -11,7 +11,7 @@ import { getFriendsList } from '../services/firebaseService';
 import { useCall } from '../context/CallContext';
 import { ParticipantProfile } from '../services/callService';
 
-const MAX_PARTICIPANTS = 3;
+const MAX_PARTICIPANTS = 6;
 const FEATHER_AVATARS = new Set(['music', 'headphones', 'radio', 'mic', 'speaker', 'disc', 'volume-2', 'play-circle', 'star', 'zap', 'heart', 'sun', 'moon', 'cloud', 'wind', 'droplet']);
 
 interface Friend {
@@ -23,15 +23,25 @@ interface Friend {
 interface Props {
   visible: boolean;
   onClose: () => void;
+  mode?: 'create' | 'invite';
+  existingParticipantIds?: string[];
+  onInviteParticipants?: (inviteeIds: string[], inviteeProfiles: Record<string, ParticipantProfile>) => Promise<void>;
 }
 
-export default function GroupCallSetupModal({ visible, onClose }: Props) {
+export default function GroupCallSetupModal({
+  visible,
+  onClose,
+  mode = 'create',
+  existingParticipantIds = [],
+  onInviteParticipants,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { initiateGroupCall } = useCall();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const availableSlots = Math.max(0, MAX_PARTICIPANTS - existingParticipantIds.length);
 
   useEffect(() => {
     if (!visible) return;
@@ -45,17 +55,22 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [visible]);
 
+  const visibleFriends = useMemo(
+    () => friends.filter((friend) => !existingParticipantIds.includes(friend.id)),
+    [friends, existingParticipantIds],
+  );
+
   const toggleSelect = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-      } else if (next.size < MAX_PARTICIPANTS - 1) {
+      } else if (next.size < availableSlots) {
         next.add(id);
       }
       return next;
     });
-  }, []);
+  }, [availableSlots]);
 
   const handleStart = useCallback(async () => {
     if (selected.size === 0 || starting) return;
@@ -67,13 +82,17 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
       if (f) inviteeProfiles[id] = { name: f.username, avatar: f.avatar };
     }
     onClose();
-    await initiateGroupCall(inviteeIds, inviteeProfiles).catch(() => {});
+    if (mode === 'invite' && onInviteParticipants) {
+      await onInviteParticipants(inviteeIds, inviteeProfiles).catch(() => {});
+    } else {
+      await initiateGroupCall(inviteeIds, inviteeProfiles).catch(() => {});
+    }
     setStarting(false);
-  }, [selected, friends, initiateGroupCall, onClose, starting]);
+  }, [selected, friends, mode, onInviteParticipants, initiateGroupCall, onClose, starting]);
 
   const renderItem = ({ item }: { item: Friend }) => {
     const isSel = selected.has(item.id);
-    const isDisabled = !isSel && selected.size >= MAX_PARTICIPANTS - 1;
+    const isDisabled = !isSel && selected.size >= availableSlots;
     const isFeatherAvatar = FEATHER_AVATARS.has(item.avatar);
     return (
       <TouchableOpacity
@@ -107,8 +126,8 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
             <Feather name="x" size={22} color="#F7F8FF" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={st.title}>Chiamata di gruppo</Text>
-            <Text style={st.subtitle}>Seleziona fino a {MAX_PARTICIPANTS - 1} amici</Text>
+            <Text style={st.title}>{mode === 'invite' ? 'Aggiungi partecipanti' : 'Chiamata di gruppo'}</Text>
+            <Text style={st.subtitle}>Seleziona fino a {availableSlots} amici</Text>
           </View>
         </View>
 
@@ -122,15 +141,15 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
           <View style={st.center}>
             <ActivityIndicator color="#00FF9C" />
           </View>
-        ) : friends.length === 0 ? (
+        ) : visibleFriends.length === 0 ? (
           <View style={st.center}>
             <Feather name="users" size={48} color="#333" />
-            <Text style={st.emptyTxt}>Nessun amico trovato</Text>
-            <Text style={st.emptySubtxt}>Aggiungi amici per chiamarli in gruppo</Text>
+            <Text style={st.emptyTxt}>Nessun amico disponibile</Text>
+            <Text style={st.emptySubtxt}>Hai gia raggiunto il limite o invitato tutti</Text>
           </View>
         ) : (
           <FlatList
-            data={friends}
+            data={visibleFriends}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={st.list}
@@ -147,7 +166,11 @@ export default function GroupCallSetupModal({ visible, onClose }: Props) {
             <ActivityIndicator color="#060913" />
           ) : (
             <Text style={st.startBtnTxt}>
-              {selected.size === 0 ? 'Seleziona almeno un amico' : `📞 Chiama (${selected.size + 1} persone)`}
+              {selected.size === 0
+                ? 'Seleziona almeno un amico'
+                : mode === 'invite'
+                  ? `➕ Invita (${selected.size})`
+                  : `📞 Chiama (${selected.size + 1} persone)`}
             </Text>
           )}
         </TouchableOpacity>

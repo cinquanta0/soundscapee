@@ -326,12 +326,12 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: token,
-            sound: 'default',
+            sound: data.channelId === 'calls' ? 'soundscape_call.wav' : 'default',
             title,
             body,
             data,
             priority: 'high',
-            channelId: 'default',
+            channelId: data.channelId || 'default',
           }),
         })
           .then(async (res) => {
@@ -1512,6 +1512,46 @@ exports.onCallCreated = onDocumentCreated(
           callerName: callerName ?? 'Utente',
           callerAvatar: callerAvatar ?? '',
           channelId: 'calls',
+        },
+      })
+    ));
+  },
+);
+
+exports.onCallUpdated = onDocumentUpdated(
+  { document: 'calls/{callId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after || after.type !== 'group') return;
+
+    const beforeStatuses = before.participantStatuses || {};
+    const afterStatuses = after.participantStatuses || {};
+    const beforeProfiles = before.participantProfiles || {};
+    const afterProfiles = after.participantProfiles || {};
+    const callId = event.params.callId;
+    const db = admin.firestore();
+
+    const newlyRingingInvitees = Object.keys(afterStatuses).filter((uid) => {
+      const nextStatus = afterStatuses[uid];
+      const prevStatus = beforeStatuses[uid];
+      return nextStatus === 'ringing' && prevStatus !== 'ringing' && uid !== after.callerId;
+    });
+
+    if (!newlyRingingInvitees.length) return;
+
+    await Promise.all(newlyRingingInvitees.map((uid) =>
+      sendNotificationToUser(db, uid, {
+        title: `📞 ${after.callerName ?? 'Utente'} ti sta chiamando`,
+        body: 'Ti hanno aggiunto a una chiamata di gruppo',
+        data: {
+          type: 'incoming_call',
+          callId,
+          callerName: after.callerName ?? 'Utente',
+          callerAvatar: after.callerAvatar ?? '',
+          channelId: 'calls',
+          groupName: after.calleeName ?? 'Chiamata di gruppo',
+          participantCount: String(Object.keys(afterProfiles).length),
         },
       })
     ));
