@@ -85,6 +85,7 @@ module.exports = ({ config }) => ({
     ],
     "./plugins/withRNTP",
     "./plugins/withCallKeep",
+    "./plugins/withOutgoingRingback",
     [
       "expo-splash-screen",
       {

@@ -20,6 +20,7 @@ import {
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
+import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -119,10 +120,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       appStateRef.current = nextState;
       if (nextState === 'active') {
         _stopRinging();
-        if (phaseRef.current === 'incoming' || phaseRef.current === 'ringing') {
+        stopOutgoingRingback().catch(() => {});
+        if (phaseRef.current === 'incoming') {
           callkeepIncomingVisibleRef.current = false;
-          if (phaseRef.current === 'incoming') setUseSystemIncomingUI(false);
+          setUseSystemIncomingUI(false);
           _startRinging();
+        } else if (phaseRef.current === 'ringing' && Platform.OS === 'android') {
+          startOutgoingRingback().catch(() => {});
         }
       }
     });
@@ -281,6 +285,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         remoteUsersRef.current.add(remoteUid);
         const becameActive = phaseRef.current !== 'active';
         _stopRinging();
+        stopOutgoingRingback().catch(() => {});
         // Cancel the missed-call timer — the other party has joined
         if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
         // Cancel the drop timer if reconnect succeeded
@@ -358,7 +363,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ringtoneStartingRef.current = true;
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
+      staysActiveInBackground: false,
       shouldDuckAndroid: false,
     }).catch(() => {});
     Audio.Sound.createAsync(CALL_SOUND, {
@@ -392,6 +397,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     acceptingCallRef.current = false;
 
     _stopRinging();
+    stopOutgoingRingback().catch(() => {});
     callkeepIncomingVisibleRef.current = false;
     setUseSystemIncomingUI(false);
     if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
@@ -502,6 +508,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     try { engine = _initEngine(); } catch (e) {
       console.error('[CALL] Engine init failed:', e);
       await updateCallStatus(incoming.id, 'ended').catch(() => {});
+      stopOutgoingRingback().catch(() => {});
       acceptingCallRef.current = false;
       setPhase(null); setCall(null); callIdRef.current = null;
       return;
@@ -549,7 +556,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
     setCall(callDoc);
     setPhase('ringing');
-    _startRinging();
+    if (Platform.OS === 'android') startOutgoingRingback().catch(() => {});
 
     ck.startCall(callId, calleeName, calleeName, 'generic', false);
     ck.backToForeground();
@@ -558,6 +565,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     try { engine = _initEngine(); } catch (e) {
       console.error('[CALL] Engine init failed:', e);
       await updateCallStatus(callId, 'ended').catch(() => {});
+      stopOutgoingRingback().catch(() => {});
       setPhase(null); setCall(null); callIdRef.current = null;
       Alert.alert('Errore', 'Impossibile avviare la chiamata.');
       return;
@@ -633,7 +641,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
     setCall(callDoc);
     setPhase('ringing');
-    _startRinging();
+    if (Platform.OS === 'android') startOutgoingRingback().catch(() => {});
 
     ck.startCall(callId, groupName, groupName, 'generic', false);
     ck.backToForeground();
@@ -642,6 +650,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     try { engine = _initEngine(); } catch (e) {
       console.error('[CALL] Engine init failed:', e);
       await updateCallStatus(callId, 'ended').catch(() => {});
+      stopOutgoingRingback().catch(() => {});
       setPhase(null); setCall(null); callIdRef.current = null;
       Alert.alert('Errore', 'Impossibile avviare la chiamata di gruppo.');
       return;
