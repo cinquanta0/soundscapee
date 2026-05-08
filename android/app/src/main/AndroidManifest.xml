@@ -34,12 +34,10 @@
     <meta-data android:name="expo.modules.updates.EXPO_UPDATE_URL" android:value="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"/>
     <service android:name=".IncomingCallService" android:exported="false" android:foregroundServiceType="phoneCall" android:stopWithTask="false"/>
     <service android:name=".OutgoingRingbackService" android:exported="false" android:foregroundServiceType="mediaPlayback"/>
-    <!-- Sostituisce expo-notifications' ExpoPushNotificationService per intercettare
-         i messaggi FCM incoming_call direttamente in Kotlin (app killed). -->
-    <service
-      android:name=".SoundscapeFirebaseMessagingService"
-      android:exported="false"
-      tools:replace="android:name">
+    <!-- Rimuove il service FCM di expo per evitare conflitto (duplicate MESSAGING_EVENT) -->
+    <service android:name="expo.modules.notifications.service.ExpoPushNotificationService" tools:node="remove"/>
+    <!-- Unico handler FCM: incoming_call → IncomingCallService, altri → notifica standard -->
+    <service android:name=".SoundscapeFirebaseMessagingService" android:exported="false">
       <intent-filter>
         <action android:name="com.google.firebase.MESSAGING_EVENT"/>
       </intent-filter>

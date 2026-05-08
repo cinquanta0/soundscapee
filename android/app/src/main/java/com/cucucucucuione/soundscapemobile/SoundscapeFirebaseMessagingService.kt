@@ -1,54 +1,71 @@
 package com.cucucucucuione.soundscapemobile
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 /**
- * Intercetta i messaggi FCM *prima* di expo-notifications.
+ * Intercetta tutti i messaggi FCM.
+ * - incoming_call  → avvia IncomingCallService (funziona anche con app killed)
+ * - altri tipi     → mostra notifica di sistema standard (title/body dal payload)
  *
- * Per i messaggi di tipo "incoming_call" avvia IncomingCallService direttamente
- * (suono + full-screen intent sul lock screen) senza passare per il bridge JS.
- * Questo funziona anche quando l'app è completamente killed.
- *
- * Per tutti gli altri tipi delega a expo (super.onMessageReceived).
+ * NOTA: questo service sostituisce expo's ExpoPushNotificationService nel manifest
+ * (tools:node="remove" su quello e registriamo solo il nostro).
  */
-class SoundscapeFirebaseMessagingService :
-    expo.modules.notifications.service.ExpoPushNotificationService() {
+class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
-        private const val TAG = "SCFirebaseMessaging"
+        private const val TAG = "SCFirebaseMsg"
+        private const val CHANNEL_DEFAULT = "default"
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val data = remoteMessage.data
         val type = data["type"]
-
-        Log.d(TAG, "onMessageReceived: type=$type")
+        Log.d(TAG, "onMessageReceived type=$type")
 
         if (type == "incoming_call") {
             val callId     = data["callId"]     ?: ""
             val callerName = data["callerName"] ?: "Chiamata in arrivo"
+            Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName")
 
-            Log.d(TAG, "Avvio IncomingCallService: callId=$callId caller=$callerName")
-
-            val intent = Intent(this, IncomingCallService::class.java).apply {
-                action = IncomingCallService.ACTION_START
-                putExtra(IncomingCallService.EXTRA_CALL_ID,     callId)
-                putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
+            val intent = Intent(applicationContext, IncomingCallService::class.java).also {
+                it.action = IncomingCallService.ACTION_START
+                it.putExtra(IncomingCallService.EXTRA_CALL_ID,     callId)
+                it.putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
             }
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ContextCompat.startForegroundService(this, intent)
+                ContextCompat.startForegroundService(applicationContext, intent)
             } else {
-                startService(intent)
+                applicationContext.startService(intent)
             }
-            // Non chiamare super: expo-notifications non deve vedere questo messaggio
         } else {
-            // Tutti gli altri push (like, follow, ecc.) → gestiti normalmente da expo
-            super.onMessageReceived(remoteMessage)
+            // Tutte le altre notifiche (like, follow, ecc.) → notifica di sistema base
+            val title = remoteMessage.notification?.title ?: data["title"] ?: "SoundScape"
+            val body  = remoteMessage.notification?.body  ?: data["body"]  ?: ""
+            showFallbackNotification(title, body)
         }
+    }
+
+    private fun showFallbackNotification(title: String, body: String) {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_DEFAULT, "Notifiche", NotificationManager.IMPORTANCE_DEFAULT)
+            )
+        }
+        val notif = NotificationCompat.Builder(this, CHANNEL_DEFAULT)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(System.currentTimeMillis().toInt(), notif)
     }
 }
