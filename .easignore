@@ -1,0 +1,24 @@
+# EAS Build ignore file — esclude file non necessari al build nativo
+
+# Skills / AI agent folders (contengono symlink che rompono il tarball su Windows)
+.agents/
+.claude/
+.continue/
+.trae/
+.windsurf/
+.zenflow/
+.zencoder/
+.vscode/
+
+# Dev e diagnostica
+diagnose-firestore.js
+check-firestore.js
+fix-minbuild.js
+set-maintenance.js
+enable-maintenance.js
+disable-maintenance.js
+maintenance-data.json
+config_out.json
+
+# Docs
+README.md

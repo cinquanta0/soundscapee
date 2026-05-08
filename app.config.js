@@ -10,17 +10,8 @@ module.exports = ({ config }) => ({
     enabled: process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? false : true,
     fallbackToCacheTimeout: 10000,
   },
-  autolinking: {
-    ios: {
-      exclude: [
-        "expo-eas-client",
-        ...(process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? ["expo-updates"] : []),
-      ],
-    },
-  },
-  runtimeVersion: {
-    policy: "appVersion",
-  },
+  // In bare workflow, runtimeVersion must be a plain string (not a policy object)
+  runtimeVersion: "1.0.1",
   icon: "./assets/images/icon.png",
   scheme: "soundscapemobile",
   userInterfaceStyle: "automatic",
