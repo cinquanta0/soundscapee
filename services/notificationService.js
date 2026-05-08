@@ -20,11 +20,16 @@ async function mergeUserDocIfExists(userId, payload) {
 
 // Configura come vengono gestite le notifiche in foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    // Le chiamate in arrivo usano un data-only FCM message che viene
+    // gestito nativamente da IncomingCallService (suono + schermo intero).
+    // expo-notifications NON deve mostrare nulla per evitare il riquadro bianco vuoto.
+    const type = notification.request.content.data?.type;
+    if (type === 'incoming_call') {
+      return { shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false };
+    }
+    return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true };
+  },
 });
 
 /**

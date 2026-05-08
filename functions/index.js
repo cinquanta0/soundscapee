@@ -320,15 +320,23 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
 
     // 2. Expo Push (mobile) — invia a tutti i device dell'utente
     for (const token of mobileTokens) {
+      // Per le chiamate in arrivo: invia data-only (senza title/body).
+      // Con title+body, Expo→FCM manda una "notification message" che Android
+      // mostra direttamente (solo testo, niente suono/schermo intero) SENZA
+      // svegliare il background task. Senza title+body = "data message" →
+      // il background task si sveglia → avvia IncomingCallService (suono + full screen).
+      const isCall = data.type === 'incoming_call';
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: token,
-            sound: data.channelId === 'calls' ? 'soundscape_call.wav' : 'default',
-            title,
-            body,
+            ...(isCall ? {} : {
+              sound: data.channelId === 'calls' ? 'soundscape_call.wav' : 'default',
+              title,
+              body,
+            }),
             data,
             priority: 'high',
             channelId: data.channelId || 'default',
