@@ -37,6 +37,7 @@ const ck = {
   rejectCall: (id: string) => { try { RNCallKeep?.rejectCall(id); } catch {} },
   setMutedCall: (id: string, m: boolean) => { try { RNCallKeep?.setMutedCall(id, m); } catch {} },
   getInitialEvents: (): Promise<any[]> => { try { return RNCallKeep?.getInitialEvents?.() ?? Promise.resolve([]); } catch { return Promise.resolve([]); } },
+  clearInitialEvents: () => { try { RNCallKeep?.clearInitialEvents?.(); } catch {} },
   setAvailable: (available: boolean) => { try { RNCallKeep?.setAvailable?.(available); } catch {} },
   backToForeground: () => { try { RNCallKeep?.backToForeground?.(); } catch {} },
   setForegroundServiceSettings: (cfg: any) => { try { RNCallKeep?.setForegroundServiceSettings?.(cfg); } catch {} },
@@ -207,6 +208,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           updateCallStatus(evt.data?.callUUID, 'declined').catch(() => {});
         }
       }
+      ck.clearInitialEvents();
     }).catch(() => {});
 
     return () => {

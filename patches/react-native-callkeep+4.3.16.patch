@@ -1,0 +1,15 @@
+diff --git a/node_modules/react-native-callkeep/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java b/node_modules/react-native-callkeep/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
+index 48d4d6f..7b1adf2 100644
+--- a/node_modules/react-native-callkeep/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
++++ b/node_modules/react-native-callkeep/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
+@@ -686,7 +686,9 @@ public class RNCallKeepModule extends ReactContextBaseJavaModule implements Life
+ 
+     @ReactMethod
+     public void getInitialEvents(Promise promise) {
+-        promise.resolve(delayedEvents);
++        WritableNativeArray events = delayedEvents;
++        delayedEvents = new WritableNativeArray();
++        promise.resolve(events);
+     }
+ 
+     @ReactMethod
