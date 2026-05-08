@@ -89,7 +89,7 @@ export async function registerForPushNotifications(userId) {
     if (Platform.OS === 'android') {
       try {
         const devicePushToken = await Notifications.getDevicePushTokenAsync();
-        if (devicePushToken?.type === 'fcm' && devicePushToken.data) {
+        if (devicePushToken?.type === 'android' && devicePushToken.data) {
           nativeToken = devicePushToken.data;
         }
       } catch (e) {
