@@ -119,9 +119,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       appStateRef.current = nextState;
       if (nextState === 'active') {
         _stopRinging();
-        if (phaseRef.current === 'incoming') {
+        if (phaseRef.current === 'incoming' || phaseRef.current === 'ringing') {
           callkeepIncomingVisibleRef.current = false;
-          setUseSystemIncomingUI(false);
+          if (phaseRef.current === 'incoming') setUseSystemIncomingUI(false);
           _startRinging();
         }
       }
@@ -280,6 +280,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       onUserJoined: (_conn: any, remoteUid: number) => {
         remoteUsersRef.current.add(remoteUid);
         const becameActive = phaseRef.current !== 'active';
+        _stopRinging();
         // Cancel the missed-call timer — the other party has joined
         if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
         // Cancel the drop timer if reconnect succeeded
@@ -357,7 +358,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ringtoneStartingRef.current = true;
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
+      staysActiveInBackground: true,
       shouldDuckAndroid: false,
     }).catch(() => {});
     Audio.Sound.createAsync(CALL_SOUND, {
@@ -548,6 +549,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
     setCall(callDoc);
     setPhase('ringing');
+    _startRinging();
 
     ck.startCall(callId, calleeName, calleeName, 'generic', false);
     ck.backToForeground();
@@ -631,6 +633,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
     setCall(callDoc);
     setPhase('ringing');
+    _startRinging();
 
     ck.startCall(callId, groupName, groupName, 'generic', false);
     ck.backToForeground();
