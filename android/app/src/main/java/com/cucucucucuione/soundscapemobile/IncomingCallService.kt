@@ -20,6 +20,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 
 class IncomingCallService : Service() {
 
@@ -35,6 +38,9 @@ class IncomingCallService : Service() {
         when (intent?.action) {
             ACTION_STOP    -> stopIncomingCall()
             ACTION_DECLINE -> {
+                intent.getStringExtra(EXTRA_CALL_ID)?.takeIf { it.isNotBlank() }?.let { callId ->
+                    markCallDeclined(callId)
+                }
                 sendBroadcast(Intent(ACTION_DECLINED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, intent.getStringExtra(EXTRA_CALL_ID))
                 })
@@ -69,6 +75,46 @@ class IncomingCallService : Service() {
     private fun stopIncomingCall() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
+    }
+
+    private fun markCallDeclined(callId: String) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val callRef = FirebaseFirestore.getInstance().collection("calls").document(callId)
+        callRef.get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.exists()) return@addOnSuccessListener
+
+                val type = snapshot.getString("type") ?: "audio"
+                if (type != "group") {
+                    callRef.update(
+                        mapOf(
+                            "status" to "declined",
+                            "endedAt" to FieldValue.serverTimestamp(),
+                            "participantStatuses.$currentUserId" to "declined",
+                        )
+                    )
+                    return@addOnSuccessListener
+                }
+
+                @Suppress("UNCHECKED_CAST")
+                val statuses = (snapshot.get("participantStatuses") as? Map<String, String>)?.toMutableMap()
+                    ?: mutableMapOf()
+                statuses[currentUserId] = "declined"
+
+                val hasActiveOrRinging = statuses.values.any { status ->
+                    status == "calling" || status == "ringing" || status == "active"
+                }
+
+                val updates = mutableMapOf<String, Any>(
+                    "participantStatuses.$currentUserId" to "declined",
+                )
+                if (!hasActiveOrRinging) {
+                    updates["status"] = "declined"
+                    updates["endedAt"] = FieldValue.serverTimestamp()
+                }
+
+                callRef.update(updates)
+            }
     }
 
     private fun acquireWakeLock() {

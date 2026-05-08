@@ -270,11 +270,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setPhase('incoming');
         // Android: IncomingCallService handles full-screen UI regardless of
         // foreground/background — it uses a foreground service + full-screen
-        // intent + STREAM_RING ringtone. No need to split on isForeground.
+        // intent + STREAM_RING ringtone while app is not active.
         if (Platform.OS === 'android') {
           callkeepIncomingVisibleRef.current = false;
           setUseSystemIncomingUI(false);
-          _startRinging(incoming);
+          if (appStateRef.current === 'active') {
+            _startRinging(incoming);
+          }
           return;
         }
         // iOS — original path

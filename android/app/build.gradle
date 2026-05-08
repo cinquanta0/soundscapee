@@ -156,6 +156,8 @@ dependencies {
     implementation project(':react-native-track-player')
     // Firebase Messaging: necessario per compilare SoundscapeFirebaseMessagingService.kt
     implementation("com.google.firebase:firebase-messaging:24.1.1")
+    implementation("com.google.firebase:firebase-firestore:25.1.1")
+    implementation("com.google.firebase:firebase-auth:23.1.0")
 
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")

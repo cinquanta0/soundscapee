@@ -1,7 +1,9 @@
 package com.cucucucucuione.soundscapemobile
 
+import android.app.ActivityManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
@@ -35,6 +37,11 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
             val callerName = data["callerName"] ?: "Chiamata in arrivo"
             Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName")
 
+            if (isAppInForeground()) {
+                Log.d(TAG, "App in foreground, skipping native incoming-call notification")
+                return
+            }
+
             val intent = Intent(applicationContext, IncomingCallService::class.java).also {
                 it.action = IncomingCallService.ACTION_START
                 it.putExtra(IncomingCallService.EXTRA_CALL_ID,     callId)
@@ -54,6 +61,15 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
                 return
             }
             showFallbackNotification(title, body)
+        }
+    }
+
+    private fun isAppInForeground(): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
+        val running = manager.runningAppProcesses ?: return false
+        return running.any { process ->
+            process.processName == packageName &&
+                process.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         }
     }
 
