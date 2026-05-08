@@ -41,13 +41,6 @@ yarn-error.*
 
 app-example
 
-# generated native folders
+# generated native folders — fully ignored; EAS uses expo prebuild + config plugins
 /ios
 /android
-
-# Track custom native Android modules (Kotlin + manifest)
-!/android/app/src/main/AndroidManifest.xml
-!/android/app/src/main/java/
-!/android/app/src/main/java/**
-!/android/app/src/main/res/raw/
-!/android/app/src/main/res/raw/**
