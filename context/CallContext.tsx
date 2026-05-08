@@ -21,6 +21,7 @@ import {
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
+import { showIncomingCall, dismissIncomingCall, addIncomingCallListener } from '../services/incomingCallService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -119,14 +120,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (nextState) => {
       appStateRef.current = nextState;
       if (nextState === 'active') {
-        _stopRinging();
-        stopOutgoingRingback().catch(() => {});
         if (phaseRef.current === 'incoming') {
+          // Android: IncomingCallService already runs in background — no need
+          // to stop/restart; it keeps ringing via STREAM_RING on its own.
+          // iOS: restart expo-av ringtone after returning to foreground.
+          if (Platform.OS !== 'android') {
+            _stopRinging();
+            _startRinging(incomingCallRef.current ?? undefined);
+          }
           callkeepIncomingVisibleRef.current = false;
           setUseSystemIncomingUI(false);
-          _startRinging();
         } else if (phaseRef.current === 'ringing' && Platform.OS === 'android') {
+          stopOutgoingRingback().catch(() => {});
           startOutgoingRingback().catch(() => {});
+        } else {
+          // Not in a call — nothing to do
+          if (Platform.OS !== 'android') _stopRinging();
+          stopOutgoingRingback().catch(() => {});
         }
       }
     });
@@ -258,20 +268,55 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
 
         setPhase('incoming');
-        const isForeground = appStateRef.current === 'active';
-        if (Platform.OS === 'android' && !isForeground) {
-          callkeepIncomingVisibleRef.current = true;
-          setUseSystemIncomingUI(true);
-          ck.displayIncomingCall(incoming.id, incoming.callerName, incoming.callerName, 'generic', false);
+        // Android: IncomingCallService handles full-screen UI regardless of
+        // foreground/background — it uses a foreground service + full-screen
+        // intent + STREAM_RING ringtone. No need to split on isForeground.
+        if (Platform.OS === 'android') {
+          callkeepIncomingVisibleRef.current = false;
+          setUseSystemIncomingUI(false);
+          _startRinging(incoming);
           return;
         }
+        // iOS — original path
         callkeepIncomingVisibleRef.current = false;
         setUseSystemIncomingUI(false);
-        _startRinging();
+        _startRinging(incoming);
       });
     });
 
     return () => { unsubCall?.(); unsubAuth(); };
+  }, []);
+
+  // ─── Handle accept / decline from Android notification buttons ───────────
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const acceptSub = addIncomingCallListener('IncomingCallAccepted', ({ callId }) => {
+      const incoming = incomingCallRef.current;
+      if (incoming && incoming.id === callId && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
+        _doAccept(incoming);
+      }
+    });
+
+    const declineSub = addIncomingCallListener('IncomingCallDeclined', ({ callId }) => {
+      const incoming = incomingCallRef.current;
+      if (incoming && incoming.id === callId && phaseRef.current === 'incoming') {
+        dismissedIncomingIdsRef.current.add(callId);
+        setPhase(null);
+        setCall(null);
+        if (incoming.type === 'group') {
+          const uid = auth.currentUser?.uid ?? '';
+          updateParticipantCallStatus(callId, uid, 'declined').catch(() => {});
+        } else {
+          updateCallStatus(callId, 'declined').catch(() => {});
+        }
+      }
+    });
+
+    return () => {
+      acceptSub?.remove();
+      declineSub?.remove();
+    };
   }, []);
 
   // ─── Agora engine ──────────────────────────────────────────────────────────
@@ -357,8 +402,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return engine;
   }, []);
 
-  // ─── Vibration ─────────────────────────────────────────────────────────────
-  const _startRinging = () => {
+  // ─── Ringtone ──────────────────────────────────────────────────────────────
+  // Android: IncomingCallService handles ringtone (STREAM_RING = ring volume)
+  //          + vibration + full-screen intent + notification action buttons.
+  // iOS:     expo-av Audio.Sound (playsInSilentModeIOS) — kept unchanged.
+  const _startRinging = (incomingCall?: Call) => {
+    if (Platform.OS === 'android') {
+      // Delegate entirely to the native service — it loops on STREAM_RING.
+      const id   = incomingCall?.id   ?? incomingCallRef.current?.id   ?? '';
+      const name = incomingCall?.callerName ?? incomingCallRef.current?.callerName ?? 'Chiamata in arrivo';
+      showIncomingCall(id, name).catch(() => {});
+      return;
+    }
+    // ── iOS path (unchanged) ──
     if (ringtoneRef.current || ringtoneStartingRef.current) return;
     ringtoneStartingRef.current = true;
     Audio.setAudioModeAsync({
@@ -376,10 +432,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {
       ringtoneStartingRef.current = false;
     });
-    if (Platform.OS === 'android') Vibration.vibrate([0, 600, 400, 600, 400, 600], true);
-    else Vibration.vibrate();
+    Vibration.vibrate();
   };
+
   const _stopRinging = () => {
+    if (Platform.OS === 'android') {
+      dismissIncomingCall().catch(() => {});
+      return;
+    }
+    // ── iOS path ──
     ringtoneStartingRef.current = false;
     Vibration.cancel();
     const ringtone = ringtoneRef.current;

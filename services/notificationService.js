@@ -286,7 +286,11 @@ export async function notifyIncomingCall(calleeId, callerName, callerAvatar, cal
       body: 'Chiamata vocale in arrivo',
       data: { type: 'incoming_call', callId, callerName, callerAvatar },
       priority: 'high',
-      channelId: 'default',
+      // IMPORTANT: must be 'calls' channel — that channel is configured with
+      // USAGE_NOTIFICATION_RINGTONE so Android uses the ringtone volume stream
+      // and bypassDnd: true so it rings even in Do Not Disturb mode.
+      channelId: 'calls',
+      ttl: 0, // do not deliver if not received immediately (call already gone)
     }));
 
     await fetch('https://exp.host/--/api/v2/push/send', {
