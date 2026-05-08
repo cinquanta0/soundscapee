@@ -49,6 +49,10 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
             // Tutte le altre notifiche (like, follow, ecc.) → notifica di sistema base
             val title = remoteMessage.notification?.title ?: data["title"] ?: "SoundScape"
             val body  = remoteMessage.notification?.body  ?: data["body"]  ?: ""
+            if (remoteMessage.notification == null && title == "SoundScape" && body.isBlank()) {
+                Log.w(TAG, "Skipping blank fallback notification for data=$data")
+                return
+            }
             showFallbackNotification(title, body)
         }
     }

@@ -299,10 +299,13 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
     if (!userDoc.exists) return;
     const userData = userDoc.data();
     const { fcmWebToken } = userData;
+    const isCall = data.type === 'incoming_call';
 
     // Supporta sia pushTokens (array, multi-device) che pushToken (legacy singolo)
     const rawTokens = userData.pushTokens ?? (userData.pushToken ? [userData.pushToken] : []);
     const mobileTokens = [...new Set(rawTokens)].filter(t => t?.startsWith('ExponentPushToken'));
+    const rawFcmTokens = Array.isArray(userData.fcmPushTokens) ? userData.fcmPushTokens : [];
+    const fcmMobileTokens = [...new Set(rawFcmTokens)].filter(Boolean);
 
     const promises = [];
 
@@ -325,7 +328,9 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
       // mostra direttamente (solo testo, niente suono/schermo intero) SENZA
       // svegliare il background task. Senza title+body = "data message" →
       // il background task si sveglia → avvia IncomingCallService (suono + full screen).
-      const isCall = data.type === 'incoming_call';
+      // Se abbiamo un token FCM nativo, per le chiamate usiamo quello e
+      // saltiamo Expo: è più affidabile con app in background o killata.
+      if (isCall && fcmMobileTokens.length > 0) continue;
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
@@ -360,6 +365,40 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
             }
           })
           .catch((e) => console.error(`[push] fetch error per ${userId}:`, e))
+      );
+    }
+
+    if (isCall && fcmMobileTokens.length > 0) {
+      const stringData = Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, String(v)])
+      );
+      promises.push(
+        admin.messaging().sendEachForMulticast({
+          tokens: fcmMobileTokens,
+          data: stringData,
+          android: {
+            priority: 'high',
+            ttl: 60 * 1000,
+          },
+        }).then(async (response) => {
+          const invalidTokens = [];
+          response.responses.forEach((item, index) => {
+            if (item.success) return;
+            const errorCode = item.error?.code;
+            console.error(`[push] FCM call error per ${userId}:`, errorCode || item.error?.message || item.error);
+            if (
+              errorCode === 'messaging/registration-token-not-registered'
+              || errorCode === 'messaging/invalid-registration-token'
+            ) {
+              invalidTokens.push(fcmMobileTokens[index]);
+            }
+          });
+          if (invalidTokens.length) {
+            await db.collection('users').doc(userId).update({
+              fcmPushTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+            }).catch(() => {});
+          }
+        }).catch((e) => console.error(`[push] FCM multicast error per ${userId}:`, e))
       );
     }
 

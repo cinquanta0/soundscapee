@@ -39,6 +39,7 @@ Notifications.setNotificationHandler({
  */
 export async function registerForPushNotifications(userId) {
   let token;
+  let nativeToken = null;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -85,6 +86,20 @@ export async function registerForPushNotifications(userId) {
       return null;
     }
 
+    if (Platform.OS === 'android') {
+      try {
+        const devicePushToken = await Notifications.getDevicePushTokenAsync();
+        if (devicePushToken?.type === 'fcm' && devicePushToken.data) {
+          nativeToken = devicePushToken.data;
+        }
+      } catch (e) {
+        console.log('⚠️ Impossibile ottenere token FCM nativo:', e.message);
+        if (userId) {
+          await mergeUserDocIfExists(userId, { nativePushTokenError: e.message }).catch(() => {});
+        }
+      }
+    }
+
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? '1acc4f41-619c-423f-8db0-fcc6e7243ba2';
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
@@ -93,19 +108,30 @@ export async function registerForPushNotifications(userId) {
       if (userId) {
         await mergeUserDocIfExists(userId, { pushTokenError: e.message }).catch(() => {});
       }
-      return null;
     }
 
-    // Salva il token nell'array pushTokens (supporta multi-device)
+    // Salva i token per supportare multi-device e chiamate Android affidabili.
     if (userId && token) {
-      await mergeUserDocIfExists(userId, { pushTokens: arrayUnion(token), updatedAt: new Date() });
+      const payload = {
+        pushTokens: arrayUnion(token),
+        updatedAt: new Date(),
+      };
+      if (nativeToken) {
+        payload.fcmPushTokens = arrayUnion(nativeToken);
+      }
+      await mergeUserDocIfExists(userId, payload);
+    } else if (userId && nativeToken) {
+      await mergeUserDocIfExists(userId, {
+        fcmPushTokens: arrayUnion(nativeToken),
+        updatedAt: new Date(),
+      });
     }
 
   } else {
     console.log('⚠️ Devi usare un dispositivo fisico per le notifiche push');
   }
 
-  return token;
+  return nativeToken || token || null;
 }
 
 /**
