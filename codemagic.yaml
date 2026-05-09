@@ -387,9 +387,9 @@ workflows:
       - $CM_BUILD_DIR/soundscape.xcresult
  
   android-release:
-    name: Android Release APK (unsigned)
+    name: Android Release APK
     max_build_duration: 60
-    instance_type: mac_mini_m1
+    instance_type: linux_x2
     environment:
       node: 20
       java: 17
@@ -416,18 +416,10 @@ workflows:
           EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=$EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
           EXPO_PUBLIC_AGORA_APP_ID=$EXPO_PUBLIC_AGORA_APP_ID
           EOF
-      - name: Expo Prebuild Android
-        script: |
-          set -e
-          npx expo prebuild --platform android --clean --non-interactive --no-install
- 
-      - name: Fix Kotlin compatibility
+      - name: Patch MusicModule Kotlin compatibility
         script: |
           set -e
           cp patches/MusicModule.kt node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
-          echo "kotlin.jvm.target.validation.mode=IGNORE" >> android/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx4g" >> android/gradle.properties
- 
       - name: Generate keystore
         script: |
           set -e
