@@ -50,7 +50,7 @@ class IncomingCallService : Service() {
                 val callId = intent.getStringExtra(EXTRA_CALL_ID)
                 // Porta l'app in foreground mentre siamo ancora foreground service
                 packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }?.let { startActivity(it) }
                 sendBroadcast(Intent(ACTION_ACCEPTED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
