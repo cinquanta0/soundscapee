@@ -31,6 +31,9 @@ class IncomingCallService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isStarted = false
 
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ringTimeoutRunnable = Runnable { stopIncomingCall() }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -86,6 +89,9 @@ class IncomingCallService : Service() {
     private fun startIncomingCall(callId: String, callerName: String) {
         if (isStarted) return
         isStarted = true
+        // Auto-stop after 50s: covers the case where the caller cancels while the
+        // callee's app is killed (no JS Firestore listener to call dismissIncomingCall).
+        handler.postDelayed(ringTimeoutRunnable, 50_000L)
         acquireWakeLock()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification(callId, callerName))
@@ -96,6 +102,7 @@ class IncomingCallService : Service() {
 
     private fun stopIncomingCall() {
         isStarted = false
+        handler.removeCallbacks(ringTimeoutRunnable)
         sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
