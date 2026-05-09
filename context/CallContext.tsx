@@ -774,12 +774,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;
       setCall(updated);
-      if (updated.status === 'declined' && updated.type !== 'group') _finalize('declined');
-      else if (
-        updated.type === 'group'
-        && updated.status === 'declined'
-        && !hasActiveOrRingingParticipants(updated.participantStatuses)
-      ) _finalize('declined');
+      if (updated.status === 'declined') _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
     });
@@ -859,12 +854,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     unsubCallRef.current = listenForCallUpdates(callId, (updated) => {
       if (!updated) return;
       setCall(updated);
-      if (updated.status === 'declined' && updated.type !== 'group') _finalize('declined');
-      else if (
-        updated.type === 'group'
-        && updated.status === 'declined'
-        && !hasActiveOrRingingParticipants(updated.participantStatuses)
-      ) _finalize('declined');
+      if (updated.status === 'declined') _finalize('declined');
       else if (updated.status === 'missed') _finalize('missed');
       else if (updated.type === 'group' && updated.participantStatuses?.[user.uid] === 'left' && !cleaningUpRef.current) _finalize('left');
       else if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
