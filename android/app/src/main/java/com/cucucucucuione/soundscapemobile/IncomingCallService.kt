@@ -209,7 +209,7 @@ class IncomingCallService : Service() {
         val openPi       = PendingIntent.getActivity(this, 0, openIntent ?: Intent(), flags)
         val fullScreenPi = PendingIntent.getActivity(this, 1, callScreenIntent, flags)
         val acceptPi     = PendingIntent.getService(this, 2,
-            Intent(this, IncomingCallService::class.java).apply { action = ACTION_ACCEPT; putExtra(EXTRA_CALL_ID, callId) }, flags)
+            Intent(this, IncomingCallService::class.java).apply { action = ACTION_ACCEPT; putExtra(EXTRA_CALL_ID, callId); putExtra(EXTRA_CALLER_NAME, callerName) }, flags)
         val declinePi    = PendingIntent.getService(this, 3,
             Intent(this, IncomingCallService::class.java).apply { action = ACTION_DECLINE; putExtra(EXTRA_CALL_ID, callId) }, flags)
 
