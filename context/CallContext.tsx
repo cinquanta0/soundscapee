@@ -123,13 +123,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
 
-  // If the app was killed when the user accepted/declined, the broadcast was missed.
-  // Read callIds saved to SharedPreferences by the native service and handle them.
+  // If the app was killed when the user declined, the broadcast was missed.
+  // Accept is handled inside listenForIncomingCall to avoid a Firestore cache race.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    getPendingAcceptCallId().then((callId) => {
-      if (callId) pendingNativeAcceptIdRef.current = callId;
-    }).catch(() => {});
     getPendingDeclineCallId().then((callId) => {
       if (callId) updateCallStatus(callId, 'declined').catch(() => {});
     }).catch(() => {});
@@ -295,6 +292,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (phaseRef.current !== null) return;
         setCall(incoming);
 
+        // Fast path: pending accept already known (CallKeep or acceptSub already set the ref)
         if (
           pendingAcceptUUIDRef.current === incoming.id
           || pendingNativeAcceptIdRef.current === incoming.id
@@ -305,21 +303,31 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        setPhase('incoming');
-        // Android: IncomingCallService handles full-screen UI regardless of
-        // foreground/background — it uses a foreground service + full-screen
-        // intent + STREAM_RING ringtone while app is not active.
         if (Platform.OS === 'android') {
           callkeepIncomingVisibleRef.current = false;
           setUseSystemIncomingUI(false);
-          if (appStateRef.current === 'active') {
-            _startRinging(incoming);
-          }
+          // Slow path: Firestore local cache can fire before getPendingAcceptCallId()
+          // resolves in the mount effect — check SharedPreferences directly here.
+          getPendingAcceptCallId().then((nativeId) => {
+            if (phaseRef.current !== null) return;
+            if (nativeId === incoming.id) {
+              _doAccept(incoming);
+              return;
+            }
+            setPhase('incoming');
+            if (appStateRef.current === 'active') _startRinging(incoming);
+          }).catch(() => {
+            if (phaseRef.current === null) {
+              setPhase('incoming');
+              if (appStateRef.current === 'active') _startRinging(incoming);
+            }
+          });
           return;
         }
         // iOS — original path
         callkeepIncomingVisibleRef.current = false;
         setUseSystemIncomingUI(false);
+        setPhase('incoming');
         _startRinging(incoming);
       });
     });
