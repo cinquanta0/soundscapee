@@ -554,6 +554,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       shouldPlay: true,
       volume: 1,
     }).then(({ sound }) => {
+      if (!ringtoneStartingRef.current) {
+        // _stopRinging was called while the sound was loading — discard immediately
+        sound.stopAsync().catch(() => {});
+        sound.unloadAsync().catch(() => {});
+        return;
+      }
       ringtoneStartingRef.current = false;
       ringtoneRef.current = sound;
     }).catch(() => {
