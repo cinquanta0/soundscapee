@@ -310,7 +310,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           // resolves in the mount effect — check SharedPreferences directly here.
           getPendingAcceptCallId().then((nativeId) => {
             if (phaseRef.current !== null) return;
+            // nativeId match: bridge was killed when user accepted
             if (nativeId === incoming.id) {
+              _doAccept(incoming);
+              return;
+            }
+            // pendingNativeAcceptIdRef match: acceptSub fired before us
+            // (broadcastReceiver already cleared SharedPreferences)
+            if (pendingNativeAcceptIdRef.current === incoming.id) {
+              pendingNativeAcceptIdRef.current = null;
               _doAccept(incoming);
               return;
             }
