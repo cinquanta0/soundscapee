@@ -115,8 +115,9 @@ export default function CallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
-    call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason,
-    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording, inviteParticipantsToCurrentCall,
+    call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason, canRejoin,
+    acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording,
+    inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
 
@@ -290,14 +291,12 @@ export default function CallScreen() {
               </View>
 
               <View style={s.recRow}>
-                {isGroup && (
-                  <TouchableOpacity
-                    style={s.secondaryBtn}
-                    onPress={() => setShowInviteModal(true)}
-                  >
-                    <Text style={s.secondaryBtnLabel}>➕ Aggiungi</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={s.secondaryBtn}
+                  onPress={() => setShowInviteModal(true)}
+                >
+                  <Text style={s.secondaryBtnLabel}>➕ Aggiungi</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.recBtn, isRecording && s.recBtnActive]}
                   onPress={toggleRecording}
@@ -312,20 +311,34 @@ export default function CallScreen() {
           {phase === 'ended' && (
             <View style={s.endedNote}>
               <Text style={s.endedTxt}>{statusText()}</Text>
+              {endReason === 'left' && (
+                <View style={s.rejoinRow}>
+                  {canRejoin && (
+                    <TouchableOpacity style={s.rejoinBtn} onPress={rejoinGroupCall}>
+                      <Text style={s.rejoinBtnLabel}>↩ Rientra</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={s.closeBtn} onPress={dismissEndedCall}>
+                    <Text style={s.closeBtnLabel}>Chiudi</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
         </View>
       </View>
 
-      {isGroup && (
-        <GroupCallSetupModal
-          visible={showInviteModal}
-          onClose={() => setShowInviteModal(false)}
-          mode="invite"
-          existingParticipantIds={Object.keys(call.participantProfiles ?? {})}
-          onInviteParticipants={inviteParticipantsToCurrentCall}
-        />
-      )}
+      <GroupCallSetupModal
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        mode="invite"
+        existingParticipantIds={
+          isGroup
+            ? Object.keys(call.participantProfiles ?? {})
+            : [call.callerId, call.calleeId].filter(Boolean)
+        }
+        onInviteParticipants={inviteParticipantsToCurrentCall}
+      />
     </Modal>
   );
 }
@@ -623,11 +636,45 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    gap: 16,
   },
   endedTxt: {
     color: '#FF5C79',
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     textAlign: 'center',
+  },
+  rejoinRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  rejoinBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.4)',
+  },
+  rejoinBtnLabel: {
+    color: '#00FF9C',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontWeight: '700',
+  },
+  closeBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  closeBtnLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
 });

@@ -60,7 +60,7 @@ function buildGroupCallUpdate(
   };
 }
 
-function parseCallDoc(d: any): Call {
+export function parseCallDoc(d: any): Call {
   const data = d.data();
   return {
     id: d.id,
@@ -243,8 +243,13 @@ export function listenForIncomingCall(
 ): Unsubscribe {
   function toCall(d: any): Call | null {
     const data = d.data();
-    const createdAt = data.createdAt?.toDate() ?? new Date();
-    if (Date.now() - createdAt.getTime() > CALL_TIMEOUT_MS) return null;
+    // Per le chiamate 1:1 applica il timeout; per le group call di cui siamo invitati,
+    // ci fidiamo del participantStatuses (l'host ha appena aggiunto questo utente).
+    const type = (data.type as string) ?? 'audio';
+    if (type !== 'group') {
+      const createdAt = data.createdAt?.toDate() ?? new Date();
+      if (Date.now() - createdAt.getTime() > CALL_TIMEOUT_MS) return null;
+    }
     const call = parseCallDoc(d);
     return isPendingIncomingCall(call, userId) ? call : null;
   }
@@ -324,6 +329,51 @@ export function listenForCallUpdates(
     if (!snap.exists()) { cb(null); return; }
     cb(parseCallDoc(snap));
   });
+}
+
+export async function upgradeCallToGroup(
+  callId: string,
+  newInviteeIds: string[],
+  allProfiles: Record<string, ParticipantProfile>,
+): Promise<void> {
+  if (!newInviteeIds.length) return;
+  const callRef = doc(db, 'calls', callId);
+  const snap = await getDoc(callRef);
+  if (!snap.exists()) throw new Error('Chiamata non trovata');
+
+  const call = parseCallDoc(snap);
+  const nextInvitees = Array.from(new Set([...(call.invitees ?? [call.calleeId]), ...newInviteeIds]));
+  const nextStatuses = { ...(call.participantStatuses ?? {}) };
+  newInviteeIds.forEach((uid) => {
+    if (!nextStatuses[uid] || ['declined', 'missed', 'left'].includes(nextStatuses[uid])) {
+      nextStatuses[uid] = 'ringing';
+    }
+  });
+
+  await updateDoc(callRef, {
+    type: 'group',
+    invitees: nextInvitees,
+    participantProfiles: allProfiles,
+    participantStatuses: nextStatuses,
+  });
+}
+
+export async function rejoinGroupCall(callId: string, userId: string): Promise<Call | null> {
+  const callRef = doc(db, 'calls', callId);
+  const snap = await getDoc(callRef);
+  if (!snap.exists()) return null;
+
+  const call = parseCallDoc(snap);
+  if (call.status === 'ended' || call.status === 'declined') return null;
+
+  await updateDoc(callRef, {
+    [`participantStatuses.${userId}`]: 'active',
+    status: 'active',
+    answeredAt: serverTimestamp(),
+  });
+
+  const fresh = await getDoc(callRef);
+  return fresh.exists() ? parseCallDoc(fresh) : call;
 }
 
 export async function publishCallRecording(

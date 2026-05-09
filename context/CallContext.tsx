@@ -16,7 +16,8 @@ import {
   Call, CallPhase, ParticipantProfile,
   createCall, createGroupCall, updateCallStatus,
   updateParticipantCallStatus,
-  leaveGroupCall, inviteParticipantsToCall,
+  leaveGroupCall, inviteParticipantsToCall, upgradeCallToGroup,
+  rejoinGroupCall as rejoinGroupCallService,
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
@@ -60,11 +61,14 @@ interface CallContextValue {
   isRecording: boolean;
   duration: number;
   endReason: string | null;
+  canRejoin: boolean;
   initiateCall: (calleeId: string, calleeName: string, calleeAvatar: string) => Promise<void>;
   initiateGroupCall: (inviteeIds: string[], inviteeProfiles: Record<string, ParticipantProfile>) => Promise<void>;
   acceptCall: (call: Call) => Promise<void>;
   declineCall: (call: Call) => Promise<void>;
   endCall: () => Promise<void>;
+  rejoinGroupCall: () => Promise<void>;
+  dismissEndedCall: () => void;
   inviteParticipantsToCurrentCall: (
     inviteeIds: string[],
     inviteeProfiles: Record<string, ParticipantProfile>,
@@ -112,6 +116,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const callkeepIncomingVisibleRef = useRef(false);
   const ringtoneStartingRef = useRef(false);
   const dismissedIncomingIdsRef = useRef<Set<string>>(new Set());
+  const pendingNativeAcceptIdRef = useRef<string | null>(null);
+  const rejoinableCallRef = useRef<Call | null>(null);
+  const [canRejoin, setCanRejoin] = useState(false);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -177,7 +184,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         cancelButton: 'Annulla',
         okButton: 'OK',
         additionalPermissions: [],
-        selfManaged: false,
+        selfManaged: true,
       },
     }).catch(() => {});
     ck.setForegroundServiceSettings({
@@ -261,8 +268,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (phaseRef.current !== null) return;
         setCall(incoming);
 
-        if (pendingAcceptUUIDRef.current === incoming.id) {
+        if (
+          pendingAcceptUUIDRef.current === incoming.id
+          || pendingNativeAcceptIdRef.current === incoming.id
+        ) {
           pendingAcceptUUIDRef.current = null;
+          pendingNativeAcceptIdRef.current = null;
           _doAccept(incoming);
           return;
         }
@@ -297,6 +308,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const incoming = incomingCallRef.current;
       if (incoming && incoming.id === callId && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
         _doAccept(incoming);
+      } else {
+        // Race condition: il broadcast è arrivato prima che il listener Firestore
+        // caricasse la call. Lo salviamo e lo processiamo appena arriva.
+        pendingNativeAcceptIdRef.current = callId;
       }
     });
 
@@ -506,12 +521,31 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setDuration(0);
     durationRef.current = 0;
 
+    if (reason === 'left') {
+      // Lasciato una group call: reset immediato dei ref di controllo così
+      // nuove chiamate possono arrivare, ma manteniamo la UI di uscita
+      // per 15s per permettere il rejoin.
+      callIdRef.current = null;
+      cleaningUpRef.current = false;
+      setCanRejoin(rejoinableCallRef.current !== null);
+      setTimeout(() => {
+        setPhase(null);
+        setCall(null);
+        setEndReason(null);
+        setCanRejoin(false);
+        rejoinableCallRef.current = null;
+      }, 15_000);
+      return;
+    }
+
     setTimeout(() => {
       setPhase(null);
       setCall(null);
       setEndReason(null);
       callIdRef.current = null;
       cleaningUpRef.current = false;
+      setCanRejoin(false);
+      rejoinableCallRef.current = null;
 
       // Offer to publish recording after UI is clear
       if (wasRecording && recPath) {
@@ -784,6 +818,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (incomingCallRef.current?.type === 'group') {
       const uid = auth.currentUser?.uid;
       if (!uid) return;
+      // Salva la call per eventuale rejoin prima che _finalize azzeri tutto
+      rejoinableCallRef.current = incomingCallRef.current;
       await leaveGroupCall(callIdRef.current, uid).catch(() => {});
       _finalize('left');
       return;
@@ -792,12 +828,82 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     _finalize('ended');
   }, [_finalize]);
 
+  const rejoinGroupCall = useCallback(async () => {
+    const callToRejoin = rejoinableCallRef.current;
+    if (!callToRejoin) return;
+    rejoinableCallRef.current = null;
+    setCanRejoin(false);
+
+    const { status: micStatus } = await Audio.requestPermissionsAsync();
+    if (micStatus !== 'granted') {
+      Alert.alert('Microfono', 'Per rientrare devi abilitare il microfono.');
+      return;
+    }
+
+    const uid = auth.currentUser?.uid ?? '';
+    const freshCall = await rejoinGroupCallService(callToRejoin.id, uid).catch(() => null);
+    if (!freshCall) {
+      Alert.alert('Chiamata terminata', 'La chiamata di gruppo è già terminata.');
+      setPhase(null); setCall(null); setEndReason(null);
+      return;
+    }
+
+    callIdRef.current = freshCall.id;
+    cleaningUpRef.current = false;
+    setCall(freshCall);
+    setPhase('connecting');
+    setEndReason(null);
+
+    let engine: ReturnType<typeof _initEngine>;
+    try { engine = _initEngine(); } catch (e) {
+      setPhase(null); setCall(null); callIdRef.current = null;
+      return;
+    }
+    const token = await fetchAgoraToken(freshCall.channelName).catch(() => null);
+    engine.joinChannel(token ?? '', freshCall.channelName, 0, {
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: true,
+      autoSubscribeAudio: true,
+    });
+
+    unsubCallRef.current = listenForCallUpdates(freshCall.id, (updated) => {
+      if (updated) setCall(updated);
+      const myUid = auth.currentUser?.uid ?? '';
+      if (!updated) return;
+      if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
+      if (updated.type === 'group' && updated.participantStatuses?.[myUid] === 'left' && !cleaningUpRef.current) {
+        rejoinableCallRef.current = updated;
+        _finalize('left');
+      }
+    });
+  }, [_initEngine, _finalize]);
+
+  const dismissEndedCall = useCallback(() => {
+    setPhase(null);
+    setCall(null);
+    setEndReason(null);
+    setCanRejoin(false);
+    rejoinableCallRef.current = null;
+  }, []);
+
   const inviteParticipantsToCurrentCall = useCallback(async (
     inviteeIds: string[],
     inviteeProfiles: Record<string, ParticipantProfile>,
   ) => {
-    if (!callIdRef.current || incomingCallRef.current?.type !== 'group') return;
-    await inviteParticipantsToCall(callIdRef.current, inviteeIds, inviteeProfiles);
+    const callId = callIdRef.current;
+    const currentCall = incomingCallRef.current;
+    if (!callId || !currentCall) return;
+
+    if (currentCall.type !== 'group') {
+      // Upgrade 1:1 → group: costruiamo i profili dei partecipanti originali
+      const existingProfiles: Record<string, ParticipantProfile> = {
+        [currentCall.callerId]: { name: currentCall.callerName, avatar: currentCall.callerAvatar },
+        [currentCall.calleeId]: { name: currentCall.calleeName, avatar: currentCall.calleeAvatar },
+      };
+      await upgradeCallToGroup(callId, inviteeIds, { ...existingProfiles, ...inviteeProfiles });
+    } else {
+      await inviteParticipantsToCall(callId, inviteeIds, inviteeProfiles);
+    }
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -839,8 +945,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CallContext.Provider value={{
-      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason,
-      initiateCall, initiateGroupCall, acceptCall, declineCall, endCall, inviteParticipantsToCurrentCall,
+      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason, canRejoin,
+      initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
+      rejoinGroupCall, dismissEndedCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,
     }}>
       {children}
