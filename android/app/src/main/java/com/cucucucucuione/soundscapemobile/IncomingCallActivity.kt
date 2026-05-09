@@ -71,11 +71,15 @@ class IncomingCallActivity : AppCompatActivity() {
             sendBroadcast(Intent(IncomingCallService.ACTION_ACCEPTED_BROADCAST).apply {
                 putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
             })
-            startActivity(Intent(this, CallActiveActivity::class.java).apply {
-                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
-                putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
-            })
+            // Persist so JS picks it up if bridge was not running
+            getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                .edit().putString("pendingAcceptCallId", callId).apply()
+            // Open main app — JS joins Agora and shows the call screen
+            packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }?.let { startActivity(it) }
             stopService(Intent(this, IncomingCallService::class.java))
             finish()
         }

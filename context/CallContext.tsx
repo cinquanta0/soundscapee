@@ -22,7 +22,7 @@ import {
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
-import { showIncomingCall, dismissIncomingCall, notifyCallEnded, addIncomingCallListener } from '../services/incomingCallService';
+import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, addIncomingCallListener } from '../services/incomingCallService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -122,6 +122,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
+
+  // If the app was killed when the user accepted, the broadcast was missed.
+  // Read the callId saved to SharedPreferences by the native service so the
+  // Firestore listener can auto-accept as soon as the call doc arrives.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    getPendingAcceptCallId().then((callId) => {
+      if (callId) pendingNativeAcceptIdRef.current = callId;
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {

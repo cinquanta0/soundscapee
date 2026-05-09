@@ -23,6 +23,7 @@ type IncomingCallNativeModule = {
   showIncomingCall: (callId: string, callerName: string) => Promise<void>;
   dismissIncomingCall: () => Promise<void>;
   notifyCallEnded: () => Promise<void>;
+  getPendingAcceptCallId: () => Promise<string | null>;
   addListener: (eventName: string) => void;
   removeListeners: (count: number) => void;
 };
@@ -49,6 +50,11 @@ export async function dismissIncomingCall(): Promise<void> {
 export async function notifyCallEnded(): Promise<void> {
   if (!nativeModule) return;
   await nativeModule.notifyCallEnded().catch(() => {});
+}
+
+export async function getPendingAcceptCallId(): Promise<string | null> {
+  if (!nativeModule) return null;
+  return nativeModule.getPendingAcceptCallId().catch(() => null);
 }
 
 /**

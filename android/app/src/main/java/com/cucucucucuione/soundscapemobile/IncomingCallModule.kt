@@ -20,7 +20,12 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
         override fun onReceive(context: Context, intent: Intent) {
             val callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
             when (intent.action) {
-                IncomingCallService.ACTION_ACCEPTED_BROADCAST      -> emitEvent("IncomingCallAccepted", callId)
+                IncomingCallService.ACTION_ACCEPTED_BROADCAST -> {
+                    // Bridge is running — clear SharedPreferences so getPendingAcceptCallId returns null
+                    context.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                        .edit().remove("pendingAcceptCallId").apply()
+                    emitEvent("IncomingCallAccepted", callId)
+                }
                 IncomingCallService.ACTION_DECLINED_BROADCAST      -> emitEvent("IncomingCallDeclined", callId)
                 IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN -> emitEvent("CallHangUpFromLockScreen", callId)
             }
@@ -71,6 +76,15 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
             reactContext.startService(intent)
             promise.resolve(null)
         } catch (e: Exception) { promise.reject("incoming_call_dismiss_failed", e) }
+    }
+
+    @ReactMethod fun getPendingAcceptCallId(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+            val callId = prefs.getString("pendingAcceptCallId", null)
+            prefs.edit().remove("pendingAcceptCallId").apply()
+            promise.resolve(callId)
+        } catch (e: Exception) { promise.reject("get_pending_accept_failed", e) }
     }
 
     @ReactMethod fun notifyCallEnded(promise: Promise) {

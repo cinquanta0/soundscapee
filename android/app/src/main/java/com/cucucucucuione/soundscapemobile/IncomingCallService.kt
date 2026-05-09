@@ -49,14 +49,18 @@ class IncomingCallService : Service() {
             ACTION_ACCEPT  -> {
                 val callId     = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
                 val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: ""
+                // Persist so JS can pick it up even if the bridge was not running
+                getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                    .edit().putString("pendingAcceptCallId", callId).apply()
                 sendBroadcast(Intent(ACTION_ACCEPTED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
                 })
-                startActivity(Intent(this, CallActiveActivity::class.java).apply {
-                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra(EXTRA_CALL_ID, callId)
-                    putExtra(EXTRA_CALLER_NAME, callerName)
-                })
+                // Bring the app to foreground — this starts the JS bridge if killed
+                packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }?.let { startActivity(it) }
                 stopIncomingCall()
             }
             else -> {
