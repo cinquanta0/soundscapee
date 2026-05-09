@@ -25,6 +25,7 @@ type IncomingCallNativeModule = {
   notifyCallEnded: () => Promise<void>;
   getPendingAcceptCallId: () => Promise<string | null>;
   getPendingDeclineCallId: () => Promise<string | null>;
+  setAuthToken: (uid: string, idToken: string) => Promise<void>;
   addListener: (eventName: string) => void;
   removeListeners: (count: number) => void;
 };
@@ -61,6 +62,11 @@ export async function getPendingAcceptCallId(): Promise<string | null> {
 export async function getPendingDeclineCallId(): Promise<string | null> {
   if (!nativeModule) return null;
   return nativeModule.getPendingDeclineCallId().catch(() => null);
+}
+
+export async function setAuthToken(uid: string, idToken: string): Promise<void> {
+  if (!nativeModule) return;
+  await nativeModule.setAuthToken(uid, idToken).catch(() => {});
 }
 
 /**

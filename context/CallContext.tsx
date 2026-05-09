@@ -6,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, onIdTokenChanged } from 'firebase/auth';
 import {
   IRtcEngine, IRtcEngineEventHandler, ClientRoleType,
 } from 'react-native-agora';
@@ -22,7 +22,7 @@ import {
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
-import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, addIncomingCallListener } from '../services/incomingCallService';
+import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -133,6 +133,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     getPendingDeclineCallId().then((callId) => {
       if (callId) updateCallStatus(callId, 'declined').catch(() => {});
     }).catch(() => {});
+  }, []);
+
+  // Keep Firebase ID token fresh in SharedPreferences so IncomingCallService
+  // can call the Firestore REST API to decline a call even when the bridge is dead.
+  // onIdTokenChanged fires on sign-in and whenever Firebase refreshes the token (~1h).
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const unsub = onIdTokenChanged(auth, async (user) => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        setAuthToken(user.uid, token);
+      } catch {}
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {

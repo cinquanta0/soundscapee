@@ -100,6 +100,17 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
         } catch (e: Exception) { promise.reject("get_pending_decline_failed", e) }
     }
 
+    @ReactMethod fun setAuthToken(uid: String, idToken: String, promise: Promise) {
+        try {
+            reactContext.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                .edit()
+                .putString("authUserId", uid)
+                .putString("authIdToken", idToken)
+                .apply()
+            promise.resolve(null)
+        } catch (e: Exception) { promise.reject("set_auth_token_failed", e) }
+    }
+
     @ReactMethod fun notifyCallEnded(promise: Promise) {
         try {
             reactContext.sendBroadcast(Intent(IncomingCallService.ACTION_CALL_ENDED_BROADCAST))

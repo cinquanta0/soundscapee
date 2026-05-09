@@ -40,6 +40,7 @@ class IncomingCallService : Service() {
                 if (callId.isNotBlank()) {
                     getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
                         .edit().putString("pendingDeclineCallId", callId).apply()
+                    markCallDeclinedViaRest(callId)
                 }
                 sendBroadcast(Intent(ACTION_DECLINED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
@@ -94,6 +95,33 @@ class IncomingCallService : Service() {
         sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
+    }
+
+    private fun markCallDeclinedViaRest(callId: String) {
+        val prefs = getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+        val idToken = prefs.getString("authIdToken", null) ?: return
+        Thread {
+            try {
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+                sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                val now = sdf.format(java.util.Date())
+                val body = """{"fields":{"status":{"stringValue":"declined"},"endedAt":{"timestampValue":"$now"}}}"""
+                val url = java.net.URL(
+                    "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
+                    "/databases/(default)/documents/calls/$callId" +
+                    "?updateMask.fieldPaths=status&updateMask.fieldPaths=endedAt"
+                )
+                with(url.openConnection() as java.net.HttpURLConnection) {
+                    requestMethod = "PATCH"
+                    setRequestProperty("Authorization", "Bearer $idToken")
+                    setRequestProperty("Content-Type", "application/json")
+                    doOutput = true
+                    outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                    responseCode
+                    disconnect()
+                }
+            } catch (_: Exception) {}
+        }.start()
     }
 
     private fun acquireWakeLock() {
