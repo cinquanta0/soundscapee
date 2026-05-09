@@ -420,15 +420,30 @@ workflows:
         script: |
           set -e
           cp patches/MusicModule.kt node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
-      - name: Generate keystore
+      - name: Setup keystore
         script: |
           set -e
-          keytool -genkeypair -v \
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/soundscape.keystore
+            echo "=== Keystore restored from KEYSTORE_BASE64 ==="
+          else
+            keytool -genkeypair -v \
+              -keystore android/app/soundscape.keystore \
+              -alias soundscape \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass soundscape123 -keypass soundscape123 \
+              -dname "CN=Soundscape, OU=Dev, O=Soundscape, L=IT, S=IT, C=IT"
+            echo "=== KEYSTORE_BASE64 non impostato — keystore generato nuovo ==="
+            echo "=== COPIA QUESTO VALORE IN KEYSTORE_BASE64 SU CODEMAGIC ==="
+            base64 -i android/app/soundscape.keystore
+            echo "=== FINE BASE64 ==="
+          fi
+          echo "=== SHA-1 (aggiungilo su Firebase Console) ==="
+          keytool -list -v \
             -keystore android/app/soundscape.keystore \
             -alias soundscape \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass soundscape123 -keypass soundscape123 \
-            -dname "CN=Soundscape, OU=Dev, O=Soundscape, L=IT, S=IT, C=IT"
+            -storepass soundscape123 \
+            -noprompt 2>/dev/null | grep "SHA1:"
       - name: Build release APK
         script: |
           set -e
