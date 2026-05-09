@@ -1,5 +1,6 @@
 package com.cucucucucuione.soundscapemobile
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -67,6 +68,17 @@ class CallActiveActivity : AppCompatActivity() {
 
         handler.postDelayed(timerRunnable, 1000)
         registerCallEventReceiver()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // On devices without screen security (no PIN/pattern/biometric),
+        // ACTION_USER_PRESENT never fires on swipe-only lock screens on some OEMs.
+        // Go directly to the app so the user doesn't get stuck on this overlay.
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (km?.isKeyguardSecure == false) {
+            openMainAppAndFinish()
+        }
     }
 
     private fun openMainAppAndFinish() {
