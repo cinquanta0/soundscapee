@@ -62,7 +62,9 @@ class IncomingCallActivity : AppCompatActivity() {
             "#EC4899", "#F97316", "#0EA5E9", "#14B8A6"
         )
         val colorHex = avatarColors[Math.abs(callerName.hashCode()) % avatarColors.size]
-        (avatarView.background as? GradientDrawable)?.mutate()?.setColor(Color.parseColor(colorHex))
+        (avatarView.background as? GradientDrawable)?.apply {
+            mutate(); setColor(Color.parseColor(colorHex))
+        }
 
         // Pulsante Rispondi
         findViewById<FrameLayout>(R.id.btnAccept).setOnClickListener {
