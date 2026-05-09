@@ -7,8 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -16,25 +14,8 @@ import androidx.appcompat.app.AppCompatActivity
 
 class CallActiveActivity : AppCompatActivity() {
 
-    private var secondsElapsed = 0
-    private val handler = Handler(Looper.getMainLooper())
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            secondsElapsed++
-            val m = secondsElapsed / 60
-            val s = secondsElapsed % 60
-            findViewById<TextView>(R.id.tvCallDuration)?.text =
-                String.format("%02d:%02d", m, s)
-            handler.postDelayed(this, 1000)
-        }
-    }
-
     private val callEndedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) { finish() }
-    }
-
-    private val userPresentReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) { openMainAppAndFinish() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +38,7 @@ class CallActiveActivity : AppCompatActivity() {
         val callId     = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
 
         findViewById<TextView>(R.id.tvActiveCallerName).text = callerName
-        findViewById<TextView>(R.id.tvCallDuration).text = "00:00"
+        findViewById<TextView>(R.id.tvCallDuration)?.text = "Sblocca per rispondere"
 
         findViewById<FrameLayout>(R.id.btnHangUp).setOnClickListener {
             sendBroadcast(Intent(IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN).apply {
@@ -66,27 +47,31 @@ class CallActiveActivity : AppCompatActivity() {
             finish()
         }
 
-        handler.postDelayed(timerRunnable, 1000)
-        registerCallEventReceiver()
+        // Show PIN/biometric entry immediately (auto-dismisses on no-PIN devices).
+        // onDismissSucceeded fires once the user authenticates successfully.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            km?.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() { openMainAppAndFinish() }
+                override fun onDismissCancelled()  { /* user backed out — stays on overlay, can retry or hang up */ }
+                override fun onDismissError()       { openMainAppAndFinish() }
+            })
+        }
+
+        registerCallEndedReceiver()
     }
 
     override fun onResume() {
         super.onResume()
-        // On devices without screen security (no PIN/pattern/biometric),
-        // ACTION_USER_PRESENT never fires on swipe-only lock screens on some OEMs.
-        // Go directly to the app so the user doesn't get stuck on this overlay.
+        // Catches: user unlocked via regular lock screen gesture after cancelling the dialog,
+        // or API < 26 devices, or no-PIN auto-dismiss completing before onResume.
         val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-        if (km?.isKeyguardSecure == false) {
+        if (km?.isKeyguardLocked == false) {
             openMainAppAndFinish()
         }
     }
 
     private fun openMainAppAndFinish() {
-        // Dismiss the keyguard so MainActivity appears without requiring a swipe/PIN
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-            km?.requestDismissKeyguard(this, null)
-        }
         packageManager.getLaunchIntentForPackage(packageName)?.apply {
             this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
@@ -95,24 +80,18 @@ class CallActiveActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun registerCallEventReceiver() {
-        val endedFilter = IntentFilter(IncomingCallService.ACTION_CALL_ENDED_BROADCAST)
-        val userPresentFilter = IntentFilter(Intent.ACTION_USER_PRESENT)
+    private fun registerCallEndedReceiver() {
+        val filter = IntentFilter(IncomingCallService.ACTION_CALL_ENDED_BROADCAST)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(callEndedReceiver, endedFilter, Context.RECEIVER_NOT_EXPORTED)
-            registerReceiver(userPresentReceiver, userPresentFilter, Context.RECEIVER_EXPORTED)
+            registerReceiver(callEndedReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(callEndedReceiver, endedFilter)
-            @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(userPresentReceiver, userPresentFilter)
+            registerReceiver(callEndedReceiver, filter)
         }
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(timerRunnable)
         try { unregisterReceiver(callEndedReceiver) } catch (_: Exception) {}
-        try { unregisterReceiver(userPresentReceiver) } catch (_: Exception) {}
         super.onDestroy()
     }
 }
