@@ -19,14 +19,18 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
+            val prefs = context.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
             when (intent.action) {
                 IncomingCallService.ACTION_ACCEPTED_BROADCAST -> {
-                    // Bridge is running — clear SharedPreferences so getPendingAcceptCallId returns null
-                    context.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
-                        .edit().remove("pendingAcceptCallId").apply()
+                    // Bridge is running — clear pending so getPendingAcceptCallId returns null
+                    prefs.edit().remove("pendingAcceptCallId").apply()
                     emitEvent("IncomingCallAccepted", callId)
                 }
-                IncomingCallService.ACTION_DECLINED_BROADCAST      -> emitEvent("IncomingCallDeclined", callId)
+                IncomingCallService.ACTION_DECLINED_BROADCAST -> {
+                    // Bridge is running — clear pending so getPendingDeclineCallId returns null
+                    prefs.edit().remove("pendingDeclineCallId").apply()
+                    emitEvent("IncomingCallDeclined", callId)
+                }
                 IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN -> emitEvent("CallHangUpFromLockScreen", callId)
             }
         }
@@ -85,6 +89,15 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
             prefs.edit().remove("pendingAcceptCallId").apply()
             promise.resolve(callId)
         } catch (e: Exception) { promise.reject("get_pending_accept_failed", e) }
+    }
+
+    @ReactMethod fun getPendingDeclineCallId(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+            val callId = prefs.getString("pendingDeclineCallId", null)
+            prefs.edit().remove("pendingDeclineCallId").apply()
+            promise.resolve(callId)
+        } catch (e: Exception) { promise.reject("get_pending_decline_failed", e) }
     }
 
     @ReactMethod fun notifyCallEnded(promise: Promise) {

@@ -22,7 +22,7 @@ import {
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
-import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, addIncomingCallListener } from '../services/incomingCallService';
+import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, addIncomingCallListener } from '../services/incomingCallService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -123,13 +123,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
 
-  // If the app was killed when the user accepted, the broadcast was missed.
-  // Read the callId saved to SharedPreferences by the native service so the
-  // Firestore listener can auto-accept as soon as the call doc arrives.
+  // If the app was killed when the user accepted/declined, the broadcast was missed.
+  // Read callIds saved to SharedPreferences by the native service and handle them.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     getPendingAcceptCallId().then((callId) => {
       if (callId) pendingNativeAcceptIdRef.current = callId;
+    }).catch(() => {});
+    getPendingDeclineCallId().then((callId) => {
+      if (callId) updateCallStatus(callId, 'declined').catch(() => {});
     }).catch(() => {});
   }, []);
 
@@ -326,17 +328,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
 
     const declineSub = addIncomingCallListener('IncomingCallDeclined', ({ callId }) => {
+      dismissedIncomingIdsRef.current.add(callId);
       const incoming = incomingCallRef.current;
-      if (incoming && incoming.id === callId && phaseRef.current === 'incoming') {
-        dismissedIncomingIdsRef.current.add(callId);
+      if (incoming?.id === callId) {
         setPhase(null);
         setCall(null);
-        if (incoming.type === 'group') {
-          const uid = auth.currentUser?.uid ?? '';
-          updateParticipantCallStatus(callId, uid, 'declined').catch(() => {});
-        } else {
-          updateCallStatus(callId, 'declined').catch(() => {});
-        }
+      }
+      // Always update Firestore — don't require incomingCallRef to be populated yet
+      if (incoming?.type === 'group' && auth.currentUser?.uid) {
+        updateParticipantCallStatus(callId, auth.currentUser.uid, 'declined').catch(() => {});
+      } else {
+        updateCallStatus(callId, 'declined').catch(() => {});
       }
     });
 

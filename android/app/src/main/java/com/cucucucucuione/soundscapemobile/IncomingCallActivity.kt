@@ -2,6 +2,7 @@ package com.cucucucucuione.soundscapemobile
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -20,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 class IncomingCallActivity : AppCompatActivity() {
 
     private var callId: String = ""
+    private var callerName: String = ""
     private val pulseAnimations = mutableListOf<AnimatorSet>()
 
     private val dismissReceiver = object : BroadcastReceiver() {
@@ -46,7 +48,7 @@ class IncomingCallActivity : AppCompatActivity() {
         setContentView(R.layout.activity_incoming_call)
 
         callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
-        val callerName = intent.getStringExtra(IncomingCallService.EXTRA_CALLER_NAME)
+        callerName = intent.getStringExtra(IncomingCallService.EXTRA_CALLER_NAME)
             ?: "Chiamata in arrivo"
 
         // Nome chiamante
@@ -71,15 +73,22 @@ class IncomingCallActivity : AppCompatActivity() {
             sendBroadcast(Intent(IncomingCallService.ACTION_ACCEPTED_BROADCAST).apply {
                 putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
             })
-            // Persist so JS picks it up if bridge was not running
             getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
                 .edit().putString("pendingAcceptCallId", callId).apply()
-            // Open main app — JS joins Agora and shows the call screen
             packageManager.getLaunchIntentForPackage(packageName)?.apply {
                 this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
             }?.let { startActivity(it) }
+            // Show lock-screen call UI so user doesn't have to manually unlock
+            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            if (km?.isKeyguardLocked == true) {
+                startActivity(Intent(this, CallActiveActivity::class.java).apply {
+                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
+                    putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
+                    putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
+                })
+            }
             stopService(Intent(this, IncomingCallService::class.java))
             finish()
         }

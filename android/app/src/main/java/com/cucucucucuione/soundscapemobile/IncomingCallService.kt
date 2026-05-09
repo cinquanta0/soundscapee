@@ -1,5 +1,6 @@
 package com.cucucucucuione.soundscapemobile
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,9 +21,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
 
 class IncomingCallService : Service() {
 
@@ -38,29 +36,38 @@ class IncomingCallService : Service() {
         when (intent?.action) {
             ACTION_STOP    -> stopIncomingCall()
             ACTION_DECLINE -> {
-                intent.getStringExtra(EXTRA_CALL_ID)?.takeIf { it.isNotBlank() }?.let { callId ->
-                    markCallDeclined(callId)
+                val callId = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
+                if (callId.isNotBlank()) {
+                    getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                        .edit().putString("pendingDeclineCallId", callId).apply()
                 }
                 sendBroadcast(Intent(ACTION_DECLINED_BROADCAST).apply {
-                    putExtra(EXTRA_CALL_ID, intent.getStringExtra(EXTRA_CALL_ID))
+                    putExtra(EXTRA_CALL_ID, callId)
                 })
                 stopIncomingCall()
             }
             ACTION_ACCEPT  -> {
                 val callId     = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
                 val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: ""
-                // Persist so JS can pick it up even if the bridge was not running
                 getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
                     .edit().putString("pendingAcceptCallId", callId).apply()
                 sendBroadcast(Intent(ACTION_ACCEPTED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
                 })
-                // Bring the app to foreground — this starts the JS bridge if killed
                 packageManager.getLaunchIntentForPackage(packageName)?.apply {
                     this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }?.let { startActivity(it) }
+                // Show lock-screen call UI so user doesn't have to manually unlock
+                val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+                if (km?.isKeyguardLocked == true) {
+                    startActivity(Intent(this, CallActiveActivity::class.java).apply {
+                        this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
+                        putExtra(EXTRA_CALL_ID, callId)
+                        putExtra(EXTRA_CALLER_NAME, callerName)
+                    })
+                }
                 stopIncomingCall()
             }
             else -> {
@@ -87,16 +94,6 @@ class IncomingCallService : Service() {
         sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
-    }
-
-    private fun markCallDeclined(callId: String) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FirebaseFirestore.getInstance().collection("calls").document(callId)
-            .update(
-                "participantStatuses.$currentUserId", "declined",
-                "status", "declined",
-                "endedAt", FieldValue.serverTimestamp()
-            )
     }
 
     private fun acquireWakeLock() {

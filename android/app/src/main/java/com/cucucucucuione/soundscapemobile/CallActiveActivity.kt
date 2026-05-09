@@ -28,13 +28,12 @@ class CallActiveActivity : AppCompatActivity() {
         }
     }
 
-    private val callEventReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                IncomingCallService.ACTION_CALL_ENDED_BROADCAST -> finish()
-                Intent.ACTION_USER_PRESENT -> openMainAppAndFinish()
-            }
-        }
+    private val callEndedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) { finish() }
+    }
+
+    private val userPresentReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) { openMainAppAndFinish() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,21 +79,23 @@ class CallActiveActivity : AppCompatActivity() {
     }
 
     private fun registerCallEventReceiver() {
-        val filter = IntentFilter().apply {
-            addAction(IncomingCallService.ACTION_CALL_ENDED_BROADCAST)
-            addAction(Intent.ACTION_USER_PRESENT)
-        }
+        val endedFilter = IntentFilter(IncomingCallService.ACTION_CALL_ENDED_BROADCAST)
+        val userPresentFilter = IntentFilter(Intent.ACTION_USER_PRESENT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(callEventReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(callEndedReceiver, endedFilter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(userPresentReceiver, userPresentFilter, Context.RECEIVER_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(callEventReceiver, filter)
+            registerReceiver(callEndedReceiver, endedFilter)
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(userPresentReceiver, userPresentFilter)
         }
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(timerRunnable)
-        try { unregisterReceiver(callEventReceiver) } catch (_: Exception) {}
+        try { unregisterReceiver(callEndedReceiver) } catch (_: Exception) {}
+        try { unregisterReceiver(userPresentReceiver) } catch (_: Exception) {}
         super.onDestroy()
     }
 }
