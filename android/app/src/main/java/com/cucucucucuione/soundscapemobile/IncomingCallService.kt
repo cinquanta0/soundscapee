@@ -62,7 +62,7 @@ class IncomingCallService : Service() {
                 }?.let { startActivity(it) }
                 // Show lock-screen call UI only when device truly requires auth to unlock
                 val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-                if (km?.isDeviceLocked == true) {
+                if (km?.isKeyguardLocked == true) {
                     startActivity(Intent(this, CallActiveActivity::class.java).apply {
                         this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
                         putExtra(EXTRA_CALL_ID, callId)
