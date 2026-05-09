@@ -20,8 +20,9 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
         override fun onReceive(context: Context, intent: Intent) {
             val callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
             when (intent.action) {
-                IncomingCallService.ACTION_ACCEPTED_BROADCAST -> emitEvent("IncomingCallAccepted", callId)
-                IncomingCallService.ACTION_DECLINED_BROADCAST  -> emitEvent("IncomingCallDeclined", callId)
+                IncomingCallService.ACTION_ACCEPTED_BROADCAST      -> emitEvent("IncomingCallAccepted", callId)
+                IncomingCallService.ACTION_DECLINED_BROADCAST      -> emitEvent("IncomingCallDeclined", callId)
+                IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN -> emitEvent("CallHangUpFromLockScreen", callId)
             }
         }
     }
@@ -30,6 +31,7 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
         val filter = IntentFilter().apply {
             addAction(IncomingCallService.ACTION_ACCEPTED_BROADCAST)
             addAction(IncomingCallService.ACTION_DECLINED_BROADCAST)
+            addAction(IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             reactContext.registerReceiver(broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -69,6 +71,13 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
             reactContext.startService(intent)
             promise.resolve(null)
         } catch (e: Exception) { promise.reject("incoming_call_dismiss_failed", e) }
+    }
+
+    @ReactMethod fun notifyCallEnded(promise: Promise) {
+        try {
+            reactContext.sendBroadcast(Intent(IncomingCallService.ACTION_CALL_ENDED_BROADCAST))
+            promise.resolve(null)
+        } catch (e: Exception) { promise.reject("notify_call_ended_failed", e) }
     }
 
     @ReactMethod fun addListener(eventName: String) { /* required by RN event emitter */ }

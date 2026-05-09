@@ -22,6 +22,7 @@ import { NativeModules, NativeEventEmitter, Platform, EmitterSubscription } from
 type IncomingCallNativeModule = {
   showIncomingCall: (callId: string, callerName: string) => Promise<void>;
   dismissIncomingCall: () => Promise<void>;
+  notifyCallEnded: () => Promise<void>;
   addListener: (eventName: string) => void;
   removeListeners: (count: number) => void;
 };
@@ -33,7 +34,7 @@ const nativeModule: IncomingCallNativeModule | null =
 
 const emitter = nativeModule ? new NativeEventEmitter(nativeModule as any) : null;
 
-export type IncomingCallEvent = 'IncomingCallAccepted' | 'IncomingCallDeclined';
+export type IncomingCallEvent = 'IncomingCallAccepted' | 'IncomingCallDeclined' | 'CallHangUpFromLockScreen';
 
 export async function showIncomingCall(callId: string, callerName: string): Promise<void> {
   if (!nativeModule) return;
@@ -43,6 +44,11 @@ export async function showIncomingCall(callId: string, callerName: string): Prom
 export async function dismissIncomingCall(): Promise<void> {
   if (!nativeModule) return;
   await nativeModule.dismissIncomingCall().catch(() => {});
+}
+
+export async function notifyCallEnded(): Promise<void> {
+  if (!nativeModule) return;
+  await nativeModule.notifyCallEnded().catch(() => {});
 }
 
 /**

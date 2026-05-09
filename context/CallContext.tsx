@@ -22,7 +22,7 @@ import {
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
-import { showIncomingCall, dismissIncomingCall, addIncomingCallListener } from '../services/incomingCallService';
+import { showIncomingCall, dismissIncomingCall, notifyCallEnded, addIncomingCallListener } from '../services/incomingCallService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -330,9 +330,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    const hangupSub = addIncomingCallListener('CallHangUpFromLockScreen', ({ callId }) => {
+      if (callIdRef.current === callId && !cleaningUpRef.current) {
+        updateCallStatus(callId, 'ended').catch(() => {});
+        _finalize('ended');
+      }
+    });
+
     return () => {
       acceptSub?.remove();
       declineSub?.remove();
+      hangupSub?.remove();
     };
   }, []);
 
@@ -483,7 +491,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (durationTimerRef.current) { clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
     unsubCallRef.current?.();
     unsubCallRef.current = null;
-    if (Platform.OS === 'android') Notifications.dismissAllNotificationsAsync().catch(() => {});
+    if (Platform.OS === 'android') {
+      Notifications.dismissAllNotificationsAsync().catch(() => {});
+      notifyCallEnded().catch(() => {});
+    }
 
     if (callIdRef.current) ck.endCall(callIdRef.current);
 

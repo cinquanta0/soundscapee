@@ -47,13 +47,15 @@ class IncomingCallService : Service() {
                 stopIncomingCall()
             }
             ACTION_ACCEPT  -> {
-                val callId = intent.getStringExtra(EXTRA_CALL_ID)
-                // Porta l'app in foreground mentre siamo ancora foreground service
-                packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }?.let { startActivity(it) }
+                val callId     = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
+                val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: ""
                 sendBroadcast(Intent(ACTION_ACCEPTED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
+                })
+                startActivity(Intent(this, CallActiveActivity::class.java).apply {
+                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra(EXTRA_CALL_ID, callId)
+                    putExtra(EXTRA_CALLER_NAME, callerName)
                 })
                 stopIncomingCall()
             }
@@ -85,42 +87,12 @@ class IncomingCallService : Service() {
 
     private fun markCallDeclined(callId: String) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val callRef = FirebaseFirestore.getInstance().collection("calls").document(callId)
-        callRef.get()
-            .addOnSuccessListener { snapshot ->
-                if (!snapshot.exists()) return@addOnSuccessListener
-
-                val type = snapshot.getString("type") ?: "audio"
-                if (type != "group") {
-                    callRef.update(
-                        mapOf(
-                            "status" to "declined",
-                            "endedAt" to FieldValue.serverTimestamp(),
-                            "participantStatuses.$currentUserId" to "declined",
-                        )
-                    )
-                    return@addOnSuccessListener
-                }
-
-                @Suppress("UNCHECKED_CAST")
-                val statuses = (snapshot.get("participantStatuses") as? Map<String, String>)?.toMutableMap()
-                    ?: mutableMapOf()
-                statuses[currentUserId] = "declined"
-
-                val hasActiveOrRinging = statuses.values.any { status ->
-                    status == "calling" || status == "ringing" || status == "active"
-                }
-
-                val updates = mutableMapOf<String, Any>(
-                    "participantStatuses.$currentUserId" to "declined",
-                )
-                if (!hasActiveOrRinging) {
-                    updates["status"] = "declined"
-                    updates["endedAt"] = FieldValue.serverTimestamp()
-                }
-
-                callRef.update(updates)
-            }
+        FirebaseFirestore.getInstance().collection("calls").document(callId)
+            .update(
+                "participantStatuses.$currentUserId", "declined",
+                "status", "declined",
+                "endedAt", FieldValue.serverTimestamp()
+            )
     }
 
     private fun acquireWakeLock() {
@@ -259,9 +231,11 @@ class IncomingCallService : Service() {
         const val ACTION_STOP    = "com.cucucucucuione.soundscapemobile.action.INCOMING_CALL_STOP"
         const val ACTION_ACCEPT  = "com.cucucucucuione.soundscapemobile.action.INCOMING_CALL_ACCEPT"
         const val ACTION_DECLINE = "com.cucucucucuione.soundscapemobile.action.INCOMING_CALL_DECLINE"
-        const val ACTION_ACCEPTED_BROADCAST  = "com.cucucucucuione.soundscapemobile.CALL_ACCEPTED"
-        const val ACTION_DECLINED_BROADCAST  = "com.cucucucucuione.soundscapemobile.CALL_DECLINED"
-        const val ACTION_DISMISS_ACTIVITY    = "com.cucucucucuione.soundscapemobile.DISMISS_INCOMING_ACTIVITY"
+        const val ACTION_ACCEPTED_BROADCAST      = "com.cucucucucuione.soundscapemobile.CALL_ACCEPTED"
+        const val ACTION_DECLINED_BROADCAST      = "com.cucucucucuione.soundscapemobile.CALL_DECLINED"
+        const val ACTION_DISMISS_ACTIVITY        = "com.cucucucucuione.soundscapemobile.DISMISS_INCOMING_ACTIVITY"
+        const val ACTION_CALL_ENDED_BROADCAST    = "com.cucucucucuione.soundscapemobile.CALL_ENDED"
+        const val ACTION_HANG_UP_FROM_LOCKSCREEN = "com.cucucucucuione.soundscapemobile.HANG_UP_LOCKSCREEN"
         const val EXTRA_CALL_ID     = "call_id"
         const val EXTRA_CALLER_NAME = "caller_name"
         private const val CHANNEL_ID      = "soundscape_incoming_call"

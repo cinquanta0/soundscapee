@@ -68,16 +68,13 @@ class IncomingCallActivity : AppCompatActivity() {
 
         // Pulsante Rispondi
         findViewById<FrameLayout>(R.id.btnAccept).setOnClickListener {
-            // Porta l'app in foreground
-            packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }?.let { startActivity(it) }
-
-            // Segnala accept al JS
             sendBroadcast(Intent(IncomingCallService.ACTION_ACCEPTED_BROADCAST).apply {
                 putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
+            })
+            startActivity(Intent(this, CallActiveActivity::class.java).apply {
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
+                putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
             })
             stopService(Intent(this, IncomingCallService::class.java))
             finish()
