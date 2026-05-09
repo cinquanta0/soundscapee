@@ -117,6 +117,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const ringtoneStartingRef = useRef(false);
   const dismissedIncomingIdsRef = useRef<Set<string>>(new Set());
   const pendingNativeAcceptIdRef = useRef<string | null>(null);
+  const pendingAcceptCallRef = useRef<Call | null>(null);
   const rejoinableCallRef = useRef<Call | null>(null);
   const [canRejoin, setCanRejoin] = useState(false);
 
@@ -151,6 +152,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (nextState) => {
       appStateRef.current = nextState;
       if (nextState === 'active') {
+        // Deferred accept: app was in background when user accepted from lock screen (PIN).
+        // Now that we're in foreground, microphone access is allowed — run _doAccept.
+        if (pendingAcceptCallRef.current && !acceptingCallRef.current) {
+          const callToAccept = pendingAcceptCallRef.current;
+          pendingAcceptCallRef.current = null;
+          _doAccept(callToAccept);
+          return;
+        }
         if (phaseRef.current === 'incoming') {
           // Android: IncomingCallService already runs in background — no need
           // to stop/restart; it keeps ringing via STREAM_RING on its own.
@@ -275,6 +284,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
         if (!incoming) {
           dismissedIncomingIdsRef.current.clear();
+          // Caller cancelled while we were waiting for PIN — drop the deferred accept
+          if (pendingAcceptCallRef.current) {
+            pendingAcceptCallRef.current = null;
+            setPhase(null);
+            setCall(null);
+          }
           // Caller cancelled/missed before we answered — dismiss incoming screen
           if (phaseRef.current === 'incoming') {
             _stopRinging();
@@ -290,6 +305,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
         if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
         if (phaseRef.current !== null) return;
+        // Already deferred for this call — ignore re-fires from Firestore updates
+        if (pendingAcceptCallRef.current?.id === incoming.id) return;
         setCall(incoming);
 
         // Fast path: pending accept already known (CallKeep or acceptSub already set the ref)
@@ -299,7 +316,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         ) {
           pendingAcceptUUIDRef.current = null;
           pendingNativeAcceptIdRef.current = null;
-          _doAccept(incoming);
+          if (appStateRef.current === 'active') {
+            _doAccept(incoming);
+          } else {
+            pendingAcceptCallRef.current = incoming;
+          }
           return;
         }
 
@@ -310,22 +331,31 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           // resolves in the mount effect — check SharedPreferences directly here.
           getPendingAcceptCallId().then((nativeId) => {
             if (phaseRef.current !== null) return;
+            if (pendingAcceptCallRef.current?.id === incoming.id) return;
             // nativeId match: bridge was killed when user accepted
             if (nativeId === incoming.id) {
-              _doAccept(incoming);
+              if (appStateRef.current === 'active') {
+                _doAccept(incoming);
+              } else {
+                pendingAcceptCallRef.current = incoming;
+              }
               return;
             }
             // pendingNativeAcceptIdRef match: acceptSub fired before us
             // (broadcastReceiver already cleared SharedPreferences)
             if (pendingNativeAcceptIdRef.current === incoming.id) {
               pendingNativeAcceptIdRef.current = null;
-              _doAccept(incoming);
+              if (appStateRef.current === 'active') {
+                _doAccept(incoming);
+              } else {
+                pendingAcceptCallRef.current = incoming;
+              }
               return;
             }
             setPhase('incoming');
             if (appStateRef.current === 'active') _startRinging(incoming);
           }).catch(() => {
-            if (phaseRef.current === null) {
+            if (phaseRef.current === null && !pendingAcceptCallRef.current) {
               setPhase('incoming');
               if (appStateRef.current === 'active') _startRinging(incoming);
             }
@@ -350,7 +380,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const acceptSub = addIncomingCallListener('IncomingCallAccepted', ({ callId }) => {
       const incoming = incomingCallRef.current;
       if (incoming && incoming.id === callId && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
-        _doAccept(incoming);
+        if (appStateRef.current === 'active') {
+          _doAccept(incoming);
+        } else {
+          // App is behind lock screen (PIN) — defer until foreground
+          pendingAcceptCallRef.current = incoming;
+        }
       } else {
         // Race condition: il broadcast è arrivato prima che il listener Firestore
         // caricasse la call. Lo salviamo e lo processiamo appena arriva.
@@ -374,6 +409,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
 
     const hangupSub = addIncomingCallListener('CallHangUpFromLockScreen', ({ callId }) => {
+      // User tapped Riattacca before the call fully connected (still entering PIN)
+      if (pendingAcceptCallRef.current?.id === callId) {
+        updateCallStatus(callId, 'ended').catch(() => {});
+        pendingAcceptCallRef.current = null;
+        setPhase(null);
+        setCall(null);
+        return;
+      }
       if (callIdRef.current === callId && !cleaningUpRef.current) {
         updateCallStatus(callId, 'ended').catch(() => {});
         _finalize('ended');
