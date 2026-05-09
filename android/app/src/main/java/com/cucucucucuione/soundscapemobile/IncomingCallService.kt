@@ -29,6 +29,7 @@ class IncomingCallService : Service() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var isStarted = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -83,6 +84,8 @@ class IncomingCallService : Service() {
     override fun onDestroy() { stopIncomingCall(); super.onDestroy() }
 
     private fun startIncomingCall(callId: String, callerName: String) {
+        if (isStarted) return
+        isStarted = true
         acquireWakeLock()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification(callId, callerName))
@@ -92,6 +95,7 @@ class IncomingCallService : Service() {
     }
 
     private fun stopIncomingCall() {
+        isStarted = false
         sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
