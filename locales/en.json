@@ -819,7 +819,13 @@
       "cannotSend": "Cannot send the message.",
       "cannotDelete": "Cannot delete the message.",
       "cannotReact": "Cannot add the reaction."
-    }
+    },
+    "blockTitle": "Block {{name}}",
+    "blockConfirm": "You will no longer receive messages or calls from this user.",
+    "block": "Block",
+    "unblockTitle": "Unblock {{name}}",
+    "unblockConfirm": "You will be able to receive messages and calls from this user again.",
+    "unblock": "Unblock"
   },
   "call": {
     "soundscape": "SoundScape · Voice call",

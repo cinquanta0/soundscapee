@@ -14,6 +14,7 @@ import {
   Messaggio, listenMessaggi, inviaMessaggio, inviaTestoMessaggio,
   segnaAscoltato, eliminaMessaggio, genWaveform, toggleReazione,
 } from '../services/messaggiService';
+import { blockUser, unblockUser, listenBlockedUsers } from '../services/blockService';
 import { useCall } from '../context/CallContext';
 
 const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
@@ -503,6 +504,46 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     }
   };
 
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  useEffect(() => {
+    const myUid = auth.currentUser?.uid;
+    if (!myUid) return;
+    const unsub = listenBlockedUsers(myUid, (ids) => setIsBlocked(ids.includes(otherUserId)));
+    return unsub;
+  }, [otherUserId]);
+
+  const handleBlockMenu = () => {
+    const myUid = auth.currentUser?.uid;
+    if (!myUid) return;
+    if (isBlocked) {
+      Alert.alert(
+        t('chat.unblockTitle', { name: otherUserName }),
+        t('chat.unblockConfirm'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('chat.unblock'),
+            onPress: () => unblockUser(myUid, otherUserId).catch(() => {}),
+          },
+        ],
+      );
+    } else {
+      Alert.alert(
+        t('chat.blockTitle', { name: otherUserName }),
+        t('chat.blockConfirm'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('chat.block'),
+            style: 'destructive',
+            onPress: () => blockUser(myUid, otherUserId).catch(() => {}),
+          },
+        ],
+      );
+    }
+  };
+
   const { initiateCall, phase: callPhase } = useCall();
   const initial = otherUserName[0]?.toUpperCase() || '?';
   const listBottomPadding = keyboardVisible ? 24 : 120 + insets.bottom;
@@ -540,6 +581,13 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={cs.callBtnTxt}>📞</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={cs.menuBtn}
+          onPress={handleBlockMenu}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[cs.menuBtnTxt, isBlocked && { color: C.red }]}>⋯</Text>
         </TouchableOpacity>
       </View>
 
@@ -715,4 +763,6 @@ const cs = StyleSheet.create({
   callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
   callBtnDisabled: { opacity: 0.3 },
   callBtnTxt: { fontSize: 16 },
+  menuBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
+  menuBtnTxt: { fontSize: 22, color: C.textDim, lineHeight: 22 },
 });

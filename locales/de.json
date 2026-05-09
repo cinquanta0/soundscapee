@@ -819,7 +819,13 @@
       "cannotSend": "Nachricht konnte nicht gesendet werden.",
       "cannotDelete": "Nachricht konnte nicht gelöscht werden.",
       "cannotReact": "Reaktion konnte nicht hinzugefügt werden."
-    }
+    },
+    "blockTitle": "{{name}} blockieren",
+    "blockConfirm": "Du erhältst keine Nachrichten oder Anrufe mehr von diesem Benutzer.",
+    "block": "Blockieren",
+    "unblockTitle": "{{name}} entsperren",
+    "unblockConfirm": "Du kannst wieder Nachrichten und Anrufe von diesem Benutzer empfangen.",
+    "unblock": "Entsperren"
   },
   "call": {
     "soundscape": "SoundScape · Sprachanruf",

@@ -819,7 +819,13 @@
       "cannotSend": "Impossibile inviare il messaggio.",
       "cannotDelete": "Impossibile eliminare il messaggio.",
       "cannotReact": "Impossibile aggiungere la reaction."
-    }
+    },
+    "blockTitle": "Blocca {{name}}",
+    "blockConfirm": "Non riceverai più messaggi o chiamate da questo utente.",
+    "block": "Blocca",
+    "unblockTitle": "Sblocca {{name}}",
+    "unblockConfirm": "Potrai di nuovo ricevere messaggi e chiamate da questo utente.",
+    "unblock": "Sblocca"
   },
   "call": {
     "soundscape": "SoundScape · Chiamata vocale",

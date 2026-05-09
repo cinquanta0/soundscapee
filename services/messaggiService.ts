@@ -63,6 +63,7 @@ export function genWaveform(seed: string, bars = 20): number[] {
 export function listenConversazioni(
   userId: string,
   cb: (convs: Conversazione[]) => void,
+  blockedIds: string[] = [],
 ): Unsubscribe {
   const q = query(
     collection(db, 'conversations'),
@@ -75,6 +76,7 @@ export function listenConversazioni(
     for (const d of snap.docs) {
       const data = d.data();
       const otherId = data.participants.find((p: string) => p !== userId) as string;
+      if (blockedIds.includes(otherId)) continue;
       convs.push({
         id: d.id,
         participants: data.participants,

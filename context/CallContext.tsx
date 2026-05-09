@@ -23,6 +23,7 @@ import {
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
 import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
+import { listenBlockedUsers } from '../services/blockService';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -120,6 +121,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const pendingAcceptCallRef = useRef<Call | null>(null);
   const rejoinableCallRef = useRef<Call | null>(null);
   const [canRejoin, setCanRejoin] = useState(false);
+  const blockedUsersRef = useRef<Set<string>>(new Set());
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -275,11 +277,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // ─── Listen for incoming calls ─────────────────────────────────────────────
   useEffect(() => {
     let unsubCall: (() => void) | null = null;
+    let unsubBlocked: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       unsubCall?.();
       unsubCall = null;
-      if (!user) return;
+      unsubBlocked?.();
+      unsubBlocked = null;
+      if (!user) { blockedUsersRef.current = new Set(); return; }
+
+      unsubBlocked = listenBlockedUsers(user.uid, (ids) => {
+        blockedUsersRef.current = new Set(ids);
+      });
 
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
         if (!incoming) {
@@ -307,6 +316,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (phaseRef.current !== null) return;
         // Already deferred for this call — ignore re-fires from Firestore updates
         if (pendingAcceptCallRef.current?.id === incoming.id) return;
+        // Silently reject calls from blocked users
+        if (blockedUsersRef.current.has(incoming.callerId)) {
+          dismissedIncomingIdsRef.current.add(incoming.id);
+          dismissIncomingCall().catch(() => {});
+          updateCallStatus(incoming.id, 'declined').catch(() => {});
+          return;
+        }
         setCall(incoming);
 
         // Fast path: pending accept already known (CallKeep or acceptSub already set the ref)
@@ -370,7 +386,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
-    return () => { unsubCall?.(); unsubAuth(); };
+    return () => { unsubCall?.(); unsubBlocked?.(); unsubAuth(); };
   }, []);
 
   // ─── Handle accept / decline from Android notification buttons ───────────

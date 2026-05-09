@@ -10,6 +10,7 @@ import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
+import { listenBlockedUsers } from '../services/blockService';
 import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
@@ -157,16 +158,23 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [showGroupCall, setShowGroupCall] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
   const me = auth.currentUser;
+
+  useEffect(() => {
+    if (!me) return;
+    const unsub = listenBlockedUsers(me.uid, setBlockedIds);
+    return unsub;
+  }, [me?.uid]);
 
   useEffect(() => {
     if (!me) return;
     const unsub = listenConversazioni(me.uid, (convs) => {
       setConversations(convs);
       setTotalUnread(convs.reduce((acc, c) => acc + c.unread, 0));
-    });
+    }, blockedIds);
     return unsub;
-  }, [me?.uid]);
+  }, [me?.uid, blockedIds]);
 
   useEffect(() => {
     if (initialChat) setActiveChat(initialChat);
