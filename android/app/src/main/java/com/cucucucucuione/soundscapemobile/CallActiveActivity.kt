@@ -82,6 +82,11 @@ class CallActiveActivity : AppCompatActivity() {
     }
 
     private fun openMainAppAndFinish() {
+        // Dismiss the keyguard so MainActivity appears without requiring a swipe/PIN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            km?.requestDismissKeyguard(this, null)
+        }
         packageManager.getLaunchIntentForPackage(packageName)?.apply {
             this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
