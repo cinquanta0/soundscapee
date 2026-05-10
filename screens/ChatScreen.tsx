@@ -322,6 +322,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const listRef = useRef<FlatList<Messaggio>>(null);
   const autoScrollRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
+  const sendingRef = useRef(false);
 
   useEffect(() => {
     const unsub = listenMessaggi(conversationId, (msgs) => {
@@ -483,8 +484,9 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
   const handleSendText = async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sendingRef.current) return;
 
+    sendingRef.current = true;
     setSending(true);
     try {
       await inviaTestoMessaggio({
@@ -500,6 +502,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     } catch {
       Alert.alert(t('common.error'), t('chat.errors.cannotSend'));
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -603,7 +606,16 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             onDelete={handleDelete}
             onReply={handleReply}
             onReact={handleReact}
-            onToggleMenu={(msg) => setMenuMessageId((current) => current === msg.id ? null : msg.id)}
+            onToggleMenu={(msg) => setMenuMessageId((current) => {
+              if (current === msg.id) return null;
+              autoScrollRef.current = false;
+              setTimeout(() => {
+                try {
+                  listRef.current?.scrollToItem({ item: msg, animated: true, viewPosition: 0.35 });
+                } catch {}
+              }, 50);
+              return msg.id;
+            })}
             menuOpen={menuMessageId === item.id}
             openUpwards={messages.slice(-2).some((m) => m.id === item.id)}
             playingId={playingId}
