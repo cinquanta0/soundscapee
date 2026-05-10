@@ -42,7 +42,7 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun updatePipActions(isMuted: Boolean) {
         currentIsMuted = isMuted
-        val activity = currentActivity ?: return
+        val activity = reactApplicationContext.currentActivity ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         try {
             activity.setPictureInPictureParams(buildParams(activity))
