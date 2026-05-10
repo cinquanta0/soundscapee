@@ -48,31 +48,13 @@ class IncomingCallService : Service() {
                 }
                 sendBroadcast(Intent(ACTION_DECLINED_BROADCAST).apply {
                     putExtra(EXTRA_CALL_ID, callId)
+                    setPackage(packageName)
                 })
                 stopIncomingCall()
             }
             ACTION_ACCEPT  -> {
-                val callId     = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
-                val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: ""
-                getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
-                    .edit().putString("pendingAcceptCallId", callId).apply()
-                sendBroadcast(Intent(ACTION_ACCEPTED_BROADCAST).apply {
-                    putExtra(EXTRA_CALL_ID, callId)
-                })
-                packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }?.let { startActivity(it) }
-                // Show lock-screen call UI only when device truly requires auth to unlock
-                val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-                if (km?.isKeyguardLocked == true) {
-                    startActivity(Intent(this, CallActiveActivity::class.java).apply {
-                        this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
-                        putExtra(EXTRA_CALL_ID, callId)
-                        putExtra(EXTRA_CALLER_NAME, callerName)
-                    })
-                }
+                // Legacy path kept for safety — notification button now goes directly to
+                // MainActivity via PendingIntent.getActivity() (see buildNotification).
                 stopIncomingCall()
             }
             else -> {
@@ -103,7 +85,7 @@ class IncomingCallService : Service() {
     private fun stopIncomingCall() {
         isStarted = false
         handler.removeCallbacks(ringTimeoutRunnable)
-        sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY))
+        sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY).setPackage(packageName))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
     }
@@ -248,8 +230,16 @@ class IncomingCallService : Service() {
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val openPi       = PendingIntent.getActivity(this, 0, openIntent ?: Intent(), flags)
         val fullScreenPi = PendingIntent.getActivity(this, 1, callScreenIntent, flags)
-        val acceptPi     = PendingIntent.getService(this, 2,
-            Intent(this, IncomingCallService::class.java).apply { action = ACTION_ACCEPT; putExtra(EXTRA_CALL_ID, callId); putExtra(EXTRA_CALLER_NAME, callerName) }, flags)
+        // Use getActivity so Android grants BAL privilege — getService() is blocked on API 29+.
+        val acceptMainIntent = (packageManager.getLaunchIntentForPackage(packageName) ?: Intent()).apply {
+            this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("showOverLockScreen", true)
+            putExtra(EXTRA_CALL_ID, callId)
+            putExtra(EXTRA_ACCEPT_FROM_NOTIFICATION, true)
+        }
+        val acceptPi     = PendingIntent.getActivity(this, 2, acceptMainIntent, flags)
         val declinePi    = PendingIntent.getService(this, 3,
             Intent(this, IncomingCallService::class.java).apply { action = ACTION_DECLINE; putExtra(EXTRA_CALL_ID, callId) }, flags)
 
@@ -276,8 +266,9 @@ class IncomingCallService : Service() {
         const val ACTION_DISMISS_ACTIVITY        = "com.cucucucucuione.soundscapemobile.DISMISS_INCOMING_ACTIVITY"
         const val ACTION_CALL_ENDED_BROADCAST    = "com.cucucucucuione.soundscapemobile.CALL_ENDED"
         const val ACTION_HANG_UP_FROM_LOCKSCREEN = "com.cucucucucuione.soundscapemobile.HANG_UP_LOCKSCREEN"
-        const val EXTRA_CALL_ID     = "call_id"
-        const val EXTRA_CALLER_NAME = "caller_name"
+        const val EXTRA_CALL_ID                  = "call_id"
+        const val EXTRA_CALLER_NAME              = "caller_name"
+        const val EXTRA_ACCEPT_FROM_NOTIFICATION = "acceptFromNotification"
         private const val CHANNEL_ID      = "soundscape_incoming_call"
         private const val NOTIFICATION_ID = 7105
     }

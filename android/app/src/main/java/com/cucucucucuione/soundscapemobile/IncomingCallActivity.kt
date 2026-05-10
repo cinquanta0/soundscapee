@@ -71,6 +71,7 @@ class IncomingCallActivity : AppCompatActivity() {
         findViewById<FrameLayout>(R.id.btnAccept).setOnClickListener {
             sendBroadcast(Intent(IncomingCallService.ACTION_ACCEPTED_BROADCAST).apply {
                 putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
+                setPackage(packageName)
             })
             getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
                 .edit().putString("pendingAcceptCallId", callId).apply()

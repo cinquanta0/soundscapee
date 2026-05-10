@@ -21,11 +21,13 @@ class MainActivity : ReactActivity() {
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
     super.onCreate(null)
+    handleNotificationAccept(intent)
   }
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     handleShowWhenLocked(intent)
+    handleNotificationAccept(intent)
   }
 
   // Triggers PiP when the user presses home/recents while a call is active.
@@ -40,6 +42,25 @@ class MainActivity : ReactActivity() {
   ) {
     super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     CallPipModule.notifyPipModeChanged(isInPictureInPictureMode)
+  }
+
+  // Handles the "Rispondi" notification button — saves accept state and stops the ringtone.
+  // The notification button uses PendingIntent.getActivity() pointing here, which grants
+  // Background Activity Launch privilege (PendingIntent.getService() is blocked on API 29+).
+  private fun handleNotificationAccept(intent: Intent?) {
+    if (intent?.getBooleanExtra(IncomingCallService.EXTRA_ACCEPT_FROM_NOTIFICATION, false) != true) return
+    val callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: return
+    getSharedPreferences("IncomingCall", android.content.Context.MODE_PRIVATE)
+      .edit().putString("pendingAcceptCallId", callId).apply()
+    sendBroadcast(Intent(IncomingCallService.ACTION_ACCEPTED_BROADCAST).apply {
+      putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
+      setPackage(packageName)
+    })
+    try {
+      startService(Intent(this, IncomingCallService::class.java).apply {
+        action = IncomingCallService.ACTION_STOP
+      })
+    } catch (_: Exception) {}
   }
 
   // Shows the React Native app over the lock screen without requiring PIN,
