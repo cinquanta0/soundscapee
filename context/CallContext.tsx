@@ -1,7 +1,7 @@
 import React, {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
-import { Alert, AppState, NativeEventEmitter, NativeModules, Platform, Vibration } from 'react-native';
+import { Alert, AppState, Linking, NativeEventEmitter, NativeModules, Platform, Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -47,6 +47,21 @@ const ck = {
   setForegroundServiceSettings: (cfg: any) => { try { RNCallKeep?.setForegroundServiceSettings?.(cfg); } catch {} },
 };
 const RING_TIMEOUT_MS = 45_000;
+
+function alertMicPermission(canAskAgain: boolean) {
+  if (canAskAgain) {
+    Alert.alert('Microfono', 'Per usare le chiamate devi abilitare il microfono.');
+  } else {
+    Alert.alert(
+      'Microfono richiesto',
+      'Il permesso del microfono è stato negato in modo permanente. Abilitalo nelle impostazioni dell\'app.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Impostazioni', onPress: () => Linking.openSettings() },
+      ],
+    );
+  }
+}
 const CALL_SOUND = require('../assets/sounds/soundscape_call.wav');
 
 function hasActiveOrRingingParticipants(participantStatuses?: Record<string, string>) {
@@ -698,9 +713,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     dismissedIncomingIdsRef.current.delete(incoming.id);
     _stopRinging();
 
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Microfono', 'Per rispondere devi abilitare il microfono.');
+      alertMicPermission(canAskAgain);
       if (incoming.type === 'group') {
         await updateParticipantCallStatus(incoming.id, auth.currentUser?.uid ?? '', 'declined').catch(() => {});
       } else {
@@ -755,9 +770,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const user = auth.currentUser;
     if (!user) return;
 
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Microfono', 'Per chiamare devi abilitare il microfono.');
+      alertMicPermission(canAskAgain);
       return;
     }
 
@@ -818,9 +833,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const user = auth.currentUser;
     if (!user) return;
 
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Microfono', 'Per chiamare devi abilitare il microfono.');
+      alertMicPermission(canAskAgain);
       return;
     }
 
@@ -946,9 +961,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     rejoinableCallRef.current = null;
     setCanRejoin(false);
 
-    const { status: micStatus } = await Audio.requestPermissionsAsync();
+    const { status: micStatus, canAskAgain: micCanAskAgain } = await Audio.requestPermissionsAsync();
     if (micStatus !== 'granted') {
-      Alert.alert('Microfono', 'Per rientrare devi abilitare il microfono.');
+      alertMicPermission(micCanAskAgain);
       return;
     }
 
@@ -1033,8 +1048,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const toggleSpeaker = useCallback(() => {
     setIsSpeaker((s) => {
-      engineRef.current?.setEnableSpeakerphone(!s);
-      return !s;
+      const next = !s;
+      engineRef.current?.setEnableSpeakerphone(next);
+      // On MIUI and other custom ROMs, Agora alone may not override the audio
+      // routing — also set expo-av's playThroughEarpieceAndroid to reinforce it.
+      if (Platform.OS === 'android') {
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: !next,
+        }).catch(() => {});
+      }
+      return next;
     });
   }, []);
 
