@@ -1,6 +1,5 @@
 package com.cucucucucuione.soundscapemobile
 
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +11,9 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
+// Safety fallback activity — normally MainActivity handles the lock screen directly
+// (IncomingCallActivity now passes showOverLockScreen=true to MainActivity).
+// If this activity is ever launched it simply opens the main app immediately, no PIN prompt.
 class CallActiveActivity : AppCompatActivity() {
 
     private val callEndedReceiver = object : BroadcastReceiver() {
@@ -38,7 +40,7 @@ class CallActiveActivity : AppCompatActivity() {
         val callId     = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
 
         findViewById<TextView>(R.id.tvActiveCallerName).text = callerName
-        findViewById<TextView>(R.id.tvCallDuration)?.text = "Sblocca per rispondere"
+        findViewById<TextView>(R.id.tvCallDuration)?.text = "Chiamata in corso"
 
         findViewById<FrameLayout>(R.id.btnHangUp).setOnClickListener {
             sendBroadcast(Intent(IncomingCallService.ACTION_HANG_UP_FROM_LOCKSCREEN).apply {
@@ -47,28 +49,15 @@ class CallActiveActivity : AppCompatActivity() {
             finish()
         }
 
-        // Show PIN/biometric entry immediately (auto-dismisses on no-PIN devices).
-        // onDismissSucceeded fires once the user authenticates successfully.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-            km?.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
-                override fun onDismissSucceeded() { openMainAppAndFinish() }
-                override fun onDismissCancelled()  { /* user backed out — stays on overlay, can retry or hang up */ }
-                override fun onDismissError()       { openMainAppAndFinish() }
-            })
-        }
-
         registerCallEndedReceiver()
+
+        // Redirect to main app immediately — no PIN dialog
+        openMainAppAndFinish()
     }
 
     override fun onResume() {
         super.onResume()
-        // Catches: user unlocked via regular lock screen gesture after cancelling the dialog,
-        // or API < 26 devices, or no-PIN auto-dismiss completing before onResume.
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-        if (km?.isKeyguardLocked == false) {
-            openMainAppAndFinish()
-        }
+        openMainAppAndFinish()
     }
 
     private fun openMainAppAndFinish() {
@@ -76,6 +65,7 @@ class CallActiveActivity : AppCompatActivity() {
             this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("showOverLockScreen", true)
         }?.let { startActivity(it) }
         finish()
     }

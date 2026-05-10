@@ -1,7 +1,7 @@
 import React, {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
-import { Alert, AppState, Platform, Vibration } from 'react-native';
+import { Alert, AppState, NativeEventEmitter, NativeModules, Platform, Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -60,6 +60,7 @@ interface CallContextValue {
   isMuted: boolean;
   isSpeaker: boolean;
   isRecording: boolean;
+  isPipMode: boolean;
   duration: number;
   endReason: string | null;
   canRejoin: boolean;
@@ -94,8 +95,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPipMode, setIsPipMode] = useState(false);
   const [duration, setDuration] = useState(0);
   const [endReason, setEndReason] = useState<string | null>(null);
+  const isMutedRef = useRef(false);
 
   const engineRef = useRef<IRtcEngine | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -125,6 +128,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
   // If the app was killed when the user declined, the broadcast was missed.
   // Accept is handled inside listenForIncomingCall to avoid a Firestore cache race.
@@ -477,16 +481,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           const uid = auth.currentUser?.uid;
           if (uid) updateDoc(doc(db, 'users', uid), { inCall: true }).catch(() => {});
           if (Platform.OS === 'android') {
-            Notifications.scheduleNotificationAsync({
-              content: {
-                title: 'Chiamata in corso',
-                body: 'Tocca per tornare alla chiamata',
-                sticky: true,
-                autoDismiss: false,
-                data: { callActive: true },
-              },
-              trigger: null,
-            }).catch(() => {});
+            // PiP replaces the sticky "return to call" notification.
+            // setCallActive tells MainActivity.onUserLeaveHint() to enter PiP.
+            const currentCall = incomingCallRef.current;
+            const myUid = auth.currentUser?.uid;
+            const remoteName = currentCall
+              ? (currentCall.callerId === myUid ? currentCall.calleeName : currentCall.callerName)
+              : 'Chiamata';
+            NativeModules.CallPip?.setCallActive?.(true, remoteName, false);
           }
         }
         setPhase('active');
@@ -600,6 +602,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     unsubCallRef.current?.();
     unsubCallRef.current = null;
     if (Platform.OS === 'android') {
+      NativeModules.CallPip?.setCallActive?.(false, '', false);
       Notifications.dismissAllNotificationsAsync().catch(() => {});
       notifyCallEnded().catch(() => {});
     }
@@ -1017,9 +1020,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
-      engineRef.current?.muteLocalAudioStream(!m);
-      if (callIdRef.current) ck.setMutedCall(callIdRef.current, !m);
-      return !m;
+      const newMuted = !m;
+      engineRef.current?.muteLocalAudioStream(newMuted);
+      if (callIdRef.current) ck.setMutedCall(callIdRef.current, newMuted);
+      isMutedRef.current = newMuted;
+      if (Platform.OS === 'android') {
+        NativeModules.CallPip?.updatePipActions?.(newMuted);
+      }
+      return newMuted;
     });
   }, []);
 
@@ -1052,9 +1060,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // PiP event listeners (Android only)
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !NativeModules.CallPip) return;
+    const emitter = new NativeEventEmitter(NativeModules.CallPip);
+    const hangupSub = emitter.addListener('PipHangUp', () => {
+      endCall().catch(() => {});
+    });
+    const muteSub = emitter.addListener('PipMuteToggle', () => {
+      toggleMute();
+    });
+    const modeSub = emitter.addListener('PipModeChanged', ({ isActive }: { isActive: boolean }) => {
+      setIsPipMode(isActive);
+    });
+    return () => {
+      hangupSub.remove();
+      muteSub.remove();
+      modeSub.remove();
+    };
+  }, [endCall, toggleMute]);
+
   return (
     <CallContext.Provider value={{
-      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason, canRejoin,
+      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, isPipMode, duration, endReason, canRejoin,
       initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
       rejoinGroupCall, dismissEndedCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,

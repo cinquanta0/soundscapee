@@ -2,7 +2,6 @@ package com.cucucucucuione.soundscapemobile
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -75,20 +74,14 @@ class IncomingCallActivity : AppCompatActivity() {
             })
             getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
                 .edit().putString("pendingAcceptCallId", callId).apply()
+            // Launch main app over the lock screen — no PIN required to answer.
+            // MainActivity reads showOverLockScreen and calls setShowWhenLocked(true).
             packageManager.getLaunchIntentForPackage(packageName)?.apply {
                 this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("showOverLockScreen", true)
             }?.let { startActivity(it) }
-            // Show lock-screen call UI only when device truly requires auth to unlock
-            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-            if (km?.isKeyguardLocked == true) {
-                startActivity(Intent(this, CallActiveActivity::class.java).apply {
-                    this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
-                    putExtra(IncomingCallService.EXTRA_CALL_ID, callId)
-                    putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
-                })
-            }
             stopService(Intent(this, IncomingCallService::class.java))
             finish()
         }

@@ -25,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
             PackageList(this).packages.apply {
               add(OutgoingRingbackPackage())
               add(IncomingCallPackage())
+              add(CallPipPackage())
               // Packages that cannot be autolinked yet can be added manually here, for example:
               // add(MyReactNativePackage())
               add(com.doublesymmetry.trackplayer.TrackPlayer())

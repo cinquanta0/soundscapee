@@ -115,7 +115,7 @@ export default function CallScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const {
-    call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, duration, endReason, canRejoin,
+    call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, isPipMode, duration, endReason, canRejoin,
     acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording,
     inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
   } = useCall();
@@ -162,6 +162,19 @@ export default function CallScreen() {
     if (phase === 'ended') return '#FF5C79';
     return '#97A4C7';
   };
+
+  // Minimal layout for Android PiP window — buttons handled by RemoteActions
+  if (isPipMode && phase === 'active') {
+    return (
+      <Modal visible animationType="none" statusBarTranslucent>
+        <View style={s.pipContainer}>
+          <Text style={s.pipAvatar}>{displayAvatar}</Text>
+          <Text style={s.pipName} numberOfLines={1}>{displayName}</Text>
+          <Text style={s.pipTimer}>{fmtDuration(duration)}</Text>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -674,6 +687,29 @@ const s = StyleSheet.create({
   },
   closeBtnLabel: {
     color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  pipContainer: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  pipAvatar: {
+    fontSize: 36,
+  },
+  pipName: {
+    color: '#F7F8FF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+  },
+  pipTimer: {
+    color: '#00FF9C',
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
