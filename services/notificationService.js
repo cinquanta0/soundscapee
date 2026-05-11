@@ -110,7 +110,7 @@ export async function registerForPushNotifications(userId) {
       }
     }
 
-    // Salva i token per supportare multi-device e chiamate Android affidabili.
+    // Salva i token per supportare multi-device e chiamate Android/iOS affidabili.
     if (userId && token) {
       const payload = {
         pushTokens: arrayUnion(token),
@@ -118,6 +118,12 @@ export async function registerForPushNotifications(userId) {
       };
       if (nativeToken) {
         payload.fcmPushTokens = arrayUnion(nativeToken);
+      }
+      // Salva il token in iosExpoPushTokens solo su iOS, così la Cloud Function
+      // può inviare notification push (con title+body) solo ai dispositivi iOS
+      // senza rompere il path data-only usato da Android per svegliare IncomingCallService.
+      if (Platform.OS === 'ios') {
+        payload.iosExpoPushTokens = arrayUnion(token);
       }
       await mergeUserDocIfExists(userId, payload);
     } else if (userId && nativeToken) {

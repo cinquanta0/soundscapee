@@ -322,14 +322,16 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
     );
 
     // 2. Expo Push (mobile) — invia a tutti i device dell'utente
+    // iosExpoPushTokens: token Expo salvati specificamente da dispositivi iOS
+    // (notificationService.js salva in questo campo solo su Platform.OS === 'ios')
+    const rawIosTokens = Array.isArray(userData.iosExpoPushTokens) ? userData.iosExpoPushTokens : [];
+    const iosExpoPushTokens = new Set([...rawIosTokens].filter(t => t?.startsWith('ExponentPushToken')));
+
     for (const token of mobileTokens) {
-      // Per le chiamate in arrivo: invia data-only (senza title/body).
-      // Con title+body, Expo→FCM manda una "notification message" che Android
-      // mostra direttamente (solo testo, niente suono/schermo intero) SENZA
-      // svegliare il background task. Senza title+body = "data message" →
-      // il background task si sveglia → avvia IncomingCallService (suono + full screen).
-      // Se abbiamo un token FCM nativo, per le chiamate usiamo quello e
-      // saltiamo Expo: è più affidabile con app in background o killata.
+      // Per le chiamate in arrivo su Android: invia data-only (senza title/body).
+      // Con title+body, Expo→FCM manda una "notification message" che NON sveglia
+      // il background task (IncomingCallService). Solo i data message lo svegliano.
+      // Gli utenti Android con FCM nativo usano già il path FCM sotto — salta Expo.
       if (isCall && fcmMobileTokens.length > 0) continue;
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
@@ -366,6 +368,29 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
           })
           .catch((e) => console.error(`[push] fetch error per ${userId}:`, e))
       );
+    }
+
+    // 2b. iOS call notification — title+body separata per mostrare banner su iOS.
+    // I token iOS sono salvati in iosExpoPushTokens da notificationService.js (Platform.OS==='ios').
+    // Su iOS i data-only push vengono ignorati in background; serve una notification message visibile.
+    if (isCall && iosExpoPushTokens.size > 0) {
+      for (const token of iosExpoPushTokens) {
+        promises.push(
+          fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: token,
+              sound: 'soundscape_call.wav',
+              title,
+              body,
+              data,
+              priority: 'high',
+              _contentAvailable: true,
+            }),
+          }).catch((e) => console.error(`[push] iOS call push error per ${userId}:`, e))
+        );
+      }
     }
 
     if (isCall && fcmMobileTokens.length > 0) {
