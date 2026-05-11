@@ -765,8 +765,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (updated) setCall(updated);
       const myUid = auth.currentUser?.uid ?? '';
       if (!updated) return;
-      if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
-      if (updated.type === 'group' && updated.participantStatuses?.[myUid] === 'left' && !cleaningUpRef.current) _finalize('left');
+      if (cleaningUpRef.current) return;
+      if (updated.status === 'ended') _finalize('ended');
+      else if (updated.status === 'missed') _finalize('missed');
+      else if (updated.status === 'declined') _finalize('declined');
+      else if (updated.type === 'group' && updated.participantStatuses?.[myUid] === 'left') _finalize('left');
     });
   }, [_initEngine, _finalize]);
 
