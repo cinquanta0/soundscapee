@@ -22,7 +22,7 @@ module.exports = ({ config }) => ({
     bundleIdentifier: "com.cucucucucuione.soundscapemobile",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
-      UIBackgroundModes: ["audio"],
+      UIBackgroundModes: ["audio", "remote-notification"],
       NSMicrophoneUsageDescription: "Soundscape usa il microfono per trasmettere voce live nella radio.",
       NSCameraUsageDescription: "Soundscape usa la fotocamera per scattare foto e video da aggiungere ai tuoi post.",
       NSAppTransportSecurity: {
