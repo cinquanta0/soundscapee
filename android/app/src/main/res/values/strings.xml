@@ -2,10 +2,6 @@
   <string name="app_name">soundscape-mobile</string>
   <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
   <string name="expo_runtime_version" translatable="false">1.0.1</string>
-  <string name="expo_updates_url" translatable="false">https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2</string>
-  <string name="expo_updates_channel_name" translatable="false">preview</string>
-  <string name="expo_updates_enabled" translatable="false">true</string>
-  <string name="expo_updates_check_on_launch" translatable="false">ON_LOAD</string>
-  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+<string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 </resources>
