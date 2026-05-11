@@ -35,13 +35,12 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
         if (type == "incoming_call") {
             val callId     = data["callId"]     ?: ""
             val callerName = data["callerName"] ?: "Chiamata in arrivo"
-            Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName")
+            Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName fg=${isAppInForeground()}")
 
-            if (isAppInForeground()) {
-                Log.d(TAG, "App in foreground, skipping native incoming-call notification")
-                return
-            }
-
+            // Always start IncomingCallService regardless of foreground state.
+            // isAppInForeground() can return false-positives causing missed calls.
+            // IncomingCallService.startIncomingCall() is idempotent (isStarted guard).
+            // Android suppresses the full-screen intent automatically when the app IS foreground.
             val intent = Intent(applicationContext, IncomingCallService::class.java).also {
                 it.action = IncomingCallService.ACTION_START
                 it.putExtra(IncomingCallService.EXTRA_CALL_ID,     callId)
@@ -72,6 +71,8 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
                 process.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         }
     }
+
+    // kept for the log line above — not used for routing decisions
 
     private fun showFallbackNotification(title: String, body: String) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
