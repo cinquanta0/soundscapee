@@ -667,13 +667,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     durationRef.current = 0;
 
     if (reason === 'left') {
-      // Lasciato una group call: reset immediato dei ref di controllo così
-      // nuove chiamate possono arrivare, ma manteniamo la UI di uscita
-      // per 15s per permettere il rejoin.
       callIdRef.current = null;
       cleaningUpRef.current = false;
       setCanRejoin(rejoinableCallRef.current !== null);
       setTimeout(() => {
+        // Se l'utente ha già fatto rejoin, engineRef è tornato attivo — non toccare l'UI.
+        if (engineRef.current) return;
         setPhase(null);
         setCall(null);
         setEndReason(null);

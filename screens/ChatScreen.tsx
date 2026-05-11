@@ -549,7 +549,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
   const { initiateCall, phase: callPhase } = useCall();
   const initial = otherUserName[0]?.toUpperCase() || '?';
-  const listBottomPadding = keyboardVisible ? 24 : 120 + insets.bottom;
+  const listBottomPadding = keyboardVisible ? 8 : 16;
 
   return (
     <KeyboardAvoidingView
