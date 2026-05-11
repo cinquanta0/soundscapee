@@ -263,6 +263,7 @@ export function listenForIncomingCall(
     collection(db, 'calls'),
     where('calleeId', '==', userId),
     where('status', '==', 'ringing'),
+    orderBy('createdAt', 'desc'),
     limit(1),
   );
 
