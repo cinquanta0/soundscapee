@@ -309,7 +309,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         blockedUsersRef.current = new Set(ids);
       });
 
+      console.log(`[CallContext] listenForIncomingCall setup for uid=${user.uid}`);
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
+        console.log(`[CallContext] incoming callback: ${incoming ? `id=${incoming.id} status=${incoming.status}` : 'null'}, phase=${phaseRef.current}`);
         if (!incoming) {
           dismissedIncomingIdsRef.current.clear();
           // Caller cancelled while we were waiting for PIN — drop the deferred accept
@@ -331,8 +333,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         }
-        if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
-        if (phaseRef.current !== null) return;
+        if (dismissedIncomingIdsRef.current.has(incoming.id)) {
+          console.log(`[CallContext] blocked: call ${incoming.id} already dismissed`);
+          if (Platform.OS !== 'android') Alert.alert('DEBUG', `Chiamata ${incoming.id} ignorata: dismissed`);
+          return;
+        }
+        if (phaseRef.current !== null) {
+          console.log(`[CallContext] blocked: phase=${phaseRef.current}, call=${incoming.id}`);
+          if (Platform.OS !== 'android') Alert.alert('DEBUG', `Chiamata bloccata: phase=${phaseRef.current}`);
+          return;
+        }
         // Already deferred for this call — ignore re-fires from Firestore updates
         if (pendingAcceptCallRef.current?.id === incoming.id) return;
         // Silently reject calls from blocked users
@@ -398,6 +408,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         // iOS — original path
+        console.log(`[CallContext] iOS incoming call path reached: id=${incoming.id} caller=${incoming.callerName}`);
+        Alert.alert('DEBUG iOS Call', `Da: ${incoming.callerName}\ncallId: ${incoming.id}\ncalleeId: ${incoming.calleeId}\nmyUid: ${auth.currentUser?.uid}`);
         callkeepIncomingVisibleRef.current = false;
         setUseSystemIncomingUI(false);
         setPhase('incoming');

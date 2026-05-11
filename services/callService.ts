@@ -274,9 +274,16 @@ export function listenForIncomingCall(
   );
 
   const unsub1 = onSnapshot(q1, (snap) => {
+    console.log(`[calls] q1 snapshot: empty=${snap.empty}, userId=${userId}`);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      const data = d.data();
+      console.log(`[calls] q1 doc id=${d.id} calleeId=${data.calleeId} status=${data.status} createdAt=${data.createdAt?.toDate?.()}`);
+    }
     r1 = snap.empty ? null : toCall(snap.docs[0]);
+    console.log(`[calls] q1 toCall result: ${r1 ? r1.id : 'null'}`);
     emit();
-  }, (err) => console.warn('[calls] q1 error:', err.message));
+  }, (err) => console.error('[calls] q1 ERROR (check index):', err.message, err));
 
   const unsub2 = onSnapshot(q2, (snap) => {
     const found = snap.docs
