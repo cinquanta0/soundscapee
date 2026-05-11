@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.drawable.Icon
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.os.Build
 import android.util.Rational
 import com.facebook.react.bridge.Arguments
@@ -36,6 +38,31 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
         currentCallerName = callerName
         currentIsMuted = isMuted
         if (!active) unregisterReceiver()
+    }
+
+    // Routes audio to speaker or earpiece.
+    // Uses the modern setCommunicationDevice() API on Android 12+ (required by HyperOS 2)
+    // because setSpeakerphoneOn() is deprecated and ignored on some custom ROMs.
+    @ReactMethod
+    fun setSpeakerOn(enabled: Boolean) {
+        val am = reactContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                if (enabled) {
+                    val speaker = am.availableCommunicationDevices
+                        .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                    if (speaker != null) am.setCommunicationDevice(speaker)
+                } else {
+                    am.clearCommunicationDevice()
+                }
+            } catch (_: Exception) {
+                @Suppress("DEPRECATION")
+                am.isSpeakerphoneOn = enabled
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            am.isSpeakerphoneOn = enabled
+        }
     }
 
     // Called by JS to update the mute icon in the PiP controls.
@@ -127,10 +154,10 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
             val hangupPi = PendingIntent.getBroadcast(
-                context, 10, Intent(ACTION_HANGUP), flags
+                context, 10, Intent(ACTION_HANGUP).setPackage(context.packageName), flags
             )
             val mutePi = PendingIntent.getBroadcast(
-                context, 11, Intent(ACTION_MUTE), flags
+                context, 11, Intent(ACTION_MUTE).setPackage(context.packageName), flags
             )
 
             val hangupIcon = Icon.createWithResource(

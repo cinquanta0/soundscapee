@@ -477,12 +477,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         const becameActive = phaseRef.current !== 'active';
         _stopRinging();
         stopOutgoingRingback().catch(() => {});
-        // Cancel the missed-call timer — the other party has joined
         if (missedTimerRef.current) { clearTimeout(missedTimerRef.current); missedTimerRef.current = null; }
-        // Cancel the drop timer if reconnect succeeded
         if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
         if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
         if (becameActive) {
+          // Set audio session for call (earpiece default; user can toggle to speaker)
+          if (Platform.OS === 'android') {
+            Audio.setAudioModeAsync({
+              allowsRecordingIOS: true,
+              playsInSilentModeIOS: true,
+              staysActiveInBackground: true,
+              shouldDuckAndroid: false,
+              playThroughEarpieceAndroid: true,
+            }).catch(() => {});
+          }
           setDuration(0);
           durationRef.current = 0;
           if (durationTimerRef.current) clearInterval(durationTimerRef.current);
@@ -792,7 +800,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setPhase('ringing');
     if (Platform.OS === 'android') startOutgoingRingback().catch(() => {});
 
-    ck.startCall(callId, calleeName, calleeName, 'generic', false);
+    // On Android, VoiceConnectionService.makeOutgoingCall() calls TelecomManager.getPhoneAccount()
+    // which requires READ_PHONE_NUMBERS on API 32+ — skip on Android since we have our own system.
+    if (Platform.OS !== 'android') ck.startCall(callId, calleeName, calleeName, 'generic', false);
     ck.backToForeground();
 
     let engine: ReturnType<typeof _initEngine>;
@@ -872,7 +882,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setPhase('ringing');
     if (Platform.OS === 'android') startOutgoingRingback().catch(() => {});
 
-    ck.startCall(callId, groupName, groupName, 'generic', false);
+    if (Platform.OS !== 'android') ck.startCall(callId, groupName, groupName, 'generic', false);
     ck.backToForeground();
 
     let engine: ReturnType<typeof _initEngine>;
@@ -1049,17 +1059,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const toggleSpeaker = useCallback(() => {
     setIsSpeaker((s) => {
       const next = !s;
-      engineRef.current?.setEnableSpeakerphone(next);
-      // On MIUI and other custom ROMs, Agora alone may not override the audio
-      // routing — also set expo-av's playThroughEarpieceAndroid to reinforce it.
       if (Platform.OS === 'android') {
+        // Use native AudioManager.setCommunicationDevice() (API 31+) — the only reliable
+        // way to route audio on HyperOS 2 / MIUI, where setSpeakerphoneOn() is ignored.
+        NativeModules.CallPip?.setSpeakerOn?.(next);
+        // Apply expo-av mode change first, then re-apply Agora after it settles.
         Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
           shouldDuckAndroid: false,
           playThroughEarpieceAndroid: !next,
-        }).catch(() => {});
+        }).then(() => {
+          engineRef.current?.setEnableSpeakerphone(next);
+        }).catch(() => {
+          engineRef.current?.setEnableSpeakerphone(next);
+        });
+      } else {
+        engineRef.current?.setEnableSpeakerphone(next);
       }
       return next;
     });
