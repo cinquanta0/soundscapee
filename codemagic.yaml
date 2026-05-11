@@ -115,9 +115,18 @@ workflows:
         script: |
           set -e
           PLIST="ios/soundscapemobile/Info.plist"
+          EAS_URL="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
-          echo "EXUpdatesChannelName set to preview"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled YES" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool YES" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL $EAS_URL" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesURL string $EAS_URL" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.1" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRuntimeVersion string 1.0.1" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesCheckOnLaunch ON_LOAD" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesCheckOnLaunch string ON_LOAD" "$PLIST"
+          echo "expo-updates plist patched: channel=preview, enabled=YES, url=$EAS_URL"
       - name: Build unsigned archive
         script: |
           set -e
@@ -289,9 +298,18 @@ workflows:
         script: |
           set -e
           PLIST="ios/soundscapemobile/Info.plist"
+          EAS_URL="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
-          echo "EXUpdatesChannelName set to preview"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled YES" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesEnabled bool YES" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesURL $EAS_URL" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesURL string $EAS_URL" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesRuntimeVersion 1.0.1" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesRuntimeVersion string 1.0.1" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :EXUpdatesCheckOnLaunch ON_LOAD" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :EXUpdatesCheckOnLaunch string ON_LOAD" "$PLIST"
+          echo "expo-updates plist patched: channel=preview, enabled=YES, url=$EAS_URL"
       - name: Set up code signing
         script: |
           set -e
