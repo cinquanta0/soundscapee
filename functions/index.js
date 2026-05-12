@@ -1595,7 +1595,7 @@ exports.onCallCreated = onDocumentCreated(
       const { getFunctions } = require('firebase-admin/functions');
       await getFunctions().taskQueue('cleanupRingingCall').enqueue(
         { callId },
-        { scheduleDelaySeconds: 15, uri: `https://europe-west1-soundscape-74397.cloudfunctions.net/cleanupRingingCall` },
+        { scheduleDelaySeconds: 15 },
       );
     } catch (e) {
       console.warn('[onCallCreated] enqueue timeout task failed:', e.message);
