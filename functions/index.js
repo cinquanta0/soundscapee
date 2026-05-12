@@ -1590,6 +1590,23 @@ exports.onCallCreated = onDocumentCreated(
   },
 );
 
+exports.cleanupStaleRingingCalls = onSchedule(
+  { schedule: 'every 1 minutes', region: 'europe-west1' },
+  async () => {
+    const db = admin.firestore();
+    const threshold = new Date(Date.now() - 55 * 1000);
+    const snap = await db.collection('calls')
+      .where('status', '==', 'ringing')
+      .where('createdAt', '<=', threshold)
+      .get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.docs.forEach((doc) => batch.update(doc.ref, { status: 'missed' }));
+    await batch.commit();
+    console.log(`[cleanupStaleRingingCalls] chiuse ${snap.size} chiamate bloccate`);
+  },
+);
+
 exports.onCallUpdated = onDocumentUpdated(
   { document: 'calls/{callId}', region: 'europe-west1' },
   async (event) => {
