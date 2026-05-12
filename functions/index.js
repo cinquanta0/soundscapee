@@ -332,8 +332,7 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
       // Per le chiamate in arrivo su Android: invia data-only (senza title/body).
       // Con title+body, Expo→FCM manda una "notification message" che NON sveglia
       // il background task (IncomingCallService). Solo i data message lo svegliano.
-      // Gli utenti Android con FCM nativo usano già il path FCM sotto — salta Expo.
-      if (isCall && fcmMobileTokens.length > 0) continue;
+      // Inviamo su entrambi FCM e Expo — IncomingCallService.isStarted evita doppio squillo.
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
