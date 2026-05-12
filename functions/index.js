@@ -339,14 +339,16 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: token,
-            ...(isCall ? {} : {
-              sound: data.channelId === 'calls' ? 'soundscape_call.wav' : 'default',
-              title,
-              body,
-            }),
+            ...(isCall
+              ? { _contentAvailable: true }
+              : {
+                sound: data.channelId === 'calls' ? 'soundscape_call.wav' : 'default',
+                title,
+                body,
+                channelId: data.channelId || 'default',
+              }),
             data,
             priority: 'high',
-            channelId: data.channelId || 'default',
           }),
         })
           .then(async (res) => {
