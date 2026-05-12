@@ -95,26 +95,73 @@ class IncomingCallService : Service() {
         val idToken = prefs.getString("authIdToken", null) ?: return
         Thread {
             try {
-                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-                sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-                val now = sdf.format(java.util.Date())
-                val body = """{"fields":{"status":{"stringValue":"declined"},"endedAt":{"timestampValue":"$now"}}}"""
-                val url = java.net.URL(
-                    "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
-                    "/databases/(default)/documents/calls/$callId" +
-                    "?updateMask.fieldPaths=status&updateMask.fieldPaths=endedAt"
-                )
-                with(url.openConnection() as java.net.HttpURLConnection) {
-                    requestMethod = "PATCH"
-                    setRequestProperty("Authorization", "Bearer $idToken")
-                    setRequestProperty("Content-Type", "application/json")
-                    doOutput = true
-                    outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-                    responseCode
-                    disconnect()
-                }
+                val token = if (isTokenExpired(idToken)) {
+                    val refreshToken = prefs.getString("authRefreshToken", null) ?: return@Thread
+                    refreshIdToken(refreshToken) ?: return@Thread
+                } else idToken
+                patchCallStatus(callId, token)
             } catch (_: Exception) {}
         }.start()
+    }
+
+    private fun patchCallStatus(callId: String, token: String) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val body = """{"fields":{"status":{"stringValue":"declined"},"endedAt":{"timestampValue":"${sdf.format(java.util.Date())}"}}}"""
+        val url = java.net.URL(
+            "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
+            "/databases/(default)/documents/calls/$callId" +
+            "?updateMask.fieldPaths=status&updateMask.fieldPaths=endedAt"
+        )
+        with(url.openConnection() as java.net.HttpURLConnection) {
+            requestMethod = "PATCH"
+            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Content-Type", "application/json")
+            doOutput = true
+            outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            responseCode
+            disconnect()
+        }
+    }
+
+    private fun isTokenExpired(idToken: String): Boolean {
+        return try {
+            val parts = idToken.split(".")
+            if (parts.size < 2) return true
+            val payload = String(android.util.Base64.decode(
+                parts[1].padEnd((parts[1].length + 3) / 4 * 4, '='),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING
+            ))
+            val exp = org.json.JSONObject(payload).optLong("exp", 0L)
+            exp < System.currentTimeMillis() / 1000 + 60
+        } catch (_: Exception) { true }
+    }
+
+    private fun refreshIdToken(refreshToken: String): String? {
+        return try {
+            val body = "grant_type=refresh_token&refresh_token=${java.net.URLEncoder.encode(refreshToken, "UTF-8")}"
+            val url = java.net.URL("https://securetoken.googleapis.com/v1/token?key=AIzaSyAvBTHZ4mlSEbUTHYaU9Tkg6q4CXL4nrzc")
+            with(url.openConnection() as java.net.HttpURLConnection) {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                doOutput = true
+                outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                if (responseCode == 200) {
+                    val json = org.json.JSONObject(inputStream.bufferedReader().readText())
+                    val newIdToken = json.optString("id_token").takeIf { it.isNotBlank() }
+                    val newRefresh = json.optString("refresh_token").takeIf { it.isNotBlank() }
+                    // Aggiorna il token salvato per la prossima volta
+                    if (newIdToken != null && newRefresh != null) {
+                        getSharedPreferences("IncomingCall", Context.MODE_PRIVATE).edit()
+                            .putString("authIdToken", newIdToken)
+                            .putString("authRefreshToken", newRefresh)
+                            .apply()
+                    }
+                    disconnect()
+                    newIdToken
+                } else { disconnect(); null }
+            }
+        } catch (_: Exception) { null }
     }
 
     private fun acquireWakeLock() {

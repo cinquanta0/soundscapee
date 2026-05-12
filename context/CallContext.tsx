@@ -163,7 +163,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
       try {
         const token = await user.getIdToken();
-        setAuthToken(user.uid, token);
+        setAuthToken(user.uid, token, user.refreshToken ?? '');
       } catch {}
     });
     return () => unsub();
