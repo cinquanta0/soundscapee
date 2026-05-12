@@ -1,6 +1,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onTaskDispatched } = require('firebase-functions/v2/tasks');
 const admin = require('firebase-admin');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
@@ -1587,6 +1588,34 @@ exports.onCallCreated = onDocumentCreated(
         },
       })
     ));
+
+    // Schedula cleanup automatico dopo 30s — copre il caso in cui Android
+    // rifiuta dal lockscreen ma il write Firestore non parte (JS bridge dormiente)
+    try {
+      const { getFunctions } = require('firebase-admin/functions');
+      await getFunctions().taskQueue('cleanupRingingCall').enqueue(
+        { callId },
+        { scheduleDelaySeconds: 30, uri: `https://europe-west1-soundscape-74397.cloudfunctions.net/cleanupRingingCall` },
+      );
+    } catch (e) {
+      console.warn('[onCallCreated] enqueue timeout task failed:', e.message);
+    }
+  },
+);
+
+exports.cleanupRingingCall = onTaskDispatched(
+  { retryConfig: { maxAttempts: 1 }, rateLimits: { maxConcurrentDispatches: 20 }, region: 'europe-west1' },
+  async (req) => {
+    const { callId } = req.data;
+    if (!callId) return;
+    const db = admin.firestore();
+    const ref = db.collection('calls').doc(callId);
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    if (snap.data().status === 'ringing') {
+      await ref.update({ status: 'missed' });
+      console.log(`[cleanupRingingCall] call ${callId} marcata missed`);
+    }
   },
 );
 
