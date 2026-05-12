@@ -80,6 +80,15 @@ class IncomingCallService : Service() {
         requestAudioFocus()
         startRingtone()
         startVibration()
+        // Lancia l'activity direttamente — fallback per dispositivi (es. Xiaomi HyperOS)
+        // che non triggerano il fullScreenIntent automaticamente con schermo spento.
+        try {
+            startActivity(Intent(this, IncomingCallActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
+                putExtra(EXTRA_CALL_ID, callId)
+                putExtra(EXTRA_CALLER_NAME, callerName)
+            })
+        } catch (_: Exception) {}
     }
 
     private fun stopIncomingCall() {
