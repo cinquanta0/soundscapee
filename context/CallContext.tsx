@@ -46,7 +46,7 @@ const ck = {
   backToForeground: () => { try { RNCallKeep?.backToForeground?.(); } catch {} },
   setForegroundServiceSettings: (cfg: any) => { try { RNCallKeep?.setForegroundServiceSettings?.(cfg); } catch {} },
 };
-const RING_TIMEOUT_MS = 45_000;
+const RING_TIMEOUT_MS = 30_000;
 
 function alertMicPermission(canAskAgain: boolean) {
   if (canAskAgain) {
