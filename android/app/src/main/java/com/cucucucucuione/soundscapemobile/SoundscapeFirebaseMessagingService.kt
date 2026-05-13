@@ -51,6 +51,18 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
             } else {
                 applicationContext.startService(intent)
             }
+        } else if (type == "call_dismissed") {
+            // Il caller ha chiuso la chiamata — ferma subito lo squillo sul device del callee.
+            // Funziona anche con app killed: FCM sveglia onMessageReceived e inviamo ACTION_STOP.
+            Log.d(TAG, "→ call_dismissed: fermo IncomingCallService")
+            val stopIntent = Intent(applicationContext, IncomingCallService::class.java).apply {
+                action = IncomingCallService.ACTION_STOP
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(applicationContext, stopIntent)
+            } else {
+                applicationContext.startService(stopIntent)
+            }
         } else {
             // Tutte le altre notifiche (like, follow, ecc.) → notifica di sistema base
             val title = remoteMessage.notification?.title ?: data["title"] ?: "SoundScape"

@@ -332,7 +332,11 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
       // Per le chiamate in arrivo su Android: invia data-only (senza title/body).
       // Con title+body, Expo→FCM manda una "notification message" che NON sveglia
       // il background task (IncomingCallService). Solo i data message lo svegliano.
-      // Inviamo su entrambi FCM e Expo — IncomingCallService.isStarted evita doppio squillo.
+      // Se ci sono token FCM nativi (fcmMobileTokens), questi gestiscono già la chiamata
+      // correttamente — salta il push Expo per evitare la notifica di debug con JSON grezzo.
+      // Fallback a Expo solo se il dispositivo non ha token FCM nativi.
+      if (isCall && fcmMobileTokens.length > 0) continue;
+
       promises.push(
         fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
@@ -1601,6 +1605,48 @@ exports.onCallCreated = onDocumentCreated(
     } catch (e) {
       console.warn('[onCallCreated] enqueue timeout task failed:', e.message);
     }
+  },
+);
+
+// ── Chiamata cancellata/terminata — ferma lo squillo sul device del callee ────────────────
+exports.onCallUpdated = onDocumentUpdated(
+  { document: 'calls/{callId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data.before.data();
+    const after  = event.data.after.data();
+
+    // Scatta solo quando la chiamata passa da ringing a uno stato terminale
+    const TERMINAL = ['ended', 'cancelled', 'missed', 'declined'];
+    if (before.status !== 'ringing' || !TERMINAL.includes(after.status)) return;
+
+    const db = admin.firestore();
+    const callId = event.params.callId;
+    const isGroup = before.type === 'group';
+    const targets = isGroup && Array.isArray(before.invitees) && before.invitees.length > 0
+      ? before.invitees
+      : (before.calleeId ? [before.calleeId] : []);
+
+    if (targets.length === 0) return;
+
+    await Promise.all(targets.map(async (uid) => {
+      try {
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (!userDoc.exists) return;
+        const fcmTokens = [...new Set(
+          Array.isArray(userDoc.data().fcmPushTokens) ? userDoc.data().fcmPushTokens : []
+        )].filter(Boolean);
+        if (fcmTokens.length === 0) return;
+
+        await admin.messaging().sendEachForMulticast({
+          tokens: fcmTokens,
+          data: { type: 'call_dismissed', callId },
+          android: { priority: 'high', ttl: 30 * 1000 },
+        });
+        console.log(`[onCallUpdated] call_dismissed → ${uid} (${fcmTokens.length} token)`);
+      } catch (e) {
+        console.error(`[onCallUpdated] errore per ${uid}:`, e.message);
+      }
+    }));
   },
 );
 
