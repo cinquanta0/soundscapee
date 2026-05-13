@@ -1632,17 +1632,40 @@ exports.onCallUpdated = onDocumentUpdated(
       try {
         const userDoc = await db.collection('users').doc(uid).get();
         if (!userDoc.exists) return;
-        const fcmTokens = [...new Set(
-          Array.isArray(userDoc.data().fcmPushTokens) ? userDoc.data().fcmPushTokens : []
-        )].filter(Boolean);
-        if (fcmTokens.length === 0) return;
+        const userData = userDoc.data();
 
-        await admin.messaging().sendEachForMulticast({
-          tokens: fcmTokens,
-          data: { type: 'call_dismissed', callId },
-          android: { priority: 'high', ttl: 30 * 1000 },
-        });
-        console.log(`[onCallUpdated] call_dismissed → ${uid} (${fcmTokens.length} token)`);
+        // 1. FCM native tokens (Android) — dati flat, SoundscapeFirebaseMessagingService li riconosce
+        const fcmTokens = [...new Set(
+          Array.isArray(userData.fcmPushTokens) ? userData.fcmPushTokens : []
+        )].filter(Boolean);
+        if (fcmTokens.length > 0) {
+          await admin.messaging().sendEachForMulticast({
+            tokens: fcmTokens,
+            data: { type: 'call_dismissed', callId },
+            android: { priority: 'high', ttl: 30 * 1000 },
+          }).catch((e) => console.error(`[onCallUpdated] FCM error per ${uid}:`, e.message));
+          console.log(`[onCallUpdated] call_dismissed FCM → ${uid} (${fcmTokens.length} token)`);
+        }
+
+        // 2. Expo push tokens — fallback per device senza fcmPushTokens
+        const expoTokens = [...new Set(
+          Array.isArray(userData.pushTokens) ? userData.pushTokens : []
+        )].filter((t) => t?.startsWith('ExponentPushToken'));
+        for (const token of expoTokens) {
+          fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: token,
+              _contentAvailable: true,
+              data: { type: 'call_dismissed', callId },
+              priority: 'high',
+            }),
+          }).catch((e) => console.error(`[onCallUpdated] Expo error per ${uid}:`, e.message));
+        }
+        if (expoTokens.length > 0) {
+          console.log(`[onCallUpdated] call_dismissed Expo → ${uid} (${expoTokens.length} token)`);
+        }
       } catch (e) {
         console.error(`[onCallUpdated] errore per ${uid}:`, e.message);
       }
