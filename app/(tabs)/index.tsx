@@ -206,6 +206,13 @@ function getProfileThemeColors(themeId?: string): readonly [string, string, ...s
   return theme.colors;
 }
 
+function effectiveStreak(streakCount: number | undefined, lastPublishDate: string | undefined): number {
+  if (!streakCount) return 0;
+  if (!lastPublishDate) return streakCount;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  return lastPublishDate >= yesterday ? streakCount : 0;
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -1574,7 +1581,7 @@ if (loading) {
         activeTab === 'home' || activeTab === 'profile' ? (
           <FeedHomeHeader
             soundsCount={totalSoundsCount ?? sounds.length}
-            streakCount={myStreakCount}
+            streakCount={effectiveStreak(myStreakCount, userProfile?.lastPublishDate)}
             unreadCount={unreadCount}
             avatar={<AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={34} />}
             onOpenNotifications={() => { setShowNotificationsModal(true); loadNotifications(); }}
@@ -1597,7 +1604,7 @@ if (loading) {
                   <Text style={styles.liveText}>LIVE</Text>
                 </View>
                 <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
-                <Text style={styles.streakText}>🔥 {myStreakCount}</Text>
+                <Text style={styles.streakText}>🔥 {effectiveStreak(myStreakCount, userProfile?.lastPublishDate)}</Text>
               </View>
             </View>
             <View style={styles.headerButtons}>
@@ -1768,7 +1775,7 @@ if (loading) {
           <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
         </TouchableOpacity>
         <View style={styles.profileStat}>
-          <Text style={styles.profileStatNumber}>🔥 {userProfile?.streakCount || 0}</Text>
+          <Text style={styles.profileStatNumber}>🔥 {effectiveStreak(userProfile?.streakCount, userProfile?.lastPublishDate)}</Text>
           <Text style={styles.profileStatLabel}>{t('profile.streak')}</Text>
         </View>
       </View>

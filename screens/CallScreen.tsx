@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Modal, StatusBar, Platform,
+  Modal, StatusBar, Platform, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -10,6 +10,16 @@ import { useTranslation } from 'react-i18next';
 import { useCall } from '../context/CallContext';
 import { auth } from '../firebaseConfig';
 import GroupCallSetupModal from './GroupCallSetupModal';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const MUSIC_EMOJIS = new Set(['🎵', '🎧', '📻', '🎤', '🔊', '💿', '▶️', '🎼', '🎹', '🎸', '🥁', '🎺', '🎻', '🪗']);
+
+function isMusicEmoji(avatar: string | undefined): boolean {
+  return !!avatar && MUSIC_EMOJIS.has(avatar);
+}
 
 const FEATHER_TO_EMOJI: Record<string, string> = {
   music: '🎵', headphones: '🎧', radio: '📻', mic: '🎤', speaker: '🔊',
@@ -27,50 +37,126 @@ function fmtDuration(s: number) {
   return `${m}:${sec}`;
 }
 
+/**
+ * Returns one of 8 vivid colours deterministically derived from `name`.
+ * Used as avatar background when the emoji is a generic music icon.
+ */
+function avatarColor(name: string): string {
+  const colors = ['#E57373', '#64B5F6', '#81C784', '#FFB74D', '#BA68C8', '#4DD0E1', '#F06292', '#AED581'];
+  let h = 0;
+  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
+}
+
+function statusLabel(status?: string) {
+  switch (status) {
+    case 'calling':  return 'host';
+    case 'ringing':  return 'squilla';
+    case 'active':   return 'attivo';
+    case 'left':     return 'uscito';
+    case 'declined': return 'rifiutato';
+    case 'missed':   return 'persa';
+    default:         return 'in attesa';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PulseRing — double ring with the outer one more transparent
+// ---------------------------------------------------------------------------
+
 function PulseRing({ color }: { color: string }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(0.6)).current;
+  const scaleInner  = useRef(new Animated.Value(1)).current;
+  const opacityInner = useRef(new Animated.Value(0.55)).current;
+  const scaleOuter  = useRef(new Animated.Value(1)).current;
+  const opacityOuter = useRef(new Animated.Value(0.25)).current;
 
   useEffect(() => {
-    const anim = Animated.loop(
+    const inner = Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(scale, { toValue: 1.4, duration: 900, useNativeDriver: true }),
-          Animated.timing(scale, { toValue: 1, duration: 900, useNativeDriver: true }),
+          Animated.timing(scaleInner,  { toValue: 1.45, duration: 900, useNativeDriver: true }),
+          Animated.timing(scaleInner,  { toValue: 1,    duration: 900, useNativeDriver: true }),
         ]),
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 0, duration: 900, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.6, duration: 900, useNativeDriver: true }),
+          Animated.timing(opacityInner, { toValue: 0,    duration: 900, useNativeDriver: true }),
+          Animated.timing(opacityInner, { toValue: 0.55, duration: 900, useNativeDriver: true }),
         ]),
       ]),
     );
-    anim.start();
-    return () => anim.stop();
-  }, [scale, opacity]);
+    const outer = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scaleOuter,  { toValue: 1.75, duration: 1300, useNativeDriver: true }),
+          Animated.timing(scaleOuter,  { toValue: 1,    duration: 1300, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(opacityOuter, { toValue: 0,    duration: 1300, useNativeDriver: true }),
+          Animated.timing(opacityOuter, { toValue: 0.25, duration: 1300, useNativeDriver: true }),
+        ]),
+      ]),
+    );
+    inner.start();
+    outer.start();
+    return () => { inner.stop(); outer.stop(); };
+  }, [scaleInner, opacityInner, scaleOuter, opacityOuter]);
 
   return (
-    <Animated.View
-      style={[
-        s.pulseRing,
-        { borderColor: color, transform: [{ scale }], opacity },
-      ]}
-    />
+    <>
+      <Animated.View
+        style={[
+          s.pulseRing,
+          { borderColor: color, transform: [{ scale: scaleOuter }], opacity: opacityOuter },
+        ]}
+      />
+      <Animated.View
+        style={[
+          s.pulseRing,
+          { borderColor: color, transform: [{ scale: scaleInner }], opacity: opacityInner },
+        ]}
+      />
+    </>
   );
 }
 
-function AvatarBubble({ avatar, size = 90, pulse = false, color = '#67E8F9' }: {
+// ---------------------------------------------------------------------------
+// AvatarBubble — shows emoji, Feather icon, or initial on coloured bg
+// ---------------------------------------------------------------------------
+
+function AvatarBubble({
+  avatar,
+  name = '',
+  size = 96,
+  pulse = false,
+  pulseColor = '#67E8F9',
+}: {
   avatar: string;
+  name?: string;
   size?: number;
   pulse?: boolean;
-  color?: string;
+  pulseColor?: string;
 }) {
   const iconSize = size * 0.38;
+  const showInitial = isFeatherIcon(avatar) || isMusicEmoji(avatar);
+  const bgColor = showInitial ? avatarColor(name || avatar) : 'rgba(255,255,255,0.07)';
+  const initial = (name || avatar).trim().charAt(0).toUpperCase();
+
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', width: size + 40, height: size + 40 }}>
-      {pulse && <PulseRing color={color} />}
-      <View style={[s.avatarBubble, { width: size, height: size, borderRadius: size / 2, borderColor: color + '50' }]}>
-        {isFeatherIcon(avatar) ? (
-          <Feather name={avatar as any} size={iconSize} color="#F7F8FF" />
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: size + 60, height: size + 60 }}>
+      {pulse && <PulseRing color={pulseColor} />}
+      <View
+        style={[
+          s.avatarBubble,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: bgColor,
+            borderColor: pulseColor + '40',
+          },
+        ]}
+      >
+        {showInitial ? (
+          <Text style={{ fontSize: size * 0.44, fontWeight: '700', color: '#fff' }}>{initial}</Text>
         ) : (
           <Text style={{ fontSize: size * 0.5 }}>{avatar}</Text>
         )}
@@ -79,37 +165,82 @@ function AvatarBubble({ avatar, size = 90, pulse = false, color = '#67E8F9' }: {
   );
 }
 
-function GroupAvatars({ profiles }: { profiles: Record<string, { name: string; avatar: string }> }) {
-  const entries = Object.values(profiles).slice(0, 4);
+// ---------------------------------------------------------------------------
+// ParticipantList — scrollable list for group calls
+// ---------------------------------------------------------------------------
+
+function ParticipantList({
+  participantProfiles,
+  participantStatuses,
+  myUid,
+}: {
+  participantProfiles: Record<string, { name: string; avatar: string }>;
+  participantStatuses?: Record<string, string>;
+  myUid?: string;
+}) {
+  const entries = Object.entries(participantProfiles);
+
   return (
-    <View style={s.groupAvatarRow}>
-      {entries.map((p, i) => (
-        <View
-          key={i}
-          style={[s.groupAvatarBubble, { marginLeft: i > 0 ? -16 : 0, zIndex: entries.length - i }]}
-        >
-          {isFeatherIcon(p.avatar) ? (
-            <Feather name={p.avatar as any} size={22} color="#F7F8FF" />
-          ) : (
-            <Text style={{ fontSize: 26 }}>{p.avatar}</Text>
-          )}
-        </View>
-      ))}
-    </View>
+    <ScrollView
+      style={s.participantScroll}
+      contentContainerStyle={s.participantScrollContent}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+    >
+      {entries.map(([uid, profile]) => {
+        const status = participantStatuses?.[uid];
+        const isActive = status === 'active';
+        const isGone = ['left', 'declined', 'missed'].includes(status ?? '');
+        const isMe = uid === myUid;
+        const bg = avatarColor(profile.name);
+        const showInitial = isFeatherIcon(profile.avatar) || isMusicEmoji(profile.avatar);
+        const initial = profile.name.trim().charAt(0).toUpperCase();
+
+        return (
+          <View key={uid} style={s.participantRow}>
+            {/* Avatar 40px */}
+            <View style={[s.participantAvatar, { backgroundColor: showInitial ? bg : 'rgba(255,255,255,0.08)' }]}>
+              {showInitial ? (
+                <Text style={s.participantAvatarInitial}>{initial}</Text>
+              ) : (
+                <Text style={s.participantAvatarEmoji}>{profile.avatar}</Text>
+              )}
+            </View>
+
+            {/* Name */}
+            <Text style={s.participantName} numberOfLines={1}>
+              {profile.name}{isMe ? ' (tu)' : ''}
+            </Text>
+
+            {/* Mic icon if active */}
+            {isActive && (
+              <Feather name="mic" size={14} color="#00FF9C" style={{ marginRight: 6 }} />
+            )}
+
+            {/* Status pill */}
+            <View style={[
+              s.statusPill,
+              isActive && s.statusPillActive,
+              isGone  && s.statusPillGone,
+            ]}>
+              <Text style={[
+                s.statusPillText,
+                isActive && s.statusPillTextActive,
+                isGone   && s.statusPillTextGone,
+              ]}>
+                {statusLabel(status)}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
-function statusLabel(status?: string) {
-  switch (status) {
-    case 'calling': return 'host';
-    case 'ringing': return 'sta squillando';
-    case 'active': return 'in chiamata';
-    case 'left': return 'uscito';
-    case 'declined': return 'rifiutata';
-    case 'missed': return 'persa';
-    default: return 'in attesa';
-  }
-}
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export default function CallScreen() {
   const { t } = useTranslation();
@@ -125,45 +256,46 @@ export default function CallScreen() {
 
   if (!visible || !call) return null;
 
-  const myUid = auth.currentUser?.uid;
-  const isGroup = call.type === 'group';
-  const amCaller = call.callerId === myUid;
-  const remoteName = amCaller ? call.calleeName : call.callerName;
+  const myUid       = auth.currentUser?.uid;
+  const isGroup     = call.type === 'group';
+  const amCaller    = call.callerId === myUid;
+  const remoteName  = amCaller ? call.calleeName : call.callerName;
   const remoteAvatar = amCaller ? call.calleeAvatar : call.callerAvatar;
-  const displayName = isGroup
+  const displayName  = isGroup
     ? (phase === 'incoming' ? call.callerName : call.calleeName)
     : remoteName;
   const displayAvatar = isGroup
     ? (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar)
     : remoteAvatar;
-  const participantEntries = isGroup
-    ? Object.entries(call.participantProfiles ?? {})
-    : [];
 
-  const statusText = () => {
+  const statusText = (): string => {
     switch (phase) {
-      case 'ringing': return t('call.calling');
-      case 'incoming': return isGroup ? '👥 Chiamata di gruppo' : t('call.incoming');
+      case 'ringing':    return t('call.calling');
+      case 'incoming':   return isGroup ? 'Chiamata di gruppo' : t('call.incoming');
       case 'connecting': return t('call.connecting');
-      case 'active': return fmtDuration(duration);
+      case 'active':     return fmtDuration(duration);
       case 'ended': {
-        if (endReason === 'left') return 'Sei uscito dalla chiamata';
+        if (endReason === 'left')     return 'Sei uscito dalla chiamata';
         if (endReason === 'declined') return t('call.declined');
-        if (endReason === 'missed') return t('call.missed');
+        if (endReason === 'missed')   return t('call.missed');
         return t('call.ended');
       }
       default: return '';
     }
   };
 
-  const statusColor = () => {
+  const statusColor = (): string => {
     if (phase === 'incoming') return '#00FF9C';
-    if (phase === 'active') return '#67E8F9';
-    if (phase === 'ended') return '#FF5C79';
+    if (phase === 'active')   return '#67E8F9';
+    if (phase === 'ended')    return '#FF5C79';
     return '#97A4C7';
   };
 
-  // Minimal layout for Android PiP window — buttons handled by RemoteActions
+  const pulseColor = phase === 'incoming' ? '#00FF9C' : '#67E8F9';
+
+  // -------------------------------------------------------------------------
+  // PiP layout (Android picture-in-picture)
+  // -------------------------------------------------------------------------
   if (isPipMode && phase === 'active') {
     return (
       <Modal visible animationType="none" statusBarTranslucent>
@@ -176,6 +308,9 @@ export default function CallScreen() {
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Full-screen layout
+  // -------------------------------------------------------------------------
   return (
     <Modal
       visible={visible}
@@ -184,163 +319,211 @@ export default function CallScreen() {
       statusBarTranslucent
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Background */}
       <LinearGradient
-        colors={['#050508', '#0A0A18', '#05050C']}
-        style={[StyleSheet.absoluteFill]}
+        colors={['#080C14', '#0D1221', '#080C14']}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Subtle ambient glow */}
+      <View
+        style={[
+          s.glow,
+          { backgroundColor: phase === 'incoming' ? 'rgba(0,255,156,0.05)' : 'rgba(103,232,249,0.05)' },
+        ]}
       />
 
-      <View style={[s.glow, { backgroundColor: phase === 'incoming' ? 'rgba(0,255,156,0.06)' : 'rgba(103,232,249,0.06)' }]} />
+      <View style={[s.container, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
 
-      <View style={[s.container, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
-
+        {/* Top label */}
         <View style={s.topSection}>
           <Text style={s.typeLabel}>
-            {isGroup ? '👥 SoundScape Group' : 'SoundScape'}
+            {isGroup ? 'SoundScape Group' : 'SoundScape'}
           </Text>
         </View>
 
+        {/* Center: avatar + name + status + participant list */}
         <View style={s.center}>
-          {isGroup && call.participantProfiles && phase === 'active' ? (
-            <GroupAvatars profiles={call.participantProfiles} />
-          ) : (
-            <AvatarBubble
-              avatar={displayAvatar}
-              size={100}
-              pulse={phase === 'incoming' || phase === 'ringing'}
-              color={phase === 'incoming' ? '#00FF9C' : '#67E8F9'}
-            />
-          )}
-          <Text style={s.name}>{displayName}</Text>
-          <Text style={[s.status, { color: statusColor() }]}>{statusText()}</Text>
-          {isGroup && participantEntries.length > 0 && (
-            <View style={s.participantsCard}>
-              {participantEntries.map(([uid, profile]) => (
-                <View key={uid} style={s.participantRow}>
-                  <View style={s.participantLeft}>
-                    <View style={s.participantMiniAvatar}>
-                      {isFeatherIcon(profile.avatar) ? (
-                        <Feather name={profile.avatar as any} size={14} color="#F7F8FF" />
-                      ) : (
-                        <Text style={s.participantMiniAvatarText}>{profile.avatar}</Text>
-                      )}
-                    </View>
-                    <Text style={s.participantName}>
-                      {profile.name}
-                      {uid === myUid ? ' (tu)' : ''}
-                    </Text>
-                  </View>
-                  <Text style={[
-                    s.participantStatus,
-                    call.participantStatuses?.[uid] === 'active' && s.participantStatusActive,
-                    ['left', 'declined', 'missed'].includes(call.participantStatuses?.[uid] ?? '') && s.participantStatusMuted,
-                  ]}
-                  >
-                    {statusLabel(call.participantStatuses?.[uid])}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
+
+          {/* Avatar — always show the caller/callee avatar, even in group calls */}
+          <AvatarBubble
+            avatar={displayAvatar ?? '🎵'}
+            name={displayName ?? ''}
+            size={96}
+            pulse={phase === 'incoming' || phase === 'ringing'}
+            pulseColor={pulseColor}
+          />
+
+          {/* Name */}
+          <Text style={s.name} numberOfLines={1}>{displayName}</Text>
+
+          {/* Status */}
+          <Text style={[s.statusText, { color: statusColor() }]}>{statusText()}</Text>
+
+          {/* REC badge */}
           {isRecording && phase === 'active' && (
             <View style={s.recBadge}>
               <View style={s.recDot} />
               <Text style={s.recLabel}>REC</Text>
             </View>
           )}
+
+          {/* Group participant list */}
+          {isGroup && call.participantProfiles && Object.keys(call.participantProfiles).length > 0 && (
+            <View style={s.participantCard}>
+              <ParticipantList
+                participantProfiles={call.participantProfiles}
+                participantStatuses={call.participantStatuses}
+                myUid={myUid}
+              />
+            </View>
+          )}
+
         </View>
 
+        {/* ---------------------------------------------------------------- */}
+        {/* Action buttons                                                   */}
+        {/* ---------------------------------------------------------------- */}
         <View style={s.actions}>
 
+          {/* INCOMING — decline left, accept right */}
           {phase === 'incoming' && (
             <View style={s.incomingRow}>
-              <TouchableOpacity style={s.declineBtn} onPress={() => declineCall(call)}>
-                <Text style={s.btnIcon}>✕</Text>
-              </TouchableOpacity>
-              <View style={{ width: 48 }} />
-              <TouchableOpacity style={s.acceptBtn} onPress={() => acceptCall(call)}>
-                <Text style={s.btnIcon}>📞</Text>
-              </TouchableOpacity>
+              <View style={s.btnCol}>
+                <TouchableOpacity
+                  style={[s.circleBtn, s.circleBtnRed]}
+                  onPress={() => declineCall(call)}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="phone-off" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text style={s.btnLabel}>Rifiuta</Text>
+              </View>
+
+              <View style={s.btnCol}>
+                <TouchableOpacity
+                  style={[s.circleBtn, s.circleBtnGreen]}
+                  onPress={() => acceptCall(call)}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="phone" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text style={s.btnLabel}>Rispondi</Text>
+              </View>
             </View>
           )}
 
+          {/* RINGING / CONNECTING — single red cancel button */}
           {(phase === 'ringing' || phase === 'connecting') && (
-            <View style={s.singleBtnRow}>
-              <TouchableOpacity style={s.endBtn} onPress={endCall}>
-                <Text style={s.btnIcon}>✕</Text>
+            <View style={s.singleBtnCol}>
+              <TouchableOpacity
+                style={[s.circleBtn, s.circleBtnRed]}
+                onPress={endCall}
+                activeOpacity={0.8}
+              >
+                <Feather name="phone-off" size={28} color="#fff" />
               </TouchableOpacity>
-              <Text style={s.singleBtnLabel}>{t('call.cancel')}</Text>
+              <Text style={s.btnLabel}>{t('call.cancel')}</Text>
             </View>
           )}
 
+          {/* ACTIVE — three main buttons + secondary pill row */}
           {phase === 'active' && (
             <>
               <View style={s.activeRow}>
-                <View style={s.actionItem}>
+
+                {/* Mute */}
+                <View style={s.btnCol}>
                   <TouchableOpacity
-                    style={[s.actionBtn, isMuted && s.actionBtnActive]}
+                    style={[s.circleBtn, s.circleBtnGrey, isMuted && s.circleBtnGreyActive]}
                     onPress={toggleMute}
+                    activeOpacity={0.8}
                   >
-                    <Text style={s.actionIcon}>{isMuted ? '🔇' : '🎤'}</Text>
+                    <Feather name={isMuted ? 'mic-off' : 'mic'} size={24} color={isMuted ? '#FF5C79' : '#fff'} />
                   </TouchableOpacity>
-                  <Text style={s.actionLabel}>{isMuted ? t('call.unmute') : t('call.mute')}</Text>
+                  <Text style={s.btnLabel}>{isMuted ? t('call.unmute') : t('call.mute')}</Text>
                 </View>
 
-                <View style={s.actionItem}>
-                  <TouchableOpacity style={s.endBtn} onPress={endCall}>
-                    <Text style={s.btnIcon}>✕</Text>
-                  </TouchableOpacity>
-                  <Text style={s.actionLabel}>{isGroup ? 'Esci' : t('call.end')}</Text>
-                </View>
-
-                <View style={s.actionItem}>
+                {/* End call — larger, red, centred */}
+                <View style={s.btnCol}>
                   <TouchableOpacity
-                    style={[s.actionBtn, isSpeaker && s.actionBtnActive]}
-                    onPress={toggleSpeaker}
+                    style={[s.circleBtn, s.circleBtnRed, s.circleBtnLarge]}
+                    onPress={endCall}
+                    activeOpacity={0.8}
                   >
-                    <Text style={s.actionIcon}>{isSpeaker ? '🔊' : '📢'}</Text>
+                    <Feather name="phone-off" size={30} color="#fff" />
                   </TouchableOpacity>
-                  <Text style={s.actionLabel}>{isSpeaker ? t('call.earpiece') : t('call.speaker')}</Text>
+                  <Text style={s.btnLabel}>{isGroup ? 'Esci' : t('call.end')}</Text>
                 </View>
+
+                {/* Speaker */}
+                <View style={s.btnCol}>
+                  <TouchableOpacity
+                    style={[s.circleBtn, s.circleBtnGrey, isSpeaker && s.circleBtnGreyActive]}
+                    onPress={toggleSpeaker}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name={isSpeaker ? 'volume-x' : 'volume-2'} size={24} color={isSpeaker ? '#67E8F9' : '#fff'} />
+                  </TouchableOpacity>
+                  <Text style={s.btnLabel}>{isSpeaker ? t('call.earpiece') : t('call.speaker')}</Text>
+                </View>
+
               </View>
 
-              <View style={s.recRow}>
+              {/* Secondary pill row */}
+              <View style={s.pillRow}>
                 <TouchableOpacity
-                  style={s.secondaryBtn}
+                  style={s.pillBtn}
                   onPress={() => setShowInviteModal(true)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={s.secondaryBtnLabel}>➕ Aggiungi</Text>
+                  <Feather name="user-plus" size={14} color="#67E8F9" style={{ marginRight: 6 }} />
+                  <Text style={s.pillBtnLabel}>Aggiungi</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[s.recBtn, isRecording && s.recBtnActive]}
+                  style={[s.pillBtn, isRecording && s.pillBtnRec]}
                   onPress={toggleRecording}
+                  activeOpacity={0.8}
                 >
-                  <Text style={s.recBtnIcon}>{isRecording ? '⏹' : '⏺'}</Text>
-                  <Text style={s.recBtnLabel}>{isRecording ? 'Ferma' : 'Registra'}</Text>
+                  <Feather
+                    name={isRecording ? 'square' : 'circle'}
+                    size={14}
+                    color={isRecording ? '#FF5C79' : 'rgba(255,255,255,0.5)'}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[s.pillBtnLabel, isRecording && s.pillBtnLabelRec]}>
+                    {isRecording ? 'Ferma' : 'Registra'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </>
           )}
 
+          {/* ENDED */}
           {phase === 'ended' && (
-            <View style={s.endedNote}>
+            <View style={s.endedBox}>
+              <Feather name="phone-missed" size={22} color="#FF5C79" style={{ marginBottom: 8 }} />
               <Text style={s.endedTxt}>{statusText()}</Text>
-              {endReason === 'left' && (
-                <View style={s.rejoinRow}>
-                  {canRejoin && (
-                    <TouchableOpacity style={s.rejoinBtn} onPress={rejoinGroupCall}>
-                      <Text style={s.rejoinBtnLabel}>↩ Rientra</Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={s.closeBtn} onPress={dismissEndedCall}>
-                    <Text style={s.closeBtnLabel}>Chiudi</Text>
+              <View style={s.rejoinRow}>
+                {endReason === 'left' && canRejoin && (
+                  <TouchableOpacity style={s.rejoinBtn} onPress={rejoinGroupCall} activeOpacity={0.8}>
+                    <Feather name="rotate-ccw" size={14} color="#00FF9C" style={{ marginRight: 6 }} />
+                    <Text style={s.rejoinBtnLabel}>Rientra</Text>
                   </TouchableOpacity>
-                </View>
-              )}
+                )}
+                <TouchableOpacity style={s.closeBtn} onPress={dismissEndedCall} activeOpacity={0.8}>
+                  <Feather name="x" size={14} color="rgba(255,255,255,0.45)" style={{ marginRight: 6 }} />
+                  <Text style={s.closeBtnLabel}>Chiudi</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
+
         </View>
       </View>
 
+      {/* Group invite modal — logic unchanged */}
       <GroupCallSetupModal
         visible={showInviteModal}
         onClose={() => setShowInviteModal(false)}
@@ -356,7 +539,12 @@ export default function CallScreen() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const s = StyleSheet.create({
+  // Layout
   container: {
     flex: 1,
     alignItems: 'center',
@@ -365,67 +553,65 @@ const s = StyleSheet.create({
   },
   glow: {
     position: 'absolute',
-    top: -100,
-    left: -100,
-    right: -100,
-    height: 400,
-    borderRadius: 400,
+    top: -120,
+    left: -80,
+    right: -80,
+    height: 440,
+    borderRadius: 440,
   },
+
+  // Top
   topSection: {
     alignItems: 'center',
   },
   typeLabel: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.28)',
+    color: 'rgba(255,255,255,0.25)',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    letterSpacing: 0.12,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
+
+  // Center
   center: {
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     flex: 1,
     justifyContent: 'center',
+    width: '100%',
   },
+
+  // Avatar
   avatarBubble: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1.5,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pulseRing: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 156,
+    height: 156,
+    borderRadius: 78,
     borderWidth: 1.5,
   },
-  groupAvatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  groupAvatarBubble: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 2,
-    borderColor: 'rgba(103,232,249,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
+  // Name & status
   name: {
     fontSize: 26,
     fontWeight: '700',
     color: '#F7F8FF',
     letterSpacing: -0.5,
+    marginTop: 4,
+    textAlign: 'center',
+    maxWidth: 280,
   },
-  status: {
+  statusText: {
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     letterSpacing: 0.06,
   },
+
+  // REC badge
   recBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -450,226 +636,227 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
-  actions: {
-    width: '100%',
-    alignItems: 'center',
-    paddingBottom: 16,
-  },
-  incomingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginTop: 16,
-  },
-  declineBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#FF5C79',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FF5C79',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  acceptBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#00FF9C',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#00FF9C',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  btnIcon: {
-    fontSize: 22,
-  },
-  singleBtnRow: {
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 16,
-  },
-  endBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#FF5C79',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FF5C79',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  singleBtnLabel: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-  },
-  activeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 16,
-  },
-  actionItem: {
-    alignItems: 'center',
-    gap: 10,
-    width: 80,
-  },
-  actionBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnActive: {
-    backgroundColor: 'rgba(103,232,249,0.15)',
-    borderColor: 'rgba(103,232,249,0.4)',
-  },
-  actionIcon: {
-    fontSize: 22,
-  },
-  actionLabel: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    textAlign: 'center',
-  },
-  recRow: {
-    marginTop: 20,
-    alignItems: 'center',
-    gap: 12,
-  },
-  participantsCard: {
+
+  // Participant list card
+  participantCard: {
     width: '100%',
     maxWidth: 340,
-    marginTop: 6,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+  participantScroll: {
+    maxHeight: 200,
+  },
+  participantScrollContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 10,
   },
   participantRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  participantLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 10,
-    flex: 1,
   },
-  participantMiniAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    flexShrink: 0,
   },
-  participantMiniAvatarText: {
-    fontSize: 12,
+  participantAvatarInitial: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  participantAvatarEmoji: {
+    fontSize: 20,
   },
   participantName: {
+    flex: 1,
     color: '#F7F8FF',
-    fontSize: 13,
-    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  participantStatus: {
-    color: '#97A4C7',
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  statusPillActive: {
+    backgroundColor: 'rgba(0,255,156,0.15)',
+  },
+  statusPillGone: {
+    backgroundColor: 'rgba(255,92,121,0.12)',
+  },
+  statusPillText: {
     fontSize: 11,
-    textTransform: 'uppercase',
+    color: '#97A4C7',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  participantStatusActive: {
+  statusPillTextActive: {
     color: '#00FF9C',
   },
-  participantStatusMuted: {
+  statusPillTextGone: {
     color: '#FF8AA0',
   },
-  secondaryBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(103,232,249,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(103,232,249,0.3)',
+
+  // Actions wrapper
+  actions: {
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: 8,
+    gap: 20,
   },
-  secondaryBtnLabel: {
-    color: '#67E8F9',
-    fontSize: 13,
+
+  // Button column (icon + label)
+  btnCol: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  btnLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    fontWeight: '700',
+    textAlign: 'center',
   },
-  recBtn: {
+
+  // Circle buttons
+  circleBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleBtnLarge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  circleBtnRed: {
+    backgroundColor: '#E53935',
+    shadowColor: '#E53935',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  circleBtnGreen: {
+    backgroundColor: '#25D366',
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  circleBtnGrey: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  circleBtnGreyActive: {
+    backgroundColor: 'rgba(103,232,249,0.12)',
+    borderColor: 'rgba(103,232,249,0.35)',
+  },
+
+  // Incoming row
+  incomingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 24,
+  },
+
+  // Ringing single button
+  singleBtnCol: {
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  // Active row
+  activeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 8,
+  },
+
+  // Secondary pill row
+  pillRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  recBtnActive: {
-    backgroundColor: 'rgba(255,92,121,0.12)',
-    borderColor: 'rgba(255,92,121,0.4)',
+  pillBtnRec: {
+    backgroundColor: 'rgba(255,92,121,0.10)',
+    borderColor: 'rgba(255,92,121,0.35)',
   },
-  recBtnIcon: {
-    fontSize: 16,
-  },
-  recBtnLabel: {
-    color: 'rgba(255,255,255,0.5)',
+  pillBtnLabel: {
+    color: 'rgba(255,255,255,0.55)',
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontWeight: '600',
   },
-  endedNote: {
-    marginTop: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  pillBtnLabelRec: {
+    color: '#FF5C79',
+  },
+
+  // Ended box
+  endedBox: {
     alignItems: 'center',
-    gap: 16,
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    width: '100%',
+    maxWidth: 320,
   },
   endedTxt: {
     color: '#FF5C79',
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     textAlign: 'center',
+    marginBottom: 8,
   },
   rejoinRow: {
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
+    marginTop: 4,
   },
   rejoinBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,255,156,0.15)',
+    backgroundColor: 'rgba(0,255,156,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.4)',
+    borderColor: 'rgba(0,255,156,0.35)',
   },
   rejoinBtnLabel: {
     color: '#00FF9C',
@@ -678,8 +865,10 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
   closeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
@@ -690,9 +879,11 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
+
+  // PiP
   pipContainer: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#080C14',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,

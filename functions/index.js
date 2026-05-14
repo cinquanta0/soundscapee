@@ -994,35 +994,67 @@ exports.streakReminder = onSchedule(
   { schedule: '0 20 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
   async () => {
     const db = admin.firestore();
-    const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD' UTC
-    // 'sv-SE' locale produce date in formato YYYY-MM-DD, rispettando il DST reale di Rome
     const todayRome = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    const yesterdayRome = new Date(Date.now() - 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
 
     const usersSnap = await db.collection('users').get();
     const promises = [];
+    const resetBatch = db.batch();
+    let resetCount = 0;
 
     for (const userDoc of usersSnap.docs) {
       const data = userDoc.data();
       const streak = data.streakCount || 0;
 
-      // Salta se streak = 0 (niente da perdere) o ha già pubblicato oggi
       if (streak === 0) continue;
-      if (data.lastPublishDate === todayRome || data.lastPublishDate === today) continue;
+      if (data.lastPublishDate === todayRome) continue; // pubblicato oggi, nessun problema
 
-      // Salta se non ha token per le notifiche
-      if (!data.pushToken && !data.fcmWebToken) continue;
-
-      promises.push(
-        sendNotificationToUser(db, userDoc.id, {
-          title: '🔥 Streak in pericolo!',
-          body: `Non perdere la tua streak di ${streak} ${streak === 1 ? 'giorno' : 'giorni'}! Pubblica qualcosa ora.`,
-          data: { type: 'streak_reminder' },
-        })
-      );
+      if (data.lastPublishDate === yesterdayRome) {
+        // Streak a rischio: ha pubblicato ieri ma non ancora oggi — manda reminder
+        if (!data.pushToken && !data.fcmWebToken) continue;
+        promises.push(
+          sendNotificationToUser(db, userDoc.id, {
+            title: '🔥 Streak in pericolo!',
+            body: `Non perdere la tua streak di ${streak} ${streak === 1 ? 'giorno' : 'giorni'}! Pubblica qualcosa ora.`,
+            data: { type: 'streak_reminder' },
+          })
+        );
+      } else {
+        // Streak già persa (mancano 2+ giorni) — azzera in batch
+        resetBatch.update(userDoc.ref, { streakCount: 0 });
+        resetCount++;
+      }
     }
 
+    if (resetCount > 0) await resetBatch.commit();
     await Promise.allSettled(promises);
-    console.log(`[streakReminder] Notifiche inviate: ${promises.length}`);
+    console.log(`[streakReminder] Reminder: ${promises.length}, Reset: ${resetCount}`);
+  }
+);
+
+// Azzera streak scadute ogni notte a mezzanotte+5min, così il reset avviene
+// appena scatta il nuovo giorno senza aspettare le 20:00.
+exports.resetStaleStreaks = onSchedule(
+  { schedule: '5 0 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const db = admin.firestore();
+    const yesterdayRome = new Date(Date.now() - 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+
+    const snap = await db.collection('users').where('streakCount', '>', 0).get();
+    if (snap.empty) return;
+
+    const batch = db.batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      const lpd = doc.data().lastPublishDate;
+      // lastPublishDate mancante o antecedente a ieri → streak persa
+      if (!lpd || lpd < yesterdayRome) {
+        batch.update(doc.ref, { streakCount: 0 });
+        count++;
+      }
+    }
+    if (count > 0) await batch.commit();
+    console.log(`[resetStaleStreaks] Azzerate ${count} streak scadute`);
   }
 );
 
