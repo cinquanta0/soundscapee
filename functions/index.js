@@ -1706,7 +1706,7 @@ exports.cleanupStaleRingingCalls = onSchedule(
   },
 );
 
-exports.onCallUpdated = onDocumentUpdated(
+exports.onGroupCallInviteUpdated = onDocumentUpdated(
   { document: 'calls/{callId}', region: 'europe-west1' },
   async (event) => {
     const before = event.data?.before.data();

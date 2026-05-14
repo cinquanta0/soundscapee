@@ -30,9 +30,17 @@ class IncomingCallService : Service() {
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var isStarted = false
+    private var currentCallId: String = ""
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val ringTimeoutRunnable = Runnable { stopIncomingCall() }
+    private val pollStatusRunnable = object : Runnable {
+        override fun run() {
+            if (!isStarted || currentCallId.isBlank()) return
+            checkCallCancelledAsync()
+            handler.postDelayed(this, POLL_INTERVAL_MS)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -71,9 +79,13 @@ class IncomingCallService : Service() {
     private fun startIncomingCall(callId: String, callerName: String) {
         if (isStarted) return
         isStarted = true
+        currentCallId = callId
         // Auto-stop after 50s: covers the case where the caller cancels while the
         // callee's app is killed (no JS Firestore listener to call dismissIncomingCall).
         handler.postDelayed(ringTimeoutRunnable, 50_000L)
+        // Poll Firestore every 3s so we stop ringing immediately when caller cancels,
+        // even if the JS bridge is not running (app in background / killed).
+        handler.postDelayed(pollStatusRunnable, POLL_INTERVAL_MS)
         acquireWakeLock()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification(callId, callerName))
@@ -93,10 +105,52 @@ class IncomingCallService : Service() {
 
     private fun stopIncomingCall() {
         isStarted = false
+        currentCallId = ""
         handler.removeCallbacks(ringTimeoutRunnable)
+        handler.removeCallbacks(pollStatusRunnable)
         sendBroadcast(Intent(ACTION_DISMISS_ACTIVITY).setPackage(packageName))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopRingtone(); stopVibration(); abandonAudioFocus(); releaseWakeLock(); stopSelf()
+    }
+
+    private fun checkCallCancelledAsync() {
+        val prefs = getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+        val idToken = prefs.getString("authIdToken", null) ?: return
+        val callId = currentCallId
+        Thread {
+            try {
+                val token = if (isTokenExpired(idToken)) {
+                    val refreshToken = prefs.getString("authRefreshToken", null) ?: return@Thread
+                    refreshIdToken(refreshToken) ?: return@Thread
+                } else idToken
+                val status = fetchCallStatus(callId, token)
+                if (status != null && status != "ringing") {
+                    handler.post { stopIncomingCall() }
+                }
+            } catch (_: Exception) {}
+        }.start()
+    }
+
+    private fun fetchCallStatus(callId: String, token: String): String? {
+        return try {
+            val url = java.net.URL(
+                "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
+                "/databases/(default)/documents/calls/$callId?fields=status"
+            )
+            with(url.openConnection() as java.net.HttpURLConnection) {
+                requestMethod = "GET"
+                setRequestProperty("Authorization", "Bearer $token")
+                connectTimeout = 5_000
+                readTimeout = 5_000
+                val code = responseCode
+                if (code == 200) {
+                    val json = org.json.JSONObject(inputStream.bufferedReader().readText())
+                    val s = json.optJSONObject("fields")?.optJSONObject("status")?.optString("stringValue")
+                    disconnect()
+                    s
+                } else { disconnect(); null }
+            }
+        } catch (_: Exception) { null }
     }
 
     private fun markCallDeclinedViaRest(callId: String) {
@@ -325,7 +379,8 @@ class IncomingCallService : Service() {
         const val EXTRA_CALL_ID                  = "call_id"
         const val EXTRA_CALLER_NAME              = "caller_name"
         const val EXTRA_ACCEPT_FROM_NOTIFICATION = "acceptFromNotification"
-        private const val CHANNEL_ID      = "soundscape_incoming_call"
-        private const val NOTIFICATION_ID = 7105
+        private const val CHANNEL_ID       = "soundscape_incoming_call"
+        private const val NOTIFICATION_ID  = 7105
+        private const val POLL_INTERVAL_MS = 3_000L
     }
 }
