@@ -349,7 +349,7 @@ export default function App() {
           AsyncStorage.getItem('@soundscape/rntp_session'),
         ]);
         const st = ps?.state ?? ps;
-        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading;
+        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Ready;
         if (isActive && !sessionStr) {
           await TP.reset();
         }
@@ -379,7 +379,7 @@ export default function App() {
           AsyncStorage.getItem('@soundscape/rntp_session'),
         ]);
         const st = ps?.state ?? ps;
-        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading;
+        const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Ready;
         if (!isActive || !track || !sessionStr) { setMiniPlayerData(null); return; }
         const session = JSON.parse(sessionStr);
         if (session.type !== 'radio' && session.type !== 'podcast') { setMiniPlayerData(null); return; }
