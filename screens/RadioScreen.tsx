@@ -2719,9 +2719,25 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
         setIsBufferingStream(false);
         if (state === State.Ready || state === State.Paused) {
           setRadioPrimed(true);
-          if (Platform.OS === 'ios' && !hasStartedPlayingRef.current) {
-            setManualPlayHint(t('radio.iosHintReady'));
-            setStatusLabel(t('radio.paused'));
+          if (Platform.OS === 'ios') {
+            if (!hasStartedPlayingRef.current) {
+              setManualPlayHint(t('radio.iosHintReady'));
+              setStatusLabel(t('radio.paused'));
+            }
+            // Registra Now Playing anche in Ready/Paused — se l'utente va in
+            // background prima di premere play, il widget deve già esistere.
+            const np = nowPlayingRef.current;
+            const sSlot = (() => {
+              const slots = getScheduleSlots(station.id);
+              const idx = getCurrentSlotIndex(slots);
+              return idx >= 0 ? slots[idx] : null;
+            })();
+            syncActiveTrackMetadata({
+              title: station.name,
+              artist: np?.djName || sSlot?.djName || station.genre,
+              album: np?.showName || sSlot?.showName || station.genre,
+              artwork: np?.djImageUrl ?? sSlot?.djPhotoUrl ?? getDjPhoto(sSlot?.djName ?? '') ?? station.logoUrl,
+            }).catch?.(() => {});
           }
         }
       }

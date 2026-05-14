@@ -202,6 +202,10 @@ export async function startRadioPlayback(track: {
   // Aspettiamo il bootstrap reale e, se non entra in Loading/Buffering/Playing,
   // facciamo un unico retry controllato.
   if (!autoplay) {
+    // Aspetta che iOS renda il track "active" prima di registrare Now Playing.
+    // Chiamare syncActiveTrackMetadata subito dopo add() può fallire su getActiveTrackIndex()
+    // e il widget non appare se l'utente va in background prima di premere play.
+    await new Promise((r) => setTimeout(r, 200));
     await syncActiveTrackMetadata({
       title: track.title,
       artist: track.artist,
