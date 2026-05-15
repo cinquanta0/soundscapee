@@ -169,12 +169,17 @@ class IncomingCallService : Service() {
 
     private fun patchCallStatus(callId: String, token: String) {
         val prefs = getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
-        val callType = prefs.getString("currentCallType", "audio") ?: "audio"
         val uid = prefs.getString("authUserId", null)
 
+        // Always fetch the call document to determine type reliably — currentCallType
+        // in SharedPreferences is only set when showIncomingCall() is called from the
+        // JS bridge, which never happens when the app was completely killed.
+        val callDoc = fetchCallDocument(callId, token)
+        val fields = callDoc?.optJSONObject("fields")
+        val callType = fields?.optJSONObject("type")?.optString("stringValue") ?: "audio"
+
         if (callType == "group" && uid != null) {
-            // Group call: only mark this participant as declined — do NOT touch call.status.
-            // The JS listeners on active participants will decide whether to close the call.
+            // 1. Update only this participant's status
             val fieldPath = "participantStatuses.$uid"
             val body = """{"fields":{"participantStatuses":{"mapValue":{"fields":{"$uid":{"stringValue":"declined"}}}}}}"""
             val url = java.net.URL(
@@ -191,24 +196,65 @@ class IncomingCallService : Service() {
                 responseCode
                 disconnect()
             }
+            // 2. Re-read fresh data and close the call only if no one else is active
+            val fresh = fetchCallDocument(callId, token)
+            val freshFields = fresh?.optJSONObject("fields")
+            val inviteesArr = freshFields?.optJSONObject("invitees")
+                ?.optJSONObject("arrayValue")?.optJSONArray("values")
+            val statusMap = freshFields?.optJSONObject("participantStatuses")
+                ?.optJSONObject("mapValue")?.optJSONObject("fields")
+            var someoneActive = false
+            if (inviteesArr != null && statusMap != null) {
+                for (i in 0 until inviteesArr.length()) {
+                    val inviteeUid = inviteesArr.optJSONObject(i)?.optString("stringValue") ?: continue
+                    val st = statusMap.optJSONObject(inviteeUid)?.optString("stringValue")
+                    if (st == "ringing" || st == "active") { someoneActive = true; break }
+                }
+            }
+            if (!someoneActive) {
+                patchCallStatusDeclined(callId, token)
+            }
         } else {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-            val body = """{"fields":{"status":{"stringValue":"declined"},"endedAt":{"timestampValue":"${sdf.format(java.util.Date())}"}}}"""
+            patchCallStatusDeclined(callId, token)
+        }
+    }
+
+    private fun fetchCallDocument(callId: String, token: String): org.json.JSONObject? {
+        return try {
             val url = java.net.URL(
                 "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
-                "/databases/(default)/documents/calls/$callId" +
-                "?updateMask.fieldPaths=status&updateMask.fieldPaths=endedAt"
+                "/databases/(default)/documents/calls/$callId"
             )
             with(url.openConnection() as java.net.HttpURLConnection) {
-                requestMethod = "PATCH"
+                requestMethod = "GET"
                 setRequestProperty("Authorization", "Bearer $token")
-                setRequestProperty("Content-Type", "application/json")
-                doOutput = true
-                outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-                responseCode
-                disconnect()
+                connectTimeout = 5_000
+                readTimeout = 5_000
+                if (responseCode == 200) {
+                    val json = org.json.JSONObject(inputStream.bufferedReader().readText())
+                    disconnect(); json
+                } else { disconnect(); null }
             }
+        } catch (_: Exception) { null }
+    }
+
+    private fun patchCallStatusDeclined(callId: String, token: String) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val body = """{"fields":{"status":{"stringValue":"declined"},"endedAt":{"timestampValue":"${sdf.format(java.util.Date())}"}}}"""
+        val url = java.net.URL(
+            "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
+            "/databases/(default)/documents/calls/$callId" +
+            "?updateMask.fieldPaths=status&updateMask.fieldPaths=endedAt"
+        )
+        with(url.openConnection() as java.net.HttpURLConnection) {
+            requestMethod = "PATCH"
+            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Content-Type", "application/json")
+            doOutput = true
+            outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            responseCode
+            disconnect()
         }
     }
 
