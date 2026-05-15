@@ -27,7 +27,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../firebaseConfig';
 import { C, S, R } from '../constants/design';
-import { configurePlayerForPodcast, ensurePlayerReady } from '../services/audioPlayer';
+import { configurePlayerForPodcast, ensurePlayerReady, syncActiveTrackMetadata } from '../services/audioPlayer';
 import {
   getPodcasts, getPodcastById, publishPodcast, updatePodcast, deletePodcast, searchSounds,
   togglePodcastLike, togglePodcastDislike, getPodcastVotes,
@@ -123,6 +123,16 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
       setIsBuffering(
         st === State.Buffering || st === State.Loading || st === State.Connecting
       );
+      // iOS: registra Now Playing quando il podcast diventa attivo — senza questa
+      // chiamata esplicita il widget lock screen può non apparire se l'utente va
+      // in background prima che RNTP aggiorni MPNowPlayingInfoCenter autonomamente.
+      if (Platform.OS === 'ios' && (st === State.Playing || st === State.Paused)) {
+        syncActiveTrackMetadata({
+          title: podcast.title,
+          artist: podcast.username,
+          artwork: podcast.coverUrl ?? undefined,
+        }).catch(() => {});
+      }
     });
     const pollInterval = setInterval(async () => {
       try {
@@ -203,7 +213,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
           TrackPlayer.getPlaybackState(),
         ]);
         const st = ps?.state ?? ps;
-        const isActive = st === State.Playing || st === State.Paused || st === State.Buffering || st === State.Loading;
+        const isActive = st === State.Playing || st === State.Paused || st === State.Buffering || st === State.Loading || st === State.Ready;
         // activeTrack può essere null su Android cold start anche se il ForegroundService
         // sta suonando — in quel caso assumiamo sia la traccia corretta e non ricarichiamo.
         if (isActive && (activeTrack?.id === podcast.id || !activeTrack)) {

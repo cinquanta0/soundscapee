@@ -1679,25 +1679,9 @@ exports.onCallUpdated = onDocumentUpdated(
           console.log(`[onCallUpdated] call_dismissed FCM → ${uid} (${fcmTokens.length} token)`);
         }
 
-        // 2. Expo push tokens — fallback per device senza fcmPushTokens
-        const expoTokens = [...new Set(
-          Array.isArray(userData.pushTokens) ? userData.pushTokens : []
-        )].filter((t) => t?.startsWith('ExponentPushToken'));
-        for (const token of expoTokens) {
-          fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: token,
-              _contentAvailable: true,
-              data: { type: 'call_dismissed', callId },
-              priority: 'high',
-            }),
-          }).catch((e) => console.error(`[onCallUpdated] Expo error per ${uid}:`, e.message));
-        }
-        if (expoTokens.length > 0) {
-          console.log(`[onCallUpdated] call_dismissed Expo → ${uid} (${expoTokens.length} token)`);
-        }
+        // Expo push NON viene usato per call_dismissed: Expo wrappa i dati in body/title
+        // e SoundscapeFirebaseMessagingService non riconosce il tipo → notifica di debug visibile.
+        // Android usa FCM native (sopra); iOS gestisce il dismiss via listener Firestore in JS.
       } catch (e) {
         console.error(`[onCallUpdated] errore per ${uid}:`, e.message);
       }
