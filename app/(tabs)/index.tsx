@@ -856,7 +856,8 @@ const handlePublish = async () => {
     if (currentUser) {
       const newStreak = await updatePublishStreak(currentUser.uid);
       if (newStreak) {
-        setUserProfile((prev: any) => prev ? { ...prev, streakCount: newStreak } : prev);
+        const today = new Date().toISOString().slice(0, 10);
+        setUserProfile((prev: any) => prev ? { ...prev, streakCount: newStreak, lastPublishDate: today } : prev);
         setMyStreakCount(newStreak);
       }
     }
