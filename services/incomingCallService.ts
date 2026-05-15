@@ -20,7 +20,7 @@
 import { NativeModules, NativeEventEmitter, Platform, EmitterSubscription } from 'react-native';
 
 type IncomingCallNativeModule = {
-  showIncomingCall: (callId: string, callerName: string) => Promise<void>;
+  showIncomingCall: (callId: string, callerName: string, callType: string) => Promise<void>;
   dismissIncomingCall: () => Promise<void>;
   notifyCallEnded: () => Promise<void>;
   getPendingAcceptCallId: () => Promise<string | null>;
@@ -39,9 +39,9 @@ const emitter = nativeModule ? new NativeEventEmitter(nativeModule as any) : nul
 
 export type IncomingCallEvent = 'IncomingCallAccepted' | 'IncomingCallDeclined' | 'CallHangUpFromLockScreen';
 
-export async function showIncomingCall(callId: string, callerName: string): Promise<void> {
+export async function showIncomingCall(callId: string, callerName: string, callType: string = 'audio'): Promise<void> {
   if (!nativeModule) return;
-  await nativeModule.showIncomingCall(callId, callerName).catch(() => {});
+  await nativeModule.showIncomingCall(callId, callerName, callType).catch(() => {});
 }
 
 export async function dismissIncomingCall(): Promise<void> {

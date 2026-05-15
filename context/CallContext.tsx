@@ -563,7 +563,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       // Delegate entirely to the native service — it loops on STREAM_RING.
       const id   = incomingCall?.id   ?? incomingCallRef.current?.id   ?? '';
       const name = incomingCall?.callerName ?? incomingCallRef.current?.callerName ?? 'Chiamata in arrivo';
-      showIncomingCall(id, name).catch(() => {});
+      const type = incomingCall?.type ?? incomingCallRef.current?.type ?? 'audio';
+      showIncomingCall(id, name, type).catch(() => {});
       return;
     }
     // ── iOS path (unchanged) ──

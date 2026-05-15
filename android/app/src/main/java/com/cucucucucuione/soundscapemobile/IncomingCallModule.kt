@@ -56,8 +56,12 @@ class IncomingCallModule(private val reactContext: ReactApplicationContext) :
         super.invalidate()
     }
 
-    @ReactMethod fun showIncomingCall(callId: String, callerName: String, promise: Promise) {
+    @ReactMethod fun showIncomingCall(callId: String, callerName: String, callType: String, promise: Promise) {
         try {
+            // Save callType so IncomingCallService knows how to handle decline
+            // (group calls: only update participantStatuses, not call.status)
+            reactContext.getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
+                .edit().putString("currentCallType", callType).apply()
             val intent = Intent(reactContext, IncomingCallService::class.java).apply {
                 action = IncomingCallService.ACTION_START
                 putExtra(IncomingCallService.EXTRA_CALL_ID, callId)

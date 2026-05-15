@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   Modal, StatusBar, Platform, ScrollView,
@@ -173,10 +173,12 @@ function ParticipantList({
   participantProfiles,
   participantStatuses,
   myUid,
+  onRecall,
 }: {
   participantProfiles: Record<string, { name: string; avatar: string }>;
   participantStatuses?: Record<string, string>;
   myUid?: string;
+  onRecall?: (uid: string, profile: { name: string; avatar: string }) => void;
 }) {
   const entries = Object.entries(participantProfiles);
 
@@ -190,6 +192,7 @@ function ParticipantList({
       {entries.map(([uid, profile]) => {
         const status = participantStatuses?.[uid];
         const isActive = status === 'active';
+        const isDeclined = status === 'declined' || status === 'missed';
         const isGone = ['left', 'declined', 'missed'].includes(status ?? '');
         const isMe = uid === myUid;
         const bg = avatarColor(profile.name);
@@ -217,20 +220,33 @@ function ParticipantList({
               <Feather name="mic" size={14} color="#00FF9C" style={{ marginRight: 6 }} />
             )}
 
-            {/* Status pill */}
-            <View style={[
-              s.statusPill,
-              isActive && s.statusPillActive,
-              isGone  && s.statusPillGone,
-            ]}>
-              <Text style={[
-                s.statusPillText,
-                isActive && s.statusPillTextActive,
-                isGone   && s.statusPillTextGone,
+            {/* Richiama button for declined/missed (not self) */}
+            {isDeclined && !isMe && onRecall && (
+              <TouchableOpacity
+                onPress={() => onRecall(uid, profile)}
+                style={s.recallBtn}
+              >
+                <Feather name="phone" size={12} color="#00FF9C" />
+                <Text style={s.recallBtnText}>Richiama</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Status pill — hide if showing recall button */}
+            {(!isDeclined || isMe) && (
+              <View style={[
+                s.statusPill,
+                isActive && s.statusPillActive,
+                isGone  && s.statusPillGone,
               ]}>
-                {statusLabel(status)}
-              </Text>
-            </View>
+                <Text style={[
+                  s.statusPillText,
+                  isActive && s.statusPillTextActive,
+                  isGone   && s.statusPillTextGone,
+                ]}>
+                  {statusLabel(status)}
+                </Text>
+              </View>
+            )}
           </View>
         );
       })}
@@ -251,6 +267,26 @@ export default function CallScreen() {
     inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string } | null>(null);
+  const prevStatusesRef = useRef<Record<string, string>>({});
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Detect when a participant transitions to 'declined' or 'missed' and show banner
+  useEffect(() => {
+    const statuses = call?.participantStatuses ?? {};
+    const profiles = call?.participantProfiles ?? {};
+    const myUid = auth.currentUser?.uid ?? '';
+    Object.entries(statuses).forEach(([uid, status]) => {
+      const prev = prevStatusesRef.current[uid];
+      if (uid !== myUid && (status === 'declined' || status === 'missed') && prev && prev !== status) {
+        const name = profiles[uid]?.name ?? 'Utente';
+        setDeclinedBanner({ name, uid });
+        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = setTimeout(() => setDeclinedBanner(null), 4000);
+      }
+    });
+    prevStatusesRef.current = { ...statuses };
+  }, [call?.participantStatuses]);
 
   const visible = phase !== null && !(Platform.OS === 'android' && phase === 'incoming' && useSystemIncomingUI);
 
@@ -371,10 +407,23 @@ export default function CallScreen() {
           {/* Group participant list */}
           {isGroup && call.participantProfiles && Object.keys(call.participantProfiles).length > 0 && (
             <View style={s.participantCard}>
+              {/* Banner "X ha rifiutato" */}
+              {declinedBanner && (
+                <View style={s.declinedBanner}>
+                  <Feather name="phone-missed" size={14} color="#FF5C79" />
+                  <Text style={s.declinedBannerText}>{declinedBanner.name} ha rifiutato</Text>
+                </View>
+              )}
               <ParticipantList
                 participantProfiles={call.participantProfiles}
                 participantStatuses={call.participantStatuses}
                 myUid={myUid}
+                onRecall={(uid, profile) => {
+                  inviteParticipantsToCurrentCall(
+                    [uid],
+                    { [uid]: { name: profile.name, avatar: profile.avatar } },
+                  ).catch(() => {});
+                }}
               />
             </View>
           )}
@@ -706,6 +755,41 @@ const s = StyleSheet.create({
   },
   statusPillTextGone: {
     color: '#FF8AA0',
+  },
+
+  recallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.4)',
+    backgroundColor: 'rgba(0,255,156,0.08)',
+  },
+  recallBtnText: {
+    fontSize: 11,
+    color: '#00FF9C',
+    fontWeight: '600',
+  },
+
+  declinedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,92,121,0.12)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,92,121,0.25)',
+  },
+  declinedBannerText: {
+    fontSize: 12,
+    color: '#FF8AA0',
+    fontWeight: '500',
   },
 
   // Actions wrapper
