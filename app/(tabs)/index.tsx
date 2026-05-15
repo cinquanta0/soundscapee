@@ -1068,6 +1068,14 @@ const handlePlay = async (item: any) => {
             try {
               await deleteSound(id);
               await loadMySounds();
+              const me = auth.currentUser;
+              if (me) {
+                const freshProfile: any = await getUserProfile(me.uid);
+                if (freshProfile) {
+                  setUserProfile((prev: any) => prev ? { ...prev, streakCount: freshProfile.streakCount ?? 0, lastPublishDate: freshProfile.lastPublishDate ?? null } : prev);
+                  setMyStreakCount(freshProfile.streakCount || 0);
+                }
+              }
               Alert.alert('✓', t('home.soundDeleted'));
             } catch (error) {
               console.error('Error deleting sound:', error);
