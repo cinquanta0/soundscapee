@@ -428,16 +428,33 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    const declineSub = addIncomingCallListener('IncomingCallDeclined', ({ callId }) => {
+    const declineSub = addIncomingCallListener('IncomingCallDeclined', async ({ callId }) => {
       dismissedIncomingIdsRef.current.add(callId);
       const incoming = incomingCallRef.current;
       if (incoming?.id === callId) {
         setPhase(null);
         setCall(null);
       }
-      // Always update Firestore — don't require incomingCallRef to be populated yet
-      if (incoming?.type === 'group' && auth.currentUser?.uid) {
-        updateParticipantCallStatus(callId, auth.currentUser.uid, 'declined').catch(() => {});
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      // Fetch call type from Firestore — incomingCallRef.current may be null if the
+      // JS bridge was not yet running when the native notification appeared.
+      const snap = await getDoc(doc(db, 'calls', callId)).catch(() => null);
+      const data = snap?.data();
+      const isGroup = (data?.type ?? incoming?.type) === 'group';
+      if (isGroup) {
+        await updateParticipantCallStatus(callId, uid, 'declined').catch(() => {});
+        // Re-read after update so we see the freshly written status for this participant
+        const fresh = await getDoc(doc(db, 'calls', callId)).catch(() => null);
+        const freshData = fresh?.data();
+        const invitees: string[] = Array.isArray(freshData?.invitees) ? freshData.invitees : [];
+        const someoneStillActive = invitees.some((id: string) => {
+          const st = freshData?.participantStatuses?.[id];
+          return st === 'ringing' || st === 'active';
+        });
+        if (!someoneStillActive) {
+          updateCallStatus(callId, 'declined').catch(() => {});
+        }
       } else {
         updateCallStatus(callId, 'declined').catch(() => {});
       }
