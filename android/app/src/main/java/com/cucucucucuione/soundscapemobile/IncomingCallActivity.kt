@@ -49,12 +49,22 @@ class IncomingCallActivity : AppCompatActivity() {
         callId = intent.getStringExtra(IncomingCallService.EXTRA_CALL_ID) ?: ""
         callerName = intent.getStringExtra(IncomingCallService.EXTRA_CALLER_NAME)
             ?: "Chiamata in arrivo"
+        val callType = intent.getStringExtra(IncomingCallService.EXTRA_CALL_TYPE) ?: "audio"
+        val notifBody = intent.getStringExtra(IncomingCallService.EXTRA_NOTIF_BODY)
 
-        // Nome chiamante
-        findViewById<TextView>(R.id.tvCallerName).text = callerName
+        val isGroup = callType == "group"
+        val displayName = if (isGroup && !notifBody.isNullOrBlank()) notifBody else callerName
 
-        // Avatar: prima lettera del nome con colore basato sull'hash
-        val initial = callerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        // Nome chiamante / partecipanti gruppo
+        findViewById<TextView>(R.id.tvCallerName).text = displayName
+
+        // Etichetta stato
+        if (isGroup) {
+            findViewById<TextView>(R.id.tvStatus).text = "Chiamata di gruppo in arrivo"
+        }
+
+        // Avatar: "G" per gruppo, iniziale per chiamata 1:1
+        val initial = if (isGroup) "G" else callerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
         val avatarView = findViewById<TextView>(R.id.tvAvatar)
         avatarView.text = initial
 

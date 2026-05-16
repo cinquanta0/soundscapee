@@ -105,6 +105,8 @@ class IncomingCallService : Service() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
                 putExtra(EXTRA_CALL_ID, callId)
                 putExtra(EXTRA_CALLER_NAME, callerName)
+                putExtra(EXTRA_CALL_TYPE, callType)
+                putExtra(EXTRA_NOTIF_BODY, notifBody)
             })
         } catch (_: Exception) {}
     }
@@ -408,6 +410,8 @@ class IncomingCallService : Service() {
             this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
             putExtra(EXTRA_CALL_ID, callId)
             putExtra(EXTRA_CALLER_NAME, callerName)
+            putExtra(EXTRA_CALL_TYPE, currentCallType)
+            putExtra(EXTRA_NOTIF_BODY, notificationBodyOverride)
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val openPi       = PendingIntent.getActivity(this, 0, openIntent ?: Intent(), flags)
