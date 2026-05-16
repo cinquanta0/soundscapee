@@ -702,6 +702,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     engineRef.current = null;
     remoteUsersRef.current.clear();
 
+    if (Platform.OS === 'ios') {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
+    }
+
     if (wasPlayingBeforeCallRef.current) {
       wasPlayingBeforeCallRef.current = false;
       resumePlayerAfterCall().catch(() => {});
@@ -786,6 +796,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'android') {
       NativeModules.CallPip?.requestCallAudioFocus?.();
       NativeModules.CallPip?.startCallForegroundService?.();
+    } else if (Platform.OS === 'ios') {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
     }
 
     callIdRef.current = incoming.id;
@@ -844,6 +862,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'android') {
       NativeModules.CallPip?.requestCallAudioFocus?.();
       NativeModules.CallPip?.startCallForegroundService?.();
+    } else if (Platform.OS === 'ios') {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
     }
 
     const snap = await getDoc(doc(db, 'users', user.uid));
@@ -915,6 +941,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'android') {
       NativeModules.CallPip?.requestCallAudioFocus?.();
       NativeModules.CallPip?.startCallForegroundService?.();
+    } else if (Platform.OS === 'ios') {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
     }
 
     const snap = await getDoc(doc(db, 'users', user.uid));
