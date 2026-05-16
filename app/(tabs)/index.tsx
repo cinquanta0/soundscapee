@@ -134,7 +134,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { pauseRadioPlayback, playRadioPlayback, syncActiveTrackMetadata } from '../../services/audioPlayer';
+import { pauseRadioPlayback, playRadioPlayback, syncActiveTrackMetadata, pausePlayerForCall } from '../../services/audioPlayer';
 
 const RNTP_SESSION_KEY = '@soundscape/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
@@ -228,6 +228,7 @@ export default function App() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const soundObjRef = useRef<any>(null); // ref per evitare closure stale
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const isLoadingSound = useRef(false);  // guard contro tap multipli
   const [soundActionBusy, setSoundActionBusy] = useState(false);
   const mainScrollViewRef = useRef<any>(null);
@@ -280,6 +281,19 @@ export default function App() {
       if (!val) setShowOnboarding(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (callPhase === 'incoming' || callPhase === 'connecting' || callPhase === 'ringing' || callPhase === 'active') {
+      stopCurrentSound();
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+        setRecording(null);
+        setIsRecording(false);
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+      }
+    }
+  }, [callPhase]);
 
   // Se RNTP sta suonando una stazione radio al boot (app riavviata da Xiaomi/Android
   // dopo tap sulla notifica), naviga direttamente alla tab explore invece del feed.
@@ -706,6 +720,7 @@ const loadSoundsForRemix = async () => {
     try {
       // Stop any playing audio before activating recording session (iOS audio session conflict)
       await stopCurrentSound();
+      await pausePlayerForCall().catch(() => {});
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -717,6 +732,7 @@ const loadSoundsForRemix = async () => {
       );
       
       setRecording(recording);
+      recordingRef.current = recording;
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording:', err);
@@ -756,6 +772,7 @@ const loadSoundsForRemix = async () => {
       });
 
       setRecording(null);
+      recordingRef.current = null;
       setShowRecordModal(true);
     } catch (err) {
       console.error('Failed to stop recording:', err);
@@ -765,7 +782,7 @@ const loadSoundsForRemix = async () => {
 
   // Handle record button
   const handleRecord = () => {
-    if (callPhase === 'active' || callPhase === 'connecting' || callPhase === 'ringing') {
+    if (callPhase === 'active' || callPhase === 'connecting' || callPhase === 'ringing' || callPhase === 'incoming') {
       Alert.alert('Chiamata in corso', 'Non puoi registrare durante una chiamata.');
       return;
     }
@@ -934,7 +951,7 @@ const onPlaybackStatusUpdate = (status: any) => {
 };
 
 const handlePlay = async (item: any) => {
-  if (callPhase === 'active' || callPhase === 'connecting') {
+  if (callPhase === 'active' || callPhase === 'connecting' || callPhase === 'incoming') {
     Alert.alert('Chiamata in corso', 'Non puoi ascoltare audio durante una chiamata.');
     return;
   }
@@ -944,10 +961,11 @@ const handlePlay = async (item: any) => {
   try {
     const currentId = playingId;
 
-    // Ferma sempre il suono corrente
+    // Ferma sempre il suono corrente (incluso RNTP radio/podcast)
     isLoadingSound.current = true;
     setSoundActionBusy(true);
     await stopCurrentSound();
+    await pausePlayerForCall().catch(() => {});
 
     // Stesso suono → stop (toggle)
     if (currentId === item.id) {

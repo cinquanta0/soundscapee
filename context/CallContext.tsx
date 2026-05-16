@@ -397,10 +397,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               }
               return;
             }
+            pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
             setPhase('incoming');
             if (appStateRef.current === 'active') _startRinging(incoming);
           }).catch(() => {
             if (phaseRef.current === null && !pendingAcceptCallRef.current) {
+              pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
               setPhase('incoming');
               if (appStateRef.current === 'active') _startRinging(incoming);
             }
@@ -410,6 +412,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         // iOS — original path
         callkeepIncomingVisibleRef.current = false;
         setUseSystemIncomingUI(false);
+        pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
         setPhase('incoming');
         _startRinging(incoming);
       });
@@ -792,7 +795,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
+    wasPlayingBeforeCallRef.current = wasPlayingBeforeCallRef.current || (await pausePlayerForCall().catch(() => false));
     if (Platform.OS === 'android') {
       NativeModules.CallPip?.requestCallAudioFocus?.();
       NativeModules.CallPip?.startCallForegroundService?.();

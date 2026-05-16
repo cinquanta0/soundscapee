@@ -336,6 +336,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const autoScrollRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
+  const { initiateCall, phase: callPhase } = useCall();
 
   useEffect(() => {
     const unsub = listenMessaggi(conversationId, (msgs) => {
@@ -352,6 +353,22 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       soundRef.current?.unloadAsync();
     };
   }, [conversationId]);
+
+  useEffect(() => {
+    if (callPhase === 'incoming' || callPhase === 'connecting' || callPhase === 'ringing' || callPhase === 'active') {
+      soundRef.current?.stopAsync().catch(() => {});
+      soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
+      loadedIdRef.current = null;
+      setPlayingId(null);
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+        setIsRecording(false);
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+      }
+    }
+  }, [callPhase]);
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -560,7 +577,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     }
   };
 
-  const { initiateCall, phase: callPhase } = useCall();
   const initial = otherUserName[0]?.toUpperCase() || '?';
   const listBottomPadding = keyboardVisible ? 8 : 16;
 
