@@ -588,7 +588,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Android: IncomingCallService handles ringtone (STREAM_RING = ring volume)
   //          + vibration + full-screen intent + notification action buttons.
   // iOS:     expo-av Audio.Sound (playsInSilentModeIOS) — kept unchanged.
-  const _startRinging = (incomingCall?: Call) => {
+  const _startRinging = async (incomingCall?: Call) => {
     if (Platform.OS === 'android') {
       // Delegate entirely to the native service — it loops on STREAM_RING.
       const id   = incomingCall?.id   ?? incomingCallRef.current?.id   ?? '';
@@ -610,12 +610,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       showIncomingCall(id, name, type).catch(() => {});
       return;
     }
-    // ── iOS path (unchanged) ──
+    // ── iOS path ──
     if (ringtoneRef.current || ringtoneStartingRef.current) return;
     ringtoneStartingRef.current = true;
-    Audio.setAudioModeAsync({
+    // Attiva PlayAndRecord per interrompere Spotify/app esterne, poi torna a
+    // Playback per far uscire la suoneria dal speaker (non dall'auricolare).
+    // iOS non invia interruption-ended a Spotify tra le due chiamate sincrone.
+    try { await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true }); } catch {}
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
       playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
+      staysActiveInBackground: true,
       shouldDuckAndroid: false,
     }).catch(() => {});
     Audio.Sound.createAsync(CALL_SOUND, {
