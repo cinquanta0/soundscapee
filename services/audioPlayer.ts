@@ -351,3 +351,29 @@ export async function pauseRadioPlayback() {
   await AsyncStorage.setItem(LIVE_STREAM_USER_PAUSED_KEY, '1').catch(() => {});
   await TrackPlayer.pause();
 }
+
+// Pauses RNTP for an incoming/outgoing call without marking it as user-paused,
+// so it can be resumed automatically when the call ends.
+// Returns true if playback was actually paused (was playing before).
+export async function pausePlayerForCall(): Promise<boolean> {
+  if (!TrackPlayer) return false;
+  try {
+    const ps = await TrackPlayer.getPlaybackState().catch(() => null);
+    const state = ps?.state ?? ps;
+    if (
+      state === State?.Playing ||
+      state === State?.Buffering ||
+      state === State?.Loading
+    ) {
+      await TrackPlayer.pause();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+// Resumes RNTP after a call ends, but only if pausePlayerForCall returned true.
+export async function resumePlayerAfterCall(): Promise<void> {
+  if (!TrackPlayer) return;
+  try { await TrackPlayer.play(); } catch {}
+}

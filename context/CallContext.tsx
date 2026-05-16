@@ -23,6 +23,7 @@ import {
 } from '../services/callService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
 import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
+import { pausePlayerForCall, resumePlayerAfterCall } from '../services/audioPlayer';
 import { listenBlockedUsers } from '../services/blockService';
 
 let RNCallKeep: any = null;
@@ -140,6 +141,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const rejoinableCallRef = useRef<Call | null>(null);
   const [canRejoin, setCanRejoin] = useState(false);
   const blockedUsersRef = useRef<Set<string>>(new Set());
+  const wasPlayingBeforeCallRef = useRef(false);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -685,6 +687,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     engineRef.current = null;
     remoteUsersRef.current.clear();
 
+    if (wasPlayingBeforeCallRef.current) {
+      wasPlayingBeforeCallRef.current = false;
+      resumePlayerAfterCall().catch(() => {});
+    }
+
     setEndReason(reason);
     setPhase('ended');
     setIsMuted(false);
@@ -760,6 +767,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
+
     callIdRef.current = incoming.id;
     setCall(incoming);
     setPhase('connecting');
@@ -811,6 +820,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       alertMicPermission(canAskAgain);
       return;
     }
+
+    wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
 
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
@@ -876,6 +887,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       alertMicPermission(canAskAgain);
       return;
     }
+
+    wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
 
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
