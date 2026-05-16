@@ -217,7 +217,7 @@ function effectiveStreak(streakCount: number | undefined, lastPublishDate: strin
 
 export default function App() {
   const { t } = useTranslation();
-  const { initiateCall } = useCall();
+  const { initiateCall, phase: callPhase } = useCall();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
   const navBarHeight = 58 + Math.max(insets.bottom, 8);
@@ -765,6 +765,10 @@ const loadSoundsForRemix = async () => {
 
   // Handle record button
   const handleRecord = () => {
+    if (callPhase === 'active' || callPhase === 'connecting' || callPhase === 'ringing') {
+      Alert.alert('Chiamata in corso', 'Non puoi registrare durante una chiamata.');
+      return;
+    }
     if (isRecording && recordingTime >= 3) {
       stopRecording();
     } else if (!isRecording) {
@@ -930,6 +934,10 @@ const onPlaybackStatusUpdate = (status: any) => {
 };
 
 const handlePlay = async (item: any) => {
+  if (callPhase === 'active' || callPhase === 'connecting') {
+    Alert.alert('Chiamata in corso', 'Non puoi ascoltare audio durante una chiamata.');
+    return;
+  }
   // Blocca tap multipli mentre carica
   if (isLoadingSound.current) return;
 
