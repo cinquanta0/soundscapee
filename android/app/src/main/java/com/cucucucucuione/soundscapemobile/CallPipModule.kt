@@ -9,7 +9,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.drawable.Icon
+import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
 import android.os.PowerManager
@@ -26,6 +28,8 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
 
     private var pipReceiver: BroadcastReceiver? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
 
     init {
         moduleRef = WeakReference(this)
@@ -86,6 +90,63 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+    // Requests AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE so external apps (Spotify, etc.) pause.
+    @ReactMethod
+    fun requestCallAudioFocus() {
+        val am = reactContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        audioManager = am
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .setAcceptsDelayedFocusGain(false)
+                .setOnAudioFocusChangeListener {}
+                .build()
+            audioFocusRequest = req
+            am.requestAudioFocus(req)
+        } else {
+            @Suppress("DEPRECATION")
+            am.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+        }
+    }
+
+    @ReactMethod
+    fun abandonCallAudioFocus() {
+        val am = audioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+            audioFocusRequest = null
+        } else {
+            @Suppress("DEPRECATION")
+            am.abandonAudioFocus(null)
+        }
+        audioManager = null
+    }
+
+    // Starts/stops CallMicrophoneService — keeps mic access on HyperOS with screen off.
+    @ReactMethod
+    fun startCallForegroundService() {
+        val intent = Intent(reactContext, CallMicrophoneService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            reactContext.startForegroundService(intent)
+        } else {
+            reactContext.startService(intent)
+        }
+    }
+
+    @ReactMethod
+    fun stopCallForegroundService() {
+        reactContext.startService(
+            Intent(reactContext, CallMicrophoneService::class.java).apply {
+                action = CallMicrophoneService.ACTION_STOP
+            }
+        )
+    }
+
     // Called by JS to update the mute icon in the PiP controls.
     @ReactMethod
     fun updatePipActions(isMuted: Boolean) {
@@ -143,6 +204,8 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
     override fun invalidate() {
         unregisterReceiver()
         releaseWakeLock()
+        abandonCallAudioFocus()
+        stopCallForegroundService()
         if (moduleRef?.get() === this) moduleRef = null
         super.invalidate()
     }

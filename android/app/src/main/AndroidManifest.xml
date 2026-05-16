@@ -5,6 +5,7 @@
   <uses-permission android:name="android.permission.CALL_PHONE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
@@ -34,6 +35,7 @@
     <meta-data android:name="expo.modules.updates.EXPO_UPDATE_URL" android:value="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHANNEL_NAME" android:value="preview"/>
     <service android:name=".IncomingCallService" android:exported="false" android:foregroundServiceType="phoneCall" android:stopWithTask="false"/>
+    <service android:name=".CallMicrophoneService" android:exported="false" android:foregroundServiceType="microphone" android:stopWithTask="true"/>
     <service android:name=".OutgoingRingbackService" android:exported="false" android:foregroundServiceType="mediaPlayback"/>
     <service android:name="expo.modules.notifications.service.ExpoFirebaseMessagingService" tools:node="remove"/>
     <service android:name=".SoundscapeFirebaseMessagingService" android:exported="false">

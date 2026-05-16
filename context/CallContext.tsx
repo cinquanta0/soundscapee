@@ -667,6 +667,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     unsubCallRef.current = null;
     if (Platform.OS === 'android') {
       NativeModules.CallPip?.setCallActive?.(false, '', false);
+      NativeModules.CallPip?.abandonCallAudioFocus?.();
+      NativeModules.CallPip?.stopCallForegroundService?.();
       Notifications.dismissAllNotificationsAsync().catch(() => {});
       notifyCallEnded().catch(() => {});
     }
@@ -781,6 +783,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
+    if (Platform.OS === 'android') {
+      NativeModules.CallPip?.requestCallAudioFocus?.();
+      NativeModules.CallPip?.startCallForegroundService?.();
+    }
 
     callIdRef.current = incoming.id;
     setCall(incoming);
@@ -835,6 +841,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
+    if (Platform.OS === 'android') {
+      NativeModules.CallPip?.requestCallAudioFocus?.();
+      NativeModules.CallPip?.startCallForegroundService?.();
+    }
 
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
@@ -902,6 +912,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     wasPlayingBeforeCallRef.current = await pausePlayerForCall().catch(() => false);
+    if (Platform.OS === 'android') {
+      NativeModules.CallPip?.requestCallAudioFocus?.();
+      NativeModules.CallPip?.startCallForegroundService?.();
+    }
 
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
