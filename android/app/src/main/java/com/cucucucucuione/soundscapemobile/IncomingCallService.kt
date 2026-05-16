@@ -31,6 +31,8 @@ class IncomingCallService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isStarted = false
     private var currentCallId: String = ""
+    private var currentCallType: String = "audio"
+    private var notificationBodyOverride: String? = null
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val ringTimeoutRunnable = Runnable { stopIncomingCall() }
@@ -68,7 +70,9 @@ class IncomingCallService : Service() {
             else -> {
                 val callId     = intent?.getStringExtra(EXTRA_CALL_ID) ?: ""
                 val callerName = intent?.getStringExtra(EXTRA_CALLER_NAME) ?: "Chiamata in arrivo"
-                startIncomingCall(callId, callerName)
+                val callType   = intent?.getStringExtra(EXTRA_CALL_TYPE)  ?: "audio"
+                val notifBody  = intent?.getStringExtra(EXTRA_NOTIF_BODY)
+                startIncomingCall(callId, callerName, callType, notifBody)
             }
         }
         return START_NOT_STICKY
@@ -76,10 +80,12 @@ class IncomingCallService : Service() {
 
     override fun onDestroy() { stopIncomingCall(); super.onDestroy() }
 
-    private fun startIncomingCall(callId: String, callerName: String) {
+    private fun startIncomingCall(callId: String, callerName: String, callType: String = "audio", notifBody: String? = null) {
         if (isStarted) return
         isStarted = true
         currentCallId = callId
+        currentCallType = callType
+        notificationBodyOverride = notifBody
         // Auto-stop after 50s: covers the case where the caller cancels while the
         // callee's app is killed (no JS Firestore listener to call dismissIncomingCall).
         handler.postDelayed(ringTimeoutRunnable, 50_000L)
@@ -419,9 +425,11 @@ class IncomingCallService : Service() {
         val declinePi    = PendingIntent.getService(this, 3,
             Intent(this, IncomingCallService::class.java).apply { action = ACTION_DECLINE; putExtra(EXTRA_CALL_ID, callId) }, flags)
 
+        val notifTitle = if (currentCallType == "group") "Chiamata di gruppo in arrivo" else "Chiamata in arrivo"
+        val notifText  = notificationBodyOverride ?: callerName
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Chiamata in arrivo").setContentText(callerName).setSubText("SoundScape")
+            .setContentTitle(notifTitle).setContentText(notifText).setSubText("SoundScape")
             .setOngoing(true).setAutoCancel(false)
             .setPriority(NotificationCompat.PRIORITY_MAX).setCategory(NotificationCompat.CATEGORY_CALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -444,6 +452,8 @@ class IncomingCallService : Service() {
         const val ACTION_HANG_UP_FROM_LOCKSCREEN = "com.cucucucucuione.soundscapemobile.HANG_UP_LOCKSCREEN"
         const val EXTRA_CALL_ID                  = "call_id"
         const val EXTRA_CALLER_NAME              = "caller_name"
+        const val EXTRA_CALL_TYPE                = "call_type"
+        const val EXTRA_NOTIF_BODY               = "notif_body"
         const val EXTRA_ACCEPT_FROM_NOTIFICATION = "acceptFromNotification"
         private const val CHANNEL_ID       = "soundscape_incoming_call"
         private const val NOTIFICATION_ID  = 7105

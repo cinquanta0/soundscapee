@@ -1624,19 +1624,22 @@ exports.onCallCreated = onDocumentCreated(
       return `${names.slice(0, 2).join(', ')} e altri ${names.length - 2} ti stanno aspettando`;
     }
 
-    await Promise.all(targets.map((uid) =>
-      sendNotificationToUser(db, uid, {
+    await Promise.all(targets.map((uid) => {
+      const notifBody = isGroup ? buildGroupBody(uid) : 'Chiamata vocale in arrivo';
+      return sendNotificationToUser(db, uid, {
         title: isGroup ? '📞 Chiamata di gruppo in arrivo' : `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
-        body: isGroup ? buildGroupBody(uid) : 'Chiamata vocale in arrivo',
+        body: notifBody,
         data: {
           type: 'incoming_call',
           callId,
           callerName: callerName ?? 'Utente',
           callerAvatar: callerAvatar ?? '',
           channelId: 'calls',
+          callType: isGroup ? 'group' : 'audio',
+          notifBody,
         },
-      })
-    ));
+      });
+    }));
 
     // Schedula cleanup automatico dopo 30s — copre il caso in cui Android
     // rifiuta dal lockscreen ma il write Firestore non parte (JS bridge dormiente)
@@ -1776,6 +1779,8 @@ exports.onGroupCallInviteUpdated = onDocumentUpdated(
           callerAvatar: after.callerAvatar ?? '',
           channelId: 'calls',
           participantCount: String(Object.keys(afterProfiles).length),
+          callType: 'group',
+          notifBody: body,
         },
       });
     }));

@@ -35,7 +35,9 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
         if (type == "incoming_call") {
             val callId     = data["callId"]     ?: ""
             val callerName = data["callerName"] ?: "Chiamata in arrivo"
-            Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName fg=${isAppInForeground()}")
+            val callType   = data["callType"]   ?: "audio"
+            val notifBody  = data["notifBody"]  ?: callerName
+            Log.d(TAG, "→ IncomingCallService callId=$callId caller=$callerName type=$callType fg=${isAppInForeground()}")
 
             // Always start IncomingCallService regardless of foreground state.
             // isAppInForeground() can return false-positives causing missed calls.
@@ -45,6 +47,8 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
                 it.action = IncomingCallService.ACTION_START
                 it.putExtra(IncomingCallService.EXTRA_CALL_ID,     callId)
                 it.putExtra(IncomingCallService.EXTRA_CALLER_NAME, callerName)
+                it.putExtra(IncomingCallService.EXTRA_CALL_TYPE,   callType)
+                it.putExtra(IncomingCallService.EXTRA_NOTIF_BODY,  notifBody)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ContextCompat.startForegroundService(applicationContext, intent)
