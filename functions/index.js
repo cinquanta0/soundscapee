@@ -1612,10 +1612,22 @@ exports.onCallCreated = onDocumentCreated(
       ? invitees
       : [calleeId];
 
+    const participantProfiles = call.participantProfiles || {};
+
+    function buildGroupBody(recipientUid) {
+      const names = Object.entries(participantProfiles)
+        .filter(([id]) => id !== recipientUid)
+        .map(([, p]) => p.name)
+        .filter(Boolean);
+      if (names.length === 0) return `${callerName ?? 'Utente'} ti sta chiamando`;
+      if (names.length <= 3) return `${names.join(', ')} ti stanno aspettando`;
+      return `${names.slice(0, 2).join(', ')} e altri ${names.length - 2} ti stanno aspettando`;
+    }
+
     await Promise.all(targets.map((uid) =>
       sendNotificationToUser(db, uid, {
-        title: `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
-        body: isGroup ? 'Chiamata di gruppo in arrivo' : 'Chiamata vocale in arrivo',
+        title: isGroup ? '📞 Chiamata di gruppo in arrivo' : `📞 ${callerName ?? 'Utente'} ti sta chiamando`,
+        body: isGroup ? buildGroupBody(uid) : 'Chiamata vocale in arrivo',
         data: {
           type: 'incoming_call',
           callId,
@@ -1745,20 +1757,27 @@ exports.onGroupCallInviteUpdated = onDocumentUpdated(
     if (!newlyRingingInvitees.length) return;
 
     const hostName = after.callerName ?? 'Utente';
-    const participantCount = Object.keys(afterProfiles).length;
-    await Promise.all(newlyRingingInvitees.map((uid) =>
-      sendNotificationToUser(db, uid, {
+    await Promise.all(newlyRingingInvitees.map((uid) => {
+      const otherNames = Object.entries(afterProfiles)
+        .filter(([id]) => id !== uid)
+        .map(([, p]) => p.name)
+        .filter(Boolean);
+      let body;
+      if (otherNames.length === 0) body = `${hostName} ti sta aspettando`;
+      else if (otherNames.length <= 3) body = `${otherNames.join(', ')} ti stanno aspettando`;
+      else body = `${otherNames.slice(0, 2).join(', ')} e altri ${otherNames.length - 2} ti stanno aspettando`;
+      return sendNotificationToUser(db, uid, {
         title: '📞 Chiamata di gruppo in arrivo',
-        body: `${hostName} e altri ${participantCount - 1} ti stanno aspettando`,
+        body,
         data: {
           type: 'incoming_call',
           callId,
           callerName: hostName,
           callerAvatar: after.callerAvatar ?? '',
           channelId: 'calls',
-          participantCount: String(participantCount),
+          participantCount: String(Object.keys(afterProfiles).length),
         },
-      })
-    ));
+      });
+    }));
   },
 );

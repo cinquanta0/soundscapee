@@ -589,8 +589,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'android') {
       // Delegate entirely to the native service — it loops on STREAM_RING.
       const id   = incomingCall?.id   ?? incomingCallRef.current?.id   ?? '';
-      const name = incomingCall?.callerName ?? incomingCallRef.current?.callerName ?? 'Chiamata in arrivo';
       const type = incomingCall?.type ?? incomingCallRef.current?.type ?? 'audio';
+      let name = incomingCall?.callerName ?? incomingCallRef.current?.callerName ?? 'Chiamata in arrivo';
+      if (type === 'group') {
+        const profiles = incomingCall?.participantProfiles ?? incomingCallRef.current?.participantProfiles ?? {};
+        const myUid = auth.currentUser?.uid ?? '';
+        const names = Object.entries(profiles)
+          .filter(([uid]) => uid !== myUid)
+          .map(([, p]) => (p as ParticipantProfile).name)
+          .filter(Boolean);
+        if (names.length > 0) {
+          name = names.length > 3
+            ? `${names.slice(0, 2).join(', ')} e altri ${names.length - 2}`
+            : names.join(', ');
+        }
+      }
       showIncomingCall(id, name, type).catch(() => {});
       return;
     }
