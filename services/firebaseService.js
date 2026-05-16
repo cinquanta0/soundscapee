@@ -373,34 +373,6 @@ export const deleteSound = async (soundId) => {
       recordingsCount: increment(-1)
     });
 
-    // Roll back streak if this was today's only sound
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      const userDocSnap = await getDoc(userRef);
-      const userData = userDocSnap.data();
-      if (userData?.lastPublishDate === today) {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const remainingSnap = await getDocs(
-          query(collection(db, 'sounds'), where('userId', '==', user.uid), where('createdAt', '>=', todayStart))
-        );
-        if (remainingSnap.empty) {
-          const currentStreak = userData.streakCount || 1;
-          if (currentStreak > 1) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            await updateDoc(userRef, {
-              streakCount: currentStreak - 1,
-              lastPublishDate: yesterday.toISOString().slice(0, 10),
-            });
-          } else {
-            await updateDoc(userRef, { streakCount: 0, lastPublishDate: null });
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ [DELETE] Error rolling back streak:', err);
-    }
 
   } catch (error) {
     console.error('❌ [DELETE] Error deleting sound:', error);

@@ -297,12 +297,8 @@ export default function CallScreen() {
   const amCaller    = call.callerId === myUid;
   const remoteName  = amCaller ? call.calleeName : call.callerName;
   const remoteAvatar = amCaller ? call.calleeAvatar : call.callerAvatar;
-  const displayName  = isGroup
-    ? (phase === 'incoming' ? call.callerName : call.calleeName)
-    : remoteName;
-  const displayAvatar = isGroup
-    ? (phase === 'incoming' ? call.callerAvatar : call.calleeAvatar)
-    : remoteAvatar;
+  const displayName  = isGroup ? 'Chiamata di gruppo' : remoteName;
+  const displayAvatar = isGroup ? null : remoteAvatar;
 
   const statusText = (): string => {
     switch (phase) {

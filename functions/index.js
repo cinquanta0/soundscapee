@@ -1744,18 +1744,19 @@ exports.onGroupCallInviteUpdated = onDocumentUpdated(
 
     if (!newlyRingingInvitees.length) return;
 
+    const hostName = after.callerName ?? 'Utente';
+    const participantCount = Object.keys(afterProfiles).length;
     await Promise.all(newlyRingingInvitees.map((uid) =>
       sendNotificationToUser(db, uid, {
-        title: `📞 ${after.callerName ?? 'Utente'} ti sta chiamando`,
-        body: 'Ti hanno aggiunto a una chiamata di gruppo',
+        title: '📞 Chiamata di gruppo in arrivo',
+        body: `${hostName} e altri ${participantCount - 1} ti stanno aspettando`,
         data: {
           type: 'incoming_call',
           callId,
-          callerName: after.callerName ?? 'Utente',
+          callerName: hostName,
           callerAvatar: after.callerAvatar ?? '',
           channelId: 'calls',
-          groupName: after.calleeName ?? 'Chiamata di gruppo',
-          participantCount: String(Object.keys(afterProfiles).length),
+          participantCount: String(participantCount),
         },
       })
     ));

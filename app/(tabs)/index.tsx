@@ -426,6 +426,7 @@ export default function App() {
   const [sounds, setSounds] = useState<any[]>([]);
   const [totalSoundsCount, setTotalSoundsCount] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [myOwnProfile, setMyOwnProfile] = useState<any | null>(null);
   const [myStreakCount, setMyStreakCount] = useState(0);
   const [activeCollabSessionId, setActiveCollabSessionId] = useState<string | null>(null);
   const [incomingCollab, setIncomingCollab] = useState<CollabSession | null>(null);
@@ -624,6 +625,7 @@ useEffect(() => {
       });
       const profile: any = await getUserProfile(user.uid);
       setUserProfile(profile);
+      setMyOwnProfile(profile);
       setMyStreakCount(profile?.streakCount || 0);
       getFollowStats(user.uid).then(setFollowStats);
     } catch (error) {
@@ -858,6 +860,7 @@ const handlePublish = async () => {
       if (newStreak) {
         const today = new Date().toISOString().slice(0, 10);
         setUserProfile((prev: any) => prev ? { ...prev, streakCount: newStreak, lastPublishDate: today } : prev);
+        setMyOwnProfile((prev: any) => prev ? { ...prev, streakCount: newStreak, lastPublishDate: today } : prev);
         setMyStreakCount(newStreak);
       }
     }
@@ -1073,6 +1076,7 @@ const handlePlay = async (item: any) => {
                 const freshProfile: any = await getUserProfile(me.uid);
                 if (freshProfile) {
                   setUserProfile((prev: any) => prev ? { ...prev, streakCount: freshProfile.streakCount ?? 0, lastPublishDate: freshProfile.lastPublishDate ?? null } : prev);
+                  setMyOwnProfile((prev: any) => prev ? { ...prev, streakCount: freshProfile.streakCount ?? 0, lastPublishDate: freshProfile.lastPublishDate ?? null } : prev);
                   setMyStreakCount(freshProfile.streakCount || 0);
                 }
               }
@@ -1357,6 +1361,7 @@ const handleSaveProfile = async () => {
     // Ricarica profilo
     const newProfile: any = await getUserProfile(user.uid);
     setUserProfile(newProfile);
+    setMyOwnProfile(newProfile);
     setMyStreakCount(newProfile?.streakCount || 0);
     getFollowStats(user.uid).then(setFollowStats);
 
@@ -1590,9 +1595,9 @@ if (loading) {
         activeTab === 'home' || activeTab === 'profile' ? (
           <FeedHomeHeader
             soundsCount={totalSoundsCount ?? sounds.length}
-            streakCount={effectiveStreak(myStreakCount, userProfile?.lastPublishDate)}
+            streakCount={effectiveStreak(myStreakCount, myOwnProfile?.lastPublishDate)}
             unreadCount={unreadCount}
-            avatar={<AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={34} />}
+            avatar={<AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={34} />}
             onOpenNotifications={() => { setShowNotificationsModal(true); loadNotifications(); }}
             onOpenProfile={() => setShowSettings(true)}
           />
@@ -1613,7 +1618,7 @@ if (loading) {
                   <Text style={styles.liveText}>LIVE</Text>
                 </View>
                 <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
-                <Text style={styles.streakText}>🔥 {effectiveStreak(myStreakCount, userProfile?.lastPublishDate)}</Text>
+                <Text style={styles.streakText}>🔥 {effectiveStreak(myStreakCount, myOwnProfile?.lastPublishDate)}</Text>
               </View>
             </View>
             <View style={styles.headerButtons}>
@@ -1630,7 +1635,7 @@ if (loading) {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowSettings(true)}>
                 <View style={styles.headerAvatarRing}>
-                  <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={32} />
+                  <AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={32} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -2071,6 +2076,7 @@ if (loading) {
             if (me) {
               const myProfile: any = await getUserProfile(me.uid);
               setUserProfile(myProfile);
+              setMyOwnProfile(myProfile);
               setMyStreakCount(myProfile?.streakCount || 0);
               // Resetta i follow stats col proprio UID — potrebbero essere dell'ultimo profilo visitato
               getFollowStats(me.uid).then(setFollowStats);

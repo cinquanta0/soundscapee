@@ -41,7 +41,8 @@ export default function GroupCallSetupModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
-  const availableSlots = Math.max(0, MAX_PARTICIPANTS - existingParticipantIds.length);
+  const callerSlot = mode === 'create' ? 1 : 0;
+  const availableSlots = Math.max(0, MAX_PARTICIPANTS - existingParticipantIds.length - callerSlot);
 
   useEffect(() => {
     if (!visible) return;

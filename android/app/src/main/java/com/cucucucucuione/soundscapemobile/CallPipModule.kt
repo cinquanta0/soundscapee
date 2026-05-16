@@ -12,6 +12,7 @@ import android.graphics.drawable.Icon
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Build
+import android.os.PowerManager
 import android.util.Rational
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
@@ -24,6 +25,7 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     private var pipReceiver: BroadcastReceiver? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     init {
         moduleRef = WeakReference(this)
@@ -37,7 +39,26 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
         isCallActive = active
         currentCallerName = callerName
         currentIsMuted = isMuted
+        if (active) acquireWakeLock() else releaseWakeLock()
         if (!active) unregisterReceiver()
+    }
+
+    // Keeps the CPU alive when the screen turns off so Agora can continue
+    // capturing the mic and playing audio (critical on HyperOS 2 / Xiaomi).
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        val pm = reactContext.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+        wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "SoundScape:CallWakeLock"
+        ).apply {
+            acquire(2 * 60 * 60 * 1000L) // max 2 ore
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try { if (wakeLock?.isHeld == true) wakeLock?.release() } catch (_: Exception) {}
+        wakeLock = null
     }
 
     // Routes audio to speaker or earpiece.
@@ -121,6 +142,7 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
 
     override fun invalidate() {
         unregisterReceiver()
+        releaseWakeLock()
         if (moduleRef?.get() === this) moduleRef = null
         super.invalidate()
     }
