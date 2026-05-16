@@ -116,6 +116,7 @@ class IncomingCallService : Service() {
     private fun checkCallCancelledAsync() {
         val prefs = getSharedPreferences("IncomingCall", Context.MODE_PRIVATE)
         val idToken = prefs.getString("authIdToken", null) ?: return
+        val uid = prefs.getString("authUserId", null)
         val callId = currentCallId
         Thread {
             try {
@@ -123,34 +124,28 @@ class IncomingCallService : Service() {
                     val refreshToken = prefs.getString("authRefreshToken", null) ?: return@Thread
                     refreshIdToken(refreshToken) ?: return@Thread
                 } else idToken
-                val status = fetchCallStatus(callId, token)
-                if (status != null && status != "ringing") {
-                    handler.post { stopIncomingCall() }
+                val fields = fetchCallDocument(callId, token)?.optJSONObject("fields") ?: return@Thread
+                val overallStatus = fields.optJSONObject("status")?.optString("stringValue")
+                // For a recall the overall status is already 'active' (others are in call),
+                // but *our* participantStatus is 'ringing'. Stop only if we are no longer ringing.
+                val shouldStop = when (overallStatus) {
+                    "ringing" -> false
+                    "active"  -> {
+                        if (uid != null) {
+                            val myStatus = fields.optJSONObject("participantStatuses")
+                                ?.optJSONObject("mapValue")
+                                ?.optJSONObject("fields")
+                                ?.optJSONObject(uid)
+                                ?.optString("stringValue")
+                            myStatus != "ringing"
+                        } else true
+                    }
+                    null -> false
+                    else -> true   // 'ended', 'declined', 'missed'
                 }
+                if (shouldStop) handler.post { stopIncomingCall() }
             } catch (_: Exception) {}
         }.start()
-    }
-
-    private fun fetchCallStatus(callId: String, token: String): String? {
-        return try {
-            val url = java.net.URL(
-                "https://firestore.googleapis.com/v1/projects/soundscape-74397" +
-                "/databases/(default)/documents/calls/$callId?fields=status"
-            )
-            with(url.openConnection() as java.net.HttpURLConnection) {
-                requestMethod = "GET"
-                setRequestProperty("Authorization", "Bearer $token")
-                connectTimeout = 5_000
-                readTimeout = 5_000
-                val code = responseCode
-                if (code == 200) {
-                    val json = org.json.JSONObject(inputStream.bufferedReader().readText())
-                    val s = json.optJSONObject("fields")?.optJSONObject("status")?.optString("stringValue")
-                    disconnect()
-                    s
-                } else { disconnect(); null }
-            }
-        } catch (_: Exception) { null }
     }
 
     private fun markCallDeclinedViaRest(callId: String) {

@@ -149,8 +149,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Accept is handled inside listenForIncomingCall to avoid a Firestore cache race.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    getPendingDeclineCallId().then((callId) => {
-      if (callId) updateCallStatus(callId, 'declined').catch(() => {});
+    getPendingDeclineCallId().then(async (callId) => {
+      if (!callId) return;
+      // For group calls the native IncomingCallService already wrote the correct
+      // per-participant status via REST (patchCallStatus). Calling updateCallStatus
+      // here would set the *overall* status to 'declined' and terminate an ongoing
+      // group call for everyone — exactly the recall bug. Only fall back to the JS
+      // path for 1:1 calls where the native code sets the overall status itself too.
+      const snap = await getDoc(doc(db, 'calls', callId)).catch(() => null);
+      if (snap?.data()?.type === 'group') return;
+      await updateCallStatus(callId, 'declined').catch(() => {});
     }).catch(() => {});
   }, []);
 
