@@ -366,12 +366,30 @@ export const deleteSound = async (soundId) => {
     // Delete sound document
     await deleteDoc(soundRef);
     console.log('✅ [DELETE] Sound document deleted');
-    
-    // Update user recordings count
+
+    // Update user recordings count — and reset streak if this was the only sound today
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      recordingsCount: increment(-1)
-    });
+    const today = new Date().toISOString().slice(0, 10);
+    const soundDate = soundData.createdAt?.toDate?.()?.toISOString().slice(0, 10);
+
+    if (soundDate === today) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todaySoundsSnap = await getDocs(
+        query(
+          collection(db, 'sounds'),
+          where('userId', '==', user.uid),
+          where('createdAt', '>=', Timestamp.fromDate(todayStart))
+        )
+      );
+      const otherTodayCount = todaySoundsSnap.docs.filter((d) => d.id !== soundId).length;
+      if (otherTodayCount === 0) {
+        await updateDoc(userRef, { recordingsCount: increment(-1), streakCount: 0, lastPublishDate: null });
+        return;
+      }
+    }
+
+    await updateDoc(userRef, { recordingsCount: increment(-1) });
 
 
   } catch (error) {

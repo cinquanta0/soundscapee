@@ -328,28 +328,23 @@ export default function CallScreen() {
   // -------------------------------------------------------------------------
   // PiP layout (Android picture-in-picture)
   // -------------------------------------------------------------------------
-  if (isPipMode && phase === 'active') {
-    return (
-      <Modal visible animationType="none" statusBarTranslucent>
+  // -------------------------------------------------------------------------
+  // Full-screen layout — PiP usa lo stesso Modal con contenuto minimale
+  // -------------------------------------------------------------------------
+  return (
+    <Modal
+      visible={visible || (isPipMode && phase === 'active')}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+    >
+      {isPipMode && phase === 'active' ? (
         <View style={s.pipContainer}>
           <Text style={s.pipAvatar}>{displayAvatar}</Text>
           <Text style={s.pipName} numberOfLines={1}>{displayName}</Text>
           <Text style={s.pipTimer}>{fmtDuration(duration)}</Text>
         </View>
-      </Modal>
-    );
-  }
-
-  // -------------------------------------------------------------------------
-  // Full-screen layout
-  // -------------------------------------------------------------------------
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      statusBarTranslucent
-    >
+      ) : <>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Background */}
@@ -580,6 +575,7 @@ export default function CallScreen() {
         }
         onInviteParticipants={inviteParticipantsToCurrentCall}
       />
+      </>}
     </Modal>
   );
 }

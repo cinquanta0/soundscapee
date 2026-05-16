@@ -111,6 +111,19 @@ function MessageBubble({
 }) {
   const { t } = useTranslation();
   const isMine = msg.senderId === ME();
+
+  if (msg.isDeleted) {
+    return (
+      <View style={[bs.row, isMine ? bs.rowRight : bs.rowLeft]}>
+        <View style={[bs.bubble, isMine ? bs.bubbleMine : bs.bubbleTheirs, { opacity: 0.45 }]}>
+          <Text style={[bs.messageText, { fontStyle: 'italic', color: '#7A8099' }]}>
+            🗑 Messaggio eliminato
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const isPlaying = playingId === msg.id;
   const wf = msg.waveform?.length ? msg.waveform : genWaveform(msg.id);
   const color = isMine ? C.cyan : C.purple;

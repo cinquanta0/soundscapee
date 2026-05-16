@@ -28,6 +28,7 @@ export interface Messaggio {
   statusReply?: boolean;
   statusReplyLabel?: string;
   statusId?: string;
+  isDeleted?: boolean;
 }
 
 export interface Conversazione {
@@ -226,7 +227,10 @@ export async function eliminaMessaggio(messageId: string, conversationId: string
     } catch {}
   }
 
-  await deleteDoc(msgRef);
+  await updateDoc(msgRef, {
+    isDeleted: true,
+    deletedAt: serverTimestamp(),
+  });
 
   try {
     const data = msgSnap.data();

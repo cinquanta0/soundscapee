@@ -653,6 +653,7 @@ exports.onMessageCreated = onDocumentCreated(
   async (event) => {
     const msg = event.data?.data();
     if (!msg) return;
+    if (msg.isDeleted) return;
 
     const { senderId, receiverId, duration, statusReply, statusId, type, text, replyTo } = msg;
     if (!receiverId || senderId === receiverId) return;
