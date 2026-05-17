@@ -361,12 +361,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       soundRef.current = null;
       loadedIdRef.current = null;
       setPlayingId(null);
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
-        setIsRecording(false);
-        Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
-      }
     }
   }, [callPhase]);
 
