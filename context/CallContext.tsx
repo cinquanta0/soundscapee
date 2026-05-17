@@ -511,18 +511,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (dropTimerRef.current) { clearTimeout(dropTimerRef.current); dropTimerRef.current = null; }
         if (callIdRef.current) ck.setCurrentCallActive(callIdRef.current);
         if (becameActive) {
-          // Set audio session for call (earpiece default; user can toggle to speaker)
-          // On iOS, this re-interrupts Spotify/external apps that may have auto-resumed
-          // after the ringing phase (iOS sends shouldResume when expo-av switches from
-          // PlayAndRecord back to Playback for the ringtone). Agora then takes over the
-          // AVAudioSession, but this call ensures external apps are interrupted first.
-          Audio.setAudioModeAsync({
-            allowsRecordingIOS: true,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            shouldDuckAndroid: false,
-            playThroughEarpieceAndroid: Platform.OS === 'android',
-          }).catch(() => {});
+          // Set audio session for call (earpiece default; user can toggle to speaker).
+          // Android only: on iOS Agora already owns the AVAudioSession at this point;
+          // calling setAudioModeAsync here would conflict with Agora and drop the call.
+          // Spotify interruption on iOS is handled in _doAccept (before joinChannel).
+          if (Platform.OS === 'android') {
+            Audio.setAudioModeAsync({
+              allowsRecordingIOS: true,
+              playsInSilentModeIOS: true,
+              staysActiveInBackground: true,
+              shouldDuckAndroid: false,
+              playThroughEarpieceAndroid: true,
+            }).catch(() => {});
+          }
           setDuration(0);
           durationRef.current = 0;
           if (durationTimerRef.current) clearInterval(durationTimerRef.current);
