@@ -387,6 +387,13 @@ export default function CallScreen() {
           {/* Status */}
           <Text style={[s.statusText, { color: statusColor() }]}>{statusText()}</Text>
 
+          {/* E2E badge — 1:1 calls only, not ended */}
+          {!isGroup && phase !== 'ended' && (
+            <View style={s.e2eBadge}>
+              <Text style={s.e2eBadgeTxt}>🔒 Cifrata end-to-end</Text>
+            </View>
+          )}
+
           {/* REC badge */}
           {isRecording && phase === 'active' && (
             <View style={s.recBadge}>
@@ -650,6 +657,21 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     letterSpacing: 0.06,
+  },
+
+  // E2E badge
+  e2eBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(103,232,249,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.15)',
+  },
+  e2eBadgeTxt: {
+    color: 'rgba(103,232,249,0.55)',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
 
   // REC badge

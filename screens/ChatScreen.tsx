@@ -347,6 +347,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const mySecretKeyRef = useRef<Uint8Array | null>(null);
   const myPublicKeyB64Ref = useRef<string | null>(null);
   const myUidRef = useRef<string>(auth.currentUser?.uid ?? '');
+  const [e2eReady, setE2eReady] = useState(false);
   const { initiateCall, phase: callPhase } = useCall();
 
   useEffect(() => {
@@ -354,6 +355,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     Promise.all([getMySecretKey(), getMyPublicKeyB64()]).then(([sk, pkB64]) => {
       mySecretKeyRef.current = sk;
       myPublicKeyB64Ref.current = pkB64;
+      if (sk && pkB64) setE2eReady(true);
       setMessages((prev) => prev.map((m) => decryptMsg(m, sk, pkB64, myUidRef.current)));
     }).catch(console.error);
   }, []);
@@ -736,6 +738,13 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         scrollEventThrottle={16}
         contentContainerStyle={[cs.list, { paddingBottom: listBottomPadding }]}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          e2eReady ? (
+            <View style={cs.e2eBanner}>
+              <Text style={cs.e2eBannerTxt}>🔒 I messaggi sono protetti da crittografia end-to-end</Text>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={cs.empty}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>💬</Text>
@@ -877,6 +886,8 @@ const cs = StyleSheet.create({
   sendBtnDisabled: { opacity: 0.45 },
   sendBtnTxt: { color: '#08111E', fontSize: 20, fontWeight: '800' },
   inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
+  e2eBanner: { alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 4 },
+  e2eBannerTxt: { color: C.textMute, fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 16 },
   callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
   callBtnDisabled: { opacity: 0.3 },
   callBtnTxt: { fontSize: 16 },
