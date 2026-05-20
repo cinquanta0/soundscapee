@@ -408,7 +408,8 @@ export default function CallScreen() {
           {/* E2E badge — 1:1 calls only, not ended */}
           {!isGroup && phase !== 'ended' && (
             <View style={s.e2eBadge}>
-              <Text style={s.e2eBadgeTxt}>🔒 Cifrata end-to-end</Text>
+              <Feather name="lock" size={10} color="rgba(103,232,249,0.55)" />
+              <Text style={s.e2eBadgeTxt}>Cifrata end-to-end</Text>
             </View>
           )}
 
@@ -708,6 +709,9 @@ const s = StyleSheet.create({
 
   // E2E badge
   e2eBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,

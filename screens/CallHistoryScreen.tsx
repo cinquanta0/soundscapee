@@ -84,38 +84,43 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
     };
   }, []);
 
-  const getCallType = useCallback((call: Call): { label: string; color: string } => {
+  const getCallType = useCallback((call: Call): { label: string; color: string; icon: React.ComponentProps<typeof Feather>['name'] } => {
     const uid = auth.currentUser?.uid;
     if (call.type === 'group') {
       const myStatus = call.participantStatuses?.[uid ?? ''];
-      if (myStatus === 'declined' || myStatus === 'missed') return { label: '📵 Persa', color: '#FF5C79' };
-      return { label: '👥 Gruppo', color: '#8B5CF6' };
+      if (myStatus === 'declined' || myStatus === 'missed') return { label: 'Persa', color: '#FF5C79', icon: 'phone-missed' };
+      return { label: 'Gruppo', color: '#8B5CF6', icon: 'users' };
     }
     if (call.status === 'missed' || call.status === 'declined') {
-      return { label: '📵 Persa', color: '#FF5C79' };
+      return { label: 'Persa', color: '#FF5C79', icon: 'phone-missed' };
     }
     if (call.callerId === uid) {
-      return { label: '📞 In uscita', color: '#67E8F9' };
+      return { label: 'In uscita', color: '#67E8F9', icon: 'phone-outgoing' };
     }
-    return { label: '📲 In entrata', color: '#00FF9C' };
+    return { label: 'In entrata', color: '#00FF9C', icon: 'phone-incoming' };
   }, []);
 
   const renderItem = ({ item }: { item: Call }) => {
     const { name, avatar, otherUid } = getOtherParty(item);
-    const { label, color } = getCallType(item);
+    const { label, color, icon } = getCallType(item);
     const avatarColor = getAvatarColor(name);
     const isEmoji = avatar && avatar.length <= 2 && /\p{Emoji}/u.test(avatar);
 
     return (
       <View style={styles.row}>
         <View style={[styles.avatarCircle, { backgroundColor: avatarColor + '33', borderColor: avatarColor + '66' }]}>
-          <Text style={styles.avatarText}>{isEmoji ? avatar : '🎵'}</Text>
+          {isEmoji
+            ? <Text style={styles.avatarText}>{avatar}</Text>
+            : <Feather name="music" size={20} color={avatarColor} />}
         </View>
 
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           <View style={styles.metaRow}>
-            <Text style={[styles.callType, { color }]}>{label}</Text>
+            <View style={styles.callTypeRow}>
+              <Feather name={icon} size={13} color={color} />
+              <Text style={[styles.callType, { color }]}>{label}</Text>
+            </View>
             {typeof (item as any).duration === 'number' && (item as any).duration > 0 && (
               <Text style={styles.duration}>{formatDuration((item as any).duration)}</Text>
             )}
@@ -226,6 +231,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  callTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   callType: {
     fontSize: 13,
