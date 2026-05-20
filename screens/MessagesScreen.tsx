@@ -14,6 +14,7 @@ import { listenBlockedUsers } from '../services/blockService';
 import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
+import { useCall } from '../context/CallContext';
 
 const C = {
   text: '#F7F8FF',
@@ -152,6 +153,7 @@ interface Props {
 
 export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const { t } = useTranslation();
+  const { canRejoin } = useCall();
   const [conversations, setConversations] = useState<Conversazione[]>([]);
   const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(initialChat ?? null);
   const [showNewConv, setShowNewConv] = useState(false);
@@ -222,6 +224,11 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
             </TouchableOpacity>
             <TouchableOpacity style={[ms.newBtn, { backgroundColor: 'rgba(103,232,249,0.10)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.25)' }]} onPress={() => setShowCallHistory(true)}>
               <Feather name="phone" size={15} color="#67E8F9" />
+              {canRejoin && (
+                <View style={ms.callBadge}>
+                  <Text style={ms.callBadgeTxt}>1</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={ms.newBtn} onPress={() => setShowNewConv(true)}>
               <Feather name="plus" size={15} color="#060913" />
@@ -362,6 +369,8 @@ const ms = StyleSheet.create({
   headerTitle: { color: C.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
   headerSub: { color: C.textDim, fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
   newBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(103,232,249,0.14)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)' },
+  callBadge: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
+  callBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
   sectionCaption: { color: C.cyan, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
   sectionBadge: { minWidth: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(79,124,255,0.22)' },

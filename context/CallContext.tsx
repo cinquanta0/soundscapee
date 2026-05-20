@@ -80,6 +80,7 @@ interface CallContextValue {
   duration: number;
   endReason: string | null;
   canRejoin: boolean;
+  rejoinableCall: Call | null;
   initiateCall: (calleeId: string, calleeName: string, calleeAvatar: string) => Promise<void>;
   initiateGroupCall: (inviteeIds: string[], inviteeProfiles: Record<string, ParticipantProfile>) => Promise<void>;
   acceptCall: (call: Call) => Promise<void>;
@@ -140,6 +141,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const pendingAcceptCallRef = useRef<Call | null>(null);
   const rejoinableCallRef = useRef<Call | null>(null);
   const [canRejoin, setCanRejoin] = useState(false);
+  const [rejoinableCall, setRejoinableCall] = useState<Call | null>(null);
   const blockedUsersRef = useRef<Set<string>>(new Set());
   const wasPlayingBeforeCallRef = useRef(false);
 
@@ -746,6 +748,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setCall(null);
         setEndReason(null);
         setCanRejoin(false);
+        setRejoinableCall(null);
         rejoinableCallRef.current = null;
       }, 15_000);
       return;
@@ -758,6 +761,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       callIdRef.current = null;
       cleaningUpRef.current = false;
       setCanRejoin(false);
+      setRejoinableCall(null);
       rejoinableCallRef.current = null;
 
       // Offer to publish recording after UI is clear
@@ -1070,6 +1074,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (!uid) return;
       // Salva la call per eventuale rejoin prima che _finalize azzeri tutto
       rejoinableCallRef.current = incomingCallRef.current;
+      setRejoinableCall(incomingCallRef.current);
       await leaveGroupCall(callIdRef.current, uid).catch(() => {});
       _finalize('left');
       return;
@@ -1082,6 +1087,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const callToRejoin = rejoinableCallRef.current;
     if (!callToRejoin) return;
     rejoinableCallRef.current = null;
+    setRejoinableCall(null);
     setCanRejoin(false);
 
     const { status: micStatus, canAskAgain: micCanAskAgain } = await Audio.requestPermissionsAsync();
@@ -1123,6 +1129,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (updated.status === 'ended' && !cleaningUpRef.current) _finalize('ended');
       if (updated.type === 'group' && updated.participantStatuses?.[myUid] === 'left' && !cleaningUpRef.current) {
         rejoinableCallRef.current = updated;
+        setRejoinableCall(updated);
         _finalize('left');
       }
     });
@@ -1133,6 +1140,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setCall(null);
     setEndReason(null);
     setCanRejoin(false);
+    setRejoinableCall(null);
     rejoinableCallRef.current = null;
   }, []);
 
@@ -1239,7 +1247,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CallContext.Provider value={{
-      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, isPipMode, duration, endReason, canRejoin,
+      call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, isPipMode, duration, endReason, canRejoin, rejoinableCall,
       initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
       rejoinGroupCall, dismissEndedCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,

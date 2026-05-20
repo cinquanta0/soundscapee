@@ -52,7 +52,7 @@ function getAvatarColor(str: string): string {
 
 export default function CallHistoryScreen({ userId, onClose }: Props) {
   const { t } = useTranslation();
-  const { initiateCall } = useCall();
+  const { initiateCall, canRejoin, rejoinGroupCall, rejoinableCall } = useCall();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -150,6 +150,45 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
           <Feather name="x" size={22} color="#F7F8FF" />
         </TouchableOpacity>
       </View>
+
+      {canRejoin && rejoinableCall && (() => {
+        const myUid = auth.currentUser?.uid ?? '';
+        const profiles = rejoinableCall.participantProfiles ?? {};
+        const activeUids = Object.entries(rejoinableCall.participantStatuses ?? {})
+          .filter(([uid, status]) => uid !== myUid && status === 'active')
+          .map(([uid]) => uid);
+        const activeProfiles = activeUids.map((uid) => profiles[uid]).filter(Boolean);
+        const names = activeProfiles.slice(0, 3).map((p) => p.name).join(', ');
+        const extra = activeProfiles.length > 3 ? ` +${activeProfiles.length - 3}` : '';
+        const subtitle = activeProfiles.length > 0
+          ? `${names}${extra} ${activeProfiles.length === 1 ? 'è ancora connesso' : 'sono ancora connessi'}`
+          : 'Altri partecipanti ancora connessi';
+        return (
+          <TouchableOpacity style={styles.liveCard} onPress={rejoinGroupCall} activeOpacity={0.8}>
+            <View style={styles.liveDotWrap}>
+              <View style={styles.liveDot} />
+            </View>
+            <View style={styles.liveAvatars}>
+              {activeProfiles.slice(0, 3).map((p, i) => {
+                const color = getAvatarColor(p.name);
+                return (
+                  <View key={i} style={[styles.liveAvatar, { backgroundColor: color + '33', borderColor: color + '66', marginLeft: i > 0 ? -10 : 0 }]}>
+                    <Text style={styles.liveAvatarTxt}>{p.name?.charAt(0)?.toUpperCase() ?? '?'}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <View style={styles.liveInfo}>
+              <Text style={styles.liveTitle}>Chiamata in corso</Text>
+              <Text style={styles.liveSubtitle} numberOfLines={1}>{subtitle}</Text>
+            </View>
+            <View style={styles.liveJoinBtn}>
+              <Feather name="phone" size={16} color="#000" />
+              <Text style={styles.liveJoinTxt}>Rientra</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })()}
 
       {loading ? (
         <View style={styles.center}>
@@ -267,6 +306,73 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.04)',
     marginLeft: 58,
+  },
+  liveCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,255,156,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.3)',
+    gap: 10,
+  },
+  liveDotWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00FF9C',
+  },
+  liveAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  liveAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveAvatarTxt: {
+    color: '#F7F8FF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  liveInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  liveTitle: {
+    color: '#F7F8FF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  liveSubtitle: {
+    color: 'rgba(247,248,255,0.5)',
+    fontSize: 12,
+  },
+  liveJoinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#00FF9C',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  liveJoinTxt: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '700',
   },
   center: {
     flex: 1,
