@@ -38,8 +38,6 @@ module.exports = ({ config }) => ({
     adaptiveIcon: {
       backgroundColor: "#0D0000",
       foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
