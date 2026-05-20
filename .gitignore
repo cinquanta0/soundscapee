@@ -1,5 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# Credenziali Firebase (MAI su git)
+service-account.json
+*-service-account.json
+
 # dependencies
 node_modules/
 
