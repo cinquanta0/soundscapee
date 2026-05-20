@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -105,11 +106,11 @@ export function FeedHomeHeader({
       />
       <View style={styles.brandRow}>
         <View style={styles.brandLeft}>
-          <LinearGradient colors={['#66E6FF', '#7C5CFF']} style={styles.brandMark}>
-            {[16, 24, 14, 28, 18, 22].map((h, i) => (
-              <View key={i} style={[styles.brandBar, { height: h }]} />
-            ))}
-          </LinearGradient>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.brandMark}
+            resizeMode="cover"
+          />
           <View style={{ flex: 1 }}>
             <Text style={styles.brandTitle}>MIUSLYK</Text>
             <View style={styles.metaRow}>
@@ -442,6 +443,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 18,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     flexDirection: 'row',

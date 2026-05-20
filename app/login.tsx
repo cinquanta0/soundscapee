@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView,
+  ScrollView, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { auth, functions } from '../firebaseConfig';
@@ -101,8 +101,7 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View style={s.logoWrap}>
-          <Text style={s.logoEmoji}>🎧</Text>
-          <Text style={s.eyebrow}>MIUSLYK</Text>
+          <Image source={require('../assets/images/icon.png')} style={s.logoImg} />
           <Text style={s.tagline}>{t('auth.subtitle')}</Text>
         </View>
 
@@ -263,8 +262,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoEmoji: {
-    fontSize: 72,
+  logoImg: {
+    width: 140,
+    height: 140,
+    borderRadius: 28,
     marginBottom: 16,
   },
   eyebrow: {
