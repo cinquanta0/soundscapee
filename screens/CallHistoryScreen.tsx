@@ -32,11 +32,13 @@ function formatTimestamp(date: Date): string {
 
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
+  const time = `${hours}:${minutes}`;
 
-  if (diffDays === 0) return `Oggi ${hours}:${minutes}`;
-  if (diffDays === 1) return 'Ieri';
+  if (diffDays === 0) return `Oggi ${time}`;
+  if (diffDays === 1) return `Ieri ${time}`;
 
   const months = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  if (diffDays < 7) return `${date.getDate()} ${months[date.getMonth()]} ${time}`;
   return `${date.getDate()} ${months[date.getMonth()]}`;
 }
 
@@ -63,6 +65,17 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
 
   const getOtherParty = useCallback((call: Call) => {
     const uid = auth.currentUser?.uid;
+    if (call.type === 'group') {
+      const profiles = call.participantProfiles ?? {};
+      const others = Object.entries(profiles).filter(([id]) => id !== uid);
+      const names = others.slice(0, 2).map(([, p]) => p.name).join(', ');
+      const extra = others.length > 2 ? ` +${others.length - 2}` : '';
+      return {
+        name: names ? `${names}${extra}` : 'Chiamata di gruppo',
+        avatar: '👥',
+        otherUid: '',
+      };
+    }
     const isOutgoing = call.callerId === uid;
     return {
       name: isOutgoing ? call.calleeName : call.callerName,
@@ -73,6 +86,11 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
 
   const getCallType = useCallback((call: Call): { label: string; color: string } => {
     const uid = auth.currentUser?.uid;
+    if (call.type === 'group') {
+      const myStatus = call.participantStatuses?.[uid ?? ''];
+      if (myStatus === 'declined' || myStatus === 'missed') return { label: '📵 Persa', color: '#FF5C79' };
+      return { label: '👥 Gruppo', color: '#8B5CF6' };
+    }
     if (call.status === 'missed' || call.status === 'declined') {
       return { label: '📵 Persa', color: '#FF5C79' };
     }
@@ -106,12 +124,14 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
 
         <View style={styles.right}>
           <Text style={styles.timestamp}>{formatTimestamp(item.createdAt)}</Text>
-          <TouchableOpacity
-            style={styles.callBtn}
-            onPress={() => initiateCall(otherUid, name, avatar || '🎵')}
-          >
-            <Feather name="phone" size={16} color="#00FF9C" />
-          </TouchableOpacity>
+          {!!otherUid && (
+            <TouchableOpacity
+              style={styles.callBtn}
+              onPress={() => initiateCall(otherUid, name, avatar || '🎵')}
+            >
+              <Feather name="phone" size={16} color="#00FF9C" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );

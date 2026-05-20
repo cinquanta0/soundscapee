@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useCall } from '../context/CallContext';
 import { auth } from '../firebaseConfig';
+import { listenForCallUpdates } from '../services/callService';
 import GroupCallSetupModal from './GroupCallSetupModal';
 
 // ---------------------------------------------------------------------------
@@ -268,6 +269,7 @@ export default function CallScreen() {
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
   const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string } | null>(null);
+  const [liveStatuses, setLiveStatuses] = useState<Record<string, string> | null>(null);
   const prevStatusesRef = useRef<Record<string, string>>({});
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -288,12 +290,28 @@ export default function CallScreen() {
     prevStatusesRef.current = { ...statuses };
   }, [call?.participantStatuses]);
 
+  // Subscription live ai partecipanti dopo aver lasciato una group call
+  useEffect(() => {
+    if (phase !== 'ended' || endReason !== 'left' || !call?.id) {
+      setLiveStatuses(null);
+      return;
+    }
+    const unsub = listenForCallUpdates(call.id, (updated) => {
+      if (updated) setLiveStatuses(updated.participantStatuses as Record<string, string> ?? null);
+    });
+    return () => unsub();
+  }, [phase, endReason, call?.id]);
+
   const visible = phase !== null && !(Platform.OS === 'android' && phase === 'incoming' && useSystemIncomingUI);
 
   if (!visible || !call) return null;
 
   const myUid       = auth.currentUser?.uid;
   const isGroup     = call.type === 'group';
+  const effectiveStatuses = liveStatuses ?? call.participantStatuses ?? {};
+  const activeMembersCount = Object.entries(effectiveStatuses).filter(
+    ([uid, status]) => uid !== (myUid ?? '') && status === 'active',
+  ).length;
   const amCaller    = call.callerId === myUid;
   const remoteName  = amCaller ? call.calleeName : call.callerName;
   const remoteAvatar = amCaller ? call.calleeAvatar : call.callerAvatar;
@@ -414,7 +432,7 @@ export default function CallScreen() {
               )}
               <ParticipantList
                 participantProfiles={call.participantProfiles}
-                participantStatuses={call.participantStatuses}
+                participantStatuses={effectiveStatuses as Record<string, import('../services/callService').ParticipantCallStatus>}
                 myUid={myUid}
                 onRecall={(uid, profile) => {
                   inviteParticipantsToCurrentCall(
@@ -549,21 +567,50 @@ export default function CallScreen() {
 
           {/* ENDED */}
           {phase === 'ended' && (
-            <View style={s.endedBox}>
-              <Feather name="phone-missed" size={22} color="#FF5C79" style={{ marginBottom: 8 }} />
-              <Text style={s.endedTxt}>{statusText()}</Text>
-              <View style={s.rejoinRow}>
-                {endReason === 'left' && canRejoin && (
-                  <TouchableOpacity style={s.rejoinBtn} onPress={rejoinGroupCall} activeOpacity={0.8}>
-                    <Feather name="rotate-ccw" size={14} color="#00FF9C" style={{ marginRight: 6 }} />
-                    <Text style={s.rejoinBtnLabel}>Rientra</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={s.closeBtn} onPress={dismissEndedCall} activeOpacity={0.8}>
-                  <Feather name="x" size={14} color="rgba(255,255,255,0.45)" style={{ marginRight: 6 }} />
-                  <Text style={s.closeBtnLabel}>Chiudi</Text>
-                </TouchableOpacity>
+            <View style={s.endedCard}>
+              {/* Icona + motivo */}
+              <View style={s.endedTopRow}>
+                <Feather
+                  name={endReason === 'left' ? 'log-out' : 'phone-missed'}
+                  size={18}
+                  color={endReason === 'left' ? '#67E8F9' : '#FF5C79'}
+                />
+                <Text style={[s.endedReasonTxt, { color: endReason === 'left' ? '#67E8F9' : '#FF5C79' }]}>
+                  {statusText()}
+                </Text>
               </View>
+
+              {/* Durata chiamata */}
+              {duration > 0 && (
+                <View style={s.endedDurationRow}>
+                  <Feather name="clock" size={12} color="rgba(255,255,255,0.3)" />
+                  <Text style={s.endedDurationTxt}>{fmtDuration(duration)}</Text>
+                </View>
+              )}
+
+              {/* Quante persone ancora connesse (group call lasciata) */}
+              {isGroup && endReason === 'left' && (
+                <View style={s.endedActiveRow}>
+                  <View style={[s.endedActiveDot, { backgroundColor: activeMembersCount > 0 ? '#00FF9C' : '#666' }]} />
+                  <Text style={[s.endedActiveTxt, { color: activeMembersCount > 0 ? '#00FF9C' : 'rgba(255,255,255,0.35)' }]}>
+                    {activeMembersCount > 0
+                      ? `${activeMembersCount} ${activeMembersCount === 1 ? 'persona ancora connessa' : 'persone ancora connesse'}`
+                      : 'Chiamata terminata'}
+                  </Text>
+                </View>
+              )}
+
+              {/* Rejoin prominente */}
+              {endReason === 'left' && canRejoin && (
+                <TouchableOpacity style={s.bigRejoinBtn} onPress={rejoinGroupCall} activeOpacity={0.8}>
+                  <Feather name="phone" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={s.bigRejoinBtnLabel}>Rientra nella chiamata</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={s.endedDismissBtn} onPress={dismissEndedCall} activeOpacity={0.8}>
+                <Text style={s.endedDismissBtnLabel}>Chiudi</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -920,60 +967,80 @@ const s = StyleSheet.create({
     color: '#FF5C79',
   },
 
-  // Ended box
-  endedBox: {
+  // Ended card
+  endedCard: {
+    width: '100%',
+    maxWidth: 360,
     alignItems: 'center',
-    gap: 6,
+    gap: 14,
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 22,
+    paddingVertical: 22,
+    borderRadius: 28,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    width: '100%',
-    maxWidth: 320,
   },
-  endedTxt: {
-    color: '#FF5C79',
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  endedTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  endedReasonTxt: {
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 8,
   },
-  rejoinRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  rejoinBtn: {
+  endedDurationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,255,156,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.35)',
+    gap: 5,
   },
-  rejoinBtnLabel: {
-    color: '#00FF9C',
+  endedDurationTxt: {
+    color: 'rgba(255,255,255,0.35)',
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    fontWeight: '700',
   },
-  closeBtn: {
+  endedActiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    gap: 7,
   },
-  closeBtnLabel: {
-    color: 'rgba(255,255,255,0.4)',
+  endedActiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  endedActiveTxt: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  bigRejoinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.4)',
+  },
+  bigRejoinBtnLabel: {
+    color: '#00FF9C',
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  endedDismissBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+  },
+  endedDismissBtnLabel: {
+    color: 'rgba(255,255,255,0.35)',
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
