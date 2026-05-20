@@ -36,7 +36,7 @@ module.exports = ({ config }) => ({
   android: {
     googleServicesFile: "./google-services.json",
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#0D0000",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -82,11 +82,11 @@ module.exports = ({ config }) => ({
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",
-        imageWidth: 200,
+        imageWidth: 280,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#0D0000",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#0D0000",
         },
       },
     ],
