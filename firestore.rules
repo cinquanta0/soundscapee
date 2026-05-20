@@ -41,6 +41,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid)).data.get('status', 'pending') == 'approved';
     }
 
+    // ── Verifica amicizia bidirezionale (friendRequest accepted) ─────────────
+    function areFriends(uid1, uid2) {
+      let fwd = uid1 + '_' + uid2;
+      let rev = uid2 + '_' + uid1;
+      return (exists(/databases/$(database)/documents/friendRequests/$(fwd))
+              && get(/databases/$(database)/documents/friendRequests/$(fwd)).data.status == 'accepted')
+          || (exists(/databases/$(database)/documents/friendRequests/$(rev))
+              && get(/databases/$(database)/documents/friendRequests/$(rev)).data.status == 'accepted');
+    }
+
     // ── Rate limiting: controlla soundsQuota/{uid} prima di creare un suono ──
     function withinDailyLimit() {
       let quotaPath = /databases/$(database)/documents/soundsQuota/$(request.auth.uid);
@@ -382,6 +392,7 @@ service cloud.firestore {
       match /chat/{msgId} {
         allow read: if isAuth();
         allow create: if isNotAnonymous()
+                      && request.resource.data.senderId == request.auth.uid
                       && validString(request.resource.data.text, 500);
         allow delete: if false;
       }
@@ -609,9 +620,11 @@ service cloud.firestore {
                     resource.data.receiverId == request.auth.uid);
       // list: la query filtra già per conversationId, isAuth() basta
       allow list: if isAuth();
-      // Solo il mittente autenticato può creare
-      allow create: if isAuth() && request.resource.data.senderId == request.auth.uid;
-      // Il destinatario segna come ascoltato; entrambi i partecipanti possono reagire
+      // Solo il mittente autenticato può creare, solo tra amici
+      allow create: if isAuth()
+                    && request.resource.data.senderId == request.auth.uid
+                    && areFriends(request.auth.uid, request.resource.data.receiverId);
+      // Il destinatario segna come ascoltato; entrambi reagiscono; mittente soft-delete
       allow update: if isAuth() && (
                       (resource.data.receiverId == request.auth.uid &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ascoltato']))
@@ -619,6 +632,12 @@ service cloud.firestore {
                       ((resource.data.senderId == request.auth.uid ||
                         resource.data.receiverId == request.auth.uid) &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
+                      ||
+                      // Soft-delete: il mittente cancella il contenuto (testo + campi E2E audio/testo)
+                      (resource.data.senderId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['isDeleted', 'deletedAt', 'text', 'enc', 'n', 'spk', 'rpk',
+                                   'encAudioKey', 'encAudioKeyNonce']))
                     );
       // Solo il mittente può eliminare il proprio messaggio
       allow delete: if isAuth() && resource.data.senderId == request.auth.uid;
@@ -633,7 +652,9 @@ service cloud.firestore {
       allow read: if isAuth() &&
                    isCallParticipant();
       allow list: if isAuth();
-      allow create: if isAuth() && request.resource.data.callerId == request.auth.uid;
+      allow create: if isAuth()
+                     && request.resource.data.callerId == request.auth.uid
+                     && areFriends(request.auth.uid, request.resource.data.calleeId);
       allow update: if isAuth() &&
                      isCallParticipant() &&
                      request.resource.data.callerId == resource.data.callerId;

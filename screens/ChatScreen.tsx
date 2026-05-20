@@ -16,6 +16,11 @@ import {
 } from '../services/messaggiService';
 import { blockUser, unblockUser, listenBlockedUsers } from '../services/blockService';
 import { useCall } from '../context/CallContext';
+import {
+  initE2EKeys, getMySecretKey, getMyPublicKeyB64,
+  decryptForConversation, openAudioKey, decryptAudioBytes,
+  computeSharedKey, decodeBase64, encodeBase64,
+} from '../services/e2eService';
 
 const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
   isMeteringEnabled: true,
@@ -63,7 +68,10 @@ function fmtTime(d: Date) {
 }
 
 function previewForMessage(msg: Messaggio, t: (key: string, opts?: object) => string) {
-  if (msg.type === 'text') return (msg.text || '').trim().slice(0, 80);
+  if (msg.type === 'text') {
+    if (msg.enc && !msg.text) return '🔒 Messaggio cifrato';
+    return (msg.text || '').trim().slice(0, 80);
+  }
   return t('chat.voicePreview', { seconds: msg.duration ?? 0 });
 }
 
@@ -336,14 +344,46 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const autoScrollRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
+  const mySecretKeyRef = useRef<Uint8Array | null>(null);
+  const myPublicKeyB64Ref = useRef<string | null>(null);
+  const myUidRef = useRef<string>(auth.currentUser?.uid ?? '');
   const { initiateCall, phase: callPhase } = useCall();
+
+  useEffect(() => {
+    initE2EKeys().catch(console.error);
+    Promise.all([getMySecretKey(), getMyPublicKeyB64()]).then(([sk, pkB64]) => {
+      mySecretKeyRef.current = sk;
+      myPublicKeyB64Ref.current = pkB64;
+      setMessages((prev) => prev.map((m) => decryptMsg(m, sk, pkB64, myUidRef.current)));
+    }).catch(console.error);
+  }, []);
+
+  function decryptMsg(
+    msg: Messaggio,
+    sk: Uint8Array | null,
+    myPkB64: string | null,
+    myUid: string,
+  ): Messaggio {
+    if (!msg.enc || !msg.n || !msg.spk || !msg.rpk || !sk) return msg;
+    const plain = decryptForConversation(msg.enc, msg.n, msg.spk, msg.rpk, myUid, msg.senderId, sk);
+    if (plain !== null) return { ...msg, text: plain };
+
+    // Decifra fallita: capisce se e' un problema di chiave ruotata
+    const myPkInMsg = msg.senderId === myUid ? msg.spk : msg.rpk;
+    if (myPkB64 && myPkInMsg !== myPkB64) {
+      return { ...msg, text: '🔐 Messaggio di un dispositivo precedente' };
+    }
+    return { ...msg, text: '🔒 [Impossibile decifrare]' };
+  }
 
   useEffect(() => {
     const unsub = listenMessaggi(conversationId, (msgs) => {
       const prevLastId = lastMessageIdRef.current;
+      const sk = mySecretKeyRef.current;
+      const myUid = myUidRef.current;
       const nextLastId = msgs[msgs.length - 1]?.id;
       lastMessageIdRef.current = nextLastId ?? null;
-      setMessages(msgs);
+      setMessages(msgs.map((m) => decryptMsg(m, sk, myPublicKeyB64Ref.current, myUid)));
       if (autoScrollRef.current || prevLastId !== nextLastId) {
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       }
@@ -413,16 +453,58 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      const localUri = FileSystem.cacheDirectory + `msg_${msg.id}.m4a`;
-      const fileInfo = await FileSystem.getInfoAsync(localUri);
-      const needsDownload = !fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100);
-      if (needsDownload) {
-        if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
-        await FileSystem.downloadAsync(msg.audioUrl, localUri);
+
+      // Percorso finale da riprodurre (m4a in chiaro)
+      let playUri: string;
+
+      if (msg.audioEncrypted && msg.encAudioKey && msg.encAudioKeyNonce && msg.spk && msg.rpk) {
+        // Audio E2E: verifica cache decifrata
+        const decUri = FileSystem.cacheDirectory + `msg_${msg.id}_dec.m4a`;
+        const decInfo = await FileSystem.getInfoAsync(decUri);
+
+        if (!decInfo.exists || (decInfo.size !== undefined && decInfo.size < 100)) {
+          // Scarica il file cifrato in un temporaneo
+          const encUri = FileSystem.cacheDirectory + `msg_${msg.id}.enc`;
+          const encInfo = await FileSystem.getInfoAsync(encUri);
+          if (!encInfo.exists) {
+            await FileSystem.downloadAsync(msg.audioUrl, encUri);
+          }
+
+          // Decifra
+          const sk = mySecretKeyRef.current;
+          if (!sk) throw new Error('Chiave E2E non disponibile');
+          const myUid = myUidRef.current;
+          const theirPK = myUid === msg.senderId
+            ? decodeBase64(msg.rpk)
+            : decodeBase64(msg.spk);
+          const sharedKey = computeSharedKey(theirPK, sk);
+          const keyPair = openAudioKey(msg.encAudioKey, msg.encAudioKeyNonce, sharedKey);
+          if (!keyPair) throw new Error('Impossibile aprire la chiave audio');
+          const encB64 = await FileSystem.readAsStringAsync(encUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const decBytes = decryptAudioBytes(decodeBase64(encB64), keyPair.audioKey, keyPair.audioNonce);
+          if (!decBytes) throw new Error('Decifratura audio fallita');
+          await FileSystem.writeAsStringAsync(decUri, encodeBase64(decBytes), {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          // Pulizia file cifrato dalla cache
+          FileSystem.deleteAsync(encUri, { idempotent: true }).catch(() => {});
+        }
+        playUri = decUri;
+      } else {
+        // Audio non cifrato (legacy)
+        const localUri = FileSystem.cacheDirectory + `msg_${msg.id}.m4a`;
+        const fileInfo = await FileSystem.getInfoAsync(localUri);
+        if (!fileInfo.exists || (fileInfo.size !== undefined && fileInfo.size < 100)) {
+          if (fileInfo.exists) await FileSystem.deleteAsync(localUri, { idempotent: true });
+          await FileSystem.downloadAsync(msg.audioUrl!, localUri);
+        }
+        playUri = localUri;
       }
 
       const { sound } = await Audio.Sound.createAsync(
-        { uri: localUri },
+        { uri: playUri },
         { shouldPlay: true },
         (status) => {
           if (!status.isLoaded) return;

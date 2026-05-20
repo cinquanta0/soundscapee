@@ -26,10 +26,14 @@ service firebase.storage {
 
     // ==================== MESSAGGI VOCALI ====================
     match /messaggi/{convId}/{fileName} {
-      allow read: if request.auth != null;
+      // Lettura solo ai partecipanti della conversazione (fix CRITICO: era 'if auth != null')
+      allow read: if request.auth != null
+                  && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participants;
       allow create: if request.auth != null
                     && request.resource.size < 20 * 1024 * 1024
-                    && request.resource.contentType.matches('audio/.*');
+                    && (request.resource.contentType.matches('audio/.*') ||
+                        request.resource.contentType == 'application/octet-stream')
+                    && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participants;
       allow delete: if false;
     }
 

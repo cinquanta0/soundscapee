@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Image,
   AppState,
+  Linking,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -2451,13 +2452,13 @@ if (loading) {
                 <Text style={styles.settingsSectionTitle}>{t('settings.legal')}</Text>
                 <TouchableOpacity
                   style={styles.settingsItem}
-                  onPress={() => { /* open webview or link */ }}
+                  onPress={() => Linking.openURL('https://miuslyk.com/privacy')}
                 >
                   <Text style={styles.settingsItemText}>{t('settings.privacyPolicy')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.settingsItem}
-                  onPress={() => { /* open webview or link */ }}
+                  onPress={() => Linking.openURL('https://miuslyk.com/terms')}
                 >
                   <Text style={styles.settingsItemText}>{t('settings.termsOfService')}</Text>
                 </TouchableOpacity>

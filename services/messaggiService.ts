@@ -8,6 +8,13 @@ import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { uploadFileWithFallback } from './storageUpload';
+import * as FileSystem from 'expo-file-system/legacy';
+import nacl from 'tweetnacl';
+import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
+import {
+  getMySecretKey, getRecipientPublicKey,
+  encryptForConversation, encryptAudioBytes, sealAudioKey, computeSharedKey,
+} from './e2eService';
 
 export interface Messaggio {
   id: string;
@@ -29,6 +36,15 @@ export interface Messaggio {
   statusReplyLabel?: string;
   statusId?: string;
   isDeleted?: boolean;
+  // E2E text fields
+  enc?: string;
+  n?: string;
+  spk?: string;
+  rpk?: string;
+  // E2E audio fields
+  encAudioKey?: string;
+  encAudioKeyNonce?: string;
+  audioEncrypted?: boolean;
 }
 
 export interface Conversazione {
@@ -138,8 +154,59 @@ export async function inviaMessaggio(params: {
   if (!user) throw new Error('Non autenticato');
 
   const cId = convId(user.uid, params.receiverId);
-  const storagePath = `messaggi/${cId}/${Date.now()}.m4a`;
-  const audioUrl = await uploadFileWithFallback(storagePath, params.audioUri, 'audio/mp4');
+
+  // Tenta E2E — cifra il file audio prima dell'upload
+  const [mySK, theirPK] = await Promise.all([
+    getMySecretKey(),
+    getRecipientPublicKey(params.receiverId),
+  ]);
+
+  let uploadUri = params.audioUri;
+  let contentType = 'audio/mp4';
+  let audioE2EFields: Record<string, unknown> = {};
+  let encTempPath: string | null = null;
+
+  if (mySK && theirPK) {
+    try {
+      const myKP = nacl.box.keyPair.fromSecretKey(mySK);
+      const audioB64 = await FileSystem.readAsStringAsync(params.audioUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const audioBytes = decodeBase64(audioB64);
+      const { encrypted, audioKey, audioNonce } = encryptAudioBytes(audioBytes);
+      encTempPath = `${FileSystem.cacheDirectory}enc_${Date.now()}.bin`;
+      await FileSystem.writeAsStringAsync(encTempPath, encodeBase64(encrypted), {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      uploadUri = encTempPath;
+      contentType = 'application/octet-stream';
+      const sharedKey = computeSharedKey(theirPK, mySK);
+      const sealed = sealAudioKey(audioKey, audioNonce, sharedKey);
+      audioE2EFields = {
+        ...sealed,
+        spk: encodeBase64(myKP.publicKey),
+        rpk: encodeBase64(theirPK),
+        audioEncrypted: true,
+      };
+    } catch (err) {
+      // Fallback silenzioso: upload senza E2E se qualcosa va storto
+      uploadUri = params.audioUri;
+      contentType = 'audio/mp4';
+      audioE2EFields = {};
+      encTempPath = null;
+      console.warn('[E2E] audio encrypt fallback:', err);
+    }
+  }
+
+  const ts = Date.now();
+  const ext = audioE2EFields.audioEncrypted ? 'enc' : 'm4a';
+  const storagePath = `messaggi/${cId}/${ts}.${ext}`;
+  const audioUrl = await uploadFileWithFallback(storagePath, uploadUri, contentType);
+
+  // Pulizia file temporaneo cifrato
+  if (encTempPath) {
+    FileSystem.deleteAsync(encTempPath, { idempotent: true }).catch(() => {});
+  }
 
   await addDoc(collection(db, 'messaggi'), {
     conversationId: cId,
@@ -148,9 +215,10 @@ export async function inviaMessaggio(params: {
     type: 'audio',
     audioUrl,
     duration: params.duration,
-    waveform: genWaveform(`${cId}${Date.now()}`),
+    waveform: genWaveform(`${cId}${ts}`),
     timestamp: serverTimestamp(),
     ascoltato: false,
+    ...audioE2EFields,
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
     ...(params.soundRef ? { soundRef: params.soundRef, soundTitle: params.soundTitle } : {}),
     ...(params.statusReply ? {
@@ -179,19 +247,35 @@ export async function inviaTestoMessaggio(params: {
 
   const cId = convId(user.uid, params.receiverId);
 
-  await addDoc(collection(db, 'messaggi'), {
+  const baseFields: Record<string, unknown> = {
     conversationId: cId,
     senderId: user.uid,
     receiverId: params.receiverId,
     type: 'text',
-    text: params.text,
     timestamp: serverTimestamp(),
     ascoltato: false,
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
-  });
+  };
 
+  let previewText = params.text.slice(0, 60);
+
+  const [mySK, theirPK] = await Promise.all([
+    getMySecretKey(),
+    getRecipientPublicKey(params.receiverId),
+  ]);
+
+  if (mySK && theirPK) {
+    const myKP = nacl.box.keyPair.fromSecretKey(mySK);
+    const e2e = encryptForConversation(params.text, mySK, theirPK, myKP.publicKey);
+    Object.assign(baseFields, e2e);
+    previewText = '🔒 Messaggio cifrato';
+  } else {
+    baseFields.text = params.text;
+  }
+
+  await addDoc(collection(db, 'messaggi'), baseFields);
   await _updateConversation(cId, user.uid, params.receiverId, params.receiverName, params.receiverAvatar, {
-    type: 'text', text: params.text.slice(0, 60),
+    type: 'text', text: previewText,
   });
 }
 
@@ -227,9 +311,17 @@ export async function eliminaMessaggio(messageId: string, conversationId: string
     } catch {}
   }
 
+  // Cancella tutto il contenuto (testo + campi E2E) per non lasciare tracce
   await updateDoc(msgRef, {
     isDeleted: true,
     deletedAt: serverTimestamp(),
+    text: null,
+    enc: null,
+    n: null,
+    spk: null,
+    rpk: null,
+    encAudioKey: null,
+    encAudioKeyNonce: null,
   });
 
   try {
