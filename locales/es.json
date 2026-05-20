@@ -143,7 +143,7 @@
     "header": "podcast",
     "editTitle": "Editar Episodio",
     "publishTitle": "Publicar Episodio",
-    "searchSoundScape": "Buscar en SoundScape",
+    "searchMIUSLYK": "Buscar en MIUSLYK",
     "searchPlaceholder": "Buscar por título o autor...",
     "use": "Usar",
     "noSoundsFound": "No se encontraron sonidos",
@@ -199,7 +199,7 @@
     "tutorialStep2Title": "Graba tu voz",
     "tutorialStep2Body": "Pulsa el botón rojo para grabar directamente desde el micrófono. Tócalo de nuevo para parar.",
     "tutorialStep3Title": "O importa un archivo",
-    "tutorialStep3Body": "Elige audio de tu dispositivo o busca un sonido ya subido a SoundScape.",
+    "tutorialStep3Body": "Elige audio de tu dispositivo o busca un sonido ya subido a MIUSLYK.",
     "tutorialStep4Title": "Portada y publicar",
     "tutorialStep4Body": "Añade una portada opcional, luego pulsa Publicar para compartir tu podcast con todos.",
     "schoolOn": "Escuela: ON",
@@ -465,7 +465,7 @@
     "formatIosMsg": "Este audio no es compatible con iOS."
   },
   "onboarding": {
-    "slide1Title": "SoundScape — El Mundo Suena",
+    "slide1Title": "MIUSLYK — El Mundo Suena",
     "slide1Subtitle": "La red social de sonidos del mundo real",
     "slide2Title": "Captura sonidos en vivo",
     "slide2Subtitle": "Graba lo que escuchas a tu alrededor y compártelo con la comunidad",
@@ -552,7 +552,7 @@
     "iosHintWait": "Espera un poco más antes de presionar Play",
     "paused": "En pausa",
     "onAirLabel": "En directo",
-    "batteryTip": "En Xiaomi/Huawei: ve a Ajustes → Apps → Soundscape → Batería y elige \"Sin restricciones\" para escuchar en segundo plano.",
+    "batteryTip": "En Xiaomi/Huawei: ve a Ajustes → Apps → MIUSLYK → Batería y elige \"Sin restricciones\" para escuchar en segundo plano.",
     "errors": {
       "cannotSkip": "No se pudo avanzar.",
       "cannotPick": "No se pudo elegir al oyente.",
@@ -828,7 +828,7 @@
     "unblock": "Desbloquear"
   },
   "call": {
-    "soundscape": "SoundScape · Llamada de voz",
+    "MIUSLYK": "MIUSLYK · Llamada de voz",
     "incoming": "Llamada entrante",
     "calling": "Llamando...",
     "connecting": "Conectando...",
@@ -850,7 +850,7 @@
     }
   },
   "onboarding": {
-    "slide1_title": "SoundScape — El Mundo Suena",
+    "slide1_title": "MIUSLYK — El Mundo Suena",
     "slide1_subtitle": "La red social de los sonidos del mundo real",
     "slide2_title": "Captura sonidos en vivo",
     "slide2_subtitle": "Graba lo que escuchas a tu alrededor y compártelo con la comunidad",
@@ -883,7 +883,7 @@
     "ready": "LISTO"
   },
   "battle": {
-    "eyebrow": "SOUNDSCAPE BATTLE",
+    "eyebrow": "MIUSLYK BATTLE",
     "syncingTitle": "Sincronizando la batalla",
     "syncingDesc": "Cargando rondas, participantes y estado en vivo.",
     "challengeTitle": "¡{{name}} te desafía!",

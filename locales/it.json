@@ -143,7 +143,7 @@
     "header": "podcast",
     "editTitle": "Modifica Episodio",
     "publishTitle": "Pubblica Episodio",
-    "searchSoundScape": "Cerca su SoundScape",
+    "searchMIUSLYK": "Cerca su MIUSLYK",
     "searchPlaceholder": "Cerca per titolo o autore...",
     "use": "Usa",
     "noSoundsFound": "Nessun suono trovato",
@@ -199,7 +199,7 @@
     "tutorialStep2Title": "Registra la tua voce",
     "tutorialStep2Body": "Premi il pulsante rosso per registrare direttamente dal microfono. Toccalo di nuovo per fermarti.",
     "tutorialStep3Title": "Oppure importa un file",
-    "tutorialStep3Body": "Scegli un audio dal dispositivo o cerca un suono già caricato su SoundScape.",
+    "tutorialStep3Body": "Scegli un audio dal dispositivo o cerca un suono già caricato su MIUSLYK.",
     "tutorialStep4Title": "Copertina & Pubblica",
     "tutorialStep4Body": "Aggiungi una copertina opzionale, poi premi Pubblica per condividere il tuo podcast con tutti.",
     "schoolOn": "Scuola: ON",
@@ -465,7 +465,7 @@
     "formatIosMsg": "Questo audio non è compatibile con iOS."
   },
   "onboarding": {
-    "slide1Title": "SoundScape — Il Mondo Suona",
+    "slide1Title": "MIUSLYK — Il Mondo Suona",
     "slide1Subtitle": "Il social network dei suoni del mondo reale",
     "slide2Title": "Cattura suoni dal vivo",
     "slide2Subtitle": "Registra quello che senti intorno a te e condividilo con la community",
@@ -552,7 +552,7 @@
     "iosHintWait": "Attendi ancora un attimo prima di premere Play",
     "paused": "In pausa",
     "onAirLabel": "In onda",
-    "batteryTip": "Su Xiaomi/Huawei: vai in Impostazioni → App → Soundscape → Batteria e scegli \"Nessuna restrizione\" per ascoltare in background.",
+    "batteryTip": "Su Xiaomi/Huawei: vai in Impostazioni → App → MIUSLYK → Batteria e scegli \"Nessuna restrizione\" per ascoltare in background.",
     "errors": {
       "cannotSkip": "Impossibile avanzare.",
       "cannotPick": "Impossibile scegliere il listener.",
@@ -828,7 +828,7 @@
     "unblock": "Sblocca"
   },
   "call": {
-    "soundscape": "SoundScape · Chiamata vocale",
+    "MIUSLYK": "MIUSLYK · Chiamata vocale",
     "incoming": "Chiamata in arrivo",
     "calling": "Chiamata in corso...",
     "connecting": "Connessione...",
@@ -850,7 +850,7 @@
     }
   },
   "onboarding": {
-    "slide1_title": "SoundScape — Il Mondo Suona",
+    "slide1_title": "MIUSLYK — Il Mondo Suona",
     "slide1_subtitle": "Il social network dei suoni del mondo reale",
     "slide2_title": "Cattura suoni dal vivo",
     "slide2_subtitle": "Registra quello che senti intorno a te e condividilo con la community",
@@ -883,7 +883,7 @@
     "ready": "PRONTO"
   },
   "battle": {
-    "eyebrow": "SOUNDSCAPE BATTLE",
+    "eyebrow": "MIUSLYK BATTLE",
     "syncingTitle": "Sto sincronizzando la battle",
     "syncingDesc": "Recupero round, partecipanti e stato live.",
     "challengeTitle": "{{name}} ti sfida!",

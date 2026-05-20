@@ -24,7 +24,7 @@ function ForceUpdateScreen() {
   return (
     <View style={fu.container}>
       <Text style={fu.emoji}>🔄</Text>
-      <Text style={fu.title}>Aggiorna Soundscape</Text>
+      <Text style={fu.title}>Aggiorna MIUSLYK</Text>
       <Text style={fu.body}>
         Questa versione non è più supportata.{'\n'}
         {"Scarica l'ultima versione per continuare."}
@@ -42,7 +42,7 @@ function MaintenanceScreen() {
       <Text style={fu.emoji}>🔧</Text>
       <Text style={fu.title}>Manutenzione in corso</Text>
       <Text style={fu.body}>
-        {"Soundscape è temporaneamente offline per miglioramenti.\nTorna tra poco!"}
+        {"MIUSLYK è temporaneamente offline per miglioramenti.\nTorna tra poco!"}
       </Text>
     </View>
   );

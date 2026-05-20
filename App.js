@@ -39,7 +39,7 @@ export default function App() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>🎧</Text>
-          <Text style={styles.title}>SoundScape</Text>
+          <Text style={styles.title}>MIUSLYK</Text>
           <Text style={styles.subtitle}>Cattura i suoni del tuo mondo</Text>
         </View>
 

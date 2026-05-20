@@ -39,7 +39,7 @@ const withCallKeepAndroid = (config) =>
       app.service.push({
         $: {
           'android:name': 'io.wazo.callkeep.VoiceConnectionService',
-          'android:label': 'SoundScape',
+          'android:label': 'MIUSLYK',
           'android:permission': 'android.permission.BIND_TELECOM_CONNECTION_SERVICE',
           'android:exported': 'true',
         },

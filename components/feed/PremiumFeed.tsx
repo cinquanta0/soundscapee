@@ -111,7 +111,7 @@ export function FeedHomeHeader({
             ))}
           </LinearGradient>
           <View style={{ flex: 1 }}>
-            <Text style={styles.brandTitle}>Soundscape</Text>
+            <Text style={styles.brandTitle}>MIUSLYK</Text>
             <View style={styles.metaRow}>
               <View style={styles.liveBadge}>
                 <View style={styles.liveDot} />

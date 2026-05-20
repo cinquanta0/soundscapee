@@ -1,6 +1,6 @@
 module.exports = ({ config }) => ({
   ...config,
-  name: "soundscape-mobile",
+  name: "MIUSLYK",
   slug: "soundscape-mobile",
   version: "1.0.1",
   orientation: "portrait",
@@ -23,8 +23,8 @@ module.exports = ({ config }) => ({
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ["audio", "remote-notification"],
-      NSMicrophoneUsageDescription: "Soundscape usa il microfono per trasmettere voce live nella radio.",
-      NSCameraUsageDescription: "Soundscape usa la fotocamera per scattare foto e video da aggiungere ai tuoi post.",
+      NSMicrophoneUsageDescription: "MIUSLYK usa il microfono per trasmettere voce live nella radio.",
+      NSCameraUsageDescription: "MIUSLYK usa la fotocamera per scattare foto e video da aggiungere ai tuoi post.",
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,
       },

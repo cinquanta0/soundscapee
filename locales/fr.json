@@ -143,7 +143,7 @@
     "header": "podcast",
     "editTitle": "Modifier l'Épisode",
     "publishTitle": "Publier l'Épisode",
-    "searchSoundScape": "Chercher sur SoundScape",
+    "searchMIUSLYK": "Chercher sur MIUSLYK",
     "searchPlaceholder": "Chercher par titre ou auteur...",
     "use": "Utiliser",
     "noSoundsFound": "Aucun son trouvé",
@@ -199,7 +199,7 @@
     "tutorialStep2Title": "Enregistrez votre voix",
     "tutorialStep2Body": "Appuyez sur le bouton rouge pour enregistrer directement depuis le microphone. Appuyez à nouveau pour arrêter.",
     "tutorialStep3Title": "Ou importez un fichier",
-    "tutorialStep3Body": "Choisissez un audio depuis votre appareil ou recherchez un son déjà uploadé sur SoundScape.",
+    "tutorialStep3Body": "Choisissez un audio depuis votre appareil ou recherchez un son déjà uploadé sur MIUSLYK.",
     "tutorialStep4Title": "Couverture et publier",
     "tutorialStep4Body": "Ajoutez une couverture optionnelle, puis appuyez sur Publier pour partager votre podcast avec tous.",
     "schoolOn": "École : ON",
@@ -465,7 +465,7 @@
     "formatIosMsg": "Cet audio n'est pas compatible avec iOS."
   },
   "onboarding": {
-    "slide1Title": "SoundScape — Le Monde Sonne",
+    "slide1Title": "MIUSLYK — Le Monde Sonne",
     "slide1Subtitle": "Le réseau social des sons du monde réel",
     "slide2Title": "Capturez des sons en direct",
     "slide2Subtitle": "Enregistrez ce que vous entendez autour de vous et partagez-le avec la communauté",
@@ -552,7 +552,7 @@
     "iosHintWait": "Attendez encore un moment avant d'appuyer sur Lecture",
     "paused": "En pause",
     "onAirLabel": "En direct",
-    "batteryTip": "Sur Xiaomi/Huawei : allez dans Paramètres → Apps → Soundscape → Batterie et choisissez \"Aucune restriction\" pour écouter en arrière-plan.",
+    "batteryTip": "Sur Xiaomi/Huawei : allez dans Paramètres → Apps → MIUSLYK → Batterie et choisissez \"Aucune restriction\" pour écouter en arrière-plan.",
     "errors": {
       "cannotSkip": "Impossible de passer.",
       "cannotPick": "Impossible de choisir l'auditeur.",
@@ -828,7 +828,7 @@
     "unblock": "Débloquer"
   },
   "call": {
-    "soundscape": "SoundScape · Appel vocal",
+    "MIUSLYK": "MIUSLYK · Appel vocal",
     "incoming": "Appel entrant",
     "calling": "Appel en cours...",
     "connecting": "Connexion...",
@@ -850,7 +850,7 @@
     }
   },
   "onboarding": {
-    "slide1_title": "SoundScape — Le Monde Sonne",
+    "slide1_title": "MIUSLYK — Le Monde Sonne",
     "slide1_subtitle": "Le réseau social des sons du monde réel",
     "slide2_title": "Capturez des sons en direct",
     "slide2_subtitle": "Enregistrez ce que vous entendez autour de vous et partagez-le avec la communauté",
@@ -883,7 +883,7 @@
     "ready": "PRÊT"
   },
   "battle": {
-    "eyebrow": "SOUNDSCAPE BATTLE",
+    "eyebrow": "MIUSLYK BATTLE",
     "syncingTitle": "Synchronisation du battle",
     "syncingDesc": "Chargement des rounds, participants et état en direct.",
     "challengeTitle": "{{name}} vous défie !",

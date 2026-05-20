@@ -143,7 +143,7 @@
     "header": "podcast",
     "editTitle": "Editar Episódio",
     "publishTitle": "Publicar Episódio",
-    "searchSoundScape": "Buscar no SoundScape",
+    "searchMIUSLYK": "Buscar no MIUSLYK",
     "searchPlaceholder": "Buscar por título ou autor...",
     "use": "Usar",
     "noSoundsFound": "Nenhum som encontrado",
@@ -199,7 +199,7 @@
     "tutorialStep2Title": "Grave sua voz",
     "tutorialStep2Body": "Pressione o botão vermelho para gravar diretamente do microfone. Toque novamente para parar.",
     "tutorialStep3Title": "Ou importe um arquivo",
-    "tutorialStep3Body": "Escolha áudio do dispositivo ou procure um som já carregado no SoundScape.",
+    "tutorialStep3Body": "Escolha áudio do dispositivo ou procure um som já carregado no MIUSLYK.",
     "tutorialStep4Title": "Capa e publicar",
     "tutorialStep4Body": "Adicione uma capa opcional, depois pressione Publicar para compartilhar seu podcast com todos.",
     "schoolOn": "Escola: ON",
@@ -465,7 +465,7 @@
     "formatIosMsg": "Este áudio não é compatível com iOS."
   },
   "onboarding": {
-    "slide1Title": "SoundScape — O Mundo Soa",
+    "slide1Title": "MIUSLYK — O Mundo Soa",
     "slide1Subtitle": "A rede social dos sons do mundo real",
     "slide2Title": "Capture sons ao vivo",
     "slide2Subtitle": "Grave o que você ouve ao seu redor e compartilhe com a comunidade",
@@ -552,7 +552,7 @@
     "iosHintWait": "Aguarde mais um momento antes de pressionar Play",
     "paused": "Pausado",
     "onAirLabel": "No ar",
-    "batteryTip": "No Xiaomi/Huawei: vá em Configurações → Apps → Soundscape → Bateria e escolha \"Sem restrições\" para ouvir em segundo plano.",
+    "batteryTip": "No Xiaomi/Huawei: vá em Configurações → Apps → MIUSLYK → Bateria e escolha \"Sem restrições\" para ouvir em segundo plano.",
     "errors": {
       "cannotSkip": "Não foi possível avançar.",
       "cannotPick": "Não foi possível escolher o ouvinte.",
@@ -828,7 +828,7 @@
     "unblock": "Desbloquear"
   },
   "call": {
-    "soundscape": "SoundScape · Chamada de voz",
+    "MIUSLYK": "MIUSLYK · Chamada de voz",
     "incoming": "Chamada recebida",
     "calling": "Chamando...",
     "connecting": "Conectando...",
@@ -850,7 +850,7 @@
     }
   },
   "onboarding": {
-    "slide1_title": "SoundScape — O Mundo Soa",
+    "slide1_title": "MIUSLYK — O Mundo Soa",
     "slide1_subtitle": "A rede social dos sons do mundo real",
     "slide2_title": "Capture sons ao vivo",
     "slide2_subtitle": "Grave o que ouve ao seu redor e compartilhe com a comunidade",
@@ -883,7 +883,7 @@
     "ready": "PRONTO"
   },
   "battle": {
-    "eyebrow": "SOUNDSCAPE BATTLE",
+    "eyebrow": "MIUSLYK BATTLE",
     "syncingTitle": "Sincronizando a battle",
     "syncingDesc": "Carregando rodadas, participantes e estado ao vivo.",
     "challengeTitle": "{{name}} te desafia!",

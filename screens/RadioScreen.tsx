@@ -619,7 +619,7 @@ async function showRadioNotification(station: OfflineStation, djName: string) {
     await Notifications.scheduleNotificationAsync({
       identifier: 'radio-status',
       content: {
-        title: `📻 Soundscape - ${station.name}`,
+        title: `📻 MIUSLYK - ${station.name}`,
         body: `In onda: ${djName}`,
         sticky: true,
         color: station.color, 

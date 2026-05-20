@@ -310,7 +310,7 @@ class IncomingCallService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Chiamata in arrivo").setContentText(callerName).setSubText("SoundScape")
+            .setContentTitle("Chiamata in arrivo").setContentText(callerName).setSubText("MIUSLYK")
             .setOngoing(true).setAutoCancel(false)
             .setPriority(NotificationCompat.PRIORITY_MAX).setCategory(NotificationCompat.CATEGORY_CALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

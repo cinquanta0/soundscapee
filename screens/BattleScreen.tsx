@@ -87,7 +87,7 @@ function CenterState({
       <View style={s.ambientA} />
       <View style={s.ambientB} />
       <View style={s.cardShell}>
-        <Text style={s.heroEyebrow}>SOUNDSCAPE BATTLE</Text>
+        <Text style={s.heroEyebrow}>MIUSLYK BATTLE</Text>
         <Text style={s.centerIcon}>{icon}</Text>
         <Text style={s.cardTitle}>{title}</Text>
         {!!description && <Text style={s.cardDesc}>{description}</Text>}

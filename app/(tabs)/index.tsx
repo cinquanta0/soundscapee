@@ -1596,7 +1596,7 @@ if (loading) {
         <View style={styles.loadingAuraA} />
         <View style={styles.loadingAuraB} />
         <View style={styles.loadingPanel}>
-          <Text style={styles.loadingEyebrow}>SOUNDSCAPE</Text>
+          <Text style={styles.loadingEyebrow}>MIUSLYK</Text>
           <ActivityIndicator size="large" color="#67E8F9" />
           <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
@@ -1637,7 +1637,7 @@ if (loading) {
                     <View key={i} style={[styles.logoBar, { height: h }]} />
                   ))}
                 </View>
-                <Text style={styles.title}>Soundscape</Text>
+                <Text style={styles.title}>MIUSLYK</Text>
               </View>
               <View style={styles.headerSubtitle}>
                 <View style={styles.livePill}>

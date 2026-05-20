@@ -236,7 +236,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     ck.setup({
       ios: {
-        appName: 'SoundScape',
+        appName: 'MIUSLYK',
         ringtoneSound: 'soundscape_call.wav',
         supportsVideo: false,
         maximumCallGroups: '1',
@@ -244,7 +244,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       },
       android: {
         alertTitle: 'Autorizzazione chiamate',
-        alertDescription: 'SoundScape ha bisogno di gestire le chiamate audio',
+        alertDescription: 'MIUSLYK ha bisogno di gestire le chiamate audio',
         cancelButton: 'Annulla',
         okButton: 'OK',
         additionalPermissions: [],
@@ -253,8 +253,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
     ck.setForegroundServiceSettings({
       channelId: 'calls',
-      channelName: 'Chiamate SoundScape',
-      notificationTitle: 'SoundScape gestisce una chiamata in background',
+      channelName: 'Chiamate MIUSLYK',
+      notificationTitle: 'MIUSLYK gestisce una chiamata in background',
     });
     ck.setAvailable(true);
 

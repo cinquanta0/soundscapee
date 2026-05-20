@@ -102,7 +102,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <View style={s.logoWrap}>
           <Text style={s.logoEmoji}>🎧</Text>
-          <Text style={s.eyebrow}>SOUNDSCAPE</Text>
+          <Text style={s.eyebrow}>MIUSLYK</Text>
           <Text style={s.tagline}>{t('auth.subtitle')}</Text>
         </View>
 

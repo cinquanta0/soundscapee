@@ -78,7 +78,7 @@ export const createOrUpdateUserProfile = async (userId, userData) => {
         displayName: fallbackDisplayName,
         email: userData.email || '',
         avatar: userData.avatar || '🎧',
-        bio: userData.bio || 'Nuovo utente SoundScape 🎵',
+        bio: userData.bio || 'Nuovo utente MIUSLYK 🎵',
         recordingsCount: 0,
         followersCount: 0,
         followingCount: 0,
@@ -97,7 +97,7 @@ export const createOrUpdateUserProfile = async (userId, userData) => {
       if (!existing.displayName) patch.displayName = fallbackDisplayName;
       if (!existing.avatar) patch.avatar = userData.avatar || '🎧';
       if (!existing.email && userData.email) patch.email = userData.email;
-      if (!existing.bio) patch.bio = userData.bio || 'Nuovo utente SoundScape 🎵';
+      if (!existing.bio) patch.bio = userData.bio || 'Nuovo utente MIUSLYK 🎵';
       await updateDoc(userRef, patch);
     }
     

@@ -365,7 +365,7 @@ export default function CallScreen() {
         {/* Top label */}
         <View style={s.topSection}>
           <Text style={s.typeLabel}>
-            {isGroup ? 'SoundScape Group' : 'SoundScape'}
+            {isGroup ? 'MIUSLYK Group' : 'MIUSLYK'}
           </Text>
         </View>
 

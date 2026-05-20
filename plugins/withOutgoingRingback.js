@@ -216,7 +216,7 @@ class OutgoingRingbackService : Service() {
     val manager = getSystemService(NotificationManager::class.java) ?: return
     val channel = NotificationChannel(
       CHANNEL_ID,
-      "SoundScape Call Audio",
+      "MIUSLYK Call Audio",
       NotificationManager.IMPORTANCE_LOW,
     ).apply {
       description = "Riproduzione della suoneria di chiamata in uscita"
