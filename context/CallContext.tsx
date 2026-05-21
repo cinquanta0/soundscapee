@@ -796,6 +796,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setCanRejoin(false);
       setRejoinableCall(null);
       rejoinableCallRef.current = null;
+      AsyncStorage.removeItem(REJOIN_STORAGE_KEY).catch(() => {});
 
       // Offer to publish recording after UI is clear
       if (wasRecording && recPath) {
@@ -1122,6 +1123,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     rejoinableCallRef.current = null;
     setRejoinableCall(null);
     setCanRejoin(false);
+    AsyncStorage.removeItem(REJOIN_STORAGE_KEY).catch(() => {});
 
     const { status: micStatus, canAskAgain: micCanAskAgain } = await Audio.requestPermissionsAsync();
     if (micStatus !== 'granted') {
@@ -1258,11 +1260,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Persist rejoinable call ID to AsyncStorage so the banner survives app kills.
+  // NOTE: we only SAVE here, never remove — removal on initial mount would wipe
+  // the key before onAuthStateChanged can read it. Explicit removes are placed
+  // wherever the banner is intentionally cleared (see below).
   useEffect(() => {
     if (canRejoin && rejoinableCall) {
       AsyncStorage.setItem(REJOIN_STORAGE_KEY, rejoinableCall.id).catch(() => {});
-    } else {
-      AsyncStorage.removeItem(REJOIN_STORAGE_KEY).catch(() => {});
     }
   }, [canRejoin, rejoinableCall?.id]);
 
@@ -1282,6 +1285,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setCanRejoin(false);
         setRejoinableCall(null);
         rejoinableCallRef.current = null;
+        AsyncStorage.removeItem(REJOIN_STORAGE_KEY).catch(() => {});
       }
     });
     return () => unsub();
