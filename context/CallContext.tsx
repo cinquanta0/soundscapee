@@ -25,6 +25,9 @@ import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoin
 import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
 import { pausePlayerForCall, resumePlayerAfterCall } from '../services/audioPlayer';
 import { listenBlockedUsers } from '../services/blockService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const REJOIN_STORAGE_KEY = 'rejoinableCallId';
 
 let RNCallKeep: any = null;
 if (Platform.OS === 'android') {
@@ -316,6 +319,41 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       unsubBlocked?.();
       unsubBlocked = null;
       if (!user) { blockedUsersRef.current = new Set(); return; }
+
+      // Restore rejoinable call from a previous session (app was killed).
+      // Only restore if we don't already have one in memory.
+      if (!rejoinableCallRef.current) {
+        AsyncStorage.getItem(REJOIN_STORAGE_KEY).then(async (callId) => {
+          if (!callId || rejoinableCallRef.current) return;
+          const snap = await getDoc(doc(db, 'calls', callId)).catch(() => null);
+          if (!snap?.exists()) { AsyncStorage.removeItem(REJOIN_STORAGE_KEY); return; }
+          const data = snap.data()!;
+          const uid = user.uid;
+          const dead = data.status === 'ended' || data.status === 'declined' || data.status === 'missed';
+          const othersActive = Object.entries(data.participantStatuses ?? {})
+            .some(([id, st]) => id !== uid && ['active', 'ringing', 'calling'].includes(st as string));
+          if (dead || !othersActive) { AsyncStorage.removeItem(REJOIN_STORAGE_KEY); return; }
+          const restoredCall: Call = {
+            id: callId,
+            callerId: data.callerId ?? '',
+            calleeId: data.calleeId ?? '',
+            callerName: data.callerName ?? '',
+            callerAvatar: data.callerAvatar ?? '',
+            calleeName: data.calleeName ?? '',
+            calleeAvatar: data.calleeAvatar ?? '',
+            status: data.status,
+            type: data.type ?? 'group',
+            channelName: data.channelName ?? callId,
+            createdAt: data.createdAt?.toDate?.() ?? new Date(),
+            invitees: data.invitees,
+            participantProfiles: data.participantProfiles,
+            participantStatuses: data.participantStatuses,
+          };
+          rejoinableCallRef.current = restoredCall;
+          setRejoinableCall(restoredCall);
+          setCanRejoin(true);
+        }).catch(() => {});
+      }
 
       unsubBlocked = listenBlockedUsers(user.uid, (ids) => {
         blockedUsersRef.current = new Set(ids);
@@ -1221,6 +1259,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setIsRecording(true);
     }
   }, []);
+
+  // Persist rejoinable call ID to AsyncStorage so the banner survives app kills.
+  useEffect(() => {
+    if (canRejoin && rejoinableCall) {
+      AsyncStorage.setItem(REJOIN_STORAGE_KEY, rejoinableCall.id).catch(() => {});
+    } else {
+      AsyncStorage.removeItem(REJOIN_STORAGE_KEY).catch(() => {});
+    }
+  }, [canRejoin, rejoinableCall?.id]);
 
   // Watch the rejoinable call in Firestore so canRejoin clears automatically
   // when the call ends for everyone (without the user having to tap the banner).
