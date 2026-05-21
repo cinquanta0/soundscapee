@@ -741,15 +741,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       callIdRef.current = null;
       cleaningUpRef.current = false;
       setCanRejoin(rejoinableCallRef.current !== null);
+      // Auto-dismiss the ended screen after 15s, but keep canRejoin/rejoinableCall
+      // so the persistent rejoin banner remains until the call actually ends.
       setTimeout(() => {
-        // Se l'utente ha già fatto rejoin, engineRef è tornato attivo — non toccare l'UI.
         if (engineRef.current) return;
         setPhase(null);
         setCall(null);
         setEndReason(null);
-        setCanRejoin(false);
-        setRejoinableCall(null);
-        rejoinableCallRef.current = null;
       }, 15_000);
       return;
     }
@@ -1139,9 +1137,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setPhase(null);
     setCall(null);
     setEndReason(null);
-    setCanRejoin(false);
-    setRejoinableCall(null);
-    rejoinableCallRef.current = null;
+    // canRejoin and rejoinableCall are intentionally kept so the persistent
+    // rejoin banner stays visible after the user closes the ended screen.
   }, []);
 
   const inviteParticipantsToCurrentCall = useCallback(async (
@@ -1224,6 +1221,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setIsRecording(true);
     }
   }, []);
+
+  // Watch the rejoinable call in Firestore so canRejoin clears automatically
+  // when the call ends for everyone (without the user having to tap the banner).
+  useEffect(() => {
+    if (!canRejoin || !rejoinableCall) return;
+    const unsub = listenForCallUpdates(rejoinableCall.id, (updated) => {
+      const dead = !updated
+        || updated.status === 'ended'
+        || updated.status === 'declined'
+        || updated.status === 'missed';
+      if (dead) {
+        setCanRejoin(false);
+        setRejoinableCall(null);
+        rejoinableCallRef.current = null;
+      }
+    });
+    return () => unsub();
+  }, [canRejoin, rejoinableCall?.id]);
 
   // PiP event listeners (Android only)
   useEffect(() => {

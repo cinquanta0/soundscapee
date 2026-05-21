@@ -7,11 +7,82 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications } from '../services/notificationService';
-import { CallProvider } from '../context/CallContext';
+import { CallProvider, useCall } from '../context/CallContext';
 import CallScreen from '../screens/CallScreen';
+
+function RejoinBanner() {
+  const { canRejoin, rejoinableCall, phase, rejoinGroupCall } = useCall();
+  const insets = useSafeAreaInsets();
+
+  if (!canRejoin || !rejoinableCall || phase !== null) return null;
+
+  const isGroup = rejoinableCall.type === 'group';
+  const myUid = auth.currentUser?.uid;
+  const name = isGroup
+    ? 'Chiamata di gruppo'
+    : (rejoinableCall.callerId === myUid ? rejoinableCall.calleeName : rejoinableCall.callerName);
+
+  return (
+    <TouchableOpacity
+      style={[rb.banner, { top: insets.top + 4 }]}
+      onPress={() => rejoinGroupCall()}
+      activeOpacity={0.85}
+    >
+      <View style={rb.dot} />
+      <View style={rb.textWrap}>
+        <Text style={rb.title} numberOfLines={1}>{name}</Text>
+        <Text style={rb.sub}>Chiamata in corso — Tocca per rientrare</Text>
+      </View>
+      <Feather name="phone" size={18} color="#00FF9C" />
+    </TouchableOpacity>
+  );
+}
+
+const rb = StyleSheet.create({
+  banner: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(13,18,33,0.97)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,156,0.3)',
+    zIndex: 9999,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    gap: 12,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00FF9C',
+  },
+  textWrap: { flex: 1 },
+  title: {
+    color: '#F7F8FF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    marginTop: 1,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+});
 
 // Mantieni lo splash screen visibile mentre i font caricano
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -186,6 +257,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
       </Stack>
       <CallScreen />
+      <RejoinBanner />
     </CallProvider>
   );
 }

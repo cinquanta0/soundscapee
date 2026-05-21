@@ -268,10 +268,15 @@ export default function CallScreen() {
     inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [minimized, setMinimized] = useState(false);
   const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string } | null>(null);
   const [liveStatuses, setLiveStatuses] = useState<Record<string, string> | null>(null);
   const prevStatusesRef = useRef<Record<string, string>>({});
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (phase !== 'active') setMinimized(false);
+  }, [phase]);
 
   // Detect when a participant transitions to 'declined' or 'missed' and show banner
   useEffect(() => {
@@ -344,14 +349,25 @@ export default function CallScreen() {
   const pulseColor = phase === 'incoming' ? '#00FF9C' : '#67E8F9';
 
   // -------------------------------------------------------------------------
-  // PiP layout (Android picture-in-picture)
-  // -------------------------------------------------------------------------
-  // -------------------------------------------------------------------------
   // Full-screen layout — PiP usa lo stesso Modal con contenuto minimale
   // -------------------------------------------------------------------------
   return (
+    <>
+      {/* Banner flottante quando la call è minimizzata */}
+      {minimized && phase === 'active' && (
+        <TouchableOpacity
+          style={[s.miniBanner, { top: insets.top + 4 }]}
+          onPress={() => setMinimized(false)}
+          activeOpacity={0.85}
+        >
+          <View style={s.miniBannerDot} />
+          <Text style={s.miniBannerName} numberOfLines={1}>{displayName}</Text>
+          <Text style={s.miniBannerTimer}>{fmtDuration(duration)}</Text>
+          <Feather name="chevron-up" size={16} color="rgba(255,255,255,0.45)" style={{ marginLeft: 8 }} />
+        </TouchableOpacity>
+      )}
     <Modal
-      visible={visible || (isPipMode && phase === 'active')}
+      visible={!minimized && (visible || (isPipMode && phase === 'active'))}
       animationType="slide"
       presentationStyle="fullScreen"
       statusBarTranslucent
@@ -380,11 +396,16 @@ export default function CallScreen() {
 
       <View style={[s.container, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
 
-        {/* Top label */}
+        {/* Top label + minimize button */}
         <View style={s.topSection}>
           <Text style={s.typeLabel}>
             {isGroup ? 'MIUSLYK Group' : 'MIUSLYK'}
           </Text>
+          {phase === 'active' && (
+            <TouchableOpacity style={s.minimizeBtn} onPress={() => setMinimized(true)} activeOpacity={0.7}>
+              <Feather name="chevron-down" size={20} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Center: avatar + name + status + participant list */}
@@ -632,6 +653,7 @@ export default function CallScreen() {
       />
       </>}
     </Modal>
+    </>
   );
 }
 
@@ -1045,6 +1067,53 @@ const s = StyleSheet.create({
   },
   endedDismissBtnLabel: {
     color: 'rgba(255,255,255,0.35)',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+
+  // Minimize button (top-center of active call)
+  minimizeBtn: {
+    marginTop: 8,
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
+  // Mini banner shown when call is minimized
+  miniBanner: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(13,18,33,0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(103,232,249,0.25)',
+    zIndex: 9999,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    gap: 10,
+  },
+  miniBannerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00FF9C',
+  },
+  miniBannerName: {
+    flex: 1,
+    color: '#F7F8FF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  miniBannerTimer: {
+    color: '#67E8F9',
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
