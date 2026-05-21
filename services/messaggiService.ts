@@ -198,6 +198,12 @@ export async function inviaMessaggio(params: {
     }
   }
 
+  // Ensure conversations document exists with participants field before the
+  // Storage upload — the security rule does a firestore.get() on it.
+  await setDoc(doc(db, 'conversations', cId), {
+    participants: [user.uid, params.receiverId].sort(),
+  }, { merge: true });
+
   const ts = Date.now();
   const ext = audioE2EFields.audioEncrypted ? 'enc' : 'm4a';
   const storagePath = `messaggi/${cId}/${ts}.${ext}`;

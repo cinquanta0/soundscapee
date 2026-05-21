@@ -1,4 +1,3 @@
-import { File } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, storage } from '../firebaseConfig';
@@ -40,8 +39,9 @@ async function uploadViaRest(storagePath, localUri, contentType) {
 
 async function uploadViaSdk(storagePath, localUri, contentType) {
   const storageRef = ref(storage, storagePath);
-  const fileBlob = new File(localUri);
-  await uploadBytes(storageRef, fileBlob, { contentType });
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  await uploadBytes(storageRef, blob, { contentType });
   return getDownloadURL(storageRef);
 }
 
