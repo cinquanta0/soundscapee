@@ -1289,17 +1289,12 @@ const getMostFrequent = (arr) => {
 
 
 /**
- * Crea una nuova challenge (solo admin)
+ * Crea una nuova challenge
  */
 export async function createChallenge(challengeData) {
   try {
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error('Non autenticato');
-
-    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-    if (!userDoc.exists() || userDoc.data()?.isAdmin !== true) {
-      throw new Error('Permesso negato: richiesto ruolo admin');
-    }
 
     const challenge = {
       title: challengeData.title,
