@@ -316,7 +316,7 @@ service cloud.firestore {
     // ── CHALLENGES ────────────────────────────────────────────────────────────
     match /challenges/{challengeId} {
       allow read: if isAuth();
-      allow create, update: if isAdmin();
+      allow create, update: if isNotAnonymous();
       allow delete: if isAdmin() || request.auth.uid == resource.data.createdBy;
 
       match /participants/{userId} {
