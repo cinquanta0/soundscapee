@@ -383,7 +383,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
-        if (phaseRef.current !== null) return;
+        if (phaseRef.current !== null) {
+          // Already in a call — auto-decline so caller gets "busy" immediately
+          dismissedIncomingIdsRef.current.add(incoming.id);
+          updateCallStatus(incoming.id, 'declined').catch(() => {});
+          return;
+        }
         // Already deferred for this call — ignore re-fires from Firestore updates
         if (pendingAcceptCallRef.current?.id === incoming.id) return;
         // Silently reject calls from blocked users
@@ -901,6 +906,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const user = auth.currentUser;
     if (!user) return;
 
+    if (phaseRef.current !== null) {
+      Alert.alert('Sei già in una chiamata', 'Termina la chiamata attuale prima di effettuarne una nuova.');
+      return;
+    }
+
     const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
       alertMicPermission(canAskAgain);
@@ -979,6 +989,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   ) => {
     const user = auth.currentUser;
     if (!user) return;
+
+    if (phaseRef.current !== null) {
+      Alert.alert('Sei già in una chiamata', 'Termina la chiamata attuale prima di effettuarne una nuova.');
+      return;
+    }
 
     const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {

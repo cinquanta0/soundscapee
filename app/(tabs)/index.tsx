@@ -3054,9 +3054,9 @@ if (loading) {
                   const id = await createBattle(
                     userProfile.id,
                     userProfile.username || userProfile.displayName,
-                    userProfile.photoURL || '🎙',
+                    userProfile.avatar || userProfile.photoURL || '🎙',
                     theme,
-                  ).catch(() => null);
+                  ).catch((e: any) => { Alert.alert('Errore', e?.message || 'Impossibile avviare la battle'); return null; });
                   if (id) setActiveBattleId(id);
                 }}
               >

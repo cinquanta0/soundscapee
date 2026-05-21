@@ -83,10 +83,15 @@ export async function createBattle(
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
 
+  const profileSnap = await getDoc(doc(db, 'users', user.uid));
+  const profileData = profileSnap.data();
+  const challengerName = profileData?.username || profileData?.displayName || user.displayName || 'Challenger';
+  const challengerAvatar = profileData?.avatar || user.photoURL || '🎙';
+
   const r = await addDoc(collection(db, 'battles'), {
     challengerId: user.uid,
-    challengerName: user.displayName || 'Challenger',
-    challengerAvatar: user.photoURL || '🎙',
+    challengerName,
+    challengerAvatar,
     opponentId,
     opponentName,
     opponentAvatar,
