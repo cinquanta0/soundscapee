@@ -54,7 +54,7 @@ class CallPipModule(private val reactContext: ReactApplicationContext) :
         val pm = reactContext.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
         wakeLock = pm.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "SoundScape:CallWakeLock"
+            "Miuslyk:CallWakeLock"
         ).apply {
             acquire(2 * 60 * 60 * 1000L) // max 2 ore
         }

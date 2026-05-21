@@ -69,7 +69,7 @@ class CallMicrophoneService : Service() {
 
     companion object {
         const val ACTION_STOP = "com.cucucucucuione.soundscapemobile.CALL_MIC_STOP"
-        private const val CHANNEL_ID = "soundscape_active_call"
+        private const val CHANNEL_ID = "miuslyk_active_call"
         private const val NOTIFICATION_ID = 7106
     }
 }

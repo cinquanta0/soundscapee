@@ -69,7 +69,7 @@ module.exports = ({ config }) => ({
       "expo-notifications",
       {
         defaultChannel: "default",
-        sounds: ["./assets/sounds/soundscape_call.wav"],
+        sounds: ["./assets/sounds/miuslyk_call.wav"],
       },
     ],
     "./plugins/withRNTP",

@@ -51,7 +51,7 @@ export async function registerForPushNotifications(userId) {
     await Notifications.setNotificationChannelAsync('calls', {
       name: 'calls',
       importance: Notifications.AndroidImportance.MAX,
-      sound: 'soundscape_call.wav',
+      sound: 'miuslyk_call.wav',
       enableVibrate: true,
       vibrationPattern: [0, 800, 500, 800],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -318,7 +318,7 @@ export async function notifyIncomingCall(calleeId, callerName, callerAvatar, cal
 
     const messages = tokens.map((token) => ({
       to: token,
-      sound: 'soundscape_call.wav',
+      sound: 'miuslyk_call.wav',
       title: `📞 ${callerName} ti sta chiamando`,
       body: 'Chiamata vocale in arrivo',
       data: { type: 'incoming_call', callId, callerName, callerAvatar },

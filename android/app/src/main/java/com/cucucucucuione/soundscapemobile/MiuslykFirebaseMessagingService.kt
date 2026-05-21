@@ -20,7 +20,7 @@ import com.google.firebase.messaging.RemoteMessage
  * NOTA: questo service sostituisce expo's ExpoPushNotificationService nel manifest
  * (tools:node="remove" su quello e registriamo solo il nostro).
  */
-class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
+class MiuslykFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "SCFirebaseMsg"
@@ -62,9 +62,9 @@ class SoundscapeFirebaseMessagingService : FirebaseMessagingService() {
             applicationContext.stopService(Intent(applicationContext, IncomingCallService::class.java))
         } else {
             // Tutte le altre notifiche (like, follow, ecc.) → notifica di sistema base
-            val title = remoteMessage.notification?.title ?: data["title"] ?: "SoundScape"
+            val title = remoteMessage.notification?.title ?: data["title"] ?: "Miuslyk"
             val body  = remoteMessage.notification?.body  ?: data["body"]  ?: ""
-            if (remoteMessage.notification == null && title == "SoundScape" && body.isBlank()) {
+            if (remoteMessage.notification == null && title == "Miuslyk" && body.isBlank()) {
                 Log.w(TAG, "Skipping blank fallback notification for data=$data")
                 return
             }

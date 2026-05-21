@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="56dp"
-        android:text="SOUNDSCAPE"
+        android:text="MIUSLYK"
         android:textColor="#00FF9C"
         android:textSize="11sp"
         android:letterSpacing="0.15"

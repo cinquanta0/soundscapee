@@ -305,7 +305,7 @@ class IncomingCallService : Service() {
         val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
         wakeLock = pm.newWakeLock(
             PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
-            "soundscape:incomingCall"
+            "miuslyk:incomingCall"
         ).apply { acquire(60_000L) }
     }
 
@@ -317,7 +317,7 @@ class IncomingCallService : Service() {
     private fun startRingtone() {
         try {
             val uri: Uri = try {
-                val resId = resources.getIdentifier("soundscape_call", "raw", packageName)
+                val resId = resources.getIdentifier("miuslyk_call", "raw", packageName)
                 if (resId != 0) Uri.parse("android.resource://$packageName/$resId")
                 else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             } catch (e: Exception) { RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
@@ -433,7 +433,7 @@ class IncomingCallService : Service() {
         val notifText  = notificationBodyOverride ?: callerName
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(notifTitle).setContentText(notifText).setSubText("SoundScape")
+            .setContentTitle(notifTitle).setContentText(notifText).setSubText("Miuslyk")
             .setOngoing(true).setAutoCancel(false)
             .setPriority(NotificationCompat.PRIORITY_MAX).setCategory(NotificationCompat.CATEGORY_CALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -459,7 +459,7 @@ class IncomingCallService : Service() {
         const val EXTRA_CALL_TYPE                = "call_type"
         const val EXTRA_NOTIF_BODY               = "notif_body"
         const val EXTRA_ACCEPT_FROM_NOTIFICATION = "acceptFromNotification"
-        private const val CHANNEL_ID       = "soundscape_incoming_call"
+        private const val CHANNEL_ID       = "miuslyk_incoming_call"
         private const val NOTIFICATION_ID  = 7105
         private const val POLL_INTERVAL_MS = 3_000L
     }

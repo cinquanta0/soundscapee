@@ -199,7 +199,7 @@ class IncomingCallService : Service() {
         val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
         wakeLock = pm.newWakeLock(
             PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
-            "soundscape:incomingCall"
+            "miuslyk:incomingCall"
         ).apply { acquire(60_000L) }
     }
 
@@ -211,7 +211,7 @@ class IncomingCallService : Service() {
     private fun startRingtone() {
         try {
             val uri: Uri = try {
-                val resId = resources.getIdentifier("soundscape_call", "raw", packageName)
+                val resId = resources.getIdentifier("miuslyk_call", "raw", packageName)
                 if (resId != 0) Uri.parse("android.resource://\$packageName/\$resId")
                 else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             } catch (e: Exception) { RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
@@ -330,7 +330,7 @@ class IncomingCallService : Service() {
         const val ACTION_DECLINED_BROADCAST  = "PACKAGE_NAME.CALL_DECLINED"
         const val EXTRA_CALL_ID     = "call_id"
         const val EXTRA_CALLER_NAME = "caller_name"
-        private const val CHANNEL_ID      = "soundscape_incoming_call"
+        private const val CHANNEL_ID      = "miuslyk_incoming_call"
         private const val NOTIFICATION_ID = 7105
     }
 }

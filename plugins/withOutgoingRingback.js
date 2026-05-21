@@ -113,7 +113,7 @@ class OutgoingRingbackService : Service() {
     requestAudioFocus()
     if (player?.isPlaying == true) return
 
-    val resId = resources.getIdentifier("soundscape_call", "raw", packageName)
+    val resId = resources.getIdentifier("miuslyk_call", "raw", packageName)
     if (resId == 0) {
       stopSelf()
       return
@@ -242,7 +242,7 @@ class OutgoingRingbackService : Service() {
   companion object {
     const val ACTION_START = "PACKAGE_NAME.action.START_RINGBACK"
     const val ACTION_STOP = "PACKAGE_NAME.action.STOP_RINGBACK"
-    private const val CHANNEL_ID = "soundscape_outgoing_ringback"
+    private const val CHANNEL_ID = "miuslyk_outgoing_ringback"
     private const val NOTIFICATION_ID = 7104
   }
 }
@@ -320,8 +320,8 @@ const withOutgoingRingbackFiles = (config) =>
         SERVICE.replaceAll('PACKAGE_NAME', packageName),
       );
 
-      const srcSound = path.join(mod.modRequest.projectRoot, 'assets', 'sounds', 'soundscape_call.wav');
-      const dstSound = path.join(rawDir, 'soundscape_call.wav');
+      const srcSound = path.join(mod.modRequest.projectRoot, 'assets', 'sounds', 'miuslyk_call.wav');
+      const dstSound = path.join(rawDir, 'miuslyk_call.wav');
       fs.copyFileSync(srcSound, dstSound);
 
       return mod;

@@ -66,7 +66,7 @@ function alertMicPermission(canAskAgain: boolean) {
     );
   }
 }
-const CALL_SOUND = require('../assets/sounds/soundscape_call.wav');
+const CALL_SOUND = require('../assets/sounds/miuslyk_call.wav');
 
 function hasActiveOrRingingParticipants(participantStatuses?: Record<string, string>) {
   return Object.values(participantStatuses ?? {}).some((status) => ['calling', 'ringing', 'active'].includes(status));
@@ -224,7 +224,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     Notifications.setNotificationChannelAsync('calls', {
       name: 'calls',
       importance: Notifications.AndroidImportance.MAX,
-      sound: 'soundscape_call.wav',
+      sound: 'miuslyk_call.wav',
       enableVibrate: true,
       vibrationPattern: [0, 800, 500, 800],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -242,7 +242,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.setup({
       ios: {
         appName: 'MIUSLYK',
-        ringtoneSound: 'soundscape_call.wav',
+        ringtoneSound: 'miuslyk_call.wav',
         supportsVideo: false,
         maximumCallGroups: '1',
         maximumCallsPerCallGroup: '1',

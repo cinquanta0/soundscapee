@@ -42,7 +42,7 @@ class OutgoingRingbackService : Service() {
     requestAudioFocus()
     if (player?.isPlaying == true) return
 
-    val resId = resources.getIdentifier("soundscape_call", "raw", packageName)
+    val resId = resources.getIdentifier("miuslyk_call", "raw", packageName)
     if (resId == 0) {
       stopSelf()
       return
@@ -145,7 +145,7 @@ class OutgoingRingbackService : Service() {
     val manager = getSystemService(NotificationManager::class.java) ?: return
     val channel = NotificationChannel(
       CHANNEL_ID,
-      "SoundScape Call Audio",
+      "Miuslyk Call Audio",
       NotificationManager.IMPORTANCE_LOW,
     ).apply {
       description = "Riproduzione della suoneria di chiamata in uscita"
@@ -171,7 +171,7 @@ class OutgoingRingbackService : Service() {
   companion object {
     const val ACTION_START = "com.cucucucucuione.soundscapemobile.action.START_RINGBACK"
     const val ACTION_STOP = "com.cucucucucuione.soundscapemobile.action.STOP_RINGBACK"
-    private const val CHANNEL_ID = "soundscape_outgoing_ringback"
+    private const val CHANNEL_ID = "miuslyk_outgoing_ringback"
     private const val NOTIFICATION_ID = 7104
   }
 }
