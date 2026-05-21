@@ -29,11 +29,13 @@ service firebase.storage {
       // Lettura solo ai partecipanti della conversazione (fix CRITICO: era 'if auth != null')
       allow read: if request.auth != null
                   && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participants;
+      // CREATE: solo utenti autenticati con limite di dimensione e tipo.
+      // Non usiamo firestore.get() qui perché il documento conversations
+      // potrebbe non esistere ancora al momento dell'upload (primo messaggio).
       allow create: if request.auth != null
                     && request.resource.size < 20 * 1024 * 1024
                     && (request.resource.contentType.matches('audio/.*') ||
-                        request.resource.contentType == 'application/octet-stream')
-                    && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(convId)).data.participants;
+                        request.resource.contentType == 'application/octet-stream');
       allow delete: if false;
     }
 
