@@ -88,7 +88,7 @@ const rb = StyleSheet.create({
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.cucucucucuione.soundscapemobile';
-const STORE_URL_IOS = 'https://apps.apple.com/app/soundscape/id0'; // aggiorna con l'ID reale
+const STORE_URL_IOS = 'https://apps.apple.com/app/miuslyk/id0'; // aggiorna con l'ID reale
 
 function ForceUpdateScreen() {
   const storeUrl = Platform.OS === 'ios' ? STORE_URL_IOS : STORE_URL_ANDROID;

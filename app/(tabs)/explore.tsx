@@ -33,7 +33,7 @@ import { incrementListens } from '../../services/firebaseService';
 
 let _TP: any = null; let _S: any = {};
 try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 
 const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
 

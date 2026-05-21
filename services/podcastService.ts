@@ -279,7 +279,7 @@ export async function deletePodcastComment(podcastId: string, commentId: string)
 
 export async function publishPodcast(params: {
   audioUri?: string;   // file locale da caricare
-  audioUrl?: string;   // URL già su Storage (es. suono da SoundScape)
+  audioUrl?: string;   // URL già su Storage (es. suono da Miuslyk)
   coverUri: string | null;
   title: string;
   description: string;
@@ -782,7 +782,7 @@ export async function deletePodcast(id: string): Promise<void> {
   await deleteDoc(doc(db, 'podcast', id));
 }
 
-// ─── SoundScape sound search ──────────────────────────────────────────────────
+// ─── Miuslyk sound search ──────────────────────────────────────────────────
 
 export interface SoundResult {
   id: string;
@@ -888,7 +888,7 @@ export function listenToPlaylist(
   });
 }
 
-// ─── SoundScape sound search ──────────────────────────────────────────────────
+// ─── Miuslyk sound search ──────────────────────────────────────────────────
 
 export async function searchSounds(queryText: string): Promise<SoundResult[]> {
   const q = query(collection(db, 'sounds'), orderBy('createdAt', 'desc'), limit(40));

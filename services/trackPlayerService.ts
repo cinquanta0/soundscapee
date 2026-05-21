@@ -7,9 +7,9 @@ const { Platform } = require('react-native');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
-const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
-const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
+const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
+const LIVE_STREAM_TRACK_KEY = '@miuslyk/live_stream_track';
+const LIVE_STREAM_USER_PAUSED_KEY = '@miuslyk/live_stream_user_paused';
 
 // Questo file viene eseguito in un thread separato in background da React Native Track Player.
 // È obbligatorio registrarlo tramite TrackPlayer.registerPlaybackService().

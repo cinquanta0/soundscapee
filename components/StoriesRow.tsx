@@ -186,7 +186,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
   const checkTutorialViewed = async () => {
     try {
-      const val = await AsyncStorage.getItem('soundscape_tutorial_viewed');
+      const val = await AsyncStorage.getItem('miuslyk_tutorial_viewed');
       if (val === '1') setViewedTutorial(true);
     } catch (e) {}
   };
@@ -247,7 +247,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const handleViewed = (groupId: string) => {
     if (groupId.startsWith('tutorial')) {
       setViewedTutorial(true);
-      AsyncStorage.setItem('soundscape_tutorial_viewed', '1').catch(() => {});
+      AsyncStorage.setItem('miuslyk_tutorial_viewed', '1').catch(() => {});
     } else {
       // Aggiorna lo stato locale e ricarica per ri-ordinare
       setViewedStati((prev) => {

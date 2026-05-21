@@ -10,9 +10,9 @@ const { Audio } = require('expo-av');
 const { Platform } = require('react-native');
 
 let setupPromise: Promise<void> | null = null;
-const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
-const LIVE_STREAM_USER_PAUSED_KEY = '@soundscape/live_stream_user_paused';
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+const LIVE_STREAM_TRACK_KEY = '@miuslyk/live_stream_track';
+const LIVE_STREAM_USER_PAUSED_KEY = '@miuslyk/live_stream_user_paused';
+const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 const RADIO_LOG_PREFIX = '[RNTP-RADIO]';
 
 async function doSetup() {

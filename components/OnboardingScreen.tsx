@@ -53,7 +53,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   };
 
   const handleComplete = async () => {
-    await AsyncStorage.setItem('soundscape_onboarding_done', '1');
+    await AsyncStorage.setItem('miuslyk_onboarding_done', '1');
     onComplete();
   };
 

@@ -241,7 +241,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
         duration: podcast.duration > 0 ? podcast.duration : undefined,
       });
       await TrackPlayer.play();
-      AsyncStorage.setItem('@soundscape/rntp_session', JSON.stringify({ type: 'podcast', podcastId: podcast.id })).catch(() => {});
+      AsyncStorage.setItem('@miuslyk/rntp_session', JSON.stringify({ type: 'podcast', podcastId: podcast.id })).catch(() => {});
       if (podcast.duration > 0) setDuration(podcast.duration);
     } catch (e) {
       console.error('Podcast load error', e);
@@ -688,7 +688,7 @@ function SoundSearchView({
   );
 }
 
-const PODCAST_TUTORIAL_KEY = '@soundscape/podcast_tutorial_seen';
+const PODCAST_TUTORIAL_KEY = '@miuslyk/podcast_tutorial_seen';
 
 function getTutorialSteps(t: (key: string) => string) {
   return [
@@ -1120,7 +1120,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
             )}
           </View>
 
-          {/* Step 3: Scegli da file / SoundScape */}
+          {/* Step 3: Scegli da file / Miuslyk */}
           <View style={tutorialStep === 3 ? pm.tutorialHighlight : undefined}>
             <TouchableOpacity style={[pm.pickBtn, { marginTop: 6 }]} onPress={pickAudio}>
               <Text style={pm.pickBtnTxt}>
@@ -1192,7 +1192,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
     // Ripristino sessione: se RNTP stava suonando un podcast al boot, apri il player
     (async () => {
       try {
-        const sessionStr = await AsyncStorage.getItem('@soundscape/rntp_session');
+        const sessionStr = await AsyncStorage.getItem('@miuslyk/rntp_session');
         if (!sessionStr) return;
         const session = JSON.parse(sessionStr);
         if (session.type !== 'podcast' || !session.podcastId) return;

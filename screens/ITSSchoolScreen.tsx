@@ -42,7 +42,7 @@ import {
   updateClassPhoto,
 } from '../services/podcastService';
 
-const ONBOARDING_KEY = 'soundscape_school_onboarding_done';
+const ONBOARDING_KEY = 'miuslyk_school_onboarding_done';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {

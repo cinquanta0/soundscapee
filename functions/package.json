@@ -1,6 +1,6 @@
 {
-  "name": "soundscape-functions",
-  "description": "Firebase Cloud Functions for SoundScape",
+  "name": "miuslyk-functions",
+  "description": "Firebase Cloud Functions for Miuslyk",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "echo 'No build step required'",

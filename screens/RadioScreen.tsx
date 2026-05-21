@@ -142,7 +142,7 @@ interface NowPlayingInfo {
   djImageUrl?: string;
 }
 
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
+const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 const RADIO_LOG_PREFIX = '[RNTP-RADIO]';
 
 const OFFLINE_STATIONS: OfflineStation[] = [
@@ -703,7 +703,7 @@ async function fetchRadioBrowserUrl(searchName: string): Promise<string | null> 
         const timer = setTimeout(() => controller.abort(), 5000);
         const res = await fetch(
           `https://${mirror}.api.radio-browser.info/json/stations/search?${query}`,
-          { headers: { 'User-Agent': 'Soundscape/1.0' }, signal: controller.signal },
+          { headers: { 'User-Agent': 'Miuslyk/1.0' }, signal: controller.signal },
         );
         clearTimeout(timer);
         if (!res.ok) continue;
@@ -738,7 +738,7 @@ async function _fetchJson(url: string, ms = 5000): Promise<unknown> {
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Soundscape/1.0' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Miuslyk/1.0' },
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -2860,7 +2860,7 @@ function OfflineStationPlayer({ station, onClose }: { station: OfflineStation; o
             artwork: artworkUrl,
             isLiveStream: true as const,
             type: url.includes('.m3u8') ? 'hls' : 'default',
-            userAgent: 'SoundscapeMobile/1.0.0 (Android/iOS)',
+            userAgent: 'Miuslyk/1.0.0 (Android/iOS)',
           };
           await startRadioPlayback(radioTrack, { autoplay: Platform.OS !== 'ios' });
           streamUrlRef.current = url;

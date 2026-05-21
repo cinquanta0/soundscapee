@@ -137,8 +137,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { pauseRadioPlayback, playRadioPlayback, syncActiveTrackMetadata, pausePlayerForCall } from '../../services/audioPlayer';
 
-const RNTP_SESSION_KEY = '@soundscape/rntp_session';
-const LIVE_STREAM_TRACK_KEY = '@soundscape/live_stream_track';
+const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
+const LIVE_STREAM_TRACK_KEY = '@miuslyk/live_stream_track';
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -278,7 +278,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem('soundscape_onboarding_done').then((val) => {
+    AsyncStorage.getItem('miuslyk_onboarding_done').then((val) => {
       if (!val) setShowOnboarding(true);
     });
   }, []);
@@ -302,7 +302,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const sessionStr = await AsyncStorage.getItem('@soundscape/rntp_session');
+        const sessionStr = await AsyncStorage.getItem('@miuslyk/rntp_session');
         if (!sessionStr) return;
         const session = JSON.parse(sessionStr);
         if (session.type !== 'radio' && session.type !== 'podcast') return;
@@ -361,7 +361,7 @@ export default function App() {
         const [track, ps, sessionStr] = await Promise.all([
           TP.getActiveTrack(),
           TP.getPlaybackState(),
-          AsyncStorage.getItem('@soundscape/rntp_session'),
+          AsyncStorage.getItem('@miuslyk/rntp_session'),
         ]);
         const st = ps?.state ?? ps;
         const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Ready;
@@ -391,7 +391,7 @@ export default function App() {
         const [track, ps, sessionStr] = await Promise.all([
           TP.getActiveTrack(),
           TP.getPlaybackState(),
-          AsyncStorage.getItem('@soundscape/rntp_session'),
+          AsyncStorage.getItem('@miuslyk/rntp_session'),
         ]);
         const st = ps?.state ?? ps;
         const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Ready;
@@ -544,10 +544,10 @@ useEffect(() => {
       const pendingResponse = await Notifications.getLastNotificationResponseAsync();
       if (pendingResponse?.notification?.request?.content?.data) {
         const notifId = pendingResponse.notification.request.identifier;
-        const prevId = await AsyncStorage.getItem('@soundscape/last_handled_notif').catch(() => null);
+        const prevId = await AsyncStorage.getItem('@miuslyk/last_handled_notif').catch(() => null);
         if (prevId !== notifId && lastHandledNotifId.current !== notifId) {
           lastHandledNotifId.current = notifId;
-          AsyncStorage.setItem('@soundscape/last_handled_notif', notifId).catch(() => {});
+          AsyncStorage.setItem('@miuslyk/last_handled_notif', notifId).catch(() => {});
           handleNotificationNavigation(pendingResponse.notification.request.content.data);
         }
       }
@@ -572,7 +572,7 @@ useEffect(() => {
       const notifId = response.notification.request.identifier;
       if (lastHandledNotifId.current === notifId) return;
       lastHandledNotifId.current = notifId;
-      AsyncStorage.setItem('@soundscape/last_handled_notif', notifId).catch(() => {});
+      AsyncStorage.setItem('@miuslyk/last_handled_notif', notifId).catch(() => {});
       handleNotificationNavigation(response.notification.request.content.data);
     });
 
@@ -2061,9 +2061,9 @@ if (loading) {
               const TP = r.default; const S = r;
               const [ps, sessionStr, activeTrack, savedLiveTrackStr] = await Promise.all([
                 TP.getPlaybackState(),
-                AsyncStorage.getItem('@soundscape/rntp_session'),
+                AsyncStorage.getItem('@miuslyk/rntp_session'),
                 TP.getActiveTrack().catch(() => null),
-                AsyncStorage.getItem('@soundscape/live_stream_track').catch(() => null),
+                AsyncStorage.getItem('@miuslyk/live_stream_track').catch(() => null),
               ]);
               const st = ps?.state ?? ps;
               const session = sessionStr ? JSON.parse(sessionStr) : null;
@@ -2086,8 +2086,8 @@ if (loading) {
               // reset() termina il ForegroundService Android e rimuove il widget iOS
               await TP.reset();
             } catch {}
-            try { await AsyncStorage.removeItem('@soundscape/rntp_session'); } catch {}
-            try { await AsyncStorage.removeItem('@soundscape/live_stream_user_paused'); } catch {}
+            try { await AsyncStorage.removeItem('@miuslyk/rntp_session'); } catch {}
+            try { await AsyncStorage.removeItem('@miuslyk/live_stream_user_paused'); } catch {}
             setMiniPlayerData(null);
           }}
         />
