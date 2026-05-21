@@ -367,6 +367,12 @@ export async function rejoinGroupCall(callId: string, userId: string): Promise<C
   const call = parseCallDoc(snap);
   if (call.status === 'ended' || call.status === 'declined') return null;
 
+  // Also guard against the race condition where all participants wrote 'left'
+  // but the overall status is stuck at 'active'.
+  const othersActive = Object.entries(call.participantStatuses ?? {})
+    .some(([id, st]) => id !== userId && ['active', 'ringing', 'calling'].includes(st));
+  if (!othersActive) return null;
+
   await updateDoc(callRef, {
     [`participantStatuses.${userId}`]: 'active',
     status: 'active',

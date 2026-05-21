@@ -326,7 +326,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem(REJOIN_STORAGE_KEY).then(async (callId) => {
           if (!callId || rejoinableCallRef.current) return;
           const snap = await getDoc(doc(db, 'calls', callId)).catch(() => null);
-          if (!snap?.exists()) { AsyncStorage.removeItem(REJOIN_STORAGE_KEY); return; }
+          if (!snap) return; // network/auth error — keep storage key for next launch
+          if (!snap.exists()) { AsyncStorage.removeItem(REJOIN_STORAGE_KEY); return; }
           const data = snap.data()!;
           const uid = user.uid;
           const dead = data.status === 'ended' || data.status === 'declined' || data.status === 'missed';
@@ -1274,10 +1275,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!canRejoin || !rejoinableCall) return;
     const unsub = listenForCallUpdates(rejoinableCall.id, (updated) => {
-      const dead = !updated
-        || updated.status === 'ended'
+      if (!updated) return; // document missing / connection glitch — keep banner
+      const allLeft = updated.type === 'group'
+        && !hasActiveOrRingingParticipants(updated.participantStatuses);
+      const dead = updated.status === 'ended'
         || updated.status === 'declined'
-        || updated.status === 'missed';
+        || updated.status === 'missed'
+        || allLeft;
       if (dead) {
         setCanRejoin(false);
         setRejoinableCall(null);
