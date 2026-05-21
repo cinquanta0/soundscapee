@@ -769,8 +769,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       resumePlayerAfterCall().catch(() => {});
     }
 
-    setEndReason(reason);
-    setPhase('ended');
     setIsMuted(false);
     setIsSpeaker(false);
     setDuration(0);
@@ -780,16 +778,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       callIdRef.current = null;
       cleaningUpRef.current = false;
       setCanRejoin(rejoinableCallRef.current !== null);
-      // Auto-dismiss the ended screen after 15s, but keep canRejoin/rejoinableCall
-      // so the persistent rejoin banner remains until the call actually ends.
-      setTimeout(() => {
-        if (engineRef.current) return;
-        setPhase(null);
-        setCall(null);
-        setEndReason(null);
-      }, 15_000);
+      setPhase(null);
+      setCall(null);
+      setEndReason(null);
       return;
     }
+
+    setEndReason(reason);
+    setPhase('ended');
 
     setTimeout(() => {
       setPhase(null);
