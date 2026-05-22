@@ -25,22 +25,25 @@ export async function initE2EKeys(): Promise<void> {
   if (!user) return;
 
   if (_cachedSK) {
-    // Già in memoria — sync Firestore in background senza bloccare
     _syncPublicKeyToFirestore(user.uid, _cachedSK).catch(() => {});
     return;
   }
 
-  const stored = await SecureStore.getItemAsync(SK_KEY);
   let sk: Uint8Array;
-  if (stored) {
-    sk = decodeBase64(stored);
-  } else {
-    const kp = nacl.box.keyPair();
-    await SecureStore.setItemAsync(SK_KEY, encodeBase64(kp.secretKey));
-    sk = kp.secretKey;
+  try {
+    const stored = await SecureStore.getItemAsync(SK_KEY);
+    if (stored) {
+      sk = decodeBase64(stored);
+    } else {
+      sk = nacl.box.keyPair().secretKey;
+      // Persisti in background — se fallisce usiamo la chiave in memoria
+      SecureStore.setItemAsync(SK_KEY, encodeBase64(sk)).catch(() => {});
+    }
+  } catch {
+    // SecureStore non disponibile — chiave effimera solo per questa sessione
+    sk = nacl.box.keyPair().secretKey;
   }
 
-  // Cache subito — Firestore si aggiorna in background
   _cachedSK = sk;
   _syncPublicKeyToFirestore(user.uid, sk).catch(() => {});
 }
