@@ -5,7 +5,7 @@ module.exports = ({ config }) => ({
   version: "1.0.1",
   orientation: "portrait",
   updates: {
-    url: "https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2",
+    url: "https://u.expo.dev/e0e7397d-e07d-44f3-9c6e-00c8070c8b70",
     checkAutomatically: "ON_LOAD",
     enabled: process.env.DISABLE_EXPO_UPDATES_NATIVE === "1" ? false : true,
     fallbackToCacheTimeout: 10000,
@@ -96,7 +96,7 @@ module.exports = ({ config }) => ({
   extra: {
     router: {},
     eas: {
-      projectId: "68f2bf5d-7e67-48d9-aaef-a207ff8497c5",
+      projectId: "e0e7397d-e07d-44f3-9c6e-00c8070c8b70",
     },
   },
 });

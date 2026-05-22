@@ -115,7 +115,7 @@ workflows:
         script: |
           set -e
           PLIST="ios/MIUSLYK/Info.plist"
-          EAS_URL="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"
+          EAS_URL="https://u.expo.dev/e0e7397d-e07d-44f3-9c6e-00c8070c8b70"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled YES" "$PLIST" 2>/dev/null || \
@@ -298,7 +298,7 @@ workflows:
         script: |
           set -e
           PLIST="ios/MIUSLYK/Info.plist"
-          EAS_URL="https://u.expo.dev/1acc4f41-619c-423f-8db0-fcc6e7243ba2"
+          EAS_URL="https://u.expo.dev/e0e7397d-e07d-44f3-9c6e-00c8070c8b70"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesChannelName preview" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Add :EXUpdatesChannelName string preview" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :EXUpdatesEnabled YES" "$PLIST" 2>/dev/null || \
