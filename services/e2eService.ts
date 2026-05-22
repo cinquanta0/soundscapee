@@ -21,39 +21,36 @@ async function _syncPublicKeyToFirestore(uid: string, sk: Uint8Array): Promise<v
 }
 
 export async function initE2EKeys(): Promise<void> {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  if (_cachedSK) {
-    _syncPublicKeyToFirestore(user.uid, _cachedSK).catch(() => {});
-    return;
-  }
-
-  let sk: Uint8Array;
-  try {
-    const stored = await SecureStore.getItemAsync(SK_KEY);
-    if (stored) {
-      sk = decodeBase64(stored);
-    } else {
+  if (!_cachedSK) {
+    let sk: Uint8Array;
+    try {
+      const stored = await SecureStore.getItemAsync(SK_KEY);
+      if (stored) {
+        sk = decodeBase64(stored);
+      } else {
+        sk = nacl.box.keyPair().secretKey;
+        SecureStore.setItemAsync(SK_KEY, encodeBase64(sk)).catch(() => {});
+      }
+    } catch {
       sk = nacl.box.keyPair().secretKey;
-      // Persisti in background — se fallisce usiamo la chiave in memoria
-      SecureStore.setItemAsync(SK_KEY, encodeBase64(sk)).catch(() => {});
     }
-  } catch {
-    // SecureStore non disponibile — chiave effimera solo per questa sessione
-    sk = nacl.box.keyPair().secretKey;
+    _cachedSK = sk;
   }
 
-  _cachedSK = sk;
-  _syncPublicKeyToFirestore(user.uid, sk).catch(() => {});
+  const user = auth.currentUser;
+  if (user) _syncPublicKeyToFirestore(user.uid, _cachedSK).catch(() => {});
 }
 
 export async function getMySecretKey(): Promise<Uint8Array | null> {
   if (_cachedSK) return _cachedSK;
-  const stored = await SecureStore.getItemAsync(SK_KEY);
-  if (!stored) return null;
-  _cachedSK = decodeBase64(stored);
-  return _cachedSK;
+  try {
+    const stored = await SecureStore.getItemAsync(SK_KEY);
+    if (!stored) return null;
+    _cachedSK = decodeBase64(stored);
+    return _cachedSK;
+  } catch {
+    return null;
+  }
 }
 
 export async function getRecipientPublicKey(userId: string): Promise<Uint8Array | null> {
