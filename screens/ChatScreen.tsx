@@ -718,19 +718,21 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         </TouchableOpacity>
       </View>
 
-      {e2eReady && (
-        <TouchableOpacity
-          style={cs.e2eBanner}
-          onPress={() => Alert.alert(
-            '🔒 Crittografia end-to-end',
-            'I messaggi e i vocali in questa chat sono cifrati con crittografia end-to-end (X25519 + XSalsa20-Poly1305).\n\nSolo tu e il tuo interlocutore potete leggerli. MIUSLYK non ha accesso al contenuto.',
-            [{ text: 'OK' }],
-          )}
-          activeOpacity={0.7}
-        >
-          <Text style={cs.e2eBannerTxt}>🔒 Crittografia end-to-end attiva  ›</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={cs.e2eBanner}
+        onPress={() => Alert.alert(
+          e2eReady ? '🔒 Crittografia end-to-end' : '⚠️ Crittografia',
+          e2eReady
+            ? 'I messaggi e i vocali in questa chat sono cifrati con crittografia end-to-end (X25519 + XSalsa20-Poly1305).\n\nSolo tu e il tuo interlocutore potete leggerli. MIUSLYK non ha accesso al contenuto.'
+            : 'Inizializzazione crittografia in corso. I messaggi saranno cifrati non appena le chiavi sono pronte.',
+          [{ text: 'OK' }],
+        )}
+        activeOpacity={0.7}
+      >
+        <Text style={[cs.e2eBannerTxt, { color: e2eReady ? '#00FF9C' : C.textMute }]}>
+          {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '🔓 Crittografia in inizializzazione...'}
+        </Text>
+      </TouchableOpacity>
 
       <FlatList
         ref={listRef}
