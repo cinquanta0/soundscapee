@@ -715,6 +715,20 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         </TouchableOpacity>
       </View>
 
+      {e2eReady && (
+        <TouchableOpacity
+          style={cs.e2eBanner}
+          onPress={() => Alert.alert(
+            '🔒 Crittografia end-to-end',
+            'I messaggi e i vocali in questa chat sono cifrati con crittografia end-to-end (X25519 + XSalsa20-Poly1305).\n\nSolo tu e il tuo interlocutore potete leggerli. MIUSLYK non ha accesso al contenuto.',
+            [{ text: 'OK' }],
+          )}
+          activeOpacity={0.7}
+        >
+          <Text style={cs.e2eBannerTxt}>🔒 Crittografia end-to-end attiva  ›</Text>
+        </TouchableOpacity>
+      )}
+
       <FlatList
         ref={listRef}
         data={messages}
@@ -752,21 +766,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         scrollEventThrottle={16}
         contentContainerStyle={[cs.list, { paddingBottom: listBottomPadding }]}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          e2eReady ? (
-            <TouchableOpacity
-              style={cs.e2eBanner}
-              onPress={() => Alert.alert(
-                '🔒 Crittografia end-to-end',
-                'I messaggi e i vocali in questa chat sono cifrati con crittografia end-to-end (X25519 + XSalsa20-Poly1305).\n\nSolo tu e il tuo interlocutore potete leggerli. MIUSLYK non ha accesso al contenuto.',
-                [{ text: 'OK' }],
-              )}
-              activeOpacity={0.7}
-            >
-              <Text style={cs.e2eBannerTxt}>🔒 Crittografia end-to-end attiva  ›</Text>
-            </TouchableOpacity>
-          ) : null
-        }
         ListEmptyComponent={
           <View style={cs.empty}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>💬</Text>
