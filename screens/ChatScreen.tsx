@@ -733,7 +733,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         activeOpacity={0.7}
       >
         <Text style={[cs.e2eBannerTxt, { color: e2eReady ? '#00FF9C' : C.textMute }]}>
-          {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '🔓 Crittografia in inizializzazione...'}
+          {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '⏳ Crittografia in inizializzazione...'}
         </Text>
       </TouchableOpacity>
 
