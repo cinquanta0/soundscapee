@@ -411,9 +411,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         // and before callIdRef/phaseRef updates — safest guard against stale Q2 re-emit.
         if (acceptingCallRef.current && incoming.id === callIdRef.current) return;
         if (phaseRef.current !== null) {
-          // Stale Q2 re-emit during our own accept — do not auto-decline our own call
+          // Stale Q2/Q1 re-emit during our own accept — do not auto-decline our own call
           if (incoming.id === callIdRef.current) return;
-          // Already in a call — auto-decline so caller gets "busy" immediately
+          // Same call we're already showing (e.g. createCall's second write for channelName)
+          // — just refresh the data so _doAccept gets the correct channelName.
+          if (incoming.id === incomingCallRef.current?.id) {
+            setCall(incoming);
+            return;
+          }
+          // Truly a different call — auto-decline so caller gets "busy" immediately
           dismissedIncomingIdsRef.current.add(incoming.id);
           updateCallStatus(incoming.id, 'declined').catch(() => {});
           return;
