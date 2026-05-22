@@ -404,6 +404,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
         if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
         if (phaseRef.current !== null) {
+          // Stale Q2 re-emit during our own accept — do not auto-decline our own call
+          if (incoming.id === callIdRef.current) return;
           // Already in a call — auto-decline so caller gets "busy" immediately
           dismissedIncomingIdsRef.current.add(incoming.id);
           updateCallStatus(incoming.id, 'declined').catch(() => {});
