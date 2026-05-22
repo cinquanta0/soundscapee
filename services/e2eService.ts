@@ -9,8 +9,7 @@ export { encodeBase64, decodeBase64 };
 
 const SK_KEY = 'e2e_sk_v1';
 
-// Chiave effimera generata al load del modulo — mai null, sostituita da SecureStore se disponibile
-let _cachedSK: Uint8Array = nacl.box.keyPair().secretKey;
+let _cachedSK: Uint8Array | null = null;
 let _keysInitialized = false;
 
 // SecureStore può bloccarsi indefinitamente su iOS senza Keychain entitlements
@@ -38,22 +37,27 @@ async function _syncPublicKeyToFirestore(uid: string, sk: Uint8Array): Promise<v
 
 export async function initE2EKeys(): Promise<void> {
   if (!_keysInitialized) {
+    let sk: Uint8Array;
     try {
       const stored = await secureGet(SK_KEY);
       if (stored) {
-        _cachedSK = decodeBase64(stored);
+        sk = decodeBase64(stored);
       } else {
-        secureSet(SK_KEY, encodeBase64(_cachedSK)).catch(() => {});
+        sk = nacl.box.keyPair().secretKey;
+        secureSet(SK_KEY, encodeBase64(sk)).catch(() => {});
       }
-    } catch {}
+    } catch {
+      sk = nacl.box.keyPair().secretKey;
+    }
+    _cachedSK = sk;
     _keysInitialized = true;
   }
 
   const user = auth.currentUser;
-  if (user) _syncPublicKeyToFirestore(user.uid, _cachedSK).catch(() => {});
+  if (user) _syncPublicKeyToFirestore(user.uid, _cachedSK!).catch(() => {});
 }
 
-export async function getMySecretKey(): Promise<Uint8Array> {
+export async function getMySecretKey(): Promise<Uint8Array | null> {
   return _cachedSK;
 }
 
