@@ -969,13 +969,11 @@ exports.notifyRadioLive = onCall({ region: 'europe-west1' }, async (request) => 
 exports.getAgoraToken = onCall({ region: 'europe-west1' }, async (request) => {
   const appId = process.env.AGORA_APP_ID;
   const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+  const crypto = require('crypto');
+  const db = admin.firestore();
 
   if (!appId) {
     throw new HttpsError('failed-precondition', 'Agora App ID non configurato');
-  }
-  // Senza certificato → dev mode senza token
-  if (!appCertificate) {
-    return { token: null };
   }
 
   const { channelName } = request.data ?? {};
@@ -983,12 +981,31 @@ exports.getAgoraToken = onCall({ region: 'europe-west1' }, async (request) => {
     throw new HttpsError('invalid-argument', 'channelName mancante');
   }
 
+  // Genera o recupera la chiave di cifratura per questo canale (atomic via transaction)
+  const callRef = db.collection('calls').doc(channelName);
+  const { encKey, encSalt } = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(callRef);
+    const data = snap.data() || {};
+    if (data.encKey && data.encSalt) {
+      return { encKey: data.encKey, encSalt: data.encSalt };
+    }
+    const key = crypto.randomBytes(32).toString('base64');
+    const salt = Array.from(crypto.randomBytes(32));
+    tx.set(callRef, { encKey: key, encSalt: salt }, { merge: true });
+    return { encKey: key, encSalt: salt };
+  });
+
+  // Senza certificato → dev mode senza token Agora ma con chiave E2E
+  if (!appCertificate) {
+    return { token: null, encKey, encSalt };
+  }
+
   const { RtcTokenBuilder, RtcRole } = require('agora-token');
   const expireTs = Math.floor(Date.now() / 1000) + 3600; // 1 ora
   const token = RtcTokenBuilder.buildTokenWithUid(
     appId, appCertificate, channelName, 0, RtcRole.PUBLISHER, expireTs, expireTs,
   );
-  return { token };
+  return { token, encKey, encSalt };
 });
 
 exports.streakReminder = onSchedule(

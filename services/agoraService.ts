@@ -6,6 +6,7 @@ import {
   ClientRoleType,
   AudioProfileType,
   AudioScenarioType,
+  EncryptionMode,
 } from 'react-native-agora';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -60,15 +61,30 @@ export function destroyAgoraEngine(): void {
 
 // ─── Token ────────────────────────────────────────────────────────────────────
 
-export async function fetchAgoraToken(channelName: string): Promise<string | null> {
+export interface AgoraTokenResult {
+  token: string | null;
+  encKey: string | null;
+  encSalt: number[] | null;
+}
+
+export async function fetchAgoraToken(channelName: string): Promise<AgoraTokenResult> {
   try {
     const fns = getFunctions(undefined, 'europe-west1');
-    const getToken = httpsCallable<{ channelName: string }, { token: string | null }>(fns, 'getAgoraToken');
+    const getToken = httpsCallable<{ channelName: string }, AgoraTokenResult>(fns, 'getAgoraToken');
     const result = await getToken({ channelName });
-    return result.data.token;
+    return result.data;
   } catch {
-    return null; // sviluppo senza certificato
+    return { token: null, encKey: null, encSalt: null };
   }
+}
+
+export function applyChannelEncryption(engine: IRtcEngine, encKey: string | null, encSalt: number[] | null): void {
+  if (!encKey) return;
+  engine.enableEncryption(true, {
+    encryptionMode: EncryptionMode.EncryptionModeAes128Gcm2,
+    encryptionKey: encKey,
+    encryptionSalt: encSalt ?? undefined,
+  });
 }
 
 // ─── Join / leave ─────────────────────────────────────────────────────────────

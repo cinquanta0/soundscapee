@@ -11,7 +11,7 @@ import {
   IRtcEngine, IRtcEngineEventHandler, ClientRoleType,
 } from 'react-native-agora';
 import { auth, db } from '../firebaseConfig';
-import { getCallEngine, destroyAgoraEngine, fetchAgoraToken } from '../services/agoraService';
+import { getCallEngine, destroyAgoraEngine, fetchAgoraToken, applyChannelEncryption } from '../services/agoraService';
 import {
   Call, CallPhase, ParticipantProfile,
   createCall, createGroupCall, updateCallStatus,
@@ -880,7 +880,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setPhase(null); setCall(null); callIdRef.current = null;
       return;
     }
-    const token = await fetchAgoraToken(incoming.channelName).catch(() => null);
+    const { token, encKey, encSalt } = await fetchAgoraToken(incoming.channelName).catch(() => ({ token: null, encKey: null, encSalt: null }));
+    applyChannelEncryption(engine, encKey, encSalt);
     engine.joinChannel(token ?? '', incoming.channelName, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       publishMicrophoneTrack: true,
@@ -961,7 +962,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       Alert.alert('Errore', 'Impossibile avviare la chiamata.');
       return;
     }
-    const token = await fetchAgoraToken(callId).catch(() => null);
+    const { token, encKey, encSalt } = await fetchAgoraToken(callId).catch(() => ({ token: null, encKey: null, encSalt: null }));
+    applyChannelEncryption(engine, encKey, encSalt);
     engine.joinChannel(token ?? '', callId, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       publishMicrophoneTrack: true,
@@ -1060,8 +1062,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       Alert.alert('Errore', 'Impossibile avviare la chiamata di gruppo.');
       return;
     }
-    const token = await fetchAgoraToken(callId).catch(() => null);
-    engine.joinChannel(token ?? '', callId, 0, {
+    const { token: token2, encKey: encKey2, encSalt: encSalt2 } = await fetchAgoraToken(callId).catch(() => ({ token: null, encKey: null, encSalt: null }));
+    applyChannelEncryption(engine, encKey2, encSalt2);
+    engine.joinChannel(token2 ?? '', callId, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       publishMicrophoneTrack: true,
       autoSubscribeAudio: true,
@@ -1165,8 +1168,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setPhase(null); setCall(null); callIdRef.current = null;
       return;
     }
-    const token = await fetchAgoraToken(freshCall.channelName).catch(() => null);
-    engine.joinChannel(token ?? '', freshCall.channelName, 0, {
+    const { token: rjToken, encKey: rjEncKey, encSalt: rjEncSalt } = await fetchAgoraToken(freshCall.channelName).catch(() => ({ token: null, encKey: null, encSalt: null }));
+    applyChannelEncryption(engine, rjEncKey, rjEncSalt);
+    engine.joinChannel(rjToken ?? '', freshCall.channelName, 0, {
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       publishMicrophoneTrack: true,
       autoSubscribeAudio: true,
