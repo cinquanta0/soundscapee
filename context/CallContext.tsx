@@ -280,6 +280,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const incoming = incomingCallRef.current;
       if (incoming && incoming.id === callUUID && phaseRef.current === 'incoming' && !acceptingCallRef.current) {
         _doAccept(incoming);
+      } else if (!acceptingCallRef.current) {
+        // Firestore hasn't arrived yet (VoIP push race on iOS) — save UUID so the
+        // listener fast-path can accept as soon as the call document lands.
+        pendingAcceptUUIDRef.current = callUUID;
       }
     };
 
