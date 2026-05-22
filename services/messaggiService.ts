@@ -12,7 +12,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import nacl from 'tweetnacl';
 import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import {
-  getMySecretKey, getRecipientPublicKey,
+  initE2EKeys, getMySecretKey, getRecipientPublicKey,
   encryptForConversation, encryptAudioBytes, sealAudioKey, computeSharedKey,
 } from './e2eService';
 
@@ -156,15 +156,12 @@ export async function inviaMessaggio(params: {
 
   const cId = convId(user.uid, params.receiverId);
 
-  // Tenta E2E — cifra il file audio prima dell'upload
+  // Assicura che le chiavi E2E siano generate prima di leggere
+  await initE2EKeys().catch(() => {});
   const [mySK, theirPK] = await Promise.all([
     getMySecretKey(),
     getRecipientPublicKey(params.receiverId),
   ]);
-
-  if (!mySK) {
-    throw new Error('Crittografia non pronta. Riprova tra qualche secondo.');
-  }
 
   let uploadUri = params.audioUri;
   let contentType = 'audio/mp4';
@@ -262,14 +259,11 @@ export async function inviaTestoMessaggio(params: {
 
   let previewText = params.text.slice(0, 60);
 
+  await initE2EKeys().catch(() => {});
   const [mySK, theirPK] = await Promise.all([
     getMySecretKey(),
     getRecipientPublicKey(params.receiverId),
   ]);
-
-  if (!mySK) {
-    throw new Error('Crittografia non pronta. Riprova tra qualche secondo.');
-  }
 
   if (mySK && theirPK) {
     const myKP = nacl.box.keyPair.fromSecretKey(mySK);
