@@ -754,9 +754,17 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           e2eReady ? (
-            <View style={cs.e2eBanner}>
-              <Text style={cs.e2eBannerTxt}>🔒 I messaggi sono protetti da crittografia end-to-end</Text>
-            </View>
+            <TouchableOpacity
+              style={cs.e2eBanner}
+              onPress={() => Alert.alert(
+                '🔒 Crittografia end-to-end',
+                'I messaggi e i vocali in questa chat sono cifrati con crittografia end-to-end (X25519 + XSalsa20-Poly1305).\n\nSolo tu e il tuo interlocutore potete leggerli. MIUSLYK non ha accesso al contenuto.',
+                [{ text: 'OK' }],
+              )}
+              activeOpacity={0.7}
+            >
+              <Text style={cs.e2eBannerTxt}>🔒 Crittografia end-to-end attiva  ›</Text>
+            </TouchableOpacity>
           ) : null
         }
         ListEmptyComponent={
