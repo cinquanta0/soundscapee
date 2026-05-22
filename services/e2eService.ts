@@ -12,12 +12,26 @@ const SK_KEY = 'e2e_sk_v1';
 // Cache in memoria — evita re-read da SecureStore ad ogni invio
 let _cachedSK: Uint8Array | null = null;
 
+async function _syncPublicKeyToFirestore(uid: string, sk: Uint8Array): Promise<void> {
+  const myPkB64 = encodeBase64(nacl.box.keyPair.fromSecretKey(sk).publicKey);
+  const snap = await getDoc(doc(db, 'users', uid));
+  if (snap.data()?.publicKey !== myPkB64) {
+    await updateDoc(doc(db, 'users', uid), { publicKey: myPkB64 });
+  }
+}
+
 export async function initE2EKeys(): Promise<void> {
   const user = auth.currentUser;
   if (!user) return;
 
-  let sk: Uint8Array;
+  if (_cachedSK) {
+    // Già in memoria — sync Firestore in background senza bloccare
+    _syncPublicKeyToFirestore(user.uid, _cachedSK).catch(() => {});
+    return;
+  }
+
   const stored = await SecureStore.getItemAsync(SK_KEY);
+  let sk: Uint8Array;
   if (stored) {
     sk = decodeBase64(stored);
   } else {
@@ -26,19 +40,9 @@ export async function initE2EKeys(): Promise<void> {
     sk = kp.secretKey;
   }
 
-  // Cache subito — il passo Firestore sotto può fallire senza perdere la chiave
+  // Cache subito — Firestore si aggiorna in background
   _cachedSK = sk;
-
-  const kp = nacl.box.keyPair.fromSecretKey(sk);
-  const myPkB64 = encodeBase64(kp.publicKey);
-
-  // Aggiorna la chiave pubblica su Firestore — errori non propagati
-  try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.data()?.publicKey !== myPkB64) {
-      await updateDoc(doc(db, 'users', user.uid), { publicKey: myPkB64 });
-    }
-  } catch {}
+  _syncPublicKeyToFirestore(user.uid, sk).catch(() => {});
 }
 
 export async function getMySecretKey(): Promise<Uint8Array | null> {
