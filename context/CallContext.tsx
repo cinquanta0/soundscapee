@@ -407,10 +407,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (dismissedIncomingIdsRef.current.has(incoming.id)) return;
+        console.warn('[CALL-DBG] listener fired id=%s phase=%s callIdRef=%s accepting=%s', incoming.id, phaseRef.current, callIdRef.current, acceptingCallRef.current);
         if (phaseRef.current !== null) {
           // Stale Q2 re-emit during our own accept — do not auto-decline our own call
-          if (incoming.id === callIdRef.current) return;
+          if (incoming.id === callIdRef.current) {
+            console.warn('[CALL-DBG] own-call guard hit, skipping auto-decline');
+            return;
+          }
           // Already in a call — auto-decline so caller gets "busy" immediately
+          console.warn('[CALL-DBG] AUTO-DECLINE writing declined for id=%s', incoming.id);
           dismissedIncomingIdsRef.current.add(incoming.id);
           updateCallStatus(incoming.id, 'declined').catch(() => {});
           return;
@@ -851,6 +856,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Internal accept ───────────────────────────────────────────────────────
   const _doAccept = useCallback(async (incoming: Call) => {
+    console.warn('[CALL-DBG] _doAccept START id=%s phase=%s callIdRef=%s', incoming.id, phaseRef.current, callIdRef.current);
     if (acceptingCallRef.current) return;
     acceptingCallRef.current = true;
     callkeepIncomingVisibleRef.current = false;
@@ -889,6 +895,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     callIdRef.current = incoming.id;
+    console.warn('[CALL-DBG] callIdRef SET to %s', incoming.id);
     setCall(incoming);
     setPhase('connecting');
     await updateParticipantCallStatus(
