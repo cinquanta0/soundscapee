@@ -12,6 +12,21 @@ const SK_KEY = 'e2e_sk_v1';
 // Cache in memoria — evita re-read da SecureStore ad ogni invio
 let _cachedSK: Uint8Array | null = null;
 
+// SecureStore può bloccarsi indefinitamente su iOS senza Keychain entitlements
+function secureGet(key: string): Promise<string | null> {
+  return Promise.race([
+    SecureStore.getItemAsync(key),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+  ]);
+}
+
+function secureSet(key: string, value: string): Promise<void> {
+  return Promise.race([
+    SecureStore.setItemAsync(key, value),
+    new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+  ]);
+}
+
 async function _syncPublicKeyToFirestore(uid: string, sk: Uint8Array): Promise<void> {
   const myPkB64 = encodeBase64(nacl.box.keyPair.fromSecretKey(sk).publicKey);
   const snap = await getDoc(doc(db, 'users', uid));
@@ -24,12 +39,12 @@ export async function initE2EKeys(): Promise<void> {
   if (!_cachedSK) {
     let sk: Uint8Array;
     try {
-      const stored = await SecureStore.getItemAsync(SK_KEY);
+      const stored = await secureGet(SK_KEY);
       if (stored) {
         sk = decodeBase64(stored);
       } else {
         sk = nacl.box.keyPair().secretKey;
-        SecureStore.setItemAsync(SK_KEY, encodeBase64(sk)).catch(() => {});
+        secureSet(SK_KEY, encodeBase64(sk)).catch(() => {});
       }
     } catch {
       sk = nacl.box.keyPair().secretKey;
@@ -44,7 +59,7 @@ export async function initE2EKeys(): Promise<void> {
 export async function getMySecretKey(): Promise<Uint8Array | null> {
   if (_cachedSK) return _cachedSK;
   try {
-    const stored = await SecureStore.getItemAsync(SK_KEY);
+    const stored = await secureGet(SK_KEY);
     if (!stored) return null;
     _cachedSK = decodeBase64(stored);
     return _cachedSK;
