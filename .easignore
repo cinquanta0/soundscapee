@@ -20,5 +20,11 @@ disable-maintenance.js
 maintenance-data.json
 config_out.json
 
+# Cartelle di build locali Android (il server EAS le ricompila da zero)
+android/app/build/
+android/.cxx/
+android/.gradle/
+android/build/
+
 # Docs
 README.md
