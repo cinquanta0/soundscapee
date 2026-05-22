@@ -9,11 +9,9 @@ export { encodeBase64, decodeBase64 };
 
 const SK_KEY = 'e2e_sk_v1';
 
-/**
- * Genera o recupera il keypair E2E dell'utente.
- * Chiave privata: SecureStore (criptato dal SO).
- * Chiave pubblica: Firestore users/{uid}.publicKey
- */
+// Cache in memoria — evita re-read da SecureStore ad ogni invio
+let _cachedSK: Uint8Array | null = null;
+
 export async function initE2EKeys(): Promise<void> {
   const user = auth.currentUser;
   if (!user) return;
@@ -28,19 +26,27 @@ export async function initE2EKeys(): Promise<void> {
     sk = kp.secretKey;
   }
 
+  // Cache subito — il passo Firestore sotto può fallire senza perdere la chiave
+  _cachedSK = sk;
+
   const kp = nacl.box.keyPair.fromSecretKey(sk);
   const myPkB64 = encodeBase64(kp.publicKey);
 
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  if (snap.data()?.publicKey !== myPkB64) {
-    await updateDoc(doc(db, 'users', user.uid), { publicKey: myPkB64 });
-  }
+  // Aggiorna la chiave pubblica su Firestore — errori non propagati
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.data()?.publicKey !== myPkB64) {
+      await updateDoc(doc(db, 'users', user.uid), { publicKey: myPkB64 });
+    }
+  } catch {}
 }
 
 export async function getMySecretKey(): Promise<Uint8Array | null> {
+  if (_cachedSK) return _cachedSK;
   const stored = await SecureStore.getItemAsync(SK_KEY);
   if (!stored) return null;
-  return decodeBase64(stored);
+  _cachedSK = decodeBase64(stored);
+  return _cachedSK;
 }
 
 export async function getRecipientPublicKey(userId: string): Promise<Uint8Array | null> {

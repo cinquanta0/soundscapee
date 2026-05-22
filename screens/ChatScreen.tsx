@@ -351,16 +351,16 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const { initiateCall, phase: callPhase } = useCall();
 
   useEffect(() => {
-    initE2EKeys()
-      .catch(console.error)
-      .finally(() => {
-        Promise.all([getMySecretKey(), getMyPublicKeyB64()]).then(([sk, pkB64]) => {
-          mySecretKeyRef.current = sk;
-          myPublicKeyB64Ref.current = pkB64;
-          if (sk && pkB64) setE2eReady(true);
-          setMessages((prev) => prev.map((m) => decryptMsg(m, sk, pkB64, myUidRef.current)));
-        }).catch(console.error);
-      });
+    (async () => {
+      try { await initE2EKeys(); } catch {}
+      try {
+        const [sk, pkB64] = await Promise.all([getMySecretKey(), getMyPublicKeyB64()]);
+        mySecretKeyRef.current = sk;
+        myPublicKeyB64Ref.current = pkB64;
+        if (sk) setE2eReady(true);
+        setMessages((prev) => prev.map((m) => decryptMsg(m, sk, pkB64, myUidRef.current)));
+      } catch {}
+    })();
   }, []);
 
   function decryptMsg(
