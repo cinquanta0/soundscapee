@@ -173,7 +173,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // This avoids a race where _doAccept writes 'declined' because permission dialog
   // is shown while the app isn't fully active (e.g. after a fresh install).
   useEffect(() => {
-    Audio.requestPermissionsAsync().catch(() => {});
+    Audio.requestPermissionsAsync().then(({ status, canAskAgain }) => {
+      if (status !== 'granted') {
+        alertMicPermission(canAskAgain);
+      }
+    }).catch(() => {});
   }, []);
 
   // Keep Firebase ID token fresh in SharedPreferences so IncomingCallService
@@ -851,10 +855,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
       alertMicPermission(canAskAgain);
+      // Use 'ended' instead of 'declined' so the caller sees "call ended" rather than
+      // "call rejected" — the callee didn't reject, they just lack microphone permission.
       if (incoming.type === 'group') {
-        await updateParticipantCallStatus(incoming.id, auth.currentUser?.uid ?? '', 'declined').catch(() => {});
+        await updateParticipantCallStatus(incoming.id, auth.currentUser?.uid ?? '', 'left').catch(() => {});
       } else {
-        await updateCallStatus(incoming.id, 'declined');
+        await updateCallStatus(incoming.id, 'ended').catch(() => {});
       }
       ck.rejectCall(incoming.id);
       acceptingCallRef.current = false;
