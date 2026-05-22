@@ -353,11 +353,14 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   useEffect(() => {
     (async () => {
       try { await initE2EKeys(); } catch {}
+      let sk: Uint8Array | null = null;
+      let pkB64: string | null = null;
+      try { sk = await getMySecretKey(); } catch {}
+      try { pkB64 = await getMyPublicKeyB64(); } catch {}
+      mySecretKeyRef.current = sk;
+      myPublicKeyB64Ref.current = pkB64;
+      if (sk) setE2eReady(true);
       try {
-        const [sk, pkB64] = await Promise.all([getMySecretKey(), getMyPublicKeyB64()]);
-        mySecretKeyRef.current = sk;
-        myPublicKeyB64Ref.current = pkB64;
-        if (sk) setE2eReady(true);
         setMessages((prev) => prev.map((m) => decryptMsg(m, sk, pkB64, myUidRef.current)));
       } catch {}
     })();
