@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, StatusBar, Dimensions, Animated,
-  Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard,
+  Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -419,6 +419,20 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       showSub.remove();
       hideSub.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'background' && state !== 'inactive') return;
+      FileSystem.readDirectoryAsync(FileSystem.cacheDirectory!).then((files) => {
+        for (const f of files) {
+          if (f.startsWith('msg_') && f.endsWith('_dec.m4a')) {
+            FileSystem.deleteAsync(FileSystem.cacheDirectory + f, { idempotent: true }).catch(() => {});
+          }
+        }
+      }).catch(() => {});
+    });
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {

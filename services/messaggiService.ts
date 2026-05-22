@@ -45,6 +45,7 @@ export interface Messaggio {
   encAudioKey?: string;
   encAudioKeyNonce?: string;
   audioEncrypted?: boolean;
+  e2eVersion?: number;
 }
 
 export interface Conversazione {
@@ -161,42 +162,36 @@ export async function inviaMessaggio(params: {
     getRecipientPublicKey(params.receiverId),
   ]);
 
+  if (!mySK || !theirPK) {
+    throw new Error('E2E non disponibile. Riprova tra pochi secondi.');
+  }
+
   let uploadUri = params.audioUri;
   let contentType = 'audio/mp4';
   let audioE2EFields: Record<string, unknown> = {};
   let encTempPath: string | null = null;
 
-  if (mySK && theirPK) {
-    try {
-      const myKP = nacl.box.keyPair.fromSecretKey(mySK);
-      const audioB64 = await FileSystem.readAsStringAsync(params.audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const audioBytes = decodeBase64(audioB64);
-      const { encrypted, audioKey, audioNonce } = encryptAudioBytes(audioBytes);
-      encTempPath = `${FileSystem.cacheDirectory}enc_${Date.now()}.bin`;
-      await FileSystem.writeAsStringAsync(encTempPath, encodeBase64(encrypted), {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      uploadUri = encTempPath;
-      contentType = 'application/octet-stream';
-      const sharedKey = computeSharedKey(theirPK, mySK);
-      const sealed = sealAudioKey(audioKey, audioNonce, sharedKey);
-      audioE2EFields = {
-        ...sealed,
-        spk: encodeBase64(myKP.publicKey),
-        rpk: encodeBase64(theirPK),
-        audioEncrypted: true,
-      };
-    } catch (err) {
-      // Fallback silenzioso: upload senza E2E se qualcosa va storto
-      uploadUri = params.audioUri;
-      contentType = 'audio/mp4';
-      audioE2EFields = {};
-      encTempPath = null;
-      console.warn('[E2E] audio encrypt fallback:', err);
-    }
-  }
+  const myKP = nacl.box.keyPair.fromSecretKey(mySK);
+  const audioB64 = await FileSystem.readAsStringAsync(params.audioUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const audioBytes = decodeBase64(audioB64);
+  const { encrypted, audioKey, audioNonce } = encryptAudioBytes(audioBytes);
+  encTempPath = `${FileSystem.cacheDirectory}enc_${Date.now()}.bin`;
+  await FileSystem.writeAsStringAsync(encTempPath, encodeBase64(encrypted), {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  uploadUri = encTempPath;
+  contentType = 'application/octet-stream';
+  const sharedKey = computeSharedKey(theirPK, mySK);
+  const sealed = sealAudioKey(audioKey, audioNonce, sharedKey);
+  audioE2EFields = {
+    ...sealed,
+    spk: encodeBase64(myKP.publicKey),
+    rpk: encodeBase64(theirPK),
+    audioEncrypted: true,
+    e2eVersion: 1,
+  };
 
   // Ensure conversations document exists with participants field before the
   // Storage upload — the security rule does a firestore.get() on it.
@@ -270,14 +265,14 @@ export async function inviaTestoMessaggio(params: {
     getRecipientPublicKey(params.receiverId),
   ]);
 
-  if (mySK && theirPK) {
-    const myKP = nacl.box.keyPair.fromSecretKey(mySK);
-    const e2e = encryptForConversation(params.text, mySK, theirPK, myKP.publicKey);
-    Object.assign(baseFields, e2e);
-    previewText = '🔒 Messaggio cifrato';
-  } else {
-    baseFields.text = params.text;
+  if (!mySK || !theirPK) {
+    throw new Error('E2E non disponibile. Riprova tra pochi secondi.');
   }
+
+  const myKP = nacl.box.keyPair.fromSecretKey(mySK);
+  const e2e = encryptForConversation(params.text, mySK, theirPK, myKP.publicKey);
+  Object.assign(baseFields, { ...e2e, e2eVersion: 1 });
+  previewText = '🔒 Messaggio cifrato';
 
   await addDoc(collection(db, 'messaggi'), baseFields);
   await _updateConversation(cId, user.uid, params.receiverId, params.receiverName, params.receiverAvatar, {

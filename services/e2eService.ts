@@ -47,7 +47,9 @@ export async function getRecipientPublicKey(userId: string): Promise<Uint8Array 
   const snap = await getDoc(doc(db, 'users', userId));
   const pk = snap.data()?.publicKey;
   if (!pk) return null;
-  return decodeBase64(pk);
+  const decoded = decodeBase64(pk);
+  if (decoded.length !== 32) return null;
+  return decoded;
 }
 
 /**
