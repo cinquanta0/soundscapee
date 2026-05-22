@@ -23,11 +23,11 @@ const SCHOOL_EMAIL_DOMAINS = (process.env.SCHOOL_EMAIL_DOMAINS || '')
   .split(',')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
-const SCHOOL_BOOTSTRAP_ADMINS = (process.env.SCHOOL_BOOTSTRAP_ADMINS || 'rosangelacalasso60@gmail.com')
+const SCHOOL_BOOTSTRAP_ADMINS = (process.env.SCHOOL_BOOTSTRAP_ADMINS || '')
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
-const SCHOOL_TEST_VERIFIED_UIDS = (process.env.SCHOOL_TEST_VERIFIED_UIDS || 'VmvV8LOPsdZkYhVnIpDyRWcT1Uy2,VnvWlWBUadXoVqcLCqzN42AuGhX2')
+const SCHOOL_TEST_VERIFIED_UIDS = (process.env.SCHOOL_TEST_VERIFIED_UIDS || '')
   .split(',')
   .map((u) => u.trim())
   .filter(Boolean);
