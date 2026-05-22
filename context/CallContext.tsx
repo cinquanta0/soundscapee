@@ -169,6 +169,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
   }, []);
 
+  // Request mic permission early so it's granted before the first call attempt.
+  // This avoids a race where _doAccept writes 'declined' because permission dialog
+  // is shown while the app isn't fully active (e.g. after a fresh install).
+  useEffect(() => {
+    Audio.requestPermissionsAsync().catch(() => {});
+  }, []);
+
   // Keep Firebase ID token fresh in SharedPreferences so IncomingCallService
   // can call the Firestore REST API to decline a call even when the bridge is dead.
   // onIdTokenChanged fires on sign-in and whenever Firebase refreshes the token (~1h).
@@ -291,11 +298,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ck.addEventListener('didPerformSetMutedCallAction', onMuteCall);
 
     ck.getInitialEvents().then((initials: any[]) => {
+      const answeredUUIDs = new Set<string>();
       for (const evt of initials) {
         if (evt.name === 'RNCallKeepAnswerCall') {
-          pendingAcceptUUIDRef.current = evt.data?.callUUID ?? null;
-        } else if (evt.name === 'RNCallKeepEndCall') {
-          updateCallStatus(evt.data?.callUUID, 'declined').catch(() => {});
+          const uuid = evt.data?.callUUID ?? '';
+          if (uuid) answeredUUIDs.add(uuid);
+          pendingAcceptUUIDRef.current = uuid || null;
+        }
+      }
+      for (const evt of initials) {
+        if (evt.name === 'RNCallKeepEndCall') {
+          const uuid = evt.data?.callUUID;
+          if (uuid && !answeredUUIDs.has(uuid)) {
+            updateCallStatus(uuid, 'declined').catch(() => {});
+          }
         }
       }
       ck.clearInitialEvents();
@@ -370,7 +386,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             setCall(null);
           }
           // Caller cancelled/missed before we answered — dismiss incoming screen
-          if (phaseRef.current === 'incoming') {
+          if (phaseRef.current === 'incoming' && !acceptingCallRef.current) {
             _stopRinging();
             if (callkeepIncomingVisibleRef.current) {
               ck.rejectCall(incomingCallRef.current?.id ?? '');
