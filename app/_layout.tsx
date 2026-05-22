@@ -6,7 +6,7 @@ import * as Updates from 'expo-updates';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Linking, PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
@@ -18,6 +18,54 @@ import CallScreen from '../screens/CallScreen';
 function RejoinBanner() {
   const { canRejoin, rejoinableCall, phase, rejoinGroupCall } = useCall();
   const insets = useSafeAreaInsets();
+  const insetsRef = useRef(insets);
+  useEffect(() => { insetsRef.current = insets; }, [insets]);
+
+  const posRef = useRef<{ x: number; y: number } | null>(null);
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const rejoinRef = useRef(rejoinGroupCall);
+  useEffect(() => { rejoinRef.current = rejoinGroupCall; }, [rejoinGroupCall]);
+
+  useEffect(() => {
+    if (canRejoin && posRef.current === null) {
+      const init = { x: 12, y: insetsRef.current.top + 4 };
+      posRef.current = init;
+      pan.setValue(init);
+    }
+    if (!canRejoin) posRef.current = null;
+  }, [canRejoin]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
+      onPanResponderGrant: () => {
+        dragStartRef.current = posRef.current ?? { x: 12, y: 60 };
+      },
+      onPanResponderMove: (_, gs) => {
+        pan.setValue({
+          x: dragStartRef.current.x + gs.dx,
+          y: dragStartRef.current.y + gs.dy,
+        });
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (Math.abs(gs.dx) < 8 && Math.abs(gs.dy) < 8) {
+          rejoinRef.current();
+          return;
+        }
+        const { width, height } = Dimensions.get('window');
+        const cur = insetsRef.current;
+        const rawX = dragStartRef.current.x + gs.dx;
+        const rawY = dragStartRef.current.y + gs.dy;
+        const newX = Math.max(8, Math.min(rawX, width - 216));
+        const newY = Math.max(cur.top + 4, Math.min(rawY, height - cur.bottom - 54));
+        const newPos = { x: newX, y: newY };
+        posRef.current = newPos;
+        Animated.spring(pan, { toValue: newPos, useNativeDriver: false, bounciness: 4 }).start();
+      },
+    })
+  ).current;
 
   if (!canRejoin || !rejoinableCall || phase !== null) return null;
 
@@ -28,59 +76,49 @@ function RejoinBanner() {
     : (rejoinableCall.callerId === myUid ? rejoinableCall.calleeName : rejoinableCall.callerName);
 
   return (
-    <TouchableOpacity
-      style={[rb.banner, { top: insets.top + 4 }]}
-      onPress={() => rejoinGroupCall()}
-      activeOpacity={0.85}
+    <Animated.View
+      style={[rb.pill, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]}
+      {...panResponder.panHandlers}
     >
       <View style={rb.dot} />
-      <View style={rb.textWrap}>
-        <Text style={rb.title} numberOfLines={1}>{name}</Text>
-        <Text style={rb.sub}>Chiamata in corso — Tocca per rientrare</Text>
-      </View>
-      <Feather name="phone" size={18} color="#00FF9C" />
-    </TouchableOpacity>
+      <Text style={rb.name} numberOfLines={1}>{name}</Text>
+      <Feather name="phone" size={14} color="#00FF9C" />
+    </Animated.View>
   );
 }
 
 const rb = StyleSheet.create({
-  banner: {
+  pill: {
     position: 'absolute',
-    left: 12,
-    right: 12,
+    top: 0,
+    left: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 30,
     backgroundColor: 'rgba(13,18,33,0.97)',
     borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
+    borderColor: 'rgba(0,255,156,0.35)',
     zIndex: 9999,
     elevation: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    gap: 12,
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: '#00FF9C',
   },
-  textWrap: { flex: 1 },
-  title: {
+  name: {
     color: '#F7F8FF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  sub: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
-    marginTop: 1,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontSize: 13,
+    fontWeight: '600',
+    maxWidth: 140,
   },
 });
 

@@ -268,7 +268,7 @@ export default function CallScreen() {
     inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
-  const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string } | null>(null);
+  const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string; status: string } | null>(null);
   const [liveStatuses, setLiveStatuses] = useState<Record<string, string> | null>(null);
   const prevStatusesRef = useRef<Record<string, string>>({});
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -282,7 +282,7 @@ export default function CallScreen() {
       const prev = prevStatusesRef.current[uid];
       if (uid !== myUid && (status === 'declined' || status === 'missed') && prev && prev !== status) {
         const name = profiles[uid]?.name ?? 'Utente';
-        setDeclinedBanner({ name, uid });
+        setDeclinedBanner({ name, uid, status });
         if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
         bannerTimerRef.current = setTimeout(() => setDeclinedBanner(null), 4000);
       }
@@ -425,7 +425,9 @@ export default function CallScreen() {
               {declinedBanner && (
                 <View style={s.declinedBanner}>
                   <Feather name="phone-missed" size={14} color="#FF5C79" />
-                  <Text style={s.declinedBannerText}>{declinedBanner.name} ha rifiutato</Text>
+                  <Text style={s.declinedBannerText}>
+                  {declinedBanner.name} {declinedBanner.status === 'missed' ? 'non ha risposto' : 'ha rifiutato'}
+                </Text>
                 </View>
               )}
               <ParticipantList

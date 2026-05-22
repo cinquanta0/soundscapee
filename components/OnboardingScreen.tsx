@@ -32,9 +32,21 @@ export default function OnboardingScreen({ onComplete }: Props) {
       color: '#00FF9C',
     },
     {
-      icon: '🗺️',
+      icon: '📞',
       title: t('onboarding.slide3_title'),
       subtitle: t('onboarding.slide3_subtitle'),
+      color: '#67E8F9',
+    },
+    {
+      icon: '⚔️',
+      title: t('onboarding.slide4_title'),
+      subtitle: t('onboarding.slide4_subtitle'),
+      color: '#8B5CF6',
+    },
+    {
+      icon: '🗺️',
+      title: t('onboarding.slide5_title'),
+      subtitle: t('onboarding.slide5_subtitle'),
       color: '#8B5CF6',
     },
   ];

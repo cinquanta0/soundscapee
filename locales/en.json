@@ -464,17 +464,6 @@
     "formatNotSupported": "Format not supported",
     "formatIosMsg": "This audio is not compatible with iOS."
   },
-  "onboarding": {
-    "slide1Title": "MIUSLYK — The World Sounds",
-    "slide1Subtitle": "The social network of real-world sounds",
-    "slide2Title": "Capture live sounds",
-    "slide2Subtitle": "Record what you hear around you and share it with the community",
-    "slide3Title": "Explore the sound world",
-    "slide3Subtitle": "Listen to sounds from people all over the world on the map",
-    "skip": "Skip",
-    "next": "Next →",
-    "start": "Start 🎵"
-  },
   "language": {
     "title": "Language",
     "select": "Select language",
@@ -854,11 +843,15 @@
     "slide1_subtitle": "The social network for real-world sounds",
     "slide2_title": "Capture sounds live",
     "slide2_subtitle": "Record what you hear around you and share it with the community",
-    "slide3_title": "Explore the sound world",
-    "slide3_subtitle": "Listen to sounds from people all over the world on the map",
     "skip": "Skip",
     "next": "Next →",
-    "start": "Start 🎵"
+    "start": "Start 🎵",
+    "slide5_title": "Explore the sound world",
+    "slide5_subtitle": "Sounds on the map, live radio, communities and much more are waiting for you.",
+    "slide3_title": "Call your friends",
+    "slide3_subtitle": "1:1 and group audio calls with crystal clear quality. Invite anyone mid-call.",
+    "slide4_title": "Sound Battle & Challenges",
+    "slide4_subtitle": "Challenge other creators to a music battle, join challenges and climb the leaderboard."
   },
   "feed": {
     "onAir": "ON AIR",
@@ -1044,31 +1037,79 @@
   "tutorial": {
     "sound": {
       "label": "Post a sound",
-      "step1": { "title": "Record", "body": "Hold the big button\nto capture up to 30 seconds\nof audio" },
-      "step2": { "title": "Title & Mood", "body": "Give the sound a name\nand choose the mood that\nbest describes it" },
-      "step3": { "title": "Location", "body": "The sound is geo-tagged\nand appears on the world map\nin real time" },
-      "step4": { "title": "In the feed", "body": "All users near you\ncan listen to it\nin their feed" }
+      "step1": {
+        "title": "Record",
+        "body": "Hold the big button\nto capture up to 30 seconds\nof audio"
+      },
+      "step2": {
+        "title": "Title & Mood",
+        "body": "Give the sound a name\nand choose the mood that\nbest describes it"
+      },
+      "step3": {
+        "title": "Location",
+        "body": "The sound is geo-tagged\nand appears on the world map\nin real time"
+      },
+      "step4": {
+        "title": "In the feed",
+        "body": "All users near you\ncan listen to it\nin their feed"
+      }
     },
     "map": {
       "label": "Use the map",
-      "step1": { "title": "World map", "body": "Every dot on the map\nis a real sound recorded\nin that location" },
-      "step2": { "title": "Tap the dots", "body": "Tap any dot\nto listen to the sound\nof that place" },
-      "step3": { "title": "Explore", "body": "Zoom in and out to discover\nhidden sounds in\ncities around the world" },
-      "step4": { "title": "You're on the map", "body": "Your sounds appear\nautomatically at your\ncurrent location" }
+      "step1": {
+        "title": "World map",
+        "body": "Every dot on the map\nis a real sound recorded\nin that location"
+      },
+      "step2": {
+        "title": "Tap the dots",
+        "body": "Tap any dot\nto listen to the sound\nof that place"
+      },
+      "step3": {
+        "title": "Explore",
+        "body": "Zoom in and out to discover\nhidden sounds in\ncities around the world"
+      },
+      "step4": {
+        "title": "You're on the map",
+        "body": "Your sounds appear\nautomatically at your\ncurrent location"
+      }
     },
     "challenges": {
       "label": "Challenges",
-      "step1": { "title": "Weekly challenges", "body": "Every week a new\naudio challenge with a different\ntheme for everyone" },
-      "step2": { "title": "Participate", "body": "Record a sound that responds\nto the challenge and\nsubmit it" },
-      "step3": { "title": "Vote", "body": "Like the sounds\nof other participants\nto help them win" },
-      "step4": { "title": "Win", "body": "The sounds with the most likes\nwin the week's\nchallenge" }
+      "step1": {
+        "title": "Weekly challenges",
+        "body": "Every week a new\naudio challenge with a different\ntheme for everyone"
+      },
+      "step2": {
+        "title": "Participate",
+        "body": "Record a sound that responds\nto the challenge and\nsubmit it"
+      },
+      "step3": {
+        "title": "Vote",
+        "body": "Like the sounds\nof other participants\nto help them win"
+      },
+      "step4": {
+        "title": "Win",
+        "body": "The sounds with the most likes\nwin the week's\nchallenge"
+      }
     },
     "communities": {
       "label": "Community",
-      "step1": { "title": "Community", "body": "Groups of people united\nby common sound\ninterests" },
-      "step2": { "title": "Join", "body": "Join the communities\nthat reflect\nyour tastes" },
-      "step3": { "title": "Share", "body": "Post sounds\ndirectly in the\ncommunity" },
-      "step4": { "title": "Updates", "body": "Get notifications from\nnew sounds in the\ncommunity" }
+      "step1": {
+        "title": "Community",
+        "body": "Groups of people united\nby common sound\ninterests"
+      },
+      "step2": {
+        "title": "Join",
+        "body": "Join the communities\nthat reflect\nyour tastes"
+      },
+      "step3": {
+        "title": "Share",
+        "body": "Post sounds\ndirectly in the\ncommunity"
+      },
+      "step4": {
+        "title": "Updates",
+        "body": "Get notifications from\nnew sounds in the\ncommunity"
+      }
     }
   }
 }

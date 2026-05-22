@@ -1787,3 +1787,68 @@ exports.onGroupCallInviteUpdated = onDocumentUpdated(
     }));
   },
 );
+
+// ── Finalizza battles scadute ─────────────────────────────────────────────────
+// Ogni 10 minuti controlla le battles in stato 'voting' con votingEndsAt nel passato
+// e dichiara il vincitore. Risolve il problema per cui finalizeBattle veniva chiamata
+// solo lato client (solo se qualcuno aveva la schermata aperta).
+exports.finalizeStaleBattles = onSchedule(
+  { schedule: 'every 10 minutes', region: 'europe-west1' },
+  async () => {
+    const db = admin.firestore();
+    const now = admin.firestore.Timestamp.now();
+    const snap = await db.collection('battles')
+      .where('status', '==', 'voting')
+      .where('votingEndsAt', '<=', now)
+      .get();
+    if (snap.empty) return;
+    await Promise.all(snap.docs.map(async (battleDoc) => {
+      const d = battleDoc.data();
+      if (d.winnerId !== undefined) return;
+      const winnerId = (d.challengerVotes >= d.opponentVotes)
+        ? d.challengerId
+        : d.opponentId;
+      const loserId = winnerId === d.challengerId ? d.opponentId : d.challengerId;
+      const winnerName = winnerId === d.challengerId ? d.challengerName : d.opponentName;
+      const loserName = loserId === d.challengerId ? d.challengerName : d.opponentName;
+      await battleDoc.ref.update({ status: 'done', winnerId });
+      await Promise.all([
+        db.collection('users').doc(winnerId).update({
+          battleWins: admin.firestore.FieldValue.increment(1),
+        }).catch(() => {}),
+        sendNotificationToUser(db, winnerId, {
+          title: '🏆 Hai vinto la battle!',
+          body: `Hai battuto ${loserName} — tema: ${d.theme}`,
+          data: { type: 'battle_result', battleId: battleDoc.id, result: 'won' },
+        }),
+        sendNotificationToUser(db, loserId, {
+          title: '😔 Battle conclusa',
+          body: `${winnerName} ha vinto — tema: ${d.theme}. Riprova!`,
+          data: { type: 'battle_result', battleId: battleDoc.id, result: 'lost' },
+        }),
+      ]);
+    }));
+  },
+);
+
+// ── Notifica: qualcuno ha partecipato alla tua challenge ──────────────────────
+exports.onSoundJoinedChallenge = onDocumentUpdated(
+  { document: 'sounds/{soundId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    // Scatta solo quando challengeId viene impostato per la prima volta
+    if (!after.challengeId || before.challengeId) return;
+    const db = admin.firestore();
+    const challengeSnap = await db.collection('challenges').doc(after.challengeId).get();
+    if (!challengeSnap.exists) return;
+    const challenge = challengeSnap.data();
+    // Non notificare se è il creatore stesso che partecipa
+    if (after.userId === challenge.createdBy) return;
+    await sendNotificationToUser(db, challenge.createdBy, {
+      title: '🎵 Nuovo partecipante alla tua sfida!',
+      body: `${after.username || 'Un utente'} ha inviato un sound per "${challenge.title}"`,
+      data: { type: 'challenge_participation', challengeId: after.challengeId },
+    });
+  },
+);

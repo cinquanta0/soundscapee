@@ -464,17 +464,6 @@
     "formatNotSupported": "Formato não suportado",
     "formatIosMsg": "Este áudio não é compatível com iOS."
   },
-  "onboarding": {
-    "slide1Title": "MIUSLYK — O Mundo Soa",
-    "slide1Subtitle": "A rede social dos sons do mundo real",
-    "slide2Title": "Capture sons ao vivo",
-    "slide2Subtitle": "Grave o que você ouve ao seu redor e compartilhe com a comunidade",
-    "slide3Title": "Explore o mundo sonoro",
-    "slide3Subtitle": "Ouça sons de pessoas de todo o mundo no mapa",
-    "skip": "Pular",
-    "next": "Próximo →",
-    "start": "Começar 🎵"
-  },
   "language": {
     "title": "Idioma",
     "select": "Selecionar idioma",
@@ -854,11 +843,15 @@
     "slide1_subtitle": "A rede social dos sons do mundo real",
     "slide2_title": "Capture sons ao vivo",
     "slide2_subtitle": "Grave o que ouve ao seu redor e compartilhe com a comunidade",
-    "slide3_title": "Explore o mundo sonoro",
-    "slide3_subtitle": "Ouça os sons de pessoas de todo o mundo no mapa",
     "skip": "Pular",
     "next": "Próximo →",
-    "start": "Começar 🎵"
+    "start": "Começar 🎵",
+    "slide5_title": "Explore o mundo sonoro",
+    "slide5_subtitle": "Sons no mapa, rádio ao vivo, comunidades e muito mais esperam por você.",
+    "slide3_title": "Ligue para seus amigos",
+    "slide3_subtitle": "Chamadas de áudio 1:1 e em grupo com qualidade cristalina. Convide alguém durante a chamada.",
+    "slide4_title": "Sound Battle e Desafios",
+    "slide4_subtitle": "Desafie outros criadores em batalha musical, participe de desafios e suba no ranking."
   },
   "feed": {
     "onAir": "NO AR",
@@ -1044,31 +1037,79 @@
   "tutorial": {
     "sound": {
       "label": "Publicar um som",
-      "step1": { "title": "Grava", "body": "Segure o botão grande\npara capturar até 30 segundos\nde áudio" },
-      "step2": { "title": "Título & Mood", "body": "Dê um nome ao som\ne escolha o mood que\nmelhor o descreve" },
-      "step3": { "title": "Localização", "body": "O som é geo-taggeado\ne aparece no mapa mundial\nem tempo real" },
-      "step4": { "title": "No feed", "body": "Todos os utilizadores perto de ti\npodem ouvi-lo\nno seu feed" }
+      "step1": {
+        "title": "Grava",
+        "body": "Segure o botão grande\npara capturar até 30 segundos\nde áudio"
+      },
+      "step2": {
+        "title": "Título & Mood",
+        "body": "Dê um nome ao som\ne escolha o mood que\nmelhor o descreve"
+      },
+      "step3": {
+        "title": "Localização",
+        "body": "O som é geo-taggeado\ne aparece no mapa mundial\nem tempo real"
+      },
+      "step4": {
+        "title": "No feed",
+        "body": "Todos os utilizadores perto de ti\npodem ouvi-lo\nno seu feed"
+      }
     },
     "map": {
       "label": "Usa o mapa",
-      "step1": { "title": "Mapa mundial", "body": "Cada ponto no mapa\né um som real gravado\nnesse local" },
-      "step2": { "title": "Toca nos pontos", "body": "Toca em qualquer ponto\npara ouvir o som\ndesse lugar" },
-      "step3": { "title": "Explora", "body": "Faz zoom in e out para descobrir\nsons escondidos nas\ncidades de todo o mundo" },
-      "step4": { "title": "Estás no mapa", "body": "Os teus sons aparecem\nautomaticamente na\ntua posição atual" }
+      "step1": {
+        "title": "Mapa mundial",
+        "body": "Cada ponto no mapa\né um som real gravado\nnesse local"
+      },
+      "step2": {
+        "title": "Toca nos pontos",
+        "body": "Toca em qualquer ponto\npara ouvir o som\ndesse lugar"
+      },
+      "step3": {
+        "title": "Explora",
+        "body": "Faz zoom in e out para descobrir\nsons escondidos nas\ncidades de todo o mundo"
+      },
+      "step4": {
+        "title": "Estás no mapa",
+        "body": "Os teus sons aparecem\nautomaticamente na\ntua posição atual"
+      }
     },
     "challenges": {
       "label": "Os desafios",
-      "step1": { "title": "Desafios semanais", "body": "Cada semana um novo\ndesafio sonoro com tema\ndiferente para todos" },
-      "step2": { "title": "Participa", "body": "Grava um som que responda\nao desafio e\nsubmete-o" },
-      "step3": { "title": "Vota", "body": "Curte os sons\ndos outros participantes\npara os ajudar a ganhar" },
-      "step4": { "title": "Ganha", "body": "Os sons com mais likes\nvencem o desafio\nda semana" }
+      "step1": {
+        "title": "Desafios semanais",
+        "body": "Cada semana um novo\ndesafio sonoro com tema\ndiferente para todos"
+      },
+      "step2": {
+        "title": "Participa",
+        "body": "Grava um som que responda\nao desafio e\nsubmete-o"
+      },
+      "step3": {
+        "title": "Vota",
+        "body": "Curte os sons\ndos outros participantes\npara os ajudar a ganhar"
+      },
+      "step4": {
+        "title": "Ganha",
+        "body": "Os sons com mais likes\nvencem o desafio\nda semana"
+      }
     },
     "communities": {
       "label": "Comunidade",
-      "step1": { "title": "Comunidade", "body": "Grupos de pessoas unidas\npor interesses sonoros\ncomuns" },
-      "step2": { "title": "Junta-te", "body": "Entra nas comunidades\nque refletem\nos teus gostos" },
-      "step3": { "title": "Partilha", "body": "Publica sons\ndiretamente na\ncomunidade" },
-      "step4": { "title": "Atualizações", "body": "Recebe notificações dos\nnew sounds na\ncomunidade" }
+      "step1": {
+        "title": "Comunidade",
+        "body": "Grupos de pessoas unidas\npor interesses sonoros\ncomuns"
+      },
+      "step2": {
+        "title": "Junta-te",
+        "body": "Entra nas comunidades\nque refletem\nos teus gostos"
+      },
+      "step3": {
+        "title": "Partilha",
+        "body": "Publica sons\ndiretamente na\ncomunidade"
+      },
+      "step4": {
+        "title": "Atualizações",
+        "body": "Recebe notificações dos\nnew sounds na\ncomunidade"
+      }
     }
   }
 }

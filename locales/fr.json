@@ -464,17 +464,6 @@
     "formatNotSupported": "Format non pris en charge",
     "formatIosMsg": "Cet audio n'est pas compatible avec iOS."
   },
-  "onboarding": {
-    "slide1Title": "MIUSLYK — Le Monde Sonne",
-    "slide1Subtitle": "Le réseau social des sons du monde réel",
-    "slide2Title": "Capturez des sons en direct",
-    "slide2Subtitle": "Enregistrez ce que vous entendez autour de vous et partagez-le avec la communauté",
-    "slide3Title": "Explorez le monde sonore",
-    "slide3Subtitle": "Écoutez les sons de personnes du monde entier sur la carte",
-    "skip": "Ignorer",
-    "next": "Suivant →",
-    "start": "Commencer 🎵"
-  },
   "language": {
     "title": "Langue",
     "select": "Sélectionner la langue",
@@ -854,11 +843,15 @@
     "slide1_subtitle": "Le réseau social des sons du monde réel",
     "slide2_title": "Capturez des sons en direct",
     "slide2_subtitle": "Enregistrez ce que vous entendez autour de vous et partagez-le avec la communauté",
-    "slide3_title": "Explorez le monde sonore",
-    "slide3_subtitle": "Écoutez les sons de personnes du monde entier sur la carte",
     "skip": "Passer",
     "next": "Suivant →",
-    "start": "Commencer 🎵"
+    "start": "Commencer 🎵",
+    "slide5_title": "Explorez le monde sonore",
+    "slide5_subtitle": "Sons sur la carte, radio en direct, communautés et bien plus vous attendent.",
+    "slide3_title": "Appelez vos amis",
+    "slide3_subtitle": "Appels audio 1:1 et de groupe en qualité cristalline. Invitez quelqu'un en plein appel.",
+    "slide4_title": "Sound Battle et Défis",
+    "slide4_subtitle": "Défiez d'autres créateurs en bataille musicale, participez aux défis et montez dans le classement."
   },
   "feed": {
     "onAir": "EN DIRECT",
@@ -1044,31 +1037,79 @@
   "tutorial": {
     "sound": {
       "label": "Publier un son",
-      "step1": { "title": "Enregistre", "body": "Maintenez le grand bouton\npour capturer jusqu'à 30 secondes\nd'audio" },
-      "step2": { "title": "Titre & Mood", "body": "Donnez un nom au son\net choisissez le mood qui\nle décrit le mieux" },
-      "step3": { "title": "Position", "body": "Le son est géolocalisé\net apparaît sur la carte mondiale\nen temps réel" },
-      "step4": { "title": "Dans le feed", "body": "Tous les utilisateurs proches\npeuvent l'écouter\ndans leur fil" }
+      "step1": {
+        "title": "Enregistre",
+        "body": "Maintenez le grand bouton\npour capturer jusqu'à 30 secondes\nd'audio"
+      },
+      "step2": {
+        "title": "Titre & Mood",
+        "body": "Donnez un nom au son\net choisissez le mood qui\nle décrit le mieux"
+      },
+      "step3": {
+        "title": "Position",
+        "body": "Le son est géolocalisé\net apparaît sur la carte mondiale\nen temps réel"
+      },
+      "step4": {
+        "title": "Dans le feed",
+        "body": "Tous les utilisateurs proches\npeuvent l'écouter\ndans leur fil"
+      }
     },
     "map": {
       "label": "Utilise la carte",
-      "step1": { "title": "Carte mondiale", "body": "Chaque point sur la carte\nest un son réel enregistré\nà cet endroit" },
-      "step2": { "title": "Appuie sur les points", "body": "Appuyez sur n'importe quel point\npour écouter le son\nde cet endroit" },
-      "step3": { "title": "Explore", "body": "Zoomez pour découvrir\ndes sons cachés dans\nles villes du monde entier" },
-      "step4": { "title": "Tu es sur la carte", "body": "Vos sons apparaissent\nautomatiquement à votre\nposition actuelle" }
+      "step1": {
+        "title": "Carte mondiale",
+        "body": "Chaque point sur la carte\nest un son réel enregistré\nà cet endroit"
+      },
+      "step2": {
+        "title": "Appuie sur les points",
+        "body": "Appuyez sur n'importe quel point\npour écouter le son\nde cet endroit"
+      },
+      "step3": {
+        "title": "Explore",
+        "body": "Zoomez pour découvrir\ndes sons cachés dans\nles villes du monde entier"
+      },
+      "step4": {
+        "title": "Tu es sur la carte",
+        "body": "Vos sons apparaissent\nautomatiquement à votre\nposition actuelle"
+      }
     },
     "challenges": {
       "label": "Les défis",
-      "step1": { "title": "Défis hebdomadaires", "body": "Chaque semaine un nouveau\ndéfi sonore avec un thème\ndifférent pour tous" },
-      "step2": { "title": "Participe", "body": "Enregistre un son qui répond\nau défi et\nsoumets-le" },
-      "step3": { "title": "Vote", "body": "Aimez les sons\ndes autres participants\npour les aider à gagner" },
-      "step4": { "title": "Gagne", "body": "Les sons avec le plus de likes\ngagnent le défi\nde la semaine" }
+      "step1": {
+        "title": "Défis hebdomadaires",
+        "body": "Chaque semaine un nouveau\ndéfi sonore avec un thème\ndifférent pour tous"
+      },
+      "step2": {
+        "title": "Participe",
+        "body": "Enregistre un son qui répond\nau défi et\nsoumets-le"
+      },
+      "step3": {
+        "title": "Vote",
+        "body": "Aimez les sons\ndes autres participants\npour les aider à gagner"
+      },
+      "step4": {
+        "title": "Gagne",
+        "body": "Les sons avec le plus de likes\ngagnent le défi\nde la semaine"
+      }
     },
     "communities": {
       "label": "Communauté",
-      "step1": { "title": "Communauté", "body": "Groupes de personnes unies\npar des intérêts sonores\ncommuns" },
-      "step2": { "title": "Rejoins", "body": "Rejoins les communautés\nqui correspondent\nà tes goûts" },
-      "step3": { "title": "Partage", "body": "Publie des sons\ndirectement dans la\ncommunauté" },
-      "step4": { "title": "Mises à jour", "body": "Reçois des notifications des\nnouveaux sons de\nla communauté" }
+      "step1": {
+        "title": "Communauté",
+        "body": "Groupes de personnes unies\npar des intérêts sonores\ncommuns"
+      },
+      "step2": {
+        "title": "Rejoins",
+        "body": "Rejoins les communautés\nqui correspondent\nà tes goûts"
+      },
+      "step3": {
+        "title": "Partage",
+        "body": "Publie des sons\ndirectement dans la\ncommunauté"
+      },
+      "step4": {
+        "title": "Mises à jour",
+        "body": "Reçois des notifications des\nnouveaux sons de\nla communauté"
+      }
     }
   }
 }

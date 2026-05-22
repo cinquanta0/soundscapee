@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { auth } from '../firebaseConfig';
 import {
   Battle, listenToBattle, acceptBattle, rejectBattle, cancelBattle,
-  startChallengerRec, uploadBattleTrack, voteBattle, getMyVote, finalizeBattle,
+  startChallengerRec, uploadBattleTrack, voteBattle, getMyVote,
   reconcileBattleCounters,
 } from '../services/battleService';
 
@@ -182,9 +182,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           (b.status === 'opponent_rec' && !iAmChallenger)) {
         if (!recRef.current) startRecording();
       }
-      if (b.status === 'voting' && b.votingEndsAt && b.votingEndsAt < new Date() && b.winnerId === undefined) {
-        await finalizeBattle(battleId).catch(() => {});
-      }
+      // La finalizzazione è gestita server-side da finalizeStaleBattles (Cloud Function).
     });
     let cancelled = false;
     setMyVote(null);

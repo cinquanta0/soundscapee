@@ -22,8 +22,9 @@ import {
   joinChallenge,
   voteForChallengeSound,
   incrementListens,
-  createChallenge, // 🆕 AGGIUNGI QUESTO
+  createChallenge,
   deleteChallenge,
+  getUserSounds,
 } from '../../services/firebaseService';
 
 export default function ChallengesScreen() {
@@ -38,13 +39,19 @@ export default function ChallengesScreen() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
-  // 🆕 STATI PER CREARE CHALLENGE
+  // Stati per creare challenge
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
   const [newChallengeDescription, setNewChallengeDescription] = useState('');
   const [newChallengeEmoji, setNewChallengeEmoji] = useState('🎵');
-  const [newChallengeDuration, setNewChallengeDuration] = useState('7'); // giorni
+  const [newChallengeDuration, setNewChallengeDuration] = useState('7');
   const [creating, setCreating] = useState(false);
+
+  // Stati per selezionare il sound da inviare alla challenge
+  const [showSoundPickerModal, setShowSoundPickerModal] = useState(false);
+  const [userSounds, setUserSounds] = useState<any[]>([]);
+  const [loadingUserSounds, setLoadingUserSounds] = useState(false);
+  const [submittingChallenge, setSubmittingChallenge] = useState(false);
 
   useEffect(() => {
     loadChallenges();
@@ -161,6 +168,37 @@ export default function ChallengesScreen() {
       Alert.alert(t('common.error'), t('challenges.errors.cannotLoadSounds'));
     } finally {
       setLoadingSounds(false);
+    }
+  };
+
+  const handleParticipate = async () => {
+    if (!uid) return;
+    setLoadingUserSounds(true);
+    setShowSoundPickerModal(true);
+    try {
+      const sounds = await getUserSounds(uid);
+      setUserSounds(sounds.filter((s: any) => !s.challengeId));
+    } catch {
+      Alert.alert(t('common.error'), 'Impossibile caricare i tuoi sound.');
+      setShowSoundPickerModal(false);
+    } finally {
+      setLoadingUserSounds(false);
+    }
+  };
+
+  const handleSubmitSound = async (soundId: string) => {
+    if (!selectedChallenge || submittingChallenge) return;
+    setSubmittingChallenge(true);
+    try {
+      await joinChallenge(selectedChallenge.id, soundId);
+      setShowSoundPickerModal(false);
+      const updated = await getChallengeSounds(selectedChallenge.id);
+      setChallengeSounds(updated);
+      Alert.alert('🎵', 'Sound inviato alla sfida!');
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.message || 'Errore durante la partecipazione.');
+    } finally {
+      setSubmittingChallenge(false);
     }
   };
 
@@ -431,6 +469,69 @@ export default function ChallengesScreen() {
         </View>
       </Modal>
 
+      {/* Modal selezione sound per partecipare */}
+      <Modal
+        visible={showSoundPickerModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowSoundPickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Scegli un sound</Text>
+              <TouchableOpacity onPress={() => setShowSoundPickerModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loadingUserSounds ? (
+              <View style={styles.loadingModal}>
+                <ActivityIndicator size="large" color={C.accent} />
+              </View>
+            ) : userSounds.length === 0 ? (
+              <View style={[styles.emptyState, { flex: 1 }]}>
+                <Text style={styles.emptyIcon}>🎤</Text>
+                <Text style={styles.emptyText}>Nessun sound disponibile</Text>
+                <Text style={styles.emptySubtext}>
+                  Registra un sound dalla home e torna qui per partecipare.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.soundsList}>
+                {userSounds.map((s: any) => (
+                  <View key={s.id} style={styles.soundItem}>
+                    <View style={styles.soundInfo}>
+                      <View style={styles.soundUser}>
+                        <Text style={styles.userAvatar}>{s.mood || '🎵'}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.soundTitle} numberOfLines={1}>{s.title || 'Sound'}</Text>
+                          <Text style={styles.username}>
+                            {s.duration ? `${Math.floor(s.duration)}s` : ''}
+                            {s.mood ? `  ·  ${s.mood}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.voteButton, submittingChallenge && { opacity: 0.5 }]}
+                        onPress={() => handleSubmitSound(s.id)}
+                        disabled={submittingChallenge}
+                      >
+                        {submittingChallenge ? (
+                          <ActivityIndicator size="small" color={C.accent} />
+                        ) : (
+                          <Text style={[styles.voteCount, { fontSize: 12 }]}>Invia</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* Challenge Details Modal (esistente) */}
       <Modal
         visible={showChallengeModal}
@@ -490,17 +591,9 @@ export default function ChallengesScreen() {
                   </View>
                 ) : (
                   <>
-                    {/* 🆕 BOTTONE PARTECIPA */}
                     <TouchableOpacity
                       style={styles.participateButton}
-                      onPress={() => {
-                        setShowChallengeModal(false);
-                        Alert.alert(
-                          t('challenges.howToParticipate'),
-                          t('challenges.howToParticipateMsg'),
-                          [{ text: t('common.ok') }]
-                        );
-                      }}
+                      onPress={handleParticipate}
                     >
                       <Text style={styles.participateButtonText}>
                         {t('challenges.participateWithSound')}

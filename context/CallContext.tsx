@@ -1211,6 +1211,27 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     } else {
       await inviteParticipantsToCall(callId, inviteeIds, inviteeProfiles);
     }
+
+    // Timeout: chi non risponde entro RING_TIMEOUT_MS viene marcato 'missed'
+    // così smette di squillare e può essere ri-invitato.
+    setTimeout(async () => {
+      const cid = callIdRef.current;
+      if (!cid) return;
+      try {
+        const snap = await getDoc(doc(db, 'calls', cid));
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const updates: Record<string, unknown> = {};
+        for (const uid of inviteeIds) {
+          if (data.participantStatuses?.[uid] === 'ringing') {
+            updates[`participantStatuses.${uid}`] = 'missed';
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(doc(db, 'calls', cid), updates);
+        }
+      } catch {}
+    }, RING_TIMEOUT_MS);
   }, []);
 
   const toggleMute = useCallback(() => {

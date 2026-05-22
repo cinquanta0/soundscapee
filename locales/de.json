@@ -464,17 +464,6 @@
     "formatNotSupported": "Format nicht unterstützt",
     "formatIosMsg": "Dieses Audio ist nicht mit iOS kompatibel."
   },
-  "onboarding": {
-    "slide1Title": "MIUSLYK — Die Welt klingt",
-    "slide1Subtitle": "Das soziale Netzwerk der Klänge der realen Welt",
-    "slide2Title": "Live-Klänge aufnehmen",
-    "slide2Subtitle": "Nehme auf, was du um dich herum hörst, und teile es mit der Community",
-    "slide3Title": "Erforsche die Klangwelt",
-    "slide3Subtitle": "Höre Klänge von Menschen aus der ganzen Welt auf der Karte",
-    "skip": "Überspringen",
-    "next": "Weiter →",
-    "start": "Starten 🎵"
-  },
   "language": {
     "title": "Sprache",
     "select": "Sprache auswählen",
@@ -854,11 +843,15 @@
     "slide1_subtitle": "Das soziale Netzwerk für Klänge aus der echten Welt",
     "slide2_title": "Klänge live aufnehmen",
     "slide2_subtitle": "Nehme auf, was du um dich herum hörst, und teile es mit der Community",
-    "slide3_title": "Die Klangwelt erkunden",
-    "slide3_subtitle": "Höre Klänge von Menschen aus aller Welt auf der Karte",
     "skip": "Überspringen",
     "next": "Weiter →",
-    "start": "Loslegen 🎵"
+    "start": "Loslegen 🎵",
+    "slide5_title": "Die Klangwelt erkunden",
+    "slide5_subtitle": "Sounds auf der Karte, Live-Radio, Communities und vieles mehr warten auf dich.",
+    "slide3_title": "Ruf deine Freunde an",
+    "slide3_subtitle": "1:1 und Gruppenanrufe in kristallklarer Qualität. Lade jeden mitten im Gespräch ein.",
+    "slide4_title": "Sound Battle & Challenges",
+    "slide4_subtitle": "Fordere andere Creator zum Musikbattle heraus, nimm an Challenges teil und erklimme die Rangliste."
   },
   "feed": {
     "onAir": "ON AIR",
@@ -1044,31 +1037,79 @@
   "tutorial": {
     "sound": {
       "label": "Sound veröffentlichen",
-      "step1": { "title": "Aufnehmen", "body": "Großen Knopf gedrückt halten\num bis zu 30 Sekunden\nAudio aufzunehmen" },
-      "step2": { "title": "Titel & Mood", "body": "Gib dem Sound einen Namen\nund wähle die passende\nStimmung" },
-      "step3": { "title": "Standort", "body": "Der Sound wird geotagt\nund erscheint in Echtzeit\nauf der Weltkarte" },
-      "step4": { "title": "Im Feed", "body": "Alle Nutzer in deiner Nähe\nkönnen es in ihrem Feed\nhören" }
+      "step1": {
+        "title": "Aufnehmen",
+        "body": "Großen Knopf gedrückt halten\num bis zu 30 Sekunden\nAudio aufzunehmen"
+      },
+      "step2": {
+        "title": "Titel & Mood",
+        "body": "Gib dem Sound einen Namen\nund wähle die passende\nStimmung"
+      },
+      "step3": {
+        "title": "Standort",
+        "body": "Der Sound wird geotagt\nund erscheint in Echtzeit\nauf der Weltkarte"
+      },
+      "step4": {
+        "title": "Im Feed",
+        "body": "Alle Nutzer in deiner Nähe\nkönnen es in ihrem Feed\nhören"
+      }
     },
     "map": {
       "label": "Karte nutzen",
-      "step1": { "title": "Weltkarte", "body": "Jeder Punkt auf der Karte\nist ein echter Sound,\nder an diesem Ort aufgenommen wurde" },
-      "step2": { "title": "Punkte antippen", "body": "Tippe auf einen beliebigen Punkt,\num den Sound dieses Ortes\nzu hören" },
-      "step3": { "title": "Erkunden", "body": "Hinein- und herauszoomen, um\nversteckte Sounds in Städten\nüberall auf der Welt zu entdecken" },
-      "step4": { "title": "Du bist auf der Karte", "body": "Deine Sounds erscheinen\nautomatisch an deinem\naktuellen Standort" }
+      "step1": {
+        "title": "Weltkarte",
+        "body": "Jeder Punkt auf der Karte\nist ein echter Sound,\nder an diesem Ort aufgenommen wurde"
+      },
+      "step2": {
+        "title": "Punkte antippen",
+        "body": "Tippe auf einen beliebigen Punkt,\num den Sound dieses Ortes\nzu hören"
+      },
+      "step3": {
+        "title": "Erkunden",
+        "body": "Hinein- und herauszoomen, um\nversteckte Sounds in Städten\nüberall auf der Welt zu entdecken"
+      },
+      "step4": {
+        "title": "Du bist auf der Karte",
+        "body": "Deine Sounds erscheinen\nautomatisch an deinem\naktuellen Standort"
+      }
     },
     "challenges": {
       "label": "Die Challenges",
-      "step1": { "title": "Wöchentliche Challenges", "body": "Jede Woche eine neue\nAudio-Challenge mit einem\nanderen Thema für alle" },
-      "step2": { "title": "Mitmachen", "body": "Nimm einen Sound auf, der\nauf die Challenge antwortet,\nund reiche ihn ein" },
-      "step3": { "title": "Abstimmen", "body": "Like die Sounds der\nanderen Teilnehmer, um\nihnen zu helfen zu gewinnen" },
-      "step4": { "title": "Gewinnen", "body": "Die Sounds mit den meisten Likes\ngewinnen die Challenge\nder Woche" }
+      "step1": {
+        "title": "Wöchentliche Challenges",
+        "body": "Jede Woche eine neue\nAudio-Challenge mit einem\nanderen Thema für alle"
+      },
+      "step2": {
+        "title": "Mitmachen",
+        "body": "Nimm einen Sound auf, der\nauf die Challenge antwortet,\nund reiche ihn ein"
+      },
+      "step3": {
+        "title": "Abstimmen",
+        "body": "Like die Sounds der\nanderen Teilnehmer, um\nihnen zu helfen zu gewinnen"
+      },
+      "step4": {
+        "title": "Gewinnen",
+        "body": "Die Sounds mit den meisten Likes\ngewinnen die Challenge\nder Woche"
+      }
     },
     "communities": {
       "label": "Community",
-      "step1": { "title": "Community", "body": "Gruppen von Menschen,\nverbunden durch gemeinsame\nKlang-Interessen" },
-      "step2": { "title": "Beitreten", "body": "Tritt den Communities bei,\ndie deinen\nGeschmack widerspiegeln" },
-      "step3": { "title": "Teilen", "body": "Veröffentliche Sounds\ndirekt in der\nCommunity" },
-      "step4": { "title": "Updates", "body": "Erhalte Benachrichtigungen über\nneue Sounds in der\nCommunity" }
+      "step1": {
+        "title": "Community",
+        "body": "Gruppen von Menschen,\nverbunden durch gemeinsame\nKlang-Interessen"
+      },
+      "step2": {
+        "title": "Beitreten",
+        "body": "Tritt den Communities bei,\ndie deinen\nGeschmack widerspiegeln"
+      },
+      "step3": {
+        "title": "Teilen",
+        "body": "Veröffentliche Sounds\ndirekt in der\nCommunity"
+      },
+      "step4": {
+        "title": "Updates",
+        "body": "Erhalte Benachrichtigungen über\nneue Sounds in der\nCommunity"
+      }
     }
   }
 }
