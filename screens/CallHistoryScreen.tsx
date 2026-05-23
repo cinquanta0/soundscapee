@@ -6,13 +6,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth } from '../firebaseConfig';
+import { db } from '../firebaseConfig';
 import { getCallHistory, Call } from '../services/callService';
 import { useCall } from '../context/CallContext';
+
+const _callHistoryPhotoCache: Record<string, string | null> = {};
 
 interface Props {
   userId: string;
@@ -55,10 +60,29 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
   const { initiateCall, canRejoin, rejoinGroupCall, rejoinableCall } = useCall();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
+  const [photos, setPhotos] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     getCallHistory(userId)
-      .then(setCalls)
+      .then(async (list) => {
+        setCalls(list);
+        const myUid = auth.currentUser?.uid;
+        const uids = [...new Set(list.flatMap((c) => {
+          if (c.type === 'group') return [];
+          return c.callerId === myUid ? [c.calleeId] : [c.callerId];
+        }))].filter(Boolean);
+        const fetchedPhotos: Record<string, string | null> = {};
+        await Promise.all(uids.map(async (uid) => {
+          if (uid in _callHistoryPhotoCache) { fetchedPhotos[uid] = _callHistoryPhotoCache[uid]; return; }
+          try {
+            const snap = await getDoc(doc(db, 'users', uid));
+            const photo = snap.data()?.profilePicture ?? null;
+            _callHistoryPhotoCache[uid] = photo;
+            fetchedPhotos[uid] = photo;
+          } catch { _callHistoryPhotoCache[uid] = null; fetchedPhotos[uid] = null; }
+        }));
+        setPhotos(fetchedPhotos);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [userId]);
@@ -105,13 +129,16 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
     const { label, color, icon } = getCallType(item);
     const avatarColor = getAvatarColor(name);
     const isEmoji = avatar && avatar.length <= 2 && /\p{Emoji}/u.test(avatar);
+    const photo = otherUid ? photos[otherUid] : null;
 
     return (
       <View style={styles.row}>
-        <View style={[styles.avatarCircle, { backgroundColor: avatarColor + '33', borderColor: avatarColor + '66' }]}>
-          {isEmoji
-            ? <Text style={styles.avatarText}>{avatar}</Text>
-            : <Feather name="music" size={20} color={avatarColor} />}
+        <View style={[styles.avatarCircle, { backgroundColor: photo ? 'transparent' : avatarColor + '33', borderColor: avatarColor + '66', overflow: 'hidden' }]}>
+          {photo
+            ? <Image source={{ uri: photo }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+            : isEmoji
+              ? <Text style={styles.avatarText}>{avatar}</Text>
+              : <Feather name="music" size={20} color={avatarColor} />}
         </View>
 
         <View style={styles.info}>

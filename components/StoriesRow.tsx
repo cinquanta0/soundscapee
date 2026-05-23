@@ -11,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { auth } from '../firebaseConfig';
 import { getRecentStati, createStato, StatiGroup, deleteStato, getStatoViewers, markStatoViewed } from '../services/statiService';
-import { inviaMessaggio } from '../services/messaggiService';
+import { inviaMessaggio, inviaTestoMessaggio } from '../services/messaggiService';
 import { uploadFileWithFallback } from '../services/storageUpload';
 import StoryViewer, { StoryGroup } from './StoryViewer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -123,8 +123,8 @@ function AnimatedRing({ viewed }: { viewed: boolean }) {
 
 // ─── Story circle item ─────────────────────────────────────────────────────────
 function StoryCircle({
-  emoji, label, viewed, onPress, highlight,
-}: { emoji: string; label: string; viewed: boolean; onPress: () => void; highlight?: 'accent' | 'ice' }) {
+  emoji, photo, label, viewed, onPress, highlight,
+}: { emoji: string; photo?: string; label: string; viewed: boolean; onPress: () => void; highlight?: 'accent' | 'ice' }) {
   const ringColors: readonly [string, string] = viewed
     ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.08)']
     : highlight === 'ice'
@@ -141,8 +141,12 @@ function StoryCircle({
           style={styles.circleHalo}
         />
         <AnimatedRing viewed={viewed} />
-        <View style={styles.circleInner}>
-          <Text style={styles.circleEmoji}>{emoji}</Text>
+        <View style={[styles.circleInner, photo ? { overflow: 'hidden' } : null]}>
+          {photo ? (
+            <Image source={{ uri: photo }} style={styles.circlePhoto} />
+          ) : (
+            <Text style={styles.circleEmoji}>{emoji}</Text>
+          )}
         </View>
       </View>
       <Text style={styles.circleLabel} numberOfLines={2}>{label}</Text>
@@ -434,6 +438,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
             <StoryCircle
               key={group.id}
               emoji={group.icon || '🎵'}
+              photo={group.photo}
               label={group.label}
               viewed={viewedStati.has(group.id)}
               highlight={followingIds.has(group.userId) ? 'accent' : 'ice'}
@@ -468,6 +473,24 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
               receiverAvatar: owner?.icon || '🎵',
               audioUri,
               duration,
+              statusReply: true,
+              statusReplyLabel: t('stories.replySentTitle'),
+              statusId: statoId,
+            });
+            Alert.alert(t('stories.replySentTitle'), t('stories.replySentMsg'));
+          } catch {
+            Alert.alert(t('common.error'), t('stories.errors.cannotReply'));
+          }
+        }}
+        onReplyStatoText={async ({ statoId, ownerUserId, text }) => {
+          try {
+            if (!ownerUserId || ownerUserId === currentUid) return;
+            const owner = userStati.find((g) => g.userId === ownerUserId);
+            await inviaTestoMessaggio({
+              receiverId: ownerUserId,
+              receiverName: owner?.label || 'Utente',
+              receiverAvatar: owner?.icon || '🎵',
+              text,
               statusReply: true,
               statusReplyLabel: t('stories.replySentTitle'),
               statusId: statoId,
@@ -667,6 +690,11 @@ const styles = StyleSheet.create({
   },
   circleEmoji: {
     fontSize: 29,
+  },
+  circlePhoto: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
   },
   circleLabel: {
     marginTop: 8,

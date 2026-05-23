@@ -14,6 +14,7 @@ export type ParticipantCallStatus = 'calling' | 'ringing' | 'active' | 'declined
 export interface ParticipantProfile {
   name: string;
   avatar: string;
+  photo?: string;
 }
 
 export interface Call {

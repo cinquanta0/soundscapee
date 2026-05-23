@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
@@ -371,8 +372,10 @@ export default function TimeMachineScreen() {
               <View key={soundData.id} style={styles.soundCard}>
                 <View style={styles.soundHeader}>
                   <View style={styles.soundUser}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{soundData.userAvatar}</Text>
+                    <View style={[styles.avatar, soundData.userPhoto ? { overflow: 'hidden', backgroundColor: 'transparent' } : null]}>
+                      {soundData.userPhoto
+                        ? <Image source={{ uri: soundData.userPhoto }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                        : <Text style={styles.avatarText}>{soundData.userAvatar}</Text>}
                     </View>
                     <View>
                       <Text style={styles.userName}>{soundData.username}</Text>

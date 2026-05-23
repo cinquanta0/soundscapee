@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, Modal, TouchableOpacity, Animated,
-  Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback, Image,
+  Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback, Image, ScrollView,
+  Alert, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 
 const { width: SW, height: SH } = Dimensions.get('window');
-const SCREEN_DURATION = 5000; // ms per schermata
+const SCREEN_DURATION = 5000;
+const SHEET_HEIGHT = SH * 0.55;
 
 export interface StoryScreen {
   id?: string;
@@ -40,7 +42,8 @@ interface Props {
   currentUserId?: string;
   onDeleteStato?: (statoId: string) => Promise<void> | void;
   onReplyStatoVoice?: (params: { statoId: string; ownerUserId: string; audioUri: string; duration: number }) => Promise<void> | void;
-  getViewersForStato?: (statoId: string) => Promise<Array<{ id: string; name: string; avatar: string }>>;
+  onReplyStatoText?: (params: { statoId: string; ownerUserId: string; text: string }) => Promise<void> | void;
+  getViewersForStato?: (statoId: string) => Promise<Array<{ id: string; name: string; avatar: string; photo?: string }>>;
   onStatoOpened?: (statoId: string) => Promise<void> | void;
 }
 
@@ -53,6 +56,7 @@ export default function StoryViewer({
   currentUserId,
   onDeleteStato,
   onReplyStatoVoice,
+  onReplyStatoText,
   getViewersForStato,
   onStatoOpened,
 }: Props) {
@@ -69,13 +73,20 @@ export default function StoryViewer({
   const [isRecordingReply, setIsRecordingReply] = useState(false);
   const [replySeconds, setReplySeconds] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
-  const [viewers, setViewers] = useState<Array<{ id: string; name: string; avatar: string }>>([]);
+  const [viewers, setViewers] = useState<Array<{ id: string; name: string; avatar: string; photo?: string }>>([]);
+  const [showReplySheet, setShowReplySheet] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingTextReply, setSendingTextReply] = useState(false);
   const pressStartRef = useRef<number>(0);
   const wasHoldRef = useRef(false);
-  const screenDurationRef = useRef<number>(SCREEN_DURATION); // durata reale dello screen corrente (ms)
-  const isAudioScreenRef = useRef<boolean>(false);          // true se lo screen ha audio
+  const screenDurationRef = useRef<number>(SCREEN_DURATION);
+  const isAudioScreenRef = useRef<boolean>(false);
   const replyRecordingRef = useRef<Audio.Recording | null>(null);
   const replyTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const viewerSheetAnim = useRef(new Animated.Value(0)).current;
+  const replySheetAnim = useRef(new Animated.Value(0)).current;
+  const swipeHintAnim = useRef(new Animated.Value(0)).current;
+  const swipeHintLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const group = groups[groupIdx];
   const screen = group?.screens?.[screenIdx];
@@ -105,29 +116,26 @@ export default function StoryViewer({
     }
   }, [screenIdx, groupIdx]);
 
-  const HOLD_THRESHOLD = 250; // ms: oltre questa durata è un hold, non un tap
+  const HOLD_THRESHOLD = 250;
 
   const handlePressIn = useCallback(() => {
     pressStartRef.current = Date.now();
     wasHoldRef.current = false;
-    // Pausa solo dopo HOLD_THRESHOLD — evita flickering su tap veloci
     const t = setTimeout(() => {
       wasHoldRef.current = true;
       setPaused(true);
       animRef.current?.stop();
       soundRef.current?.pauseAsync().catch(() => {});
     }, HOLD_THRESHOLD);
-    // Salviamo il timer nel ref per poterlo cancellare su tap veloce
     (pressStartRef as any)._holdTimer = t;
   }, []);
 
   const handlePressOut = useCallback(() => {
     clearTimeout((pressStartRef as any)._holdTimer);
-    if (!wasHoldRef.current) return; // tap veloce: non fare nulla qui, ci pensa onPress
+    if (!wasHoldRef.current) return;
     setPaused(false);
     const currentValue = (progressAnim as any)._value ?? 0;
     if (currentValue < 1) {
-      // Usa la durata reale dello screen (audio → durationMillis, testo → 5000ms)
       const remaining = Math.max(300, (1 - currentValue) * screenDurationRef.current);
       animRef.current = Animated.timing(progressAnim, {
         toValue: 1,
@@ -135,7 +143,6 @@ export default function StoryViewer({
         useNativeDriver: false,
       });
       if (isAudioScreenRef.current) {
-        // Screen audio: non mettere goForward qui, ci pensa didJustFinish sull'audio
         animRef.current.start();
       } else {
         animRef.current.start(({ finished }) => {
@@ -146,88 +153,47 @@ export default function StoryViewer({
     soundRef.current?.playAsync().catch(() => {});
   }, [progressAnim, goForward]);
 
-  // Progress animation for current screen
+  // Progress animation
   useEffect(() => {
     if (!visible) return;
-
     const screen = groups[groupIdx]?.screens?.[screenIdx];
     if (!screen) return;
     progressAnim.setValue(0);
     animRef.current?.stop();
     timerRef.current && clearTimeout(timerRef.current);
-
-    // Pulisce l'audio del screen precedente
     const prevSound = soundRef.current;
     soundRef.current = null;
     setAudioPlaying(false);
     prevSound?.unloadAsync().catch(() => {});
-
     let cancelled = false;
-
-    // Aggiorna i ref sul tipo di screen corrente
     isAudioScreenRef.current = !!(screen?.audioUrl);
-    screenDurationRef.current = SCREEN_DURATION; // default, sovrascritto per audio
+    screenDurationRef.current = SCREEN_DURATION;
 
     const startTimer = (duration: number, onFinish: () => void) => {
       screenDurationRef.current = duration;
-      animRef.current = Animated.timing(progressAnim, {
-        toValue: 1,
-        duration,
-        useNativeDriver: false,
-      });
-      animRef.current.start(({ finished }) => {
-        if (finished && !cancelled) onFinish();
-      });
+      animRef.current = Animated.timing(progressAnim, { toValue: 1, duration, useNativeDriver: false });
+      animRef.current.start(({ finished }) => { if (finished && !cancelled) onFinish(); });
     };
 
     if (screen?.audioUrl) {
-      // Modalità audio: la progress è guidata dalla durata reale dell'audio
       let animStarted = false;
-
-      Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      }).catch(() => {});
-
-      Audio.Sound.createAsync(
-        { uri: screen.audioUrl },
-        { shouldPlay: true },
-        (status) => {
-          if (cancelled || !status.isLoaded) return;
-
-          setAudioPlaying(status.isPlaying ?? false);
-
-          // Avvia l'animazione una volta che conosciamo la durata reale
-          if (!animStarted && status.durationMillis && status.durationMillis > 0) {
-            animStarted = true;
-            screenDurationRef.current = status.durationMillis; // durata reale audio
-            progressAnim.setValue(0);
-            animRef.current = Animated.timing(progressAnim, {
-              toValue: 1,
-              duration: status.durationMillis,
-              useNativeDriver: false,
-            });
-            animRef.current.start();
-          }
-
-          if (status.didJustFinish) {
-            setAudioPlaying(false);
-            if (!cancelled) goForward();
-          }
+      Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: false, shouldDuckAndroid: true }).catch(() => {});
+      Audio.Sound.createAsync({ uri: screen.audioUrl }, { shouldPlay: true }, (status) => {
+        if (cancelled || !status.isLoaded) return;
+        setAudioPlaying(status.isPlaying ?? false);
+        if (!animStarted && status.durationMillis && status.durationMillis > 0) {
+          animStarted = true;
+          screenDurationRef.current = status.durationMillis;
+          progressAnim.setValue(0);
+          animRef.current = Animated.timing(progressAnim, { toValue: 1, duration: status.durationMillis, useNativeDriver: false });
+          animRef.current.start();
         }
-      ).then(({ sound }) => {
-        if (cancelled) {
-          sound.unloadAsync().catch(() => {});
-          return;
-        }
+        if (status.didJustFinish) { setAudioPlaying(false); if (!cancelled) goForward(); }
+      }).then(({ sound }) => {
+        if (cancelled) { sound.unloadAsync().catch(() => {}); return; }
         soundRef.current = sound;
         setAudioPlaying(true);
-      }).catch(() => {
-        // Audio non caricato → fallback timer 5s
-        if (!cancelled) startTimer(SCREEN_DURATION, goForward);
-      });
+      }).catch(() => { if (!cancelled) startTimer(SCREEN_DURATION, goForward); });
     } else {
       startTimer(SCREEN_DURATION, goForward);
     }
@@ -252,8 +218,29 @@ export default function StoryViewer({
       setGroupIdx(startGroupIndex);
       setScreenIdx(0);
       setShowViewers(false);
+      viewerSheetAnim.setValue(0);
+      setShowReplySheet(false);
+      replySheetAnim.setValue(0);
+      setReplyText('');
     }
   }, [visible, startGroupIndex]);
+
+  // Swipe hint bounce
+  useEffect(() => {
+    if (!visible || isOwnGroup || isTutorial || showReplySheet) {
+      swipeHintLoopRef.current?.stop();
+      swipeHintAnim.setValue(0);
+      return;
+    }
+    swipeHintLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(swipeHintAnim, { toValue: -8, duration: 600, useNativeDriver: true }),
+        Animated.timing(swipeHintAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    swipeHintLoopRef.current.start();
+    return () => { swipeHintLoopRef.current?.stop(); };
+  }, [visible, isOwnGroup, isTutorial, showReplySheet]);
 
   useEffect(() => {
     return () => {
@@ -263,34 +250,57 @@ export default function StoryViewer({
     };
   }, []);
 
+  const resumeStory = useCallback(() => {
+    setPaused(false);
+    const currentValue = (progressAnim as any)._value ?? 0;
+    if (currentValue < 1) {
+      const remaining = Math.max(300, (1 - currentValue) * screenDurationRef.current);
+      animRef.current = Animated.timing(progressAnim, { toValue: 1, duration: remaining, useNativeDriver: false });
+      if (isAudioScreenRef.current) {
+        animRef.current.start();
+      } else {
+        animRef.current.start(({ finished }) => { if (finished) goForward(); });
+      }
+    }
+    soundRef.current?.playAsync().catch(() => {});
+  }, [progressAnim, goForward]);
+
+  const openReplySheet = useCallback(() => {
+    setShowReplySheet(true);
+    setPaused(true);
+    animRef.current?.stop();
+    soundRef.current?.pauseAsync().catch(() => {});
+    Animated.spring(replySheetAnim, { toValue: 1, useNativeDriver: true, tension: 65, friction: 11 }).start();
+  }, [replySheetAnim]);
+
+  const closeReplySheet = useCallback(() => {
+    setReplyText('');
+    Animated.timing(replySheetAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => {
+      setShowReplySheet(false);
+      resumeStory();
+    });
+  }, [replySheetAnim, resumeStory]);
+
+  const sendTextReply = useCallback(async () => {
+    if (!replyText.trim() || !screen?.id || !group?.userId) return;
+    setSendingTextReply(true);
+    try {
+      await onReplyStatoText?.({ statoId: screen.id, ownerUserId: group.userId, text: replyText.trim() });
+      closeReplySheet();
+    } catch {} finally {
+      setSendingTextReply(false);
+    }
+  }, [replyText, screen?.id, group?.userId, onReplyStatoText, closeReplySheet]);
+
   const startVoiceReply = useCallback(async () => {
     try {
-      // Evita che l'audio della storia finisca nella registrazione.
-      setPaused(true);
-      animRef.current?.stop();
-      await soundRef.current?.pauseAsync().catch(() => {});
-
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) return;
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync({
         isMeteringEnabled: false,
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-          audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 64000,
-        },
-        ios: {
-          extension: '.m4a',
-          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.MEDIUM,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 64000,
-        },
+        android: { extension: '.m4a', outputFormat: Audio.AndroidOutputFormat.MPEG_4, audioEncoder: Audio.AndroidAudioEncoder.AAC, sampleRate: 44100, numberOfChannels: 1, bitRate: 64000 },
+        ios: { extension: '.m4a', outputFormat: Audio.IOSOutputFormat.MPEG4AAC, audioQuality: Audio.IOSAudioQuality.MEDIUM, sampleRate: 44100, numberOfChannels: 1, bitRate: 64000 },
         web: { mimeType: 'audio/webm', bitsPerSecond: 64000 },
       });
       replyRecordingRef.current = recording;
@@ -302,10 +312,7 @@ export default function StoryViewer({
 
   const stopVoiceReply = useCallback(async () => {
     if (!replyRecordingRef.current) return;
-    if (replyTimerRef.current) {
-      clearInterval(replyTimerRef.current);
-      replyTimerRef.current = null;
-    }
+    if (replyTimerRef.current) { clearInterval(replyTimerRef.current); replyTimerRef.current = null; }
     try {
       await replyRecordingRef.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
@@ -313,55 +320,43 @@ export default function StoryViewer({
       const duration = replySeconds;
       replyRecordingRef.current = null;
       setIsRecordingReply(false);
-      if (!uri || !screen.id || !group?.userId) return;
+      if (!uri || !screen?.id || !group?.userId) return;
       setSendingReply(true);
       await onReplyStatoVoice?.({ statoId: screen.id, ownerUserId: group.userId, audioUri: uri, duration });
+      closeReplySheet();
     } catch {
       setIsRecordingReply(false);
     } finally {
       setSendingReply(false);
       setReplySeconds(0);
-      setPaused(false);
-      const currentValue = (progressAnim as any)._value ?? 0;
-      if (currentValue < 1) {
-        const remaining = Math.max(300, (1 - currentValue) * screenDurationRef.current);
-        animRef.current = Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: remaining,
-          useNativeDriver: false,
-        });
-        if (isAudioScreenRef.current) {
-          animRef.current.start();
-        } else {
-          animRef.current.start(({ finished }) => {
-            if (finished) goForward();
-          });
-        }
-      }
-      await soundRef.current?.playAsync().catch(() => {});
     }
-  }, [replySeconds, screen?.id, group?.userId, onReplyStatoVoice, progressAnim, goForward]);
+  }, [replySeconds, screen?.id, group?.userId, onReplyStatoVoice, closeReplySheet]);
 
-  const toggleViewers = useCallback(async () => {
-    if (!screen.id || !isOwnGroup || !getViewersForStato) return;
-    if (!showViewers) {
-      const data = await getViewersForStato(screen.id);
-      setViewers(data);
-    }
-    setShowViewers((v) => !v);
-  }, [screen?.id, isOwnGroup, getViewersForStato, showViewers]);
+  const openViewers = useCallback(async () => {
+    if (!screen?.id || !isOwnGroup || !getViewersForStato) return;
+    const data = await getViewersForStato(screen.id);
+    setViewers(data);
+    setShowViewers(true);
+    setPaused(true);
+    animRef.current?.stop();
+    soundRef.current?.pauseAsync().catch(() => {});
+    Animated.spring(viewerSheetAnim, { toValue: 1, useNativeDriver: true, tension: 65, friction: 11 }).start();
+  }, [screen?.id, isOwnGroup, getViewersForStato, viewerSheetAnim]);
+
+  const closeViewers = useCallback(() => {
+    Animated.timing(viewerSheetAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => {
+      setShowViewers(false);
+      resumeStory();
+    });
+  }, [viewerSheetAnim, resumeStory]);
 
   if (!group || !screen) return null;
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <StatusBar hidden />
-      <LinearGradient
-        colors={['#050508', '#0D0D1A', '#1A0A2E']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
 
-      {/* Glow orb bioluminescente */}
       <View style={styles.orb} />
 
       {/* Progress bars */}
@@ -369,15 +364,12 @@ export default function StoryViewer({
         {group.screens.map((_, i) => (
           <View key={i} style={styles.progressTrack}>
             <Animated.View
-              style={[
-                styles.progressFill,
-                {
-                  width: i < screenIdx ? '100%'
-                    : i === screenIdx
-                      ? progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
-                      : '0%',
-                },
-              ]}
+              style={[styles.progressFill, {
+                width: i < screenIdx ? '100%'
+                  : i === screenIdx
+                    ? progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
+                    : '0%',
+              }]}
             />
           </View>
         ))}
@@ -393,17 +385,41 @@ export default function StoryViewer({
             <Text style={styles.storyAuthorName}>{group.label}</Text>
           </View>
           {isOwnGroup && !isTutorial && (
-            <TouchableOpacity style={styles.viewedWidget} onPress={toggleViewers}>
+            <TouchableOpacity style={styles.viewedWidget} onPress={openViewers}>
               <Text style={styles.viewedWidgetText}>{t('stories.viewedBy', { count: screen.seenBy?.length || 0 })}</Text>
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-          <Feather name="x" size={16} color="rgba(255,255,255,0.85)" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {isOwnGroup && !isTutorial && screen.id && (
+            <TouchableOpacity
+              style={styles.menuBtn}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              onPress={() =>
+                Alert.alert('Opzioni', undefined, [
+                  { text: 'Annulla', style: 'cancel' },
+                  {
+                    text: 'Elimina storia',
+                    style: 'destructive',
+                    onPress: () =>
+                      Alert.alert('Elimina storia', 'Sei sicuro di voler eliminare questa storia?', [
+                        { text: 'Annulla', style: 'cancel' },
+                        { text: 'Elimina', style: 'destructive', onPress: () => onDeleteStato?.(screen.id!) },
+                      ]),
+                  },
+                ])
+              }
+            >
+              <Feather name="more-vertical" size={20} color="rgba(255,255,255,0.85)" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+            <Feather name="x" size={16} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Tap zones — pressIn/Out per pausa */}
+      {/* Tap zones */}
       <View style={styles.tapZones} pointerEvents="box-none">
         <TouchableWithoutFeedback
           onPress={() => { if (!wasHoldRef.current) goBack(); }}
@@ -421,8 +437,8 @@ export default function StoryViewer({
         </TouchableWithoutFeedback>
       </View>
 
-      {/* Indicatore pausa */}
-      {paused && (
+      {/* Pause indicator */}
+      {paused && !showReplySheet && !showViewers && (
         <View style={styles.pauseOverlay} pointerEvents="none">
           <Text style={styles.pauseIcon}>⏸</Text>
         </View>
@@ -431,63 +447,28 @@ export default function StoryViewer({
       {/* Content */}
       <View style={styles.content} pointerEvents="none">
         <Text style={styles.screenEmoji}>{screen.emoji}</Text>
-        {screen.imageUrl ? (
-          <Image source={{ uri: screen.imageUrl }} style={styles.storyImage} />
-        ) : null}
+        {screen.imageUrl ? <Image source={{ uri: screen.imageUrl }} style={styles.storyImage} /> : null}
         <Text style={styles.screenTitle}>{screen.title}</Text>
         {screen.body ? <Text style={styles.screenBody}>{screen.body}</Text> : null}
         {screen.audioUrl && (
           <View style={styles.audioIndicator}>
-            <Text style={styles.audioWave}>
-              {audioPlaying ? '▶ 🎵  ▌▌▌▌▌▌▌▌' : t('stories.audioLoading')}
-            </Text>
-            {screen.audioDuration && (
-              <Text style={styles.audioDuration}>{screen.audioDuration}s</Text>
-            )}
+            <Text style={styles.audioWave}>{audioPlaying ? '▶ 🎵  ▌▌▌▌▌▌▌▌' : t('stories.audioLoading')}</Text>
+            {screen.audioDuration && <Text style={styles.audioDuration}>{screen.audioDuration}s</Text>}
           </View>
         )}
       </View>
 
-      {!isTutorial && (
-        <View style={styles.actionsBar}>
-          {isOwnGroup && screen.id ? (
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => onDeleteStato?.(screen.id!)}
-            >
-              <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={styles.replyToggle}
-                onPress={isRecordingReply ? stopVoiceReply : startVoiceReply}
-                disabled={sendingReply}
-              >
-                <Text style={styles.replyToggleText}>
-                  {sendingReply ? t('stories.replySending') : isRecordingReply ? t('stories.replyStop', { seconds: replySeconds }) : t('stories.replyVoice')}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+      {/* Swipe-up reply hint */}
+      {!isOwnGroup && !isTutorial && !showReplySheet && (
+        <TouchableOpacity style={styles.swipeZone} onPress={openReplySheet} activeOpacity={0.7}>
+          <Animated.View style={[styles.swipeHint, { transform: [{ translateY: swipeHintAnim }] }]}>
+            <Feather name="chevron-up" size={22} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.swipeHintText}>Rispondi</Text>
+          </Animated.View>
+        </TouchableOpacity>
       )}
 
-      {isOwnGroup && !isTutorial && showViewers && (
-        <View style={styles.viewersOverlay}>
-          <View style={styles.viewersPanelTop}>
-            {viewers.length === 0 ? (
-              <Text style={styles.viewersEmpty}>{t('stories.noViews')}</Text>
-            ) : (
-              viewers.slice(0, 8).map((u) => (
-                <Text key={u.id} style={styles.viewerItem}>{u.avatar} {u.name}</Text>
-              ))
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* Group dots (se ci sono più group) */}
+      {/* Group dots */}
       {groups.length > 1 && (
         <View style={styles.groupDots}>
           {groups.map((_, i) => (
@@ -496,11 +477,126 @@ export default function StoryViewer({
         </View>
       )}
 
-      {/* Swipe hint */}
       {screenIdx < totalScreens - 1 && (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>tap → avanti</Text>
         </View>
+      )}
+
+      {/* Viewers sheet */}
+      {isOwnGroup && !isTutorial && showViewers && (
+        <>
+          <TouchableWithoutFeedback onPress={closeViewers}>
+            <Animated.View style={[StyleSheet.absoluteFill, {
+              backgroundColor: '#000',
+              opacity: viewerSheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
+              zIndex: 18,
+            }]} />
+          </TouchableWithoutFeedback>
+          <Animated.View style={[styles.bottomSheet, {
+            transform: [{ translateY: viewerSheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_HEIGHT, 0] }) }],
+          }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Feather name="eye" size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.sheetTitle}>
+                {viewers.length === 0
+                  ? t('stories.noViews')
+                  : `Visto da ${viewers.length} ${viewers.length === 1 ? 'persona' : 'persone'}`}
+              </Text>
+            </View>
+            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
+              {viewers.length === 0 ? (
+                <View style={styles.sheetEmpty}>
+                  <Feather name="eye-off" size={36} color="rgba(255,255,255,0.15)" />
+                  <Text style={styles.sheetEmptyText}>Nessuno ha ancora visto questa storia</Text>
+                </View>
+              ) : (
+                viewers.map((u) => (
+                  <View key={u.id} style={styles.sheetRow}>
+                    <View style={styles.sheetAvatarWrap}>
+                      {u.photo
+                        ? <Image source={{ uri: u.photo }} style={styles.sheetAvatarImg} />
+                        : <Text style={styles.sheetAvatarEmoji}>{u.avatar}</Text>}
+                    </View>
+                    <Text style={styles.sheetRowName}>{u.name}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </Animated.View>
+        </>
+      )}
+
+      {/* Reply sheet */}
+      {!isOwnGroup && !isTutorial && showReplySheet && (
+        <>
+          <TouchableWithoutFeedback onPress={closeReplySheet}>
+            <Animated.View style={[StyleSheet.absoluteFill, {
+              backgroundColor: '#000',
+              opacity: replySheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
+              zIndex: 18,
+            }]} />
+          </TouchableWithoutFeedback>
+          <Animated.View style={[styles.bottomSheet, {
+            transform: [{ translateY: replySheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_HEIGHT, 0] }) }],
+          }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Feather name="message-circle" size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.sheetTitle}>Rispondi a {group.label}</Text>
+            </View>
+
+            {/* Story preview */}
+            <View style={styles.replyPreview}>
+              <Text style={styles.replyPreviewEmoji}>{screen.emoji}</Text>
+              <View style={styles.replyPreviewText}>
+                <Text style={styles.replyPreviewTitle} numberOfLines={1}>{screen.title}</Text>
+                {screen.body ? <Text style={styles.replyPreviewBody} numberOfLines={2}>{screen.body}</Text> : null}
+              </View>
+            </View>
+
+            <KeyboardAvoidingView
+              style={styles.replyInputArea}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+              {isRecordingReply ? (
+                <View style={styles.recordingRow}>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingTimer}>{replySeconds}s</Text>
+                  <Text style={styles.recordingLabel}>Registrazione in corso...</Text>
+                  <TouchableOpacity style={styles.stopVoiceBtn} onPress={stopVoiceReply} disabled={sendingReply}>
+                    {sendingReply
+                      ? <Text style={styles.stopVoiceBtnText}>Invio...</Text>
+                      : <><Feather name="stop-circle" size={18} color="#FF5C79" /><Text style={styles.stopVoiceBtnText}>Stop</Text></>}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.replyInputRow}>
+                  <TouchableOpacity style={styles.micBtn} onPress={startVoiceReply} disabled={sendingTextReply}>
+                    <Feather name="mic" size={20} color="#00FF9C" />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.replyInput}
+                    placeholder="Scrivi un messaggio..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    multiline
+                    maxLength={500}
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendBtn, !replyText.trim() && styles.sendBtnDisabled]}
+                    onPress={sendTextReply}
+                    disabled={!replyText.trim() || sendingTextReply}
+                  >
+                    <Feather name="send" size={18} color="#000" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </>
       )}
     </Modal>
   );
@@ -548,6 +644,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   storyAuthorRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -573,6 +674,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -707,67 +816,229 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
   },
-  actionsBar: {
+  // Swipe hint
+  swipeZone: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 40,
-    zIndex: 15,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  replyToggle: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,255,156,0.12)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.30)',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+  swipeHint: {
+    alignItems: 'center',
+    gap: 4,
   },
-  replyToggleText: {
-    color: '#00FF9C',
+  swipeHintText: {
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  deleteBtn: {
+  // Bottom sheet (shared by viewers + reply)
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: SHEET_HEIGHT,
+    backgroundColor: '#0F0F1A',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    zIndex: 20,
+  },
+  sheetHandle: {
     alignSelf: 'center',
-    backgroundColor: 'rgba(255,77,77,0.15)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,77,77,0.4)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginTop: 12,
+    marginBottom: 4,
   },
-  deleteBtnText: {
-    color: '#ff6b6b',
-    fontFamily: 'monospace',
-    fontSize: 12,
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  sheetTitle: {
+    color: '#F7F8FF',
+    fontSize: 16,
     fontWeight: '700',
   },
-  viewersOverlay: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    top: 96,
-    zIndex: 18,
+  sheetScroll: {
+    flex: 1,
   },
-  viewersPanelTop: {
-    maxWidth: 280,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+  sheetScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
-  viewersEmpty: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 12,
+  sheetEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 48,
+    gap: 12,
+  },
+  sheetEmptyText: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 14,
     textAlign: 'center',
   },
-  viewerItem: {
-    color: '#fff',
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  sheetAvatarWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  sheetAvatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  sheetAvatarEmoji: {
+    fontSize: 20,
+  },
+  sheetRowName: {
+    color: '#F7F8FF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  // Reply sheet specific
+  replyPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#00FF9C',
+  },
+  replyPreviewEmoji: {
+    fontSize: 28,
+  },
+  replyPreviewText: {
+    flex: 1,
+    gap: 2,
+  },
+  replyPreviewTitle: {
+    color: '#F7F8FF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  replyPreviewBody: {
+    color: 'rgba(247,248,255,0.5)',
     fontSize: 12,
-    paddingVertical: 2,
+    lineHeight: 17,
+  },
+  replyInputArea: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 12,
+  },
+  replyInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  micBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  replyInput: {
+    flex: 1,
+    color: '#F7F8FF',
+    fontSize: 15,
+    maxHeight: 100,
+    paddingVertical: 4,
+  },
+  sendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#00FF9C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnDisabled: {
+    opacity: 0.35,
+  },
+  recordingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,92,121,0.1)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,92,121,0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FF5C79',
+  },
+  recordingTimer: {
+    color: '#FF5C79',
+    fontSize: 14,
+    fontWeight: '700',
+    minWidth: 28,
+  },
+  recordingLabel: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+  },
+  stopVoiceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,92,121,0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  stopVoiceBtnText: {
+    color: '#FF5C79',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

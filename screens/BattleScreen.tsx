@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Alert, Animated,
+  Alert, Animated, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -34,8 +34,8 @@ function TimerBar({ seconds, total, color }: { seconds: number; total: number; c
   );
 }
 
-function PlayerCard({ name, avatar, votes, trackDone, isRecording, isWinner, color }: {
-  name: string; avatar: string; votes: number; trackDone: boolean;
+function PlayerCard({ name, avatar, photo, votes, trackDone, isRecording, isWinner, color }: {
+  name: string; avatar: string; photo?: string; votes: number; trackDone: boolean;
   isRecording: boolean; isWinner: boolean; color: string;
 }) {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -58,7 +58,9 @@ function PlayerCard({ name, avatar, votes, trackDone, isRecording, isWinner, col
       ]}
     >
       {isWinner && <Text style={s.crownEmoji}>👑</Text>}
-      <Text style={s.playerAvatar}>{avatar}</Text>
+      {photo
+        ? <Image source={{ uri: photo }} style={s.playerAvatarImg} />
+        : <Text style={s.playerAvatar}>{avatar}</Text>}
       <Text style={s.playerName} numberOfLines={1}>{name}</Text>
       {trackDone && <Text style={s.trackReadyBadge}>READY</Text>}
       {isRecording && <Text style={[s.recBadge, { color }]}>LIVE REC</Text>}
@@ -360,6 +362,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <PlayerCard
             name={battle.challengerName}
             avatar={battle.challengerAvatar}
+            photo={battle.challengerPhoto}
             votes={battle.challengerVotes}
             trackDone={!!battle.challengerTrackUrl}
             isRecording={battle.status === 'challenger_rec'}
@@ -370,6 +373,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <PlayerCard
             name={battle.opponentName}
             avatar={battle.opponentAvatar}
+            photo={battle.opponentPhoto}
             votes={battle.opponentVotes}
             trackDone={!!battle.opponentTrackUrl}
             isRecording={battle.status === 'opponent_rec'}
@@ -548,6 +552,7 @@ const s = StyleSheet.create({
   playerCardWinner: { backgroundColor: 'rgba(217,255,90,0.08)', borderColor: '#D9FF5A' },
   crownEmoji: { fontSize: 20, position: 'absolute', top: -12 },
   playerAvatar: { fontSize: 44 },
+  playerAvatarImg: { width: 56, height: 56, borderRadius: 28 },
   playerName: { color: '#F7F8FF', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   trackReadyBadge: { color: '#D9FF5A', fontSize: 10, fontWeight: '700' },
   recBadge: { fontSize: 10, fontWeight: '800' },

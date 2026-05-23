@@ -30,6 +30,9 @@ import { sanitizeField } from '../utils/sanitize';
 
 const DAILY_SOUND_LIMIT = 10;
 
+// In-memory cache to avoid re-fetching the same user's profilePicture on every snapshot
+const _profilePhotoCache = {};
+
 /**
  * Controlla il rate limit giornaliero per la pubblicazione di suoni.
  * Lancia un errore se l'utente ha già raggiunto il limite.
@@ -210,6 +213,7 @@ export const createSound = async (soundData) => {
       userId: user.uid,
       username: sanitizeField(userProfile?.username || 'Anonymous', 100),
       userAvatar: userProfile?.avatar || '🎧',
+      ...(userProfile?.profilePicture ? { userPhoto: userProfile.profilePicture } : {}),
       title: sanitizeField(soundData.title, 200),
       description: sanitizeField(soundData.description || '', 500),
       mood: soundData.mood || 'Rilassante',
@@ -256,12 +260,19 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
         const data = docSnap.data();
         let username = data.username;
         let userAvatar = data.userAvatar;
-        if ((!username || !userAvatar) && data.userId) {
+        let userPhoto = data.userPhoto || null;
+        const uid = data.userId;
+        if (uid && (!username || !userAvatar || !userPhoto)) {
           try {
-            const userDoc = await getDoc(doc(db, 'users', data.userId));
-            const ud = userDoc.data();
-            username = username || ud?.username || ud?.displayName || 'Anonimo';
-            userAvatar = userAvatar || ud?.avatar || '🎧';
+            // Use cache to avoid redundant reads for the same user across posts
+            if (!(uid in _profilePhotoCache)) {
+              const userDoc = await getDoc(doc(db, 'users', uid));
+              const ud = userDoc.data();
+              _profilePhotoCache[uid] = ud?.profilePicture || null;
+              username = username || ud?.username || ud?.displayName || 'Anonimo';
+              userAvatar = userAvatar || ud?.avatar || '🎧';
+            }
+            if (!userPhoto) userPhoto = _profilePhotoCache[uid];
           } catch {}
         }
         return {
@@ -269,6 +280,7 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
           ...data,
           username,
           userAvatar,
+          userPhoto,
           createdAt: data.createdAt?.toDate() || new Date()
         };
       }));
@@ -471,6 +483,7 @@ export async function addComment(soundId, text) {
     userId: user.uid,
     username: sanitizeField(userProfile?.username || 'Anonimo', 100),
     userAvatar: userProfile?.avatar || '🎧',
+    ...(userProfile?.profilePicture ? { userPhoto: userProfile.profilePicture } : {}),
     text: cleanText,
     createdAt: serverTimestamp(),
   };
@@ -741,7 +754,7 @@ export const getFriendsList = async (userId) => {
       snap.docs.map(async (d) => {
         const friendId = d.data().users.find((u) => u !== userId);
         const profile = await getUserProfile(friendId);
-        return { id: friendId, username: profile?.username || 'Utente', avatar: profile?.avatar || '🎧', bio: profile?.bio || '' };
+        return { id: friendId, username: profile?.username || 'Utente', avatar: profile?.avatar || '🎧', bio: profile?.bio || '', profilePicture: profile?.profilePicture || null };
       })
     );
     return friends;
@@ -1057,6 +1070,7 @@ export const createSoundWithGeohash = async (soundData) => {
       userId: user.uid,
       username: sanitizeField(userProfile?.username || user.email?.split('@')[0] || 'Anonymous', 100),
       userAvatar: userProfile?.avatar || '🎧',
+      ...(userProfile?.profilePicture ? { userPhoto: userProfile.profilePicture } : {}),
       title: sanitizeField(soundData.title, 200),
       description: sanitizeField(soundData.description || '', 500),
       mood: soundData.mood,
@@ -1516,7 +1530,8 @@ export const getFollowersList = async (userId) => {
           id: followerId,
           username: userProfile?.username || 'Utente',
           avatar: userProfile?.avatar || '🎧',
-          bio: userProfile?.bio || ''
+          bio: userProfile?.bio || '',
+          profilePicture: userProfile?.profilePicture || null,
         };
       })
     );
@@ -1551,7 +1566,8 @@ export const getFollowingList = async (userId) => {
           id: followingId,
           username: userProfile?.username || 'Utente',
           avatar: userProfile?.avatar || '🎧',
-          bio: userProfile?.bio || ''
+          bio: userProfile?.bio || '',
+          profilePicture: userProfile?.profilePicture || null,
         };
       })
     );

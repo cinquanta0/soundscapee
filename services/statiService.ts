@@ -21,6 +21,7 @@ export interface StatiGroup {
   id: string;
   label: string;
   icon: string;
+  photo?: string;
   screens: StatoScreen[];
   userId: string;
   createdAt: Date;
@@ -90,6 +91,7 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
           const p = snap.data();
           if (p.username) byUser[uid].label = p.username;
           if (p.avatar) byUser[uid].icon = resolveAvatarEmoji(p.avatar);
+          if (p.profilePicture) byUser[uid].photo = p.profilePicture;
         }
       } catch {
         // profilo non disponibile — usa il valore denormalizzato già presente
@@ -154,7 +156,7 @@ export async function deleteStato(statoId: string): Promise<void> {
   await deleteDoc(doc(db, 'stati', statoId));
 }
 
-export async function getStatoViewers(statoId: string): Promise<Array<{ id: string; name: string; avatar: string }>> {
+export async function getStatoViewers(statoId: string): Promise<Array<{ id: string; name: string; avatar: string; photo?: string }>> {
   const statoSnap = await getDoc(doc(db, 'stati', statoId));
   if (!statoSnap.exists()) return [];
   const seenBy = Array.isArray(statoSnap.data()?.visti) ? statoSnap.data().visti : [];
@@ -169,6 +171,7 @@ export async function getStatoViewers(statoId: string): Promise<Array<{ id: stri
           id: uid,
           name: data?.displayName || data?.username || 'Utente',
           avatar: data?.avatar || '🎵',
+          photo: data?.profilePicture || undefined,
         };
       } catch {
         return { id: uid, name: 'Utente', avatar: '🎵' };

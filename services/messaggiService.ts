@@ -243,6 +243,9 @@ export async function inviaTestoMessaggio(params: {
   receiverAvatar: string;
   text: string;
   replyTo?: { id: string; senderName: string; preview: string };
+  statusReply?: boolean;
+  statusReplyLabel?: string;
+  statusId?: string;
 }): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -257,6 +260,7 @@ export async function inviaTestoMessaggio(params: {
     timestamp: serverTimestamp(),
     ascoltato: false,
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    ...(params.statusReply ? { statusReply: true, statusReplyLabel: params.statusReplyLabel, statusId: params.statusId } : {}),
   };
 
   let previewText = params.text.slice(0, 60);

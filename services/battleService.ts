@@ -31,9 +31,11 @@ export interface Battle {
   challengerId: string;
   challengerName: string;
   challengerAvatar: string;
+  challengerPhoto?: string;
   opponentId: string;
   opponentName: string;
   opponentAvatar: string;
+  opponentPhoto?: string;
   theme: string;
   status: BattleStatus;
   challengerTrackUrl?: string;
@@ -55,9 +57,11 @@ function mapBattle(id: string, d: any): Battle {
     challengerId: d.challengerId,
     challengerName: d.challengerName || 'Challenger',
     challengerAvatar: d.challengerAvatar || '🎙',
+    challengerPhoto: d.challengerPhoto || undefined,
     opponentId: d.opponentId,
     opponentName: d.opponentName || 'Opponent',
     opponentAvatar: d.opponentAvatar || '🎙',
+    opponentPhoto: d.opponentPhoto || undefined,
     theme: d.theme || '',
     status: d.status || 'pending',
     challengerTrackUrl: d.challengerTrackUrl,
@@ -79,6 +83,7 @@ export async function createBattle(
   opponentName: string,
   opponentAvatar: string,
   theme: string,
+  opponentPhoto?: string,
 ): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -87,14 +92,17 @@ export async function createBattle(
   const profileData = profileSnap.data();
   const challengerName = profileData?.username || profileData?.displayName || user.displayName || 'Challenger';
   const challengerAvatar = profileData?.avatar || user.photoURL || '🎙';
+  const challengerPhoto: string | undefined = profileData?.profilePicture || undefined;
 
   const r = await addDoc(collection(db, 'battles'), {
     challengerId: user.uid,
     challengerName,
     challengerAvatar,
+    ...(challengerPhoto ? { challengerPhoto } : {}),
     opponentId,
     opponentName,
     opponentAvatar,
+    ...(opponentPhoto ? { opponentPhoto } : {}),
     theme,
     status: 'pending',
     challengerVotes: 0,

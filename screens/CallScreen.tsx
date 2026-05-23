@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Modal, StatusBar, Platform, ScrollView,
+  Modal, StatusBar, Platform, ScrollView, Image,
 } from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -125,19 +127,20 @@ function PulseRing({ color }: { color: string }) {
 
 function AvatarBubble({
   avatar,
+  photo,
   name = '',
   size = 96,
   pulse = false,
   pulseColor = '#67E8F9',
 }: {
   avatar: string;
+  photo?: string;
   name?: string;
   size?: number;
   pulse?: boolean;
   pulseColor?: string;
 }) {
-  const iconSize = size * 0.38;
-  const showInitial = isFeatherIcon(avatar) || isMusicEmoji(avatar);
+  const showInitial = !photo && (isFeatherIcon(avatar) || isMusicEmoji(avatar));
   const bgColor = showInitial ? avatarColor(name || avatar) : 'rgba(255,255,255,0.07)';
   const initial = (name || avatar).trim().charAt(0).toUpperCase();
 
@@ -151,12 +154,15 @@ function AvatarBubble({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: bgColor,
+            backgroundColor: photo ? 'transparent' : bgColor,
             borderColor: pulseColor + '40',
+            overflow: 'hidden',
           },
         ]}
       >
-        {showInitial ? (
+        {photo ? (
+          <Image source={{ uri: photo }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+        ) : showInitial ? (
           <Text style={{ fontSize: size * 0.44, fontWeight: '700', color: '#fff' }}>{initial}</Text>
         ) : (
           <Text style={{ fontSize: size * 0.5 }}>{avatar}</Text>
@@ -203,8 +209,10 @@ function ParticipantList({
         return (
           <View key={uid} style={s.participantRow}>
             {/* Avatar 40px */}
-            <View style={[s.participantAvatar, { backgroundColor: showInitial ? bg : 'rgba(255,255,255,0.08)' }]}>
-              {showInitial ? (
+            <View style={[s.participantAvatar, { backgroundColor: profile.photo ? 'transparent' : (showInitial ? bg : 'rgba(255,255,255,0.08)'), overflow: 'hidden' }]}>
+              {profile.photo ? (
+                <Image source={{ uri: profile.photo }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+              ) : showInitial ? (
                 <Text style={s.participantAvatarInitial}>{initial}</Text>
               ) : (
                 <Text style={s.participantAvatarEmoji}>{profile.avatar}</Text>
@@ -270,6 +278,7 @@ export default function CallScreen() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
   const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string; status: string } | null>(null);
   const [liveStatuses, setLiveStatuses] = useState<Record<string, string> | null>(null);
+  const [remotePhoto, setRemotePhoto] = useState<string | null>(null);
   const prevStatusesRef = useRef<Record<string, string>>({});
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -289,6 +298,17 @@ export default function CallScreen() {
     });
     prevStatusesRef.current = { ...statuses };
   }, [call?.participantStatuses]);
+
+  // Fetch remote user's profile picture for 1:1 calls
+  useEffect(() => {
+    if (!call || call.type === 'group') { setRemotePhoto(null); return; }
+    const myUid = auth.currentUser?.uid;
+    const remoteUid = call.callerId === myUid ? call.calleeId : call.callerId;
+    if (!remoteUid) { setRemotePhoto(null); return; }
+    getDoc(doc(db, 'users', remoteUid))
+      .then((snap) => setRemotePhoto(snap.data()?.profilePicture ?? null))
+      .catch(() => setRemotePhoto(null));
+  }, [call?.id, call?.type]);
 
   // Subscription live ai partecipanti dopo aver lasciato una group call
   useEffect(() => {
@@ -355,7 +375,11 @@ export default function CallScreen() {
     >
       {isPipMode && phase === 'active' ? (
         <View style={s.pipContainer}>
-          <Text style={s.pipAvatar}>{displayAvatar}</Text>
+          {remotePhoto ? (
+            <Image source={{ uri: remotePhoto }} style={s.pipAvatarImg} />
+          ) : (
+            <Text style={s.pipAvatar}>{displayAvatar}</Text>
+          )}
           <Text style={s.pipName} numberOfLines={1}>{displayName}</Text>
           <Text style={s.pipTimer}>{fmtDuration(duration)}</Text>
         </View>
@@ -390,6 +414,7 @@ export default function CallScreen() {
           {/* Avatar — always show the caller/callee avatar, even in group calls */}
           <AvatarBubble
             avatar={displayAvatar ?? '🎵'}
+            photo={remotePhoto ?? undefined}
             name={displayName ?? ''}
             size={96}
             pulse={phase === 'incoming' || phase === 'ringing'}
@@ -1058,6 +1083,11 @@ const s = StyleSheet.create({
   },
   pipAvatar: {
     fontSize: 36,
+  },
+  pipAvatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   pipName: {
     color: '#F7F8FF',

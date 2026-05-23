@@ -1675,7 +1675,7 @@ if (loading) {
             soundsCount={totalSoundsCount ?? sounds.length}
             streakCount={effectiveStreak(myStreakCount, myOwnProfile?.lastPublishDate)}
             unreadCount={unreadCount}
-            avatar={<AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={34} />}
+            avatar={<AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={34} photo={myOwnProfile?.profilePicture} />}
             onOpenNotifications={() => { setShowNotificationsModal(true); loadNotifications(); }}
             onOpenProfile={() => setShowSettings(true)}
           />
@@ -1713,7 +1713,7 @@ if (loading) {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowSettings(true)}>
                 <View style={styles.headerAvatarRing}>
-                  <AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={32} />
+                  <AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={32} photo={myOwnProfile?.profilePicture} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -1776,7 +1776,7 @@ if (loading) {
                 <FeedSoundCard
                   key={post.id}
                   post={post}
-                  avatar={<AppAvatar avatar={post.userAvatar} username={post.username} size={42} />}
+                  avatar={<AppAvatar avatar={post.userAvatar} username={post.username} size={42} photo={post.userPhoto} />}
                   moodColor={getMoodColor(post.mood)}
                   isPlaying={playingId === post.id}
                   playProgress={playProgress}
@@ -2724,7 +2724,7 @@ if (loading) {
                             onPress={() => comment.userId && openUserProfile(comment.userId)}
                             style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
                           >
-                            <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} />
+                            <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} photo={comment.userPhoto} />
                             <View style={{ flex: 1, marginLeft: 8 }}>
                               <Text style={styles.userName}>{comment.username || 'Anonimo'}</Text>
                               <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
@@ -3032,15 +3032,15 @@ if (loading) {
           </View>
         ) : (
           followersList.map(user => (
-            <TouchableOpacity 
-              key={user.id} 
+            <TouchableOpacity
+              key={user.id}
               onPress={() => {
                 setShowFollowersModal(false);
                 openUserProfile(user.id);
               }}
               style={styles.userListItem}
             >
-              <AppAvatar avatar={user.avatar} username={user.username} size={40} />
+              <AppAvatar avatar={user.avatar} username={user.username} size={40} photo={user.profilePicture} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{user.username}</Text>
                 <Text style={styles.soundLocation}>@{user.username}</Text>
@@ -3080,15 +3080,15 @@ if (loading) {
           </View>
         ) : (
           followingList.map(user => (
-            <TouchableOpacity 
-              key={user.id} 
+            <TouchableOpacity
+              key={user.id}
               onPress={() => {
                 setShowFollowingModal(false);
                 openUserProfile(user.id);
               }}
               style={styles.userListItem}
             >
-              <AppAvatar avatar={user.avatar} username={user.username} size={40} />
+              <AppAvatar avatar={user.avatar} username={user.username} size={40} photo={user.profilePicture} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{user.username}</Text>
                 <Text style={styles.soundLocation}>@{user.username}</Text>
@@ -3131,6 +3131,7 @@ if (loading) {
                     userProfile.username || userProfile.displayName,
                     userProfile.avatar || userProfile.photoURL || '🎙',
                     theme,
+                    userProfile.profilePicture || undefined,
                   ).catch((e: any) => { Alert.alert('Errore', e?.message || 'Impossibile avviare la battle'); return null; });
                   if (id) setActiveBattleId(id);
                 }}

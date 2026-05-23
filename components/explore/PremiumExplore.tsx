@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -306,8 +307,12 @@ export function ExploreSoundCard({ item, moodColor, isPlaying, busy, onPress }: 
 export function ExploreUserCard({ user, onPress }: UserCardProps) {
   return (
     <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.86}>
-      <View style={styles.userAvatar}>
-        <Text style={{ fontSize: 26 }}>{user.avatar || '🎧'}</Text>
+      <View style={[styles.userAvatar, user.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
+        {user.profilePicture ? (
+          <Image source={{ uri: user.profilePicture }} style={{ width: 54, height: 54, borderRadius: 27 }} />
+        ) : (
+          <Text style={{ fontSize: 26 }}>{user.avatar || '🎧'}</Text>
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.userName}>@{user.username || 'utente'}</Text>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  Modal, ActivityIndicator, StatusBar,
+  Modal, ActivityIndicator, StatusBar, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ interface Friend {
   id: string;
   username: string;
   avatar: string;
+  profilePicture?: string | null;
 }
 
 interface Props {
@@ -80,7 +81,7 @@ export default function GroupCallSetupModal({
     const inviteeProfiles: Record<string, ParticipantProfile> = {};
     for (const id of inviteeIds) {
       const f = friends.find((x) => x.id === id);
-      if (f) inviteeProfiles[id] = { name: f.username, avatar: f.avatar };
+      if (f) inviteeProfiles[id] = { name: f.username, avatar: f.avatar, ...(f.profilePicture ? { photo: f.profilePicture } : {}) };
     }
     onClose();
     if (mode === 'invite' && onInviteParticipants) {
@@ -101,8 +102,10 @@ export default function GroupCallSetupModal({
         onPress={() => toggleSelect(item.id)}
         activeOpacity={0.75}
       >
-        <View style={[st.avatar, isSel && { borderColor: '#00FF9C' }]}>
-          {isFeatherAvatar ? (
+        <View style={[st.avatar, isSel && { borderColor: '#00FF9C' }, item.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
+          {item.profilePicture ? (
+            <Image source={{ uri: item.profilePicture }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+          ) : isFeatherAvatar ? (
             <Feather name={item.avatar as any} size={20} color="#F7F8FF" />
           ) : (
             <Text style={st.avatarTxt}>{item.avatar || item.username[0]?.toUpperCase()}</Text>

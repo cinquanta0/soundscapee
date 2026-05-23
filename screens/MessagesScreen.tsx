@@ -117,6 +117,7 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
             displayName: d.data().displayName || d.data().username || t('messages.defaultUser'),
             username: d.data().username || '',
             avatar: d.data().avatar || '🎵',
+            profilePicture: d.data().profilePicture || null,
           })),
       );
     } finally { setLoading(false); }
@@ -140,8 +141,10 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
         {loading && <ActivityIndicator color="#67E8F9" style={{ marginTop: 12 }} />}
         {results.map((u) => (
           <TouchableOpacity key={u.id} style={nm.resultRow} onPress={() => onSelect(u)}>
-            <View style={nm.resultAvatar}>
-              <Text style={nm.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>
+            <View style={[nm.resultAvatar, u.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
+              {u.profilePicture
+                ? <Image source={{ uri: u.profilePicture }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                : <Text style={nm.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={nm.resultName}>{u.displayName}</Text>
