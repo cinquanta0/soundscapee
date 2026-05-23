@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   View, Text, Modal, TouchableOpacity, Animated,
   Dimensions, StyleSheet, StatusBar, TouchableWithoutFeedback, Image, ScrollView,
-  Alert, TextInput, KeyboardAvoidingView, Platform,
+  Alert, TextInput, Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -87,6 +87,7 @@ export default function StoryViewer({
   const replySheetAnim = useRef(new Animated.Value(0)).current;
   const swipeHintAnim = useRef(new Animated.Value(0)).current;
   const swipeHintLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const group = groups[groupIdx];
   const screen = group?.screens?.[screenIdx];
@@ -243,6 +244,12 @@ export default function StoryViewer({
   }, [visible, isOwnGroup, isTutorial, showReplySheet]);
 
   useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (replyTimerRef.current) clearInterval(replyTimerRef.current);
       replyRecordingRef.current?.stopAndUnloadAsync().catch(() => {});
@@ -274,6 +281,7 @@ export default function StoryViewer({
   }, [replySheetAnim]);
 
   const closeReplySheet = useCallback(() => {
+    Keyboard.dismiss();
     setReplyText('');
     Animated.timing(replySheetAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => {
       setShowReplySheet(false);
@@ -556,10 +564,7 @@ export default function StoryViewer({
               </View>
             </View>
 
-            <KeyboardAvoidingView
-              style={styles.replyInputArea}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
+            <View style={[styles.replyInputArea, { bottom: keyboardHeight }]}>
               {isRecordingReply ? (
                 <View style={styles.recordingRow}>
                   <View style={styles.recordingDot} />
@@ -594,7 +599,7 @@ export default function StoryViewer({
                   </TouchableOpacity>
                 </View>
               )}
-            </KeyboardAvoidingView>
+            </View>
           </Animated.View>
         </>
       )}
@@ -959,8 +964,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingBottom: 20,
     paddingTop: 12,
+    backgroundColor: '#0F0F1A',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
   replyInputRow: {
     flexDirection: 'row',
