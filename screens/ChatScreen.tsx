@@ -6,6 +6,7 @@ import {
   Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -717,7 +718,13 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           style={cs.headerMain}
         >
           <View style={cs.headerAvatar}>
-            <Text style={cs.headerAvatarTxt}>{initial}</Text>
+            {/^[a-z][a-z-]*$/.test(otherUserAvatar) ? (
+              <Feather name={otherUserAvatar as any} size={18} color={C.purple} />
+            ) : otherUserAvatar ? (
+              <Text style={cs.headerAvatarEmoji}>{otherUserAvatar}</Text>
+            ) : (
+              <Text style={cs.headerAvatarTxt}>{initial}</Text>
+            )}
           </View>
           <View>
             <Text style={cs.headerName}>{otherUserName}</Text>
@@ -938,6 +945,7 @@ const cs = StyleSheet.create({
   headerMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1.5, borderColor: 'rgba(139,92,255,0.35)', alignItems: 'center', justifyContent: 'center' },
   headerAvatarTxt: { color: C.purple, fontSize: 18, fontStyle: 'italic' },
+  headerAvatarEmoji: { fontSize: 20 },
   headerName: { color: C.text, fontSize: 15, fontWeight: '700' },
   headerSub: { color: C.textMute, fontSize: 10, fontFamily: 'monospace' },
   list: { paddingVertical: 12, flexGrow: 1, paddingBottom: 10 },

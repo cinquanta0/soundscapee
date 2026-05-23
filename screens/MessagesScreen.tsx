@@ -52,9 +52,17 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
       <View style={cr.avatarWrap}>
         {conv.otherUserPhoto ? (
           <Image source={{ uri: conv.otherUserPhoto }} style={cr.avatarImg} />
+        ) : /^[a-z][a-z-]*$/.test(conv.otherUserAvatar) ? (
+          <View style={cr.avatar}>
+            <Feather name={conv.otherUserAvatar as any} size={22} color="#67E8F9" />
+          </View>
+        ) : conv.otherUserAvatar ? (
+          <View style={cr.avatar}>
+            <Text style={cr.avatarEmojiTxt}>{conv.otherUserAvatar}</Text>
+          </View>
         ) : (
           <View style={cr.avatar}>
-            <Text style={cr.avatarTxt}>{conv.otherUserAvatar.length <= 2 ? conv.otherUserAvatar : initial}</Text>
+            <Text style={cr.avatarTxt}>{initial}</Text>
           </View>
         )}
         {conv.unread > 0 && (
@@ -319,6 +327,9 @@ const cr = StyleSheet.create({
     color: '#67E8F9',
     fontSize: 18,
     fontWeight: '800',
+  },
+  avatarEmojiTxt: {
+    fontSize: 22,
   },
   avatarImg: {
     width: 52,
