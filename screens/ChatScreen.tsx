@@ -344,7 +344,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingPosition, setPlayingPosition] = useState(0);
   const [sending, setSending] = useState(false);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(true);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Messaggio['replyTo'] | null>(null);
   const [menuMessageId, setMenuMessageId] = useState<string | null>(null);
@@ -781,6 +781,20 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         </Text>
       </TouchableOpacity>
 
+      {showScrollBtn && (
+        <View style={cs.scrollDownRow}>
+          <TouchableOpacity
+            onPress={() => {
+              listRef.current?.scrollToEnd({ animated: true });
+              setShowScrollBtn(false);
+            }}
+            style={cs.scrollDownBtn}
+          >
+            <Text style={cs.scrollDownTxt}>↓</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {queryError && (
         <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'rgba(255,92,121,0.12)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,92,121,0.25)' }}>
           <Text style={{ color: '#FF5C79', fontSize: 12, fontWeight: '600', textAlign: 'center' }}>
@@ -846,15 +860,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           </View>
         }
       />
-
-      {showScrollBtn && (
-        <TouchableOpacity
-          onPress={() => listRef.current?.scrollToEnd({ animated: true })}
-          style={cs.scrollDownBtn}
-        >
-          <Text style={cs.scrollDownTxt}>↓</Text>
-        </TouchableOpacity>
-      )}
 
       {!!otherTypingStatus && (
         <View style={cs.typingBubble}>
@@ -1014,8 +1019,9 @@ const cs = StyleSheet.create({
   inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
   e2eBanner: { alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 4 },
   e2eBannerTxt: { color: C.textMute, fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 16 },
-  scrollDownBtn: { position: 'absolute', right: 16, bottom: 90, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.15)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.4)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  scrollDownTxt: { color: C.cyan, fontSize: 20, fontWeight: '700', lineHeight: 24 },
+  scrollDownRow: { alignItems: 'flex-end', paddingHorizontal: 16, paddingVertical: 2 },
+  scrollDownBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.35)', alignItems: 'center', justifyContent: 'center' },
+  scrollDownTxt: { color: C.cyan, fontSize: 18, fontWeight: '700', lineHeight: 22 },
   typingBubble: { alignSelf: 'flex-start', marginHorizontal: 12, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(139,92,255,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,255,0.2)' },
   typingTxt: { color: C.textDim, fontSize: 12, fontStyle: 'italic' },
   callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
