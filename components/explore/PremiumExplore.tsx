@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 const C = {
   text: '#F7F8FF',
@@ -74,7 +75,6 @@ type FeatureProps = {
 
 type SoundCardProps = {
   item: any;
-  moodColor: string;
   isPlaying: boolean;
   busy: boolean;
   onPress: () => void;
@@ -94,6 +94,7 @@ type BattleCardProps = {
 };
 
 export function ExploreHeader({ title, subtitle }: HeaderProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.header}>
       <LinearGradient
@@ -102,7 +103,7 @@ export function ExploreHeader({ title, subtitle }: HeaderProps) {
         end={{ x: 1, y: 1 }}
         style={styles.headerGlow}
       />
-      <Text style={styles.eyebrow}>Discovery hub</Text>
+      <Text style={styles.eyebrow}>{t('explore.discoverHub')}</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
     </View>
@@ -185,25 +186,26 @@ export function ExploreChips({ items, activeId, onSelect }: ChipsProps) {
 }
 
 export function ExploreFeatureStrip({ section, onOpenSection }: FeatureProps) {
+  const { t } = useTranslation();
   const items = [
     {
       id: 'radio' as Section,
       title: 'Live radio',
-      subtitle: 'stazioni, DJ, room in diretta',
+      subtitle: t('explore.featureRadioSubtitle'),
       accent: C.cyan,
       icon: 'radio' as const,
     },
     {
       id: 'podcast' as Section,
       title: 'Podcast vault',
-      subtitle: 'episodi, hub, serie curate',
+      subtitle: t('explore.featurePodcastSubtitle'),
       accent: C.purple,
       icon: 'mic' as const,
     },
     {
       id: 'battles' as Section,
       title: 'Sound battles',
-      subtitle: 'challenge audio e votazioni',
+      subtitle: t('explore.featureBattlesSubtitle'),
       accent: C.orange,
       icon: 'crosshair' as const,
     },
@@ -251,7 +253,7 @@ export function ExploreSectionHeading({
   );
 }
 
-export function ExploreSoundCard({ item, moodColor, isPlaying, busy, onPress }: SoundCardProps) {
+export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardProps) {
   const bars = Array.from({ length: 18 }, (_, i) => {
     let h = 0;
     const seed = item.id || 'x';
@@ -262,13 +264,7 @@ export function ExploreSoundCard({ item, moodColor, isPlaying, busy, onPress }: 
   return (
     <LinearGradient colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.98)']} style={styles.soundCard}>
       <View style={styles.soundMetaRow}>
-        <View style={styles.soundAuthor}>
-          <View style={[styles.soundMoodDot, { backgroundColor: moodColor }]} />
-          <Text style={styles.soundAuthorText}>{item.username}</Text>
-        </View>
-        <View style={[styles.soundMoodBadge, { borderColor: moodColor + '55', backgroundColor: moodColor + '16' }]}>
-          <Text style={[styles.soundMoodText, { color: moodColor }]}>{item.mood}</Text>
-        </View>
+        <Text style={styles.soundAuthorText}>{item.username}</Text>
       </View>
 
       <View style={styles.soundMainRow}>
@@ -307,6 +303,7 @@ export function ExploreSoundCard({ item, moodColor, isPlaying, busy, onPress }: 
 }
 
 export function ExploreUserCard({ user, onPress }: UserCardProps) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.86}>
       <View style={[styles.userAvatar, user.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
@@ -319,8 +316,8 @@ export function ExploreUserCard({ user, onPress }: UserCardProps) {
         )}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.userName}>@{user.username || 'utente'}</Text>
-        <Text style={styles.userBio} numberOfLines={1}>{user.bio || 'Profilo audio in esplorazione'}</Text>
+        <Text style={styles.userName}>@{user.username || t('profile.defaultName').toLowerCase()}</Text>
+        <Text style={styles.userBio} numberOfLines={1}>{user.bio || t('explore.userBioFallback')}</Text>
       </View>
       <Feather name="arrow-up-right" size={17} color={C.textDim} />
     </TouchableOpacity>
@@ -334,6 +331,7 @@ export function ExploreBattleCard({
   onPress,
   onCancel,
 }: BattleCardProps) {
+  const { t } = useTranslation();
   const total = battle.challengerVotes + battle.opponentVotes;
   const challPct = total > 0 ? Math.round((battle.challengerVotes / total) * 100) : 50;
   const timeLeft = battle.votingEndsAt ? Math.max(0, battle.votingEndsAt.getTime() - Date.now()) : 0;
@@ -352,7 +350,9 @@ export function ExploreBattleCard({
 
       <View style={styles.battleCenter}>
         <View style={styles.battleUserBlock}>
-          <Text style={styles.battleAvatar}>{battle.challengerAvatar}</Text>
+          {/^[a-z][a-z-]*$/.test(battle.challengerAvatar)
+            ? <Feather name={battle.challengerAvatar as any} size={28} color={C.orange} />
+            : <Text style={styles.battleAvatar}>{battle.challengerAvatar}</Text>}
           <Text style={[styles.battleName, { color: C.orange }]} numberOfLines={1}>{battle.challengerName}</Text>
           <Text style={styles.battleVotes}>{battle.challengerVotes}</Text>
         </View>
@@ -360,7 +360,9 @@ export function ExploreBattleCard({
           <Text style={styles.battleVs}>VS</Text>
         </View>
         <View style={styles.battleUserBlock}>
-          <Text style={styles.battleAvatar}>{battle.opponentAvatar}</Text>
+          {/^[a-z][a-z-]*$/.test(battle.opponentAvatar)
+            ? <Feather name={battle.opponentAvatar as any} size={28} color={C.purple} />
+            : <Text style={styles.battleAvatar}>{battle.opponentAvatar}</Text>}
           <Text style={[styles.battleName, { color: C.purple }]} numberOfLines={1}>{battle.opponentName}</Text>
           <Text style={styles.battleVotes}>{battle.opponentVotes}</Text>
         </View>
@@ -371,10 +373,10 @@ export function ExploreBattleCard({
       </View>
 
       <View style={styles.battleFooter}>
-        <Text style={styles.battleFooterText}>{total} voti · ascolta e vota</Text>
+        <Text style={styles.battleFooterText}>{t('explore.votesCta', { count: total })}</Text>
         {canCancel ? (
           <TouchableOpacity style={styles.cancelPill} onPress={onCancel} disabled={canceling}>
-            <Text style={styles.cancelPillText}>{canceling ? 'Annullando…' : 'Annulla'}</Text>
+            <Text style={styles.cancelPillText}>{canceling ? t('explore.canceling') : t('common.cancel')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>

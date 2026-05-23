@@ -404,15 +404,15 @@ export default function StoryViewer({
               style={styles.menuBtn}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
               onPress={() =>
-                Alert.alert('Opzioni', undefined, [
-                  { text: 'Annulla', style: 'cancel' },
+                Alert.alert(t('stories.options'), undefined, [
+                  { text: t('common.cancel'), style: 'cancel' },
                   {
-                    text: 'Elimina storia',
+                    text: t('stories.deleteStory'),
                     style: 'destructive',
                     onPress: () =>
-                      Alert.alert('Elimina storia', 'Sei sicuro di voler eliminare questa storia?', [
-                        { text: 'Annulla', style: 'cancel' },
-                        { text: 'Elimina', style: 'destructive', onPress: () => onDeleteStato?.(screen.id!) },
+                      Alert.alert(t('stories.deleteStory'), t('stories.deleteStoryConfirm'), [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        { text: t('common.delete'), style: 'destructive', onPress: () => onDeleteStato?.(screen.id!) },
                       ]),
                   },
                 ])
@@ -471,7 +471,7 @@ export default function StoryViewer({
         <TouchableOpacity style={styles.swipeZone} onPress={openReplySheet} activeOpacity={0.7}>
           <Animated.View style={[styles.swipeHint, { transform: [{ translateY: swipeHintAnim }] }]}>
             <Feather name="chevron-up" size={22} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.swipeHintText}>Rispondi</Text>
+            <Text style={styles.swipeHintText}>{t('stories.reply')}</Text>
           </Animated.View>
         </TouchableOpacity>
       )}
@@ -487,7 +487,7 @@ export default function StoryViewer({
 
       {screenIdx < totalScreens - 1 && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>tap → avanti</Text>
+          <Text style={styles.hintText}>{t('stories.tapNext')}</Text>
         </View>
       )}
 
@@ -510,14 +510,14 @@ export default function StoryViewer({
               <Text style={styles.sheetTitle}>
                 {viewers.length === 0
                   ? t('stories.noViews')
-                  : `Visto da ${viewers.length} ${viewers.length === 1 ? 'persona' : 'persone'}`}
+                  : t('stories.seenBySheet', { count: viewers.length })}
               </Text>
             </View>
             <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
               {viewers.length === 0 ? (
                 <View style={styles.sheetEmpty}>
                   <Feather name="eye-off" size={36} color="rgba(255,255,255,0.15)" />
-                  <Text style={styles.sheetEmptyText}>Nessuno ha ancora visto questa storia</Text>
+                  <Text style={styles.sheetEmptyText}>{t('stories.noViewsYet')}</Text>
                 </View>
               ) : (
                 viewers.map((u) => (
@@ -552,7 +552,7 @@ export default function StoryViewer({
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Feather name="message-circle" size={16} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.sheetTitle}>Rispondi a {group.label}</Text>
+              <Text style={styles.sheetTitle}>{t('stories.replyTo', { name: group.label })}</Text>
             </View>
 
             {/* Story preview */}
@@ -569,11 +569,11 @@ export default function StoryViewer({
                 <View style={styles.recordingRow}>
                   <View style={styles.recordingDot} />
                   <Text style={styles.recordingTimer}>{replySeconds}s</Text>
-                  <Text style={styles.recordingLabel}>Registrazione in corso...</Text>
+                  <Text style={styles.recordingLabel}>{t('stories.recordingInProgress')}</Text>
                   <TouchableOpacity style={styles.stopVoiceBtn} onPress={stopVoiceReply} disabled={sendingReply}>
                     {sendingReply
-                      ? <Text style={styles.stopVoiceBtnText}>Invio...</Text>
-                      : <><Feather name="stop-circle" size={18} color="#FF5C79" /><Text style={styles.stopVoiceBtnText}>Stop</Text></>}
+                      ? <Text style={styles.stopVoiceBtnText}>{t('stories.replySending')}</Text>
+                      : <><Feather name="stop-circle" size={18} color="#FF5C79" /><Text style={styles.stopVoiceBtnText}>{t('stories.stop')}</Text></>}
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -583,7 +583,7 @@ export default function StoryViewer({
                   </TouchableOpacity>
                   <TextInput
                     style={styles.replyInput}
-                    placeholder="Scrivi un messaggio..."
+                    placeholder={t('stories.messagePlaceholder')}
                     placeholderTextColor="rgba(255,255,255,0.3)"
                     value={replyText}
                     onChangeText={setReplyText}

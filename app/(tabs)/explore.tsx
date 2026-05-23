@@ -35,14 +35,6 @@ let _TP: any = null; let _S: any = {};
 try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
 const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 
-const MOOD_KEYS = ['Tutti', 'Rilassante', 'Energico', 'Gioioso', 'Nostalgico'];
-
-const MOOD_COLORS: Record<string, string> = {
-  Energico: '#FF9B5E',
-  Rilassante: '#67E8F9',
-  Gioioso: '#D9FF5A',
-  Nostalgico: '#8B5CFF',
-};
 
 async function searchUsers(searchText: string) {
   const lower = searchText.trim().toLowerCase();
@@ -104,7 +96,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const { t } = useTranslation();
   const [section, setSection] = useState<Section>('suoni');
   const [searchText, setSearchText] = useState('');
-  const [selectedMood, setSelectedMood] = useState('Tutti');
   const [sortBy, setSortBy] = useState('recent');
   const [sounds, setSounds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +145,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
         soundRef.current = null;
       }
     };
-  }, [selectedMood, sortBy]);
+  }, [sortBy]);
 
   useEffect(() => {
     if (section !== 'battles') return;
@@ -210,7 +201,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const loadSounds = async () => {
     setLoading(true);
     try {
-      const results = await searchSounds(searchText, selectedMood, sortBy);
+      const results = await searchSounds(searchText, 'Tutti', sortBy);
       setSounds(results);
     } catch {
       Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
@@ -221,24 +212,24 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   const handleCancelBattle = async (battleId: string) => {
     if (!auth.currentUser) {
-      Alert.alert('Errore', 'Devi essere loggato per annullare una battaglia.');
+      Alert.alert(t('common.error'), t('explore.notLoggedIn'));
       return;
     }
 
     Alert.alert(
-      'Annulla battaglia',
-      'Sei sicuro di voler annullare questa battaglia? Solo il creatore può farlo.',
+      t('battle.cancelTitle'),
+      t('explore.cancelBattleMsg'),
       [
-        { text: 'No', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Sì',
+          text: t('common.yes'),
           style: 'destructive',
           onPress: async () => {
             try {
               setCancelingBattleId(battleId);
               await cancelBattle(battleId);
             } catch {
-              Alert.alert('Errore', 'Impossibile annullare la battaglia.');
+              Alert.alert(t('common.error'), t('explore.cancelBattleError'));
             } finally {
               setCancelingBattleId(null);
             }
@@ -303,18 +294,18 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const isPlaying = (id: string) => playingId === id && !isPaused;
 
   const modeItems = [
-    { id: 'suoni', title: 'Suoni', subtitle: 'clip, drop, frammenti vocali', icon: 'music', accent: '#67E8F9' },
-    { id: 'utenti', title: 'Utenti', subtitle: 'creator, profili, bio audio', icon: 'users', accent: '#8B5CFF' },
-    { id: 'podcast', title: 'Podcast', subtitle: 'serie, episodi, hub', icon: 'mic', accent: '#F472FF' },
-    { id: 'radio', title: 'Radio', subtitle: 'stazioni, live room, DJ', icon: 'radio', accent: '#D9FF5A' },
-    { id: 'battles', title: 'Battles', subtitle: 'sfide e votazioni', icon: 'crosshair', accent: '#FF9B5E' },
-  ] as const;
+    { id: 'suoni', title: t('explore.modeSound'), subtitle: t('explore.modeSoundSubtitle'), icon: 'music', accent: '#67E8F9' },
+    { id: 'utenti', title: t('explore.modeUsers'), subtitle: t('explore.modeUsersSubtitle'), icon: 'users', accent: '#8B5CFF' },
+    { id: 'podcast', title: t('explore.modePodcast'), subtitle: t('explore.modePodcastSubtitle'), icon: 'mic', accent: '#F472FF' },
+    { id: 'radio', title: t('explore.modeRadio'), subtitle: t('explore.modeRadioSubtitle'), icon: 'radio', accent: '#D9FF5A' },
+    { id: 'battles', title: t('explore.modeBattles'), subtitle: t('explore.modeBattlesSubtitle'), icon: 'crosshair', accent: '#FF9B5E' },
+  ];
 
   const renderHeader = () => (
     <>
       <ExploreHeader
-        title="Explore what moves"
-        subtitle="Trova audio, creator, live radio, podcast e battle in un hub più ordinato e immediato."
+        title={t('explore.movesTitle')}
+        subtitle={t('explore.movesSubtitle')}
       />
 
       <ExploreModeRail
@@ -328,9 +319,9 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
           value={section === 'utenti' ? userSearchText : searchText}
           placeholder={
             section === 'utenti'
-              ? 'Cerca creator per username…'
+              ? t('explore.searchCreators')
               : section === 'battles'
-                ? 'Scopri battle e temi attivi…'
+                ? t('explore.searchBattles')
                 : t('explore.searchPlaceholder')
           }
           onChangeText={section === 'utenti' ? setUserSearchText : setSearchText}
@@ -339,25 +330,15 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       )}
 
       {section === 'suoni' && (
-        <>
-          <ExploreChips
-            items={MOOD_KEYS.map((m) => ({
-              id: m,
-              label: m === 'Tutti' ? t('moods.all') : t(`moods.${m.toLowerCase()}`, m),
-            }))}
-            activeId={selectedMood}
-            onSelect={setSelectedMood}
-          />
-          <ExploreChips
-            items={[
-              { id: 'recent', label: t('explore.recent') },
-              { id: 'likes', label: t('explore.likes') },
-              { id: 'listens', label: t('explore.listens') },
-            ]}
-            activeId={sortBy}
-            onSelect={setSortBy}
-          />
-        </>
+        <ExploreChips
+          items={[
+            { id: 'recent', label: t('explore.recent') },
+            { id: 'likes', label: t('explore.likes') },
+            { id: 'listens', label: t('explore.listens') },
+          ]}
+          activeId={sortBy}
+          onSelect={setSortBy}
+        />
       )}
     </>
   );
@@ -409,13 +390,13 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
           <>
             {renderHeader()}
             {section === 'suoni' && (
-              <ExploreSectionHeading title="Fresh audio" caption="Discover" counter={sounds.length} />
+              <ExploreSectionHeading title={t('explore.freshAudio')} caption={t('explore.discover')} counter={sounds.length} />
             )}
             {section === 'utenti' && (
-              <ExploreSectionHeading title="Find creators" caption="Profiles" counter={users.length} />
+              <ExploreSectionHeading title={t('explore.findCreators')} caption={t('explore.profiles')} counter={users.length} />
             )}
             {section === 'battles' && (
-              <ExploreSectionHeading title="Open battles" caption="Competitive audio" counter={battles.length} />
+              <ExploreSectionHeading title={t('explore.openBattles')} caption={t('explore.competitiveAudio')} counter={battles.length} />
             )}
           </>
         )}
@@ -444,7 +425,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
           return (
             <ExploreSoundCard
               item={item}
-              moodColor={MOOD_COLORS[item.mood] || '#6b7280'}
               isPlaying={isPlaying(item.id)}
               busy={soundBusy}
               onPress={() => handlePlayPause(item)}
@@ -460,27 +440,27 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
             !userSearchText.trim() ? (
               <ExploreEmptyState
                 icon="🔎"
-                title="Cerca un creator"
-                subtitle="Digita un username per trovare profili, bio e creator da seguire."
+                title={t('explore.noCreatorsTitle')}
+                subtitle={t('explore.noCreatorsSubtitle')}
               />
             ) : (
               <ExploreEmptyState
                 icon="👤"
-                title="Nessun utente trovato"
-                subtitle="Prova con un altro username o un nome più corto."
+                title={t('explore.noCreatorsFoundTitle')}
+                subtitle={t('explore.noCreatorsFoundSubtitle')}
               />
             )
           ) : section === 'battles' ? (
             <ExploreEmptyState
               icon="⚔️"
-              title="Nessuna battle attiva"
-              subtitle="Apri un profilo e lancia una sfida per iniziare una nuova votazione."
+              title={t('explore.noBattlesTitle')}
+              subtitle={t('explore.noBattlesSubtitle')}
             />
           ) : (
             <ExploreEmptyState
               icon="🎧"
               title={t('home.noSoundsFound')}
-              subtitle="Cambia mood, ordina diversamente o prova una ricerca più ampia."
+              subtitle={t('explore.noSoundsSubtitle')}
             />
           )
         }
