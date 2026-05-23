@@ -144,7 +144,11 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
             <View style={[nm.resultAvatar, u.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
               {u.profilePicture
                 ? <Image source={{ uri: u.profilePicture }} style={{ width: 40, height: 40, borderRadius: 20 }} />
-                : <Text style={nm.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>}
+                : /^[a-z][a-z-]*$/.test(u.avatar)
+                  ? <Feather name={u.avatar as any} size={20} color="#67E8F9" />
+                  : u.avatar
+                    ? <Text style={nm.resultAvatarEmojiTxt}>{u.avatar}</Text>
+                    : <Text style={nm.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={nm.resultName}>{u.displayName}</Text>
@@ -376,6 +380,7 @@ const nm = StyleSheet.create({
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   resultAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)', alignItems: 'center', justifyContent: 'center' },
   resultAvatarTxt: { color: C.cyan, fontSize: 16, fontWeight: '800' },
+  resultAvatarEmojiTxt: { fontSize: 22 },
   resultName: { color: C.text, fontSize: 14, fontWeight: '700' },
   resultUser: { color: C.textDim, fontSize: 11 },
   cancelBtn: { marginTop: 16, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },

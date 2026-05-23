@@ -310,6 +310,8 @@ export function ExploreUserCard({ user, onPress }: UserCardProps) {
       <View style={[styles.userAvatar, user.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
         {user.profilePicture ? (
           <Image source={{ uri: user.profilePicture }} style={{ width: 54, height: 54, borderRadius: 27 }} />
+        ) : /^[a-z][a-z-]*$/.test(user.avatar) ? (
+          <Feather name={user.avatar as any} size={26} color="#00FF9C" />
         ) : (
           <Text style={{ fontSize: 26 }}>{user.avatar || '🎧'}</Text>
         )}
