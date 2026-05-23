@@ -122,59 +122,6 @@ const rb = StyleSheet.create({
   },
 });
 
-function OtaBanner({ isUpdatePending }: { isUpdatePending: boolean }) {
-  const [dismissed, setDismissed] = useState(false);
-  const insets = useSafeAreaInsets();
-
-  if (!isUpdatePending || dismissed || !Updates.isEnabled) return null;
-
-  return (
-    <View style={[ob.banner, { top: insets.top + 8 }]}>
-      <Feather name="download-cloud" size={14} color="#00FF9C" />
-      <Text style={ob.txt}>Aggiornamento pronto</Text>
-      <TouchableOpacity onPress={() => Updates.reloadAsync().catch(() => {})} style={ob.restartBtn}>
-        <Text style={ob.restartTxt}>Riavvia</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setDismissed(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Feather name="x" size={14} color="#687392" />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const ob = StyleSheet.create({
-  banner: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(13,18,33,0.97)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
-    zIndex: 9998,
-    elevation: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-  },
-  txt: { color: '#F7F8FF', fontSize: 13, fontWeight: '600', flex: 1 },
-  restartBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,255,156,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.3)',
-  },
-  restartTxt: { color: '#00FF9C', fontSize: 12, fontWeight: '700' },
-});
-
 // Mantieni lo splash screen visibile mentre i font caricano
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -247,12 +194,18 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
   }, []);
 
-  // OTA updates — scarica in background, mostra banner quando pronto
+  // OTA updates — scarica e applica silenziosamente
   useEffect(() => {
-    if (!Updates.isEnabled || isUpdatePending) return;
+    if (!Updates.isEnabled) return;
+    if (isUpdatePending) {
+      Updates.reloadAsync().catch(() => {});
+      return;
+    }
     if (!isUpdateAvailable || otaFetchStartedRef.current) return;
     otaFetchStartedRef.current = true;
-    Updates.fetchUpdateAsync().catch(() => {});
+    Updates.fetchUpdateAsync()
+      .then((result) => { if (result.isNew) return Updates.reloadAsync(); })
+      .catch(() => {});
   }, [isUpdateAvailable, isUpdatePending]);
 
   // Controlla se la build è ancora supportata e se c'è maintenance mode
@@ -340,7 +293,6 @@ export default function RootLayout() {
       </Stack>
       <CallScreen />
       <RejoinBanner />
-      <OtaBanner isUpdatePending={isUpdatePending} />
     </CallProvider>
   );
 }
