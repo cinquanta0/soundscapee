@@ -262,6 +262,7 @@ export default function App() {
   // Form per nuovo suono
   const [newSoundTitle, setNewSoundTitle] = useState('');
   const [newSoundDescription, setNewSoundDescription] = useState('');
+  const uploadDescRef = useRef<TextInput>(null);
   const [newSoundMood, setNewSoundMood] = useState('Rilassante');
 
   // Scelta tipo pubblicazione
@@ -477,6 +478,7 @@ export default function App() {
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
+  const bioInputRef = useRef<TextInput>(null);
   const [editAvatar, setEditAvatar] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -2187,10 +2189,12 @@ if (loading) {
               editable={!uploading}
               returnKeyType="next"
               blurOnSubmit={false}
+              onSubmitEditing={() => uploadDescRef.current?.focus()}
             />
             {titleError ? <Text style={{ color: '#ef4444', fontSize: 12, marginTop: -8, marginBottom: 4 }}>{titleError}</Text> : null}
             
             <TextInput
+              ref={uploadDescRef}
               style={[styles.input, styles.textArea]}
               placeholder={t('upload.descriptionPlaceholder')}
               placeholderTextColor="#94a3b8"
@@ -2882,12 +2886,14 @@ if (loading) {
           editable={!savingProfile}
           returnKeyType="next"
           blurOnSubmit={false}
+          onSubmitEditing={() => bioInputRef.current?.focus()}
         />
         <Text style={styles.charCount}>{editUsername.length}/20</Text>
 
         {/* Bio */}
         <Text style={styles.editLabel}>{t('profile.bio')}</Text>
         <TextInput
+          ref={bioInputRef}
           style={[styles.input, styles.textArea]}
           placeholder={t('profile.bioPlaceholder')}
           placeholderTextColor="#94a3b8"
