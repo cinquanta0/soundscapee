@@ -353,6 +353,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const listRef = useRef<FlatList<Messaggio>>(null);
   const autoScrollRef = useRef(true);
   const isFirstRenderRef = useRef(true);
+  const messagesLengthRef = useRef(0);
   const lastMessageIdRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
   const mySecretKeyRef = useRef<Uint8Array | null>(null);
@@ -406,6 +407,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       const myUid = myUidRef.current;
       const nextLastId = msgs[msgs.length - 1]?.id;
       lastMessageIdRef.current = nextLastId ?? null;
+      messagesLengthRef.current = msgs.length;
       setMessages(msgs.map((m) => decryptMsg(m, sk, myPublicKeyB64Ref.current, myUid)));
       if (!isFirstRenderRef.current && (autoScrollRef.current || prevLastId !== nextLastId)) {
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
@@ -419,13 +421,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       soundRef.current?.unloadAsync();
     };
   }, [conversationId]);
-
-  useEffect(() => {
-    if (isFirstRenderRef.current && messages.length > 0) {
-      isFirstRenderRef.current = false;
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
-    }
-  }, [messages]);
 
   useEffect(() => {
     if (callPhase === 'incoming' || callPhase === 'connecting' || callPhase === 'ringing' || callPhase === 'active') {
@@ -727,7 +722,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
       <View style={cs.header}>
         <TouchableOpacity onPress={onBack} style={cs.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={cs.backTxt}>🔙</Text>
+          <Text style={cs.backTxt}>‹</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onViewProfile?.(otherUserId)}
@@ -825,6 +820,12 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             playingPosition={playingPosition}
           />
         )}
+        onContentSizeChange={() => {
+          if (isFirstRenderRef.current && messagesLengthRef.current > 0) {
+            isFirstRenderRef.current = false;
+            listRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
         onScrollBeginDrag={closeMenu}
         onScroll={({ nativeEvent }) => {
           const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
