@@ -795,6 +795,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       <FlatList
         ref={listRef}
         data={messages}
+        initialNumToRender={100}
+        maxToRenderPerBatch={100}
         keyExtractor={(m) => m.id}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
