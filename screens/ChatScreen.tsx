@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, StatusBar, Dimensions, Animated,
+  ActivityIndicator, StatusBar, Dimensions, Animated, Image,
   Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -331,11 +331,12 @@ interface Props {
   otherUserId: string;
   otherUserName: string;
   otherUserAvatar: string;
+  otherUserPhoto?: string;
   onBack: () => void;
   onViewProfile?: (userId: string) => void;
 }
 
-export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, onBack, onViewProfile }: Props) {
+export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, otherUserPhoto, onBack, onViewProfile }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Messaggio[]>([]);
@@ -717,15 +718,19 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           activeOpacity={onViewProfile ? 0.7 : 1}
           style={cs.headerMain}
         >
-          <View style={cs.headerAvatar}>
-            {/^[a-z][a-z-]*$/.test(otherUserAvatar) ? (
-              <Feather name={otherUserAvatar as any} size={18} color={C.purple} />
-            ) : otherUserAvatar ? (
-              <Text style={cs.headerAvatarEmoji}>{otherUserAvatar}</Text>
-            ) : (
-              <Text style={cs.headerAvatarTxt}>{initial}</Text>
-            )}
-          </View>
+          {otherUserPhoto ? (
+            <Image source={{ uri: otherUserPhoto }} style={cs.headerAvatarImg} />
+          ) : (
+            <View style={cs.headerAvatar}>
+              {/^[a-z][a-z-]*$/.test(otherUserAvatar) ? (
+                <Feather name={otherUserAvatar as any} size={18} color={C.purple} />
+              ) : otherUserAvatar ? (
+                <Text style={cs.headerAvatarEmoji}>{otherUserAvatar}</Text>
+              ) : (
+                <Text style={cs.headerAvatarTxt}>{initial}</Text>
+              )}
+            </View>
+          )}
           <View>
             <Text style={cs.headerName}>{otherUserName}</Text>
             <Text style={cs.headerSub}>{t('chat.privateMessages')}</Text>
@@ -944,6 +949,7 @@ const cs = StyleSheet.create({
   backTxt: { color: C.cyan, fontSize: 28, fontWeight: '300', lineHeight: 32 },
   headerMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1.5, borderColor: 'rgba(139,92,255,0.35)', alignItems: 'center', justifyContent: 'center' },
+  headerAvatarImg: { width: 38, height: 38, borderRadius: 19 },
   headerAvatarTxt: { color: C.purple, fontSize: 18, fontStyle: 'italic' },
   headerAvatarEmoji: { fontSize: 20 },
   headerName: { color: C.text, fontSize: 15, fontWeight: '700' },

@@ -167,7 +167,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const { t } = useTranslation();
   const { canRejoin } = useCall();
   const [conversations, setConversations] = useState<Conversazione[]>([]);
-  const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(initialChat ?? null);
+  const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string; userPhoto?: string } | null>(initialChat ?? null);
   const [showNewConv, setShowNewConv] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [showGroupCall, setShowGroupCall] = useState(false);
@@ -201,6 +201,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
         otherUserId={activeChat.userId}
         otherUserName={activeChat.userName}
         otherUserAvatar={activeChat.userAvatar}
+        otherUserPhoto={activeChat.userPhoto}
         onBack={() => setActiveChat(null)}
         onViewProfile={onViewProfile}
       />
@@ -274,7 +275,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
           renderItem={({ item }) => (
             <ConvRow
               conv={item}
-              onPress={() => setActiveChat({ userId: item.otherUserId, userName: item.otherUserName, userAvatar: item.otherUserAvatar })}
+              onPress={() => setActiveChat({ userId: item.otherUserId, userName: item.otherUserName, userAvatar: item.otherUserAvatar, userPhoto: item.otherUserPhoto })}
             />
           )}
           contentContainerStyle={{ paddingBottom: 120 }}
