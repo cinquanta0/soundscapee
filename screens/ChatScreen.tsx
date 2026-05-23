@@ -819,7 +819,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           />
         )}
         onContentSizeChange={() => {
-          if (isFirstRenderRef.current) {
+          if (isFirstRenderRef.current && messages.length > 0) {
             listRef.current?.scrollToEnd({ animated: false });
             isFirstRenderRef.current = false;
           }
