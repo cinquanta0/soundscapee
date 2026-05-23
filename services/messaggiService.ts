@@ -2,7 +2,7 @@ import {
   collection, addDoc, query, where, orderBy,
   limit, serverTimestamp, doc, updateDoc, onSnapshot,
   setDoc, getDoc, deleteDoc, Unsubscribe, increment,
-  arrayUnion, arrayRemove,
+  arrayUnion, arrayRemove, deleteField,
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
@@ -54,6 +54,7 @@ export interface Conversazione {
   otherUserId: string;
   otherUserName: string;
   otherUserAvatar: string;
+  otherUserPhoto?: string;
   lastDuration: number;
   lastText: string;
   lastType: 'audio' | 'text';
@@ -101,6 +102,7 @@ export function listenConversazioni(
         otherUserId: otherId,
         otherUserName: data[`name_${otherId}`] || 'Utente',
         otherUserAvatar: data[`avatar_${otherId}`] || '🎵',
+        otherUserPhoto: data[`photo_${otherId}`] || undefined,
         lastDuration: data.lastDuration || 0,
         lastText: data.lastText || '',
         lastType: (data.lastType as 'audio' | 'text') ?? 'audio',
@@ -361,11 +363,13 @@ async function _updateConversation(
   const senderProfile = await getDoc(doc(db, 'users', senderId));
   const sName = senderProfile.data()?.username || senderProfile.data()?.displayName || 'Utente';
   const sAvatar = senderProfile.data()?.avatar || '🎵';
+  const sPhoto: string | undefined = senderProfile.data()?.profilePicture || undefined;
 
   await setDoc(convRef, {
     participants: [senderId, receiverId].sort(),
     [`name_${senderId}`]: sName,
     [`avatar_${senderId}`]: sAvatar,
+    ...(sPhoto ? { [`photo_${senderId}`]: sPhoto } : {}),
     [`name_${receiverId}`]: receiverName,
     [`avatar_${receiverId}`]: receiverAvatar,
     lastSenderId: senderId,
@@ -376,4 +380,27 @@ async function _updateConversation(
     [`unread_${receiverId}`]: increment(1),
     lastMessageAscoltato: false,
   }, { merge: true });
+}
+
+// ─── Typing ───────────────────────────────────────────────────────────────────
+
+export async function setTypingStatus(conversationId: string, status: 'typing' | 'recording' | false): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    await updateDoc(doc(db, 'conversations', conversationId), {
+      [`typing_${user.uid}`]: status || deleteField(),
+    });
+  } catch {}
+}
+
+export function listenTyping(
+  conversationId: string,
+  otherUid: string,
+  cb: (status: 'typing' | 'recording' | false) => void,
+): Unsubscribe {
+  return onSnapshot(doc(db, 'conversations', conversationId), (snap) => {
+    const val = snap.data()?.[`typing_${otherUid}`];
+    cb(val === 'typing' || val === 'recording' ? val : false);
+  }, () => cb(false));
 }

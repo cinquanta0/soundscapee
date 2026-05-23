@@ -13,6 +13,7 @@ import { auth } from '../firebaseConfig';
 import {
   Messaggio, listenMessaggi, inviaMessaggio, inviaTestoMessaggio,
   segnaAscoltato, eliminaMessaggio, genWaveform, toggleReazione,
+  setTypingStatus, listenTyping,
 } from '../services/messaggiService';
 import { blockUser, unblockUser, listenBlockedUsers } from '../services/blockService';
 import { useCall } from '../context/CallContext';
@@ -255,7 +256,11 @@ function MessageBubble({
   );
 }
 
-function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => void }) {
+function RecordButton({ onSend, onStartRecording, onStopRecording }: {
+  onSend: (uri: string, duration: number) => void;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+}) {
   const { t } = useTranslation();
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -273,6 +278,7 @@ function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => v
       Vibration.vibrate(30);
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       Animated.spring(scaleAnim, { toValue: 1.25, useNativeDriver: true, tension: 200, friction: 8 }).start();
+      onStartRecording?.();
     } catch {
       Alert.alert(t('common.error'), t('chat.errors.cannotRecord'));
     }
@@ -283,6 +289,7 @@ function RecordButton({ onSend }: { onSend: (uri: string, duration: number) => v
     clearInterval(timerRef.current!);
     setIsRecording(false);
     Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }).start();
+    onStopRecording?.();
     try {
       await recordingRef.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
@@ -626,6 +633,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       });
       setText('');
       setReplyTo(null);
+      setTypingStatus(conversationId, false).catch(() => {});
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       closeMenu();
     } catch {
       Alert.alert(t('common.error'), t('chat.errors.cannotSend'));
@@ -636,6 +645,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   };
 
   const [isBlocked, setIsBlocked] = useState(false);
+  const [otherTypingStatus, setOtherTypingStatus] = useState<'typing' | 'recording' | false>(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const myUid = auth.currentUser?.uid;
@@ -643,6 +654,15 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
     const unsub = listenBlockedUsers(myUid, (ids) => setIsBlocked(ids.includes(otherUserId)));
     return unsub;
   }, [otherUserId]);
+
+  useEffect(() => {
+    const unsub = listenTyping(conversationId, otherUserId, setOtherTypingStatus);
+    return () => {
+      unsub();
+      setTypingStatus(conversationId, false).catch(() => {});
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    };
+  }, [conversationId, otherUserId]);
 
   const handleBlockMenu = () => {
     const myUid = auth.currentUser?.uid;
@@ -782,6 +802,14 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         }
       />
 
+      {!!otherTypingStatus && (
+        <View style={cs.typingBubble}>
+          <Text style={cs.typingTxt}>
+            {otherUserName} {otherTypingStatus === 'recording' ? 'sta registrando...' : 'sta scrivendo...'}
+          </Text>
+        </View>
+      )}
+
       <View style={[cs.inputShell, { paddingBottom: Math.max(insets.bottom + 10, 22) }]}>
         {replyTo && (
           <View style={cs.replyBar}>
@@ -802,7 +830,16 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
               placeholder={t('chat.textPlaceholder')}
               placeholderTextColor={C.textMute}
               value={text}
-              onChangeText={setText}
+              onChangeText={(val) => {
+                setText(val);
+                if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                setTypingStatus(conversationId, val.length > 0 ? 'typing' : false).catch(() => {});
+                if (val.length > 0) {
+                  typingTimerRef.current = setTimeout(() => {
+                    setTypingStatus(conversationId, false).catch(() => {});
+                  }, 8000);
+                }
+              }}
               multiline
               maxLength={600}
             />
@@ -820,7 +857,11 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
           {sending
             ? <ActivityIndicator color={C.cyan} style={{ marginLeft: 6, marginBottom: 12 }} />
-            : <RecordButton onSend={handleSendAudio} />}
+            : <RecordButton
+                onSend={handleSendAudio}
+                onStartRecording={() => setTypingStatus(conversationId, 'recording').catch(() => {})}
+                onStopRecording={() => setTypingStatus(conversationId, false).catch(() => {})}
+              />}
         </View>
 
         {!keyboardVisible && (
@@ -917,6 +958,8 @@ const cs = StyleSheet.create({
   inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
   e2eBanner: { alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 4 },
   e2eBannerTxt: { color: C.textMute, fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 16 },
+  typingBubble: { alignSelf: 'flex-start', marginHorizontal: 12, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(139,92,255,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,255,0.2)' },
+  typingTxt: { color: C.textDim, fontSize: 12, fontStyle: 'italic' },
   callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
   callBtnDisabled: { opacity: 0.3 },
   callBtnTxt: { fontSize: 16 },

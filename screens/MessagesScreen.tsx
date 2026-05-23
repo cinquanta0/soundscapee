@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -50,9 +50,13 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
   return (
     <TouchableOpacity style={cr.row} onPress={onPress} activeOpacity={0.86}>
       <View style={cr.avatarWrap}>
-        <View style={cr.avatar}>
-          <Text style={cr.avatarTxt}>{initial}</Text>
-        </View>
+        {conv.otherUserPhoto ? (
+          <Image source={{ uri: conv.otherUserPhoto }} style={cr.avatarImg} />
+        ) : (
+          <View style={cr.avatar}>
+            <Text style={cr.avatarTxt}>{conv.otherUserAvatar.length <= 2 ? conv.otherUserAvatar : initial}</Text>
+          </View>
+        )}
         {conv.unread > 0 && (
           <View style={cr.badge}>
             <Text style={cr.badgeTxt}>{conv.unread > 9 ? '9+' : conv.unread}</Text>
@@ -315,6 +319,11 @@ const cr = StyleSheet.create({
     color: '#67E8F9',
     fontSize: 18,
     fontWeight: '800',
+  },
+  avatarImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   badge: {
     position: 'absolute',

@@ -102,6 +102,7 @@ import {
   getFollowingList,
   getFollowStats,
   deleteComment,
+  uploadProfilePicture,
 } from '../../services/firebaseService';
 
 import CommunitiesScreen from './communities';
@@ -157,11 +158,16 @@ function isFeatherIcon(val: string | undefined): boolean {
   return !!val && FEATHER_ICON_OPTIONS.includes(val);
 }
 
-function AppAvatar({ avatar, username, size = 36 }: { avatar?: string; username?: string; size?: number }) {
+function AppAvatar({ avatar, username, size = 36, photo }: { avatar?: string; username?: string; size?: number; photo?: string }) {
   const color = getAvatarColor(username || avatar || '?');
   const r = size / 2;
   const initial = (username?.[0] || '?').toUpperCase();
 
+  if (photo) {
+    return (
+      <Image source={{ uri: photo }} style={{ width: size, height: size, borderRadius: r }} />
+    );
+  }
   if (isFeatherIcon(avatar)) {
     return (
       <View style={{ width: size, height: size, borderRadius: r, backgroundColor: color, justifyContent: 'center', alignItems: 'center' }}>
@@ -467,6 +473,8 @@ export default function App() {
   const [pendingChat, setPendingChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null);
   
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfilePicture, setEditProfilePicture] = useState<string | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
@@ -1360,7 +1368,37 @@ const handleEditProfile = () => {
   setEditUsername(userProfile?.username || '');
   setEditBio(userProfile?.bio || '');
   setEditAvatar(userProfile?.avatar || '🎧');
+  setEditProfilePicture(userProfile?.profilePicture || null);
   setShowEditProfileModal(true);
+};
+
+const handlePickProfilePicture = async () => {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    Alert.alert('Permesso negato', 'Consenti accesso alla galleria per cambiare la foto profilo.');
+    return;
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.8,
+  });
+  if (result.canceled) return;
+  const uri = result.assets[0].uri;
+  setUploadingPicture(true);
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+    const url = await uploadProfilePicture(user.uid, uri);
+    setEditProfilePicture(url);
+    setUserProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
+    setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
+  } catch {
+    Alert.alert('Errore', 'Impossibile caricare la foto profilo.');
+  } finally {
+    setUploadingPicture(false);
+  }
 };
 
 // Salva modifiche profilo
@@ -1797,7 +1835,7 @@ if (loading) {
           <Text style={styles.profileThemeButtonText}>Sfondo</Text>
         </TouchableOpacity>
       )}
-      <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} />
+      <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} photo={userProfile?.profilePicture} />
       <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
       {!!userProfile?.bio && <Text style={styles.profileBio}>{userProfile.bio}</Text>}
@@ -2755,6 +2793,24 @@ if (loading) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Foto profilo */}
+        <Text style={styles.editLabel}>Foto profilo</Text>
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity onPress={handlePickProfilePicture} disabled={uploadingPicture} style={{ position: 'relative' }}>
+            {editProfilePicture ? (
+              <Image source={{ uri: editProfilePicture }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+            ) : (
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="camera" size={24} color="#94a3b8" />
+              </View>
+            )}
+            <View style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' }}>
+              {uploadingPicture ? <ActivityIndicator size="small" color="#000" /> : <Feather name="edit-2" size={12} color="#000" />}
+            </View>
+          </TouchableOpacity>
+          <Text style={{ color: '#687392', fontSize: 11, marginTop: 8 }}>Tocca per cambiare foto</Text>
+        </View>
+
         {/* Avatar Selector */}
         <Text style={styles.editLabel}>{t('profile.chooseAvatar')}</Text>
         {/* Anteprima avatar corrente */}
