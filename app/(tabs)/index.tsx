@@ -473,6 +473,7 @@ export default function App() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [pendingChat, setPendingChat] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null);
   
+  const [zoomPhotoUrl, setZoomPhotoUrl] = useState<string | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editProfilePicture, setEditProfilePicture] = useState<string | null>(null);
   const [uploadingPicture, setUploadingPicture] = useState(false);
@@ -1850,7 +1851,12 @@ if (loading) {
           <Text style={styles.profileThemeButtonText}>Sfondo</Text>
         </TouchableOpacity>
       )}
-      <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} photo={userProfile?.profilePicture} />
+      <TouchableOpacity
+        activeOpacity={userProfile?.profilePicture ? 0.85 : 1}
+        onPress={() => { if (userProfile?.profilePicture) setZoomPhotoUrl(userProfile.profilePicture); }}
+      >
+        <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} photo={userProfile?.profilePicture} />
+      </TouchableOpacity>
       <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
       {!!userProfile?.bio && <Text style={styles.profileBio}>{userProfile.bio}</Text>}
@@ -3279,6 +3285,23 @@ if (loading) {
           </View>
         </Modal>
       )}
+
+      {/* Photo zoom modal */}
+      <Modal visible={!!zoomPhotoUrl} transparent animationType="fade" onRequestClose={() => setZoomPhotoUrl(null)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={1}
+          onPress={() => setZoomPhotoUrl(null)}
+        >
+          {zoomPhotoUrl && (
+            <Image
+              source={{ uri: zoomPhotoUrl }}
+              style={{ width: '90%', height: '70%', borderRadius: 16 }}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
 
     </SafeAreaView>
   );
