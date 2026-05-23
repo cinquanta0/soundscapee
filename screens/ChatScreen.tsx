@@ -727,7 +727,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
       <View style={cs.header}>
         <TouchableOpacity onPress={onBack} style={cs.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={cs.backTxt}>‹</Text>
+          <Text style={cs.backTxt}>🔙</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onViewProfile?.(otherUserId)}
