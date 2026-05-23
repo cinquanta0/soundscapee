@@ -1372,6 +1372,19 @@ const handleEditProfile = () => {
   setShowEditProfileModal(true);
 };
 
+const handleRemoveProfilePicture = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    await updateUserProfile(user.uid, { profilePicture: null });
+    setEditProfilePicture(null);
+    setUserProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
+    setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
+  } catch {
+    Alert.alert('Errore', 'Impossibile rimuovere la foto profilo.');
+  }
+};
+
 const handlePickProfilePicture = async () => {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
@@ -2808,7 +2821,13 @@ if (loading) {
               {uploadingPicture ? <ActivityIndicator size="small" color="#000" /> : <Feather name="edit-2" size={12} color="#000" />}
             </View>
           </TouchableOpacity>
-          <Text style={{ color: '#687392', fontSize: 11, marginTop: 8 }}>Tocca per cambiare foto</Text>
+          {editProfilePicture ? (
+            <TouchableOpacity onPress={handleRemoveProfilePicture} style={{ marginTop: 8 }}>
+              <Text style={{ color: '#687392', fontSize: 11, textDecorationLine: 'underline' }}>Usa avatar invece</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={{ color: '#687392', fontSize: 11, marginTop: 8 }}>Tocca per aggiungere foto</Text>
+          )}
         </View>
 
         {/* Avatar Selector */}
