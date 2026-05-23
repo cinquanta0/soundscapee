@@ -352,6 +352,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const loadedIdRef = useRef<string | null>(null);
   const listRef = useRef<FlatList<Messaggio>>(null);
   const autoScrollRef = useRef(true);
+  const isFirstRenderRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
   const mySecretKeyRef = useRef<Uint8Array | null>(null);
@@ -395,6 +396,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   }
 
   useEffect(() => {
+    isFirstRenderRef.current = true;
+    autoScrollRef.current = true;
     setQueryError(null);
     const unsub = listenMessaggi(conversationId, (msgs) => {
       setQueryError(null);
@@ -404,7 +407,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       const nextLastId = msgs[msgs.length - 1]?.id;
       lastMessageIdRef.current = nextLastId ?? null;
       setMessages(msgs.map((m) => decryptMsg(m, sk, myPublicKeyB64Ref.current, myUid)));
-      if (autoScrollRef.current || prevLastId !== nextLastId) {
+      if (!isFirstRenderRef.current && (autoScrollRef.current || prevLastId !== nextLastId)) {
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       }
     }, (err) => {
@@ -815,6 +818,12 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             playingPosition={playingPosition}
           />
         )}
+        onContentSizeChange={() => {
+          if (isFirstRenderRef.current) {
+            listRef.current?.scrollToEnd({ animated: false });
+            isFirstRenderRef.current = false;
+          }
+        }}
         onScrollBeginDrag={closeMenu}
         onScroll={({ nativeEvent }) => {
           const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
