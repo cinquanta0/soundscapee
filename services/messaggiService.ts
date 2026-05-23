@@ -121,21 +121,26 @@ export function listenConversazioni(
 export function listenMessaggi(
   conversationId: string,
   cb: (msgs: Messaggio[]) => void,
+  onError?: (err: { code: string; message: string }) => void,
 ): Unsubscribe {
   const q = query(
     collection(db, 'messaggi'),
     where('conversationId', '==', conversationId),
-    orderBy('timestamp', 'asc'),
+    orderBy('timestamp', 'desc'),
     limit(100),
   );
   return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => ({
+    const msgs = snap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<Messaggio, 'id' | 'timestamp' | 'type'>),
       type: (d.data().type as 'audio' | 'text') ?? 'audio',
       timestamp: d.data().timestamp?.toDate() ?? new Date(),
-    })));
-  }, (err) => console.error('[MESSAGGI] listenMessaggi error:', err.code, err.message));
+    })).reverse();
+    cb(msgs);
+  }, (err) => {
+    console.error('[MESSAGGI] listenMessaggi error:', err.code, err.message);
+    onError?.(err);
+  });
 }
 
 // ─── Send audio message ───────────────────────────────────────────────────────

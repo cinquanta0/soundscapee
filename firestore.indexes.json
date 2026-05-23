@@ -98,6 +98,14 @@
       ]
     },
     {
+      "collectionGroup": "messaggi",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "conversationId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "handRaises",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

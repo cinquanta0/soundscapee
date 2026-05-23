@@ -340,6 +340,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Messaggio[]>([]);
+  const [queryError, setQueryError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingPosition, setPlayingPosition] = useState(0);
   const [sending, setSending] = useState(false);
@@ -394,7 +395,9 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   }
 
   useEffect(() => {
+    setQueryError(null);
     const unsub = listenMessaggi(conversationId, (msgs) => {
+      setQueryError(null);
       const prevLastId = lastMessageIdRef.current;
       const sk = mySecretKeyRef.current;
       const myUid = myUidRef.current;
@@ -404,6 +407,9 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       if (autoScrollRef.current || prevLastId !== nextLastId) {
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
       }
+    }, (err) => {
+      console.error('[MESSAGGI] listenMessaggi error:', err.code, err.message);
+      setQueryError(err.code);
     });
     return () => {
       unsub();
@@ -768,6 +774,18 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '⏳ Crittografia in inizializzazione...'}
         </Text>
       </TouchableOpacity>
+
+      {queryError && (
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'rgba(255,92,121,0.12)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,92,121,0.25)' }}>
+          <Text style={{ color: '#FF5C79', fontSize: 12, fontWeight: '600', textAlign: 'center' }}>
+            {queryError === 'failed-precondition'
+              ? '⚠️ Indice Firestore mancante — esegui: firebase deploy --only firestore:indexes'
+              : queryError === 'permission-denied'
+              ? '⚠️ Accesso negato — esegui: firebase deploy --only firestore:rules'
+              : `⚠️ Errore caricamento messaggi: ${queryError}`}
+          </Text>
+        </View>
+      )}
 
       <FlatList
         ref={listRef}
