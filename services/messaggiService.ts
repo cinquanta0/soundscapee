@@ -2,7 +2,7 @@ import {
   collection, addDoc, query, where, orderBy,
   limit, serverTimestamp, doc, updateDoc, onSnapshot,
   setDoc, getDoc, deleteDoc, Unsubscribe, increment,
-  arrayUnion, arrayRemove, deleteField,
+  arrayUnion, arrayRemove, deleteField, getDocs, writeBatch,
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
@@ -401,6 +401,21 @@ export async function setTypingStatus(conversationId: string, status: 'typing' |
       [`typing_${user.uid}`]: status || deleteField(),
     });
   } catch {}
+}
+
+export async function updateMyPhotoInConversations(userId: string, photoUrl: string | null): Promise<void> {
+  const snap = await getDocs(query(
+    collection(db, 'conversations'),
+    where('participants', 'array-contains', userId),
+  ));
+  if (snap.empty) return;
+  const batch = writeBatch(db);
+  for (const d of snap.docs) {
+    batch.update(d.ref, {
+      [`photo_${userId}`]: photoUrl ?? deleteField(),
+    });
+  }
+  await batch.commit();
 }
 
 export function listenTyping(

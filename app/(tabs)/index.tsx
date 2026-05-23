@@ -117,6 +117,7 @@ import BattleScreen from '../../screens/BattleScreen';
 import { createCollabSession, listenToIncomingCollab, CollabSession } from '../../services/collabService';
 import { createBattle, listenToIncomingBattle, Battle } from '../../services/battleService';
 import MessagesScreen from '../../screens/MessagesScreen';
+import { updateMyPhotoInConversations } from '../../services/messaggiService';
 import { useCall } from '../../context/CallContext';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
@@ -1383,6 +1384,7 @@ const handleRemoveProfilePicture = async () => {
     setEditProfilePicture(null);
     setUserProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
     setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
+    updateMyPhotoInConversations(user.uid, null).catch(() => {});
   } catch {
     Alert.alert('Errore', 'Impossibile rimuovere la foto profilo.');
   }
@@ -1410,6 +1412,7 @@ const handlePickProfilePicture = async () => {
     setEditProfilePicture(url);
     setUserProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
     setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
+    updateMyPhotoInConversations(user.uid, url).catch(() => {});
   } catch {
     Alert.alert('Errore', 'Impossibile caricare la foto profilo.');
   } finally {
