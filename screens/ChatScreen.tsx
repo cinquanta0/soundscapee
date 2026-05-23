@@ -421,6 +421,13 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   }, [conversationId]);
 
   useEffect(() => {
+    if (isFirstRenderRef.current && messages.length > 0) {
+      isFirstRenderRef.current = false;
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
+    }
+  }, [messages]);
+
+  useEffect(() => {
     if (callPhase === 'incoming' || callPhase === 'connecting' || callPhase === 'ringing' || callPhase === 'active') {
       soundRef.current?.stopAsync().catch(() => {});
       soundRef.current?.unloadAsync().catch(() => {});
@@ -818,12 +825,6 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
             playingPosition={playingPosition}
           />
         )}
-        onContentSizeChange={() => {
-          if (isFirstRenderRef.current && messages.length > 0) {
-            listRef.current?.scrollToEnd({ animated: false });
-            isFirstRenderRef.current = false;
-          }
-        }}
         onScrollBeginDrag={closeMenu}
         onScroll={({ nativeEvent }) => {
           const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
