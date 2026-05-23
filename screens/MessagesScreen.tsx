@@ -137,6 +137,8 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
           value={queryText}
           onChangeText={search}
           autoFocus
+          returnKeyType="search"
+          blurOnSubmit
         />
         {loading && <ActivityIndicator color="#67E8F9" style={{ marginTop: 12 }} />}
         {results.map((u) => (

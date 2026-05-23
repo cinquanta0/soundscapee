@@ -2185,6 +2185,8 @@ if (loading) {
               value={newSoundTitle}
               onChangeText={(t) => { setNewSoundTitle(t); if (t.trim()) setTitleError(''); }}
               editable={!uploading}
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
             {titleError ? <Text style={{ color: '#ef4444', fontSize: 12, marginTop: -8, marginBottom: 4 }}>{titleError}</Text> : null}
             
@@ -2196,6 +2198,8 @@ if (loading) {
               value={newSoundDescription}
               onChangeText={setNewSoundDescription}
               editable={!uploading}
+              returnKeyType="done"
+              blurOnSubmit
             />
 
             <Text style={styles.moodLabel}>{t('upload.mood')}</Text>
@@ -2755,6 +2759,9 @@ if (loading) {
                 multiline
                 maxLength={500}
                 editable={!sendingComment}
+                returnKeyType="send"
+                blurOnSubmit
+                onSubmitEditing={handleSendComment}
               />
               <TouchableOpacity
                 style={[
@@ -2873,6 +2880,8 @@ if (loading) {
           onChangeText={setEditUsername}
           maxLength={20}
           editable={!savingProfile}
+          returnKeyType="next"
+          blurOnSubmit={false}
         />
         <Text style={styles.charCount}>{editUsername.length}/20</Text>
 
@@ -2887,6 +2896,8 @@ if (loading) {
           multiline
           maxLength={150}
           editable={!savingProfile}
+          returnKeyType="done"
+          blurOnSubmit
         />
         <Text style={styles.charCount}>{editBio.length}/150</Text>
 

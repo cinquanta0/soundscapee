@@ -589,6 +589,9 @@ export default function StoryViewer({
                     onChangeText={setReplyText}
                     multiline
                     maxLength={500}
+                    returnKeyType="send"
+                    blurOnSubmit
+                    onSubmitEditing={sendTextReply}
                   />
                   <TouchableOpacity
                     style={[styles.sendBtn, !replyText.trim() && styles.sendBtnDisabled]}

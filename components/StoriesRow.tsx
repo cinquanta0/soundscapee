@@ -182,6 +182,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const bodyInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadUserStati();
@@ -580,12 +581,16 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                   value={statoTitle}
                   onChangeText={(t) => { setStatoTitle(t); setTitleError(''); }}
                   maxLength={60}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => bodyInputRef.current?.focus()}
                 />
                 {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
 
                 {/* Testo */}
                 <Text style={styles.fieldLabel}>{t('stories.textLabel')}</Text>
                 <TextInput
+                  ref={bodyInputRef}
                   style={[styles.input, styles.inputMulti]}
                   placeholder={t('stories.textPlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.3)"
@@ -593,6 +598,8 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                   onChangeText={setStatoBody}
                   multiline
                   maxLength={200}
+                  returnKeyType="done"
+                  blurOnSubmit
                 />
 
                 {/* Anteprima */}

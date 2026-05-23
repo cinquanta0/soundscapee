@@ -151,6 +151,8 @@ export function ExploreSearchBar({ value, placeholder, onChangeText, onClear }: 
         placeholder={placeholder}
         placeholderTextColor={C.textMute}
         style={styles.searchInput}
+        returnKeyType="search"
+        blurOnSubmit
       />
       {value.length > 0 ? (
         <TouchableOpacity style={styles.clearButton} onPress={onClear}>
