@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Alert, TextInput, Modal, Pressable, Animated,
+  Alert, TextInput, Modal, Pressable, Animated, Image,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -18,6 +19,9 @@ import {
   fetchAgoraToken, joinAsHost, leaveAgoraChannel,
   setMicActive, destroyAgoraEngine, refreshSpeakerphone,
 } from '../services/agoraService';
+import { getUsersPhotos } from '../services/firebaseService';
+
+const isFeatherName = (val?: string) => !!val && /^[a-z][a-z-]*$/.test(val);
 
 const MAX_RECORD_SECS = 60;
 
@@ -72,12 +76,14 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const [title, setTitle] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewSoundRef = useRef<Audio.Sound | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  const photosLoadedRef = useRef(false);
   // Refs per evitare stale closure nei callback Firestore
   const recSecondsRef = useRef(0);
   const isRecordingRef = useRef(false);
@@ -89,6 +95,8 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const myName = isHost ? session?.hostName : session?.guestName;
   const otherName = isHost ? session?.guestName : session?.hostName;
   const otherAvatar = isHost ? session?.guestAvatar : session?.hostAvatar;
+  const hostPhoto = session ? (playerPhotos[session.hostId] ?? null) : null;
+  const guestPhoto = session ? (playerPhotos[session.guestId] ?? null) : null;
 
   // In turns mode, is it my turn to record?
   const isMyTurn = session?.mode === 'sync' || (isHost ? session?.currentTurn === 0 : session?.currentTurn === 1);
@@ -122,6 +130,10 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   useEffect(() => {
     unsubRef.current = listenToSession(sessionId, (s) => {
       setSession(s);
+      if (!photosLoadedRef.current && s.hostId && s.guestId) {
+        photosLoadedRef.current = true;
+        (getUsersPhotos([s.hostId, s.guestId]) as Promise<any>).then(p => setPlayerPhotos(p)).catch(() => {});
+      }
 
       // Segnale di inizio registrazione sincronizzato
       // In sync mode: entrambi i telefoni registrano
@@ -289,7 +301,11 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       <View style={s.overlay}>
         <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
-          <Text style={s.inviteEmoji}>{session.hostAvatar}</Text>
+          {hostPhoto
+            ? <Image source={{ uri: hostPhoto }} style={s.invitePhoto} />
+            : isFeatherName(session.hostAvatar)
+              ? <View style={s.inviteAvatarBg}><Feather name={session.hostAvatar as any} size={32} color="#a855f7" /></View>
+              : <Text style={s.inviteEmoji}>{session.hostAvatar}</Text>}
           <Text style={s.inviteTitle}>{session.hostName}</Text>
           <Text style={s.inviteSub}>{t('collab.invitedTo')}</Text>
           <View style={s.modeBadge}>
@@ -374,7 +390,11 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
       {/* Partecipanti */}
       <View style={s.participants}>
         <View style={s.participant}>
-          <Text style={s.participantAvatar}>{session.hostAvatar}</Text>
+          {hostPhoto
+            ? <Image source={{ uri: hostPhoto }} style={s.participantPhoto} />
+            : isFeatherName(session.hostAvatar)
+              ? <View style={[s.participantAvatarBg, { borderColor: '#a855f7' }]}><Feather name={session.hostAvatar as any} size={26} color="#a855f7" /></View>
+              : <Text style={s.participantAvatar}>{session.hostAvatar}</Text>}
           <Text style={s.participantName}>{session.hostName}</Text>
           <Text style={s.participantRole}>Host</Text>
           <PulseWave active={isRecording && isHost} color="#a855f7" />
@@ -386,7 +406,11 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
         </View>
 
         <View style={s.participant}>
-          <Text style={s.participantAvatar}>{session.guestAvatar}</Text>
+          {guestPhoto
+            ? <Image source={{ uri: guestPhoto }} style={s.participantPhoto} />
+            : isFeatherName(session.guestAvatar)
+              ? <View style={[s.participantAvatarBg, { borderColor: '#00FF9C' }]}><Feather name={session.guestAvatar as any} size={26} color="#00FF9C" /></View>
+              : <Text style={s.participantAvatar}>{session.guestAvatar}</Text>}
           <Text style={s.participantName}>{session.guestName}</Text>
           <Text style={s.participantRole}>Guest</Text>
           <PulseWave active={isRecording && !isHost} color="#00FF9C" />
@@ -489,6 +513,8 @@ const s = StyleSheet.create({
 
   // Invite
   inviteCard: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  invitePhoto: { width: 80, height: 80, borderRadius: 40, marginBottom: 12, borderWidth: 3, borderColor: '#a855f7' },
+  inviteAvatarBg: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 2, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   inviteEmoji: { fontSize: 64, marginBottom: 12 },
   inviteTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
   inviteSub: { color: '#9A9A9A', fontSize: 14, marginBottom: 16 },
@@ -511,6 +537,8 @@ const s = StyleSheet.create({
   // Partecipanti
   participants: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 24, paddingVertical: 32 },
   participant: { alignItems: 'center', gap: 6, flex: 1 },
+  participantPhoto: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.2)' },
+  participantAvatarBg: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   participantAvatar: { fontSize: 48 },
   participantName: { color: '#fff', fontSize: 14, fontWeight: '700' },
   participantRole: { color: '#858585', fontSize: 10, fontWeight: '600', letterSpacing: 1 },

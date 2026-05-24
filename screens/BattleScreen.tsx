@@ -12,6 +12,7 @@ import {
   startChallengerRec, uploadBattleTrack, voteBattle, getMyVote,
   reconcileBattleCounters,
 } from '../services/battleService';
+import { getUsersPhotos } from '../services/firebaseService';
 
 const REC_SECS = 30;
 
@@ -109,8 +110,10 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [myVote, setMyVote] = useState<string | null>(null);
   const [previewPlaying, setPreviewPlaying] = useState<'challenger' | 'opponent' | null>(null);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
 
   const recRef = useRef<Audio.Recording | null>(null);
+  const photosLoadedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
@@ -184,7 +187,16 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           (b.status === 'opponent_rec' && !iAmChallenger)) {
         if (!recRef.current) startRecording();
       }
-      // La finalizzazione è gestita server-side da finalizeStaleBattles (Cloud Function).
+      if (!photosLoadedRef.current && b.challengerId && b.opponentId) {
+        photosLoadedRef.current = true;
+        const missing = ([
+          !b.challengerPhoto ? b.challengerId : null,
+          !b.opponentPhoto ? b.opponentId : null,
+        ].filter(Boolean)) as string[];
+        if (missing.length) {
+          (getUsersPhotos(missing) as Promise<any>).then(p => setPlayerPhotos(p)).catch(() => {});
+        }
+      }
     });
     let cancelled = false;
     setMyVote(null);
@@ -362,7 +374,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <PlayerCard
             name={battle.challengerName}
             avatar={battle.challengerAvatar}
-            photo={battle.challengerPhoto}
+            photo={battle.challengerPhoto || playerPhotos[battle.challengerId] || undefined}
             votes={battle.challengerVotes}
             trackDone={!!battle.challengerTrackUrl}
             isRecording={battle.status === 'challenger_rec'}
@@ -373,7 +385,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
           <PlayerCard
             name={battle.opponentName}
             avatar={battle.opponentAvatar}
-            photo={battle.opponentPhoto}
+            photo={battle.opponentPhoto || playerPhotos[battle.opponentId] || undefined}
             votes={battle.opponentVotes}
             trackDone={!!battle.opponentTrackUrl}
             isRecording={battle.status === 'opponent_rec'}

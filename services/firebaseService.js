@@ -193,6 +193,23 @@ export const updateMyPhotoInSounds = async (userId, photoUrl) => {
 };
 
 
+export const getUsersPhotos = async (userIds) => {
+  const result = {};
+  await Promise.all(userIds.map(async (uid) => {
+    if (!uid) return;
+    try {
+      if (!(uid in _profilePhotoCache)) {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        _profilePhotoCache[uid] = userDoc.data()?.profilePicture || null;
+      }
+      result[uid] = _profilePhotoCache[uid];
+    } catch {
+      result[uid] = null;
+    }
+  }));
+  return result;
+};
+
 // ==================== SOUNDS (POSTS) ====================
 
 /**

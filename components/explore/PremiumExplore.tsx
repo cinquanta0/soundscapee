@@ -350,9 +350,11 @@ export function ExploreBattleCard({
 
       <View style={styles.battleCenter}>
         <View style={styles.battleUserBlock}>
-          {/^[a-z][a-z-]*$/.test(battle.challengerAvatar)
-            ? <Feather name={battle.challengerAvatar as any} size={28} color={C.orange} />
-            : <Text style={styles.battleAvatar}>{battle.challengerAvatar}</Text>}
+          {battle.challengerPhoto
+            ? <Image source={{ uri: battle.challengerPhoto }} style={[styles.battleAvatarImg, { borderColor: C.orange }]} />
+            : /^[a-z][a-z-]*$/.test(battle.challengerAvatar)
+              ? <Feather name={battle.challengerAvatar as any} size={28} color={C.orange} />
+              : <Text style={styles.battleAvatar}>{battle.challengerAvatar}</Text>}
           <Text style={[styles.battleName, { color: C.orange }]} numberOfLines={1}>{battle.challengerName}</Text>
           <Text style={styles.battleVotes}>{battle.challengerVotes}</Text>
         </View>
@@ -360,9 +362,11 @@ export function ExploreBattleCard({
           <Text style={styles.battleVs}>VS</Text>
         </View>
         <View style={styles.battleUserBlock}>
-          {/^[a-z][a-z-]*$/.test(battle.opponentAvatar)
-            ? <Feather name={battle.opponentAvatar as any} size={28} color={C.purple} />
-            : <Text style={styles.battleAvatar}>{battle.opponentAvatar}</Text>}
+          {battle.opponentPhoto
+            ? <Image source={{ uri: battle.opponentPhoto }} style={[styles.battleAvatarImg, { borderColor: C.purple }]} />
+            : /^[a-z][a-z-]*$/.test(battle.opponentAvatar)
+              ? <Feather name={battle.opponentAvatar as any} size={28} color={C.purple} />
+              : <Text style={styles.battleAvatar}>{battle.opponentAvatar}</Text>}
           <Text style={[styles.battleName, { color: C.purple }]} numberOfLines={1}>{battle.opponentName}</Text>
           <Text style={styles.battleVotes}>{battle.opponentVotes}</Text>
         </View>
@@ -771,6 +775,12 @@ const styles = StyleSheet.create({
   },
   battleAvatar: {
     fontSize: 28,
+  },
+  battleAvatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
   },
   battleName: {
     fontSize: 13,
