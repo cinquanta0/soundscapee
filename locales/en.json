@@ -855,6 +855,7 @@
     "errors": {
       "cannotRecord": "Cannot start recording.",
       "cannotSend": "Cannot send the message.",
+      "notFriends": "You need to be friends with this person before sending a message. Add them as a contact first.",
       "cannotDelete": "Cannot delete the message.",
       "cannotReact": "Cannot add the reaction."
     },

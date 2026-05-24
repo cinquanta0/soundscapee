@@ -806,6 +806,7 @@
     "errors": {
       "cannotRecord": "Não é possível iniciar a gravação.",
       "cannotSend": "Não é possível enviar a mensagem.",
+      "notFriends": "Você precisa ser amigo desta pessoa para enviar uma mensagem. Adicione-a como contato primeiro.",
       "cannotDelete": "Não é possível excluir a mensagem.",
       "cannotReact": "Não foi possível adicionar a reação."
     },

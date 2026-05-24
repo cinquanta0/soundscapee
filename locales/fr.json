@@ -806,6 +806,7 @@
     "errors": {
       "cannotRecord": "Impossible de démarrer l'enregistrement.",
       "cannotSend": "Impossible d'envoyer le message.",
+      "notFriends": "Vous devez être ami avec cette personne pour lui envoyer un message. Ajoutez-la d'abord comme contact.",
       "cannotDelete": "Impossible de supprimer le message.",
       "cannotReact": "Impossible d'ajouter la réaction."
     },

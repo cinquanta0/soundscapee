@@ -624,8 +624,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       });
       setReplyTo(null);
       closeMenu();
-    } catch {
-      Alert.alert(t('common.error'), t('chat.errors.cannotSend'));
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.code === 'permission-denied' ? t('chat.errors.notFriends') : t('chat.errors.cannotSend'));
     } finally {
       setSending(false);
     }
@@ -650,8 +650,8 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       setTypingStatus(conversationId, false).catch(() => {});
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       closeMenu();
-    } catch {
-      Alert.alert(t('common.error'), t('chat.errors.cannotSend'));
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.code === 'permission-denied' ? t('chat.errors.notFriends') : t('chat.errors.cannotSend'));
     } finally {
       sendingRef.current = false;
       setSending(false);

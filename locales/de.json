@@ -806,6 +806,7 @@
     "errors": {
       "cannotRecord": "Aufnahme konnte nicht gestartet werden.",
       "cannotSend": "Nachricht konnte nicht gesendet werden.",
+      "notFriends": "Du musst mit dieser Person befreundet sein, um ihr eine Nachricht zu senden. Füge sie zuerst als Kontakt hinzu.",
       "cannotDelete": "Nachricht konnte nicht gelöscht werden.",
       "cannotReact": "Reaktion konnte nicht hinzugefügt werden."
     },
