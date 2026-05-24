@@ -21,12 +21,12 @@ module.exports = ({ config }) => ({
     buildNumber: "1",
     bundleIdentifier: "com.cucucucucuione.soundscapemobile",
     infoPlist: {
-      ITSAppUsesNonExemptEncryption: false,
+      ITSAppUsesNonExemptEncryption: true,
       UIBackgroundModes: ["audio", "remote-notification"],
       NSMicrophoneUsageDescription: "MIUSLYK usa il microfono per trasmettere voce live nella radio.",
       NSCameraUsageDescription: "MIUSLYK usa la fotocamera per scattare foto e video da aggiungere ai tuoi post.",
       NSAppTransportSecurity: {
-        NSAllowsArbitraryLoads: true,
+        NSAllowsArbitraryLoads: false,
       },
     },
     config: {
@@ -41,7 +41,7 @@ module.exports = ({ config }) => ({
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    usesCleartextTraffic: true,
+    usesCleartextTraffic: false,
     package: "com.cucucucucuione.soundscapemobile",
     versionCode: 1,
     permissions: [

@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 // In Expo Go (SDK 53+) le push notification remote non sono supportate
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { db } from '../firebaseConfig';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, writeBatch, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, writeBatch, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 
 async function mergeUserDocIfExists(userId, payload) {
   if (!userId) return false;
@@ -277,7 +277,7 @@ export async function getUserNotifications(userId) {
       collection(db, 'notifications'),
       where('userId', '==', userId)
     );
-    
+
     const snapshot = await getDocs(q);
     return snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -286,6 +286,18 @@ export async function getUserNotifications(userId) {
     console.error('Errore caricamento notifiche:', error);
     return [];
   }
+}
+
+export function listenUserNotifications(userId, callback) {
+  const q = query(
+    collection(db, 'notifications'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
+  );
+  return onSnapshot(q, (snap) => {
+    const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(notifs);
+  }, (err) => console.error('listenUserNotifications error:', err));
 }
 
 /**

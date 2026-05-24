@@ -369,10 +369,14 @@ async function _updateConversation(
   last: { type: 'audio'; duration: number } | { type: 'text'; text: string },
 ) {
   const convRef = doc(db, 'conversations', cId);
-  const senderProfile = await getDoc(doc(db, 'users', senderId));
+  const [senderProfile, receiverProfile] = await Promise.all([
+    getDoc(doc(db, 'users', senderId)),
+    getDoc(doc(db, 'users', receiverId)),
+  ]);
   const sName = senderProfile.data()?.username || senderProfile.data()?.displayName || 'Utente';
   const sAvatar = senderProfile.data()?.avatar || '🎵';
   const sPhoto: string | undefined = senderProfile.data()?.profilePicture || undefined;
+  const rPhoto: string | undefined = receiverProfile.data()?.profilePicture || undefined;
 
   await setDoc(convRef, {
     participants: [senderId, receiverId].sort(),
@@ -381,6 +385,7 @@ async function _updateConversation(
     ...(sPhoto ? { [`photo_${senderId}`]: sPhoto } : {}),
     [`name_${receiverId}`]: receiverName,
     [`avatar_${receiverId}`]: receiverAvatar,
+    ...(rPhoto ? { [`photo_${receiverId}`]: rPhoto } : {}),
     lastSenderId: senderId,
     lastType: last.type,
     lastDuration: last.type === 'audio' ? last.duration : 0,

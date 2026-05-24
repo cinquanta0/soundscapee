@@ -58,6 +58,7 @@ import * as Notifications from 'expo-notifications';
 import {
   registerForPushNotifications,
   getUserNotifications,
+  listenUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '../../services/notificationService';
@@ -569,11 +570,6 @@ useEffect(() => {
     // Registra dispositivo (lento: chiamata di rete + Firestore)
     await registerForPushNotifications(user.uid);
 
-    // Carica notifiche esistenti
-    const userNotifications: any[] = await getUserNotifications(user.uid);
-    setNotifications(userNotifications);
-    setUnreadCount(userNotifications.filter((n: any) => !n.read).length);
-
     // Listener per notifiche in tempo reale
     const subscription = Notifications.addNotificationReceivedListener(() => {
       loadNotifications();
@@ -615,6 +611,17 @@ useEffect(() => {
   const user = auth.currentUser;
   if (!user) return;
   const unsub = listenPendingFriendRequests((reqs: any[]) => setPendingFriendRequests(reqs));
+  return unsub;
+}, []);
+
+// Listener notifiche in tempo reale
+useEffect(() => {
+  const user = auth.currentUser;
+  if (!user) return;
+  const unsub = listenUserNotifications(user.uid, (notifs: any[]) => {
+    setNotifications(notifs);
+    setUnreadCount(notifs.filter((n: any) => !n.read).length);
+  });
   return unsub;
 }, []);
 

@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
-import { registerForPushNotifications } from '../services/notificationService';
+import { registerForPushNotifications, listenUserNotifications } from '../services/notificationService';
 import { CallProvider, useCall } from '../context/CallContext';
 import CallScreen from '../screens/CallScreen';
 
@@ -120,6 +120,112 @@ const rb = StyleSheet.create({
     fontWeight: '600',
     maxWidth: 140,
   },
+});
+
+// ── In-app notification banner ────────────────────────────────────────────────
+function InAppNotificationBanner() {
+  const [current, setCurrent] = useState<any | null>(null);
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+  const insets = useSafeAreaInsets();
+  const queueRef = useRef<any[]>([]);
+  const activeRef = useRef(false);
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissRef = useRef<() => void>(() => {});
+  const tryShowNextRef = useRef<() => void>(() => {});
+
+  dismissRef.current = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    Animated.timing(slideAnim, { toValue: -120, useNativeDriver: true, duration: 220 }).start(() => {
+      activeRef.current = false;
+      setCurrent(null);
+      setTimeout(() => tryShowNextRef.current(), 300);
+    });
+  };
+
+  tryShowNextRef.current = () => {
+    if (activeRef.current || queueRef.current.length === 0) return;
+    const next = queueRef.current.shift();
+    activeRef.current = true;
+    setCurrent(next);
+    slideAnim.setValue(-120);
+    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 5 }).start();
+    timerRef.current = setTimeout(() => dismissRef.current(), 4000);
+  };
+
+  useEffect(() => {
+    let unsubFirestore: (() => void) | null = null;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      unsubFirestore?.();
+      unsubFirestore = null;
+      prevIdsRef.current = new Set();
+      if (!user) return;
+      let initialized = false;
+      unsubFirestore = listenUserNotifications(user.uid, (notifs: any[]) => {
+        if (!initialized) {
+          prevIdsRef.current = new Set(notifs.map((n: any) => n.id));
+          initialized = true;
+          return;
+        }
+        const newNotifs = notifs.filter((n: any) => !prevIdsRef.current.has(n.id));
+        notifs.forEach((n: any) => prevIdsRef.current.add(n.id));
+        if (newNotifs.length > 0) {
+          queueRef.current.push(...newNotifs);
+          tryShowNextRef.current();
+        }
+      });
+    });
+    return () => { unsubAuth(); unsubFirestore?.(); };
+  }, []);
+
+  if (!current) return null;
+
+  return (
+    <Animated.View style={[nb.container, { top: insets.top + 10, transform: [{ translateY: slideAnim }] }]}>
+      <TouchableOpacity style={nb.inner} activeOpacity={0.95} onPress={() => dismissRef.current()}>
+        <View style={nb.textWrap}>
+          <Text style={nb.title} numberOfLines={1}>{current.title}</Text>
+          <Text style={nb.body} numberOfLines={2}>{current.body}</Text>
+        </View>
+        <TouchableOpacity
+          style={nb.closeBtn}
+          onPress={() => dismissRef.current()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="x" size={15} color="#9A9A9A" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const nb = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    zIndex: 9997,
+    elevation: 18,
+  },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(18,12,28,0.97)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(168,85,247,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    gap: 12,
+  },
+  textWrap: { flex: 1 },
+  title: { color: '#F7F8FF', fontSize: 14, fontWeight: '700' },
+  body: { color: '#aaa', fontSize: 12, marginTop: 3, lineHeight: 17 },
+  closeBtn: { padding: 2 },
 });
 
 // Mantieni lo splash screen visibile mentre i font caricano
@@ -293,6 +399,7 @@ export default function RootLayout() {
       </Stack>
       <CallScreen />
       <RejoinBanner />
+      <InAppNotificationBanner />
     </CallProvider>
   );
 }
