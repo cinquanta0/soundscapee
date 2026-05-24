@@ -118,6 +118,7 @@ import { createCollabSession, listenToIncomingCollab, CollabSession } from '../.
 import { createBattle, listenToIncomingBattle, Battle } from '../../services/battleService';
 import MessagesScreen from '../../screens/MessagesScreen';
 import { updateMyPhotoInConversations } from '../../services/messaggiService';
+import { updateMyPhotoInSounds } from '../../services/firebaseService';
 import { useCall } from '../../context/CallContext';
 import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
@@ -1385,6 +1386,7 @@ const handleRemoveProfilePicture = async () => {
     setUserProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
     setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: null } : prev);
     updateMyPhotoInConversations(user.uid, null).catch(() => {});
+    updateMyPhotoInSounds(user.uid, null).catch(() => {});
   } catch {
     Alert.alert('Errore', 'Impossibile rimuovere la foto profilo.');
   }
@@ -1413,6 +1415,7 @@ const handlePickProfilePicture = async () => {
     setUserProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
     setMyOwnProfile((prev: any) => prev ? { ...prev, profilePicture: url } : prev);
     updateMyPhotoInConversations(user.uid, url).catch(() => {});
+    updateMyPhotoInSounds(user.uid, url).catch(() => {});
   } catch {
     Alert.alert('Errore', 'Impossibile caricare la foto profilo.');
   } finally {

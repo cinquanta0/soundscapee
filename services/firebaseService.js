@@ -3,6 +3,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -166,11 +167,29 @@ export const uploadProfilePicture = async (userId, imageUri) => {
     const storagePath = `profiles/${userId}/${filename}`;
     const downloadURL = await uploadFileReliable(storagePath, imageUri, 'image/jpeg');
     await updateUserProfile(userId, { profilePicture: downloadURL });
+    delete _profilePhotoCache[userId];
     return downloadURL;
   } catch (error) {
     console.error('❌ [PROFILE PIC] Error uploading profile picture:', error);
     throw error;
   }
+};
+
+export const updateMyPhotoInSounds = async (userId, photoUrl) => {
+  const snap = await getDocs(query(
+    collection(db, 'sounds'),
+    where('userId', '==', userId),
+  ));
+  if (snap.empty) return;
+  const CHUNK = 400;
+  for (let i = 0; i < snap.docs.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    snap.docs.slice(i, i + CHUNK).forEach(d => {
+      batch.update(d.ref, { userPhoto: photoUrl ?? deleteField() });
+    });
+    await batch.commit();
+  }
+  delete _profilePhotoCache[userId];
 };
 
 
