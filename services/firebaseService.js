@@ -1113,8 +1113,30 @@ export const createSoundWithGeohash = async (soundData) => {
   }
 };
 
-// Ottieni suoni vicini (raggio in km)
-// Ottieni suoni vicini (raggio in km)
+// Arricchisce i suoni con userPhoto/username/userAvatar presi da users/ se mancanti nel documento
+const enrichSoundsWithUserData = async (sounds) => {
+  return Promise.all(sounds.map(async (sound) => {
+    const uid = sound.userId;
+    if (!uid || sound.userPhoto) return sound;
+    try {
+      if (!(uid in _profilePhotoCache)) {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        const ud = userDoc.data();
+        _profilePhotoCache[uid] = ud?.profilePicture || null;
+        return {
+          ...sound,
+          userPhoto: ud?.profilePicture || null,
+          username: sound.username || ud?.username || ud?.displayName || 'Anonimo',
+          userAvatar: sound.userAvatar || ud?.avatar || '🎧',
+        };
+      }
+      return { ...sound, userPhoto: _profilePhotoCache[uid] };
+    } catch {
+      return sound;
+    }
+  }));
+};
+
 // Ottieni suoni vicini (raggio in km)
 export const getNearbySounds = async (center, radiusInKm = 10) => {
   try {
@@ -1172,9 +1194,8 @@ export const getNearbySounds = async (center, radiusInKm = 10) => {
     }
 
     console.log('✅ [NEARBY] Found', matchingDocs.length, 'sounds nearby');
-    
-    // Ordina per distanza (più vicini prima)
-    return matchingDocs.sort((a, b) => a.distance - b.distance);
+    const enriched = await enrichSoundsWithUserData(matchingDocs);
+    return enriched.sort((a, b) => a.distance - b.distance);
     
   } catch (error) {
     console.error('❌ [NEARBY] Error getting nearby sounds:', error);
@@ -1207,8 +1228,7 @@ export const getSoundsForMap = async (limitCount = 100) => {
       .filter(sound => sound.location !== null && sound.location !== undefined);
     
     console.log('✅ [MAP] Found', sounds.length, 'sounds with location');
-    
-    return sounds;
+    return enrichSoundsWithUserData(sounds);
   } catch (error) {
     console.error('❌ [MAP] Error getting sounds for map:', error);
     return [];
