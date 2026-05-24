@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
@@ -178,6 +178,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const { canRejoin } = useCall();
   const [conversations, setConversations] = useState<Conversazione[]>([]);
   const [activeChat, setActiveChat] = useState<{ userId: string; userName: string; userAvatar: string; userPhoto?: string } | null>(initialChat ?? null);
+  const [activeChatPhoto, setActiveChatPhoto] = useState<string | undefined>(undefined);
   const [showNewConv, setShowNewConv] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [showGroupCall, setShowGroupCall] = useState(false);
@@ -209,6 +210,13 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
     return () => activeChatBus.setActive(null);
   }, [activeChat?.userId]);
 
+  useEffect(() => {
+    if (!activeChat?.userId) { setActiveChatPhoto(undefined); return; }
+    getDoc(doc(db, 'users', activeChat.userId))
+      .then(snap => setActiveChatPhoto(snap.data()?.profilePicture || undefined))
+      .catch(() => {});
+  }, [activeChat?.userId]);
+
   if (activeChat) {
     return (
       <ChatScreen
@@ -216,7 +224,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
         otherUserId={activeChat.userId}
         otherUserName={activeChat.userName}
         otherUserAvatar={activeChat.userAvatar}
-        otherUserPhoto={activeChat.userPhoto}
+        otherUserPhoto={activeChatPhoto ?? activeChat.userPhoto}
         onBack={() => setActiveChat(null)}
         onViewProfile={onViewProfile}
       />
