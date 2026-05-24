@@ -12,6 +12,8 @@ import { Feather } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications, listenUserNotifications } from '../services/notificationService';
+import { notificationBannerBus } from '../services/notificationBannerBus';
+import { activeChatBus } from '../services/activeChatBus';
 import { CallProvider, useCall } from '../context/CallContext';
 import CallScreen from '../screens/CallScreen';
 
@@ -123,7 +125,10 @@ const rb = StyleSheet.create({
 });
 
 // ── In-app notification banner ────────────────────────────────────────────────
+const MESSAGE_TYPES = new Set(['message', 'message_reply', 'status_reply']);
+
 function InAppNotificationBanner() {
+  const { phase } = useCall();
   const [current, setCurrent] = useState<any | null>(null);
   const slideAnim = useRef(new Animated.Value(-120)).current;
   const insets = useSafeAreaInsets();
@@ -133,6 +138,8 @@ function InAppNotificationBanner() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissRef = useRef<() => void>(() => {});
   const tryShowNextRef = useRef<() => void>(() => {});
+  const phaseRef = useRef(phase);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   dismissRef.current = () => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -145,6 +152,23 @@ function InAppNotificationBanner() {
 
   tryShowNextRef.current = () => {
     if (activeRef.current || queueRef.current.length === 0) return;
+    // Soppresso durante chiamata attiva — riprova quando la call finisce
+    if (phaseRef.current !== null) return;
+    // Salta le notifiche della chat attiva
+    while (queueRef.current.length > 0) {
+      const candidate = queueRef.current[0];
+      const activeChatUserId = activeChatBus.getActive();
+      if (
+        activeChatUserId &&
+        MESSAGE_TYPES.has(candidate.data?.type) &&
+        candidate.data?.senderId === activeChatUserId
+      ) {
+        queueRef.current.shift();
+        continue;
+      }
+      break;
+    }
+    if (queueRef.current.length === 0) return;
     const next = queueRef.current.shift();
     activeRef.current = true;
     setCurrent(next);
@@ -152,6 +176,11 @@ function InAppNotificationBanner() {
     Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 5 }).start();
     timerRef.current = setTimeout(() => dismissRef.current(), 4000);
   };
+
+  // Quando la chiamata finisce, mostra le notifiche in coda
+  useEffect(() => {
+    if (phase === null) setTimeout(() => tryShowNextRef.current(), 600);
+  }, [phase]);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | null = null;
@@ -182,7 +211,7 @@ function InAppNotificationBanner() {
 
   return (
     <Animated.View style={[nb.container, { top: insets.top + 10, transform: [{ translateY: slideAnim }] }]}>
-      <TouchableOpacity style={nb.inner} activeOpacity={0.95} onPress={() => dismissRef.current()}>
+      <TouchableOpacity style={nb.inner} activeOpacity={0.95} onPress={() => { notificationBannerBus.open(); dismissRef.current(); }}>
         <View style={nb.textWrap}>
           <Text style={nb.title} numberOfLines={1}>{current.title}</Text>
           <Text style={nb.body} numberOfLines={2}>{current.body}</Text>

@@ -15,6 +15,7 @@ import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
 import { useCall } from '../context/CallContext';
+import { activeChatBus } from '../services/activeChatBus';
 
 const C = {
   text: '#F7F8FF',
@@ -202,6 +203,11 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   useEffect(() => {
     if (initialChat) setActiveChat(initialChat);
   }, [initialChat]);
+
+  useEffect(() => {
+    activeChatBus.setActive(activeChat?.userId ?? null);
+    return () => activeChatBus.setActive(null);
+  }, [activeChat?.userId]);
 
   if (activeChat) {
     return (

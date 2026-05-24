@@ -62,6 +62,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '../../services/notificationService';
+import { notificationBannerBus } from '../../services/notificationBannerBus';
 
 import {
   toggleFollow,
@@ -623,6 +624,13 @@ useEffect(() => {
     setUnreadCount(notifs.filter((n: any) => !n.read).length);
   });
   return unsub;
+}, []);
+
+// Tap sul banner in-app → apre il modale notifiche
+useEffect(() => {
+  return notificationBannerBus.register(() => {
+    setShowNotificationsModal(true);
+  });
 }, []);
 
 
