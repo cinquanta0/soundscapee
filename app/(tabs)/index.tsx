@@ -550,6 +550,31 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // 🔗 Deep link handler — gestisce soundscapemobile://profile/[uid] e soundscapemobile://sound/[id]
+  useEffect(() => {
+    const handleDeepLink = (url: string | null) => {
+      if (!url) return;
+      // Supporta sia soundscapemobile:// che exp:// per dev
+      const cleaned = url.replace(/^soundscapemobile:\/\//, '').replace(/^exp:\/\/[^/]+\/--\//, '');
+      const parts = cleaned.split('/');
+      const type = parts[0];
+      const id = parts[1];
+      if (!type || !id) return;
+      if (type === 'profile') {
+        openUserProfile(id);
+      } else if (type === 'sound') {
+        openSoundById(id, 'play');
+      }
+    };
+
+    // Cold start (app chiusa)
+    Linking.getInitialURL().then(handleDeepLink).catch(() => {});
+
+    // App in foreground o background
+    const sub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+    return () => sub.remove();
+  }, []);
+
   // Scroll to top quando si cambia tab
   useEffect(() => {
     mainScrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -2068,8 +2093,11 @@ if (loading) {
             style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }]}
             onPress={async () => {
               try {
+                const uid = auth.currentUser?.uid;
+                const username = myOwnProfile?.username || 'questo artista';
                 await Share.share({
-                  message: `Ascolta ${myOwnProfile?.username || 'questo artista'} su MIUSLYK: https://miuslyk.app/profile/${auth.currentUser?.uid}`,
+                  message: `Ascolta ${username} su MIUSLYK 🎵\nsoundscapemobile://profile/${uid}`,
+                  url: `soundscapemobile://profile/${uid}`,
                 });
               } catch (e: any) {
                 Alert.alert(t('common.error'), e.message);
@@ -2114,7 +2142,10 @@ if (loading) {
                     return;
                   }
                   try {
-                    await Share.share({ message: `Ascolta questo audio su MIUSLYK: https://miuslyk.app/sound/${rec.id}` });
+                    await Share.share({
+                      message: `Ascolta "${rec.title}" su MIUSLYK 🎵\nsoundscapemobile://sound/${rec.id}`,
+                      url: `soundscapemobile://sound/${rec.id}`,
+                    });
                   } catch (e: any) { Alert.alert(t('common.error'), e.message); }
                 }}
               >

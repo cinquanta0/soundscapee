@@ -191,7 +191,8 @@ export default function MapScreen() {
     }
     try {
       await Share.share({
-        message: `Ascolta questo audio su MIUSLYK: https://miuslyk.app/sound/${soundData.id}`,
+        message: `Ascolta "${soundData.title || 'questo audio'}" su MIUSLYK 🎵\nsoundscapemobile://sound/${soundData.id}`,
+        url: `soundscapemobile://sound/${soundData.id}`,
       });
     } catch (error: any) {
       Alert.alert(t('common.error'), error.message);
