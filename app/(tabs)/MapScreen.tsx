@@ -10,14 +10,18 @@ import {
   Alert,
   Dimensions,
   Platform,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
+import { auth } from '../../firebaseConfig';
+import { blockUser } from '../../services/blockService';
 import { getNearbySounds, getSoundsForMap, incrementListens } from '../../services/firebaseService';
 import { useTranslation } from 'react-i18next';
+import ReportModal from '../../components/ReportModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,6 +50,11 @@ export default function MapScreen() {
   const [searchRadius, setSearchRadius] = useState(10);
   const [viewMode, setViewMode] = useState('nearby');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Report Modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string>('');
+  const [reportTargetType, setReportTargetType] = useState<'audio' | 'user' | 'map'>('audio');
 
   const mapRef = useRef<any>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -173,6 +182,52 @@ export default function MapScreen() {
     }
     setShowDetails(false);
     setSelectedSound(null);
+  };
+
+  const handleShare = async (soundData: any) => {
+    if (soundData.allowExternalShare === false) {
+      Alert.alert(t('common.info', 'Info'), t('map.shareDenied', "L'autore non permette la condivisione esterna di questo audio."));
+      return;
+    }
+    try {
+      await Share.share({
+        message: `Ascolta questo audio su MIUSLYK: https://miuslyk.app/sound/${soundData.id}`,
+      });
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.message);
+    }
+  };
+
+  const handleBlockUser = (userId: string) => {
+    const me = auth.currentUser;
+    if (!me) return;
+    Alert.alert(
+      t('map.blockConfirmTitle', 'Blocca utente'),
+      t('map.blockConfirmDesc', 'Sei sicuro di voler bloccare questo utente? Non vedrai più i suoi audio.'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.block', 'Blocca'), 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              await blockUser(me.uid, userId);
+              Alert.alert(t('common.success'), t('map.blockedSuccess', 'Utente bloccato con successo.'));
+              handleCloseModal();
+              setSounds(prev => prev.filter(s => s.userId !== userId));
+            } catch (err) {
+              Alert.alert(t('common.error'), t('map.blockError', 'Errore durante il blocco.'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReport = (soundData: any) => {
+    setReportTargetId(soundData.id);
+    setReportTargetType('audio');
+    setShowReportModal(true);
   };
 
   const getMoodColor = (mood: string) => {
@@ -403,7 +458,25 @@ export default function MapScreen() {
                 </View>
               </View>
 
-              {/* Azioni */}
+              {/* Azioni Secondarie */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, justifyContent: 'space-between' }}>
+                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleShare(selectedSound)}>
+                  <Feather name="share" size={18} color="#94a3b8" />
+                  <Text style={styles.actionIconText}>{t('map.share', 'Condividi')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleReport(selectedSound)}>
+                  <Feather name="flag" size={18} color="#94a3b8" />
+                  <Text style={styles.actionIconText}>{t('map.report', 'Segnala')}</Text>
+                </TouchableOpacity>
+                {selectedSound.userId !== auth.currentUser?.uid && (
+                  <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleBlockUser(selectedSound.userId)}>
+                    <Feather name="slash" size={18} color="#ef4444" />
+                    <Text style={styles.actionIconTextRed}>{t('map.block', 'Blocca')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Azioni Primarie */}
               <View style={styles.sheetActions}>
                 <TouchableOpacity style={styles.closeBtn} onPress={handleCloseModal}>
                   <Text style={styles.closeBtnText}>{t('common.close')}</Text>
@@ -428,6 +501,13 @@ export default function MapScreen() {
           )}
         </View>
       </Modal>
+
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetId={reportTargetId}
+        targetType={reportTargetType}
+      />
     </View>
   );
 }
@@ -676,4 +756,19 @@ const styles = StyleSheet.create({
   },
   playBtnPausing: { backgroundColor: '#67E8F9' },
   playBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+  actionIconBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  actionIconText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+  actionIconTextRed: { color: '#ef4444', fontSize: 13, fontWeight: '600' },
 });

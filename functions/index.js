@@ -329,12 +329,11 @@ async function sendNotificationToUser(db, userId, { title, body, data = {} }) {
     const iosExpoPushTokens = new Set([...rawIosTokens].filter(t => t?.startsWith('ExponentPushToken')));
 
     for (const token of mobileTokens) {
-      // Per le chiamate in arrivo su Android: invia data-only (senza title/body).
-      // Con title+body, Expo→FCM manda una "notification message" che NON sveglia
-      // il background task (IncomingCallService). Solo i data message lo svegliano.
-      // Se ci sono token FCM nativi (fcmMobileTokens), questi gestiscono già la chiamata
-      // correttamente — salta il push Expo per evitare la notifica di debug con JSON grezzo.
-      // Fallback a Expo solo se il dispositivo non ha token FCM nativi.
+      // iOS tokens are handled separately in the iosExpoPushTokens block below.
+      if (iosExpoPushTokens.has(token)) continue;
+      // Per le chiamate su Android: FCM data-only (sotto) sveglia IncomingCallService
+      // che mostra lo schermo intero con pulsanti accetta/rifiuta. Il push Expo per
+      // le chiamate viene saltato perché non ha quei pulsanti e confonde l'utente.
       if (isCall && fcmMobileTokens.length > 0) continue;
 
       promises.push(

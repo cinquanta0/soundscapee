@@ -17,6 +17,8 @@ import {
   Image,
   AppState,
   Linking,
+  Switch,
+  Share,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -126,6 +128,8 @@ import BottomNavBar from '../../components/BottomNavBar';
 import OnboardingScreen from '../../components/OnboardingScreen';
 import MiniPlayer from '../../components/MiniPlayer';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
+import ReportModal from '../../components/ReportModal';
+import { blockUser } from '../../services/blockService';
 import StoriesRow from '../../components/StoriesRow';
 import BackstageViewer from '../../components/BackstageViewer';
 import {
@@ -268,6 +272,12 @@ export default function App() {
   const [newSoundDescription, setNewSoundDescription] = useState('');
   const uploadDescRef = useRef<TextInput>(null);
   const [newSoundMood, setNewSoundMood] = useState('Rilassante');
+
+  // Nuovi controlli privacy
+  const [newSoundShowOnMap, setNewSoundShowOnMap] = useState(true);
+  const [newSoundLocationPrecision, setNewSoundLocationPrecision] = useState('approx');
+  const [newSoundVisibility, setNewSoundVisibility] = useState('public');
+  const [newSoundAllowShare, setNewSoundAllowShare] = useState(true);
 
   // Scelta tipo pubblicazione
   const [showPublishTypeModal, setShowPublishTypeModal] = useState(false);
@@ -441,9 +451,6 @@ export default function App() {
   const [titleError, setTitleError] = useState('');
 
   // Report states
-  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('');
   const [reportNote, setReportNote] = useState('');
   const [reportSent, setReportSent] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
@@ -887,6 +894,18 @@ const handlePublish = async () => {
 
   setUploading(true);
   try {
+    // Obfuscate location se richiesto
+    let finalLocation = null;
+    if (location) {
+      let lat = location.coords.latitude;
+      let lng = location.coords.longitude;
+      if (newSoundLocationPrecision === 'approx') {
+        lat += (Math.random() - 0.5) * 0.01;
+        lng += (Math.random() - 0.5) * 0.01;
+      }
+      finalLocation = { latitude: lat, longitude: lng };
+    }
+
     // Crea il suono
     const soundId = await createSoundWithGeohash({
       audioUri: recordedSound.uri,
@@ -894,11 +913,12 @@ const handlePublish = async () => {
       description: newSoundDescription,
       mood: newSoundMood,
       duration: recordedSound.duration,
-      location: location ? {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      } : null,
+      location: finalLocation,
       isPublic: true,
+      visibility: newSoundVisibility,
+      showOnMap: newSoundShowOnMap,
+      locationPrecision: newSoundLocationPrecision,
+      allowExternalShare: newSoundAllowShare,
       backstageUri: backstageUri || undefined,
       backstageTipo: backstageTipo || undefined,
     });
@@ -1316,32 +1336,10 @@ const loadNotifications = async () => {
     );
   };
 
-  const openReport = (soundId: string) => {
-    setReportTargetId(soundId);
-    setReportReason('');
-    setReportNote('');
-    setReportSent(false);
+  const openReport = (targetId: string, type: 'audio' | 'user' | 'profile' = 'audio') => {
+    setReportTargetId(targetId);
+    setReportTargetType(type);
     setShowReportModal(true);
-  };
-
-  const handleSendReport = async () => {
-    if (!reportReason) return;
-    setReportLoading(true);
-    try {
-      await addDoc(collection(firestoreDb, 'reports'), {
-        userId: auth.currentUser?.uid || 'anonymous',
-        audioId: reportTargetId,
-        reason: reportReason,
-        note: reportNote.trim(),
-        timestamp: serverTimestamp(),
-      });
-      setReportSent(true);
-    } catch (err) {
-      console.error('Report error:', err);
-      Alert.alert(t('common.error'), t('report.errors.cannotSend'));
-    } finally {
-      setReportLoading(false);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -1998,8 +1996,48 @@ if (loading) {
           >
             <Text style={[styles.profileButtonPrimaryText, { color: '#f97316' }]}>⚔️ Sound Battle</Text>
           </TouchableOpacity>
-        </View>
-      )}
+
+          {/* Blocca / Segnala profilo */}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+            <TouchableOpacity
+              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' }]}
+              onPress={() => {
+                const me = auth.currentUser;
+                if (!me) return;
+                Alert.alert(
+                  'Blocca utente',
+                  'Non vedrai più i contenuti di questo utente in feed, mappa e chat.',
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: 'Blocca',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await blockUser(me.uid, userProfile.id);
+                          Alert.alert('✅ Bloccato', 'Utente bloccato con successo.');
+                          setUserProfile(null);
+                          setActiveView('home');
+                        } catch {
+                          Alert.alert(t('common.error'), 'Impossibile bloccare l\'utente.');
+                        }
+                      }
+                    }
+                  ]
+                );
+              }}
+            >
+              <Feather name="slash" size={14} color="#ef4444" />
+              <Text style={[styles.profileButtonPrimaryText, { color: '#ef4444' }]}>Blocca</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
+              onPress={() => openReport(userProfile.id, 'profile')}
+            >
+              <Feather name="flag" size={14} color="#94a3b8" />
+              <Text style={[styles.profileButtonPrimaryText, { color: '#94a3b8' }]}>Segnala</Text>
+            </TouchableOpacity>
+          </View>
       
       
       {/* Richieste amicizia in arrivo (solo sul proprio profilo) */}
@@ -2024,7 +2062,15 @@ if (loading) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }]}
-            onPress={() => Alert.alert(t('common.info'), t('profile.featureComingSoon'))}
+            onPress={async () => {
+              try {
+                await Share.share({
+                  message: `Ascolta ${myOwnProfile?.username || 'questo artista'} su MIUSLYK: https://miuslyk.app/profile/${auth.currentUser?.uid}`,
+                });
+              } catch (e: any) {
+                Alert.alert(t('common.error'), e.message);
+              }
+            }}
           >
             <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
           </TouchableOpacity>
@@ -2056,6 +2102,20 @@ if (loading) {
               </Text>
             </View>
             <View style={styles.recordingActions}>
+              <TouchableOpacity
+                style={[styles.recordingPlayButton, { backgroundColor: 'rgba(255,255,255,0.08)', marginRight: 8, width: 32, height: 32 }]}
+                onPress={async () => {
+                  if (rec.allowExternalShare === false) {
+                    Alert.alert(t('common.info'), "L'autore non permette la condivisione.");
+                    return;
+                  }
+                  try {
+                    await Share.share({ message: `Ascolta questo audio su MIUSLYK: https://miuslyk.app/sound/${rec.id}` });
+                  } catch (e: any) { Alert.alert(t('common.error'), e.message); }
+                }}
+              >
+                <Feather name="share" size={14} color="#94a3b8" />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.recordingPlayButton}
                 onPress={() => handlePlay(rec)}
@@ -2363,6 +2423,66 @@ if (loading) {
               </Text>
             </View>
 
+            {/* Privacy Settings */}
+            <View style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 12 }}>
+              <Text style={styles.moodLabel}>Privacy e Sicurezza</Text>
+              
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Mostra sulla mappa</Text>
+                <Switch 
+                  value={newSoundShowOnMap} 
+                  onValueChange={setNewSoundShowOnMap}
+                  trackColor={{ false: '#3f3f46', true: '#00FF9C' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              {newSoundShowOnMap && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Usa posizione approssimata</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Protegge la tua privacy nascondendo le coordinate esatte.</Text>
+                  </View>
+                  <Switch 
+                    value={newSoundLocationPrecision === 'approx'} 
+                    onValueChange={(val) => setNewSoundLocationPrecision(val ? 'approx' : 'exact')}
+                    trackColor={{ false: '#3f3f46', true: '#00FF9C' }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Visibilità</Text>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {['public', 'followers', 'private'].map(vis => (
+                    <TouchableOpacity
+                      key={vis}
+                      style={{
+                        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                        backgroundColor: newSoundVisibility === vis ? '#8B5CFF' : 'rgba(255,255,255,0.1)'
+                      }}
+                      onPress={() => setNewSoundVisibility(vis)}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
+                        {vis === 'public' ? 'Pubblico' : vis === 'followers' ? 'Followers' : 'Privato'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Permetti condivisione</Text>
+                <Switch 
+                  value={newSoundAllowShare} 
+                  onValueChange={setNewSoundAllowShare}
+                  trackColor={{ false: '#3f3f46', true: '#8B5CFF' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
             <View style={styles.recordModalButtons}>
               <TouchableOpacity
                 style={styles.recordModalButtonCancel}
@@ -2371,6 +2491,10 @@ if (loading) {
                   setRecordedSound(null);
                   setNewSoundTitle('');
                   setNewSoundDescription('');
+                  setNewSoundShowOnMap(true);
+                  setNewSoundLocationPrecision('approx');
+                  setNewSoundVisibility('public');
+                  setNewSoundAllowShare(true);
                 }}
                 disabled={uploading}
               >
@@ -2582,87 +2706,12 @@ if (loading) {
           </View>
       </Modal>
 
-      {/* Report Modal */}
-      <Modal
+      <ReportModal
         visible={showReportModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => { Keyboard.dismiss(); setShowReportModal(false); }}
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-        <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setShowReportModal(false); }}>
-          <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-              <View style={[styles.modalContent, { borderRadius: 24, padding: 24 }]}>
-                {reportSent ? (
-                  <View style={{ alignItems: 'center', padding: 20, gap: 12 }}>
-                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)', alignItems: 'center', justifyContent: 'center' }}>
-                      <Feather name="check" size={22} color="#10b981" />
-                    </View>
-                    <Text style={{ color: '#F8F4EF', fontSize: 15, fontWeight: '600' }}>{t('report.sent')}</Text>
-                    <TouchableOpacity
-                      style={{ marginTop: 8, paddingVertical: 11, paddingHorizontal: 24, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10 }}
-                      onPress={() => setShowReportModal(false)}
-                    >
-                      <Text style={{ color: '#F8F4EF' }}>{t('common.close')}</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.modalHeader}>
-                      <Text style={styles.modalTitle}>{t('report.title')}</Text>
-                      <TouchableOpacity onPress={() => setShowReportModal(false)}>
-                        <Feather name="x" size={22} color="#94a3b8" />
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={{ color: '#8A8D96', fontSize: 12, marginBottom: 14 }}>{t('report.selectReason')}</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                      {[
-                        { key: 'Inappropriato', label: t('report.inappropriate') },
-                        { key: 'Spam', label: t('report.spam') },
-                        { key: 'Violenza', label: t('report.violence') },
-                        { key: 'Altro', label: t('report.other') },
-                      ].map(({ key, label }) => (
-                        <TouchableOpacity
-                          key={key}
-                          style={{
-                            paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8,
-                            borderWidth: 1,
-                            borderColor: reportReason === key ? '#00FF9C' : 'rgba(255,255,255,0.1)',
-                            backgroundColor: reportReason === key ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)',
-                          }}
-                          onPress={() => setReportReason(key)}
-                        >
-                          <Text style={{ color: reportReason === key ? '#00FF9C' : '#8A8D96', fontSize: 13 }}>{label}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    <TextInput
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 12, color: '#F8F4EF', fontSize: 13, marginBottom: 16, minHeight: 72 }}
-                      placeholder={t('report.notesPlaceholder')}
-                      placeholderTextColor="#4A4D56"
-                      multiline
-                      value={reportNote}
-                      onChangeText={setReportNote}
-                    />
-                    <TouchableOpacity
-                      style={{ backgroundColor: reportReason ? '#00FF9C' : 'rgba(6,182,212,0.3)', padding: 13, borderRadius: 10, alignItems: 'center' }}
-                      onPress={handleSendReport}
-                      disabled={!reportReason || reportLoading}
-                    >
-                      <Text style={{ color: '#fff', fontWeight: '600' }}>{reportLoading ? t('report.sending') : t('report.submit')}</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        onClose={() => setShowReportModal(false)}
+        targetId={reportTargetId}
+        targetType={reportTargetType}
+      />
 
       {/* Delete Account Confirm Modal */}
       <Modal

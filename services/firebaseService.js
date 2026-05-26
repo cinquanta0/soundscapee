@@ -292,8 +292,24 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
     );
     
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const sounds = await Promise.all(snapshot.docs.map(async docSnap => {
+      const currentUser = auth.currentUser;
+      let blockedUsers = [];
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            blockedUsers = userDoc.data()?.blockedUsers || [];
+          }
+        } catch (err) {}
+      }
+
+      const soundsPromises = snapshot.docs.map(async docSnap => {
         const data = docSnap.data();
+        
+        // Filtri privacy e blocco
+        if (data.visibility === 'private' && data.userId !== currentUser?.uid) return null;
+        if (blockedUsers.includes(data.userId)) return null;
+
         let username = data.username;
         let userAvatar = data.userAvatar;
         let userPhoto = data.userPhoto || null;
@@ -319,7 +335,10 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
           userPhoto,
           createdAt: data.createdAt?.toDate() || new Date()
         };
-      }));
+      });
+      
+      const rawSounds = await Promise.all(soundsPromises);
+      const sounds = rawSounds.filter(s => s !== null);
       callback(sounds);
     }, (error) => {
       console.error('❌ [FEED] Error in sounds subscription:', error);
@@ -1118,7 +1137,11 @@ export const createSoundWithGeohash = async (soundData) => {
       comments: 0,
       listens: 0,
       createdAt: serverTimestamp(),
-      isPublic: soundData.isPublic !== false,
+      isPublic: soundData.visibility !== 'private' && soundData.isPublic !== false,
+      visibility: soundData.visibility || 'public',
+      showOnMap: soundData.showOnMap !== false,
+      locationPrecision: soundData.locationPrecision || 'exact',
+      allowExternalShare: soundData.allowExternalShare !== false,
       ...(backstageUrl ? { backstageUrl, backstageTipo } : {}),
     };
 
@@ -1166,6 +1189,19 @@ export const getNearbySounds = async (center, radiusInKm = 10) => {
 
     console.log('📦 [NEARBY] Geohash bounds:', bounds);
 
+    const currentUser = auth.currentUser;
+    let blockedUsers = [];
+    if (currentUser) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          blockedUsers = userDoc.data()?.blockedUsers || [];
+        }
+      } catch (err) {
+        console.warn('Impossibile caricare blockedUsers:', err);
+      }
+    }
+
     const promises = [];
     for (const b of bounds) {
       // ✅ ORDINE CORRETTO: where equality PRIMA, poi orderBy, poi where range
@@ -1191,6 +1227,11 @@ export const getNearbySounds = async (center, radiusInKm = 10) => {
           console.log('⚠️ [NEARBY] Sound without valid location:', doc.id);
           continue;
         }
+
+        // Filtri Privacy & Sicurezza
+        if (data.showOnMap === false) continue;
+        if (data.visibility === 'private' && data.userId !== currentUser?.uid) continue;
+        if (blockedUsers.includes(data.userId)) continue;
 
         // Calcola distanza reale
         const distanceInKm = distanceBetween(
@@ -1234,15 +1275,34 @@ export const getSoundsForMap = async (limitCount = 100) => {
     );
 
     const snapshot = await getDocs(q);
+
+    const currentUser = auth.currentUser;
+    let blockedUsers = [];
+    if (currentUser) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          blockedUsers = userDoc.data()?.blockedUsers || [];
+        }
+      } catch (err) {
+        console.warn('Impossibile caricare blockedUsers:', err);
+      }
+    }
     
-    // Filtra solo quelli con location
+    // Filtra solo quelli con location, e applica filtri privacy
     const sounds = snapshot.docs
       .map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       }))
-      .filter(sound => sound.location !== null && sound.location !== undefined);
+      .filter(sound => 
+        sound.location !== null && 
+        sound.location !== undefined &&
+        sound.showOnMap !== false &&
+        sound.visibility !== 'private' &&
+        !blockedUsers.includes(sound.userId)
+      );
     
     console.log('✅ [MAP] Found', sounds.length, 'sounds with location');
     return enrichSoundsWithUserData(sounds);
@@ -1467,9 +1527,7 @@ export async function getChallengeSounds(challengeId, limitCount = 50) {
   try {
     const q = query(
       collection(db, 'sounds'),
-      where('challengeId', '==', challengeId),
-      orderBy('likes', 'desc'),
-      limit(limitCount)
+      where('challengeId', '==', challengeId)
     );
 
     const snapshot = await getDocs(q);
@@ -1491,8 +1549,14 @@ export async function getChallengeSounds(challengeId, limitCount = 50) {
       })
     );
 
-    console.log(`✅ Found ${sounds.length} sounds for challenge ${challengeId}`);
-    return sounds;
+    // Ordina in locale (per evitare errori di composite index su Firebase)
+    sounds.sort((a, b) => (b.challengeVotes || 0) - (a.challengeVotes || 0));
+
+    // Applica limite
+    const limitedSounds = sounds.slice(0, limitCount);
+
+    console.log(`✅ Found ${limitedSounds.length} sounds for challenge ${challengeId}`);
+    return limitedSounds;
   } catch (error) {
     console.error('❌ Error getting challenge sounds:', error);
     return [];
