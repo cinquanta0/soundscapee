@@ -129,7 +129,7 @@ import OnboardingScreen from '../../components/OnboardingScreen';
 import MiniPlayer from '../../components/MiniPlayer';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import ReportModal from '../../components/ReportModal';
-import { blockUser } from '../../services/blockService';
+import { blockUser, unblockUser, listenBlockedUsers } from '../../services/blockService';
 import StoriesRow from '../../components/StoriesRow';
 import BackstageViewer from '../../components/BackstageViewer';
 import {
@@ -510,14 +510,18 @@ export default function App() {
   const [followersList, setFollowersList] = useState<any[]>([]);
   const [followingList, setFollowingList] = useState<any[]>([]);
   const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
-  
+  const [myBlockedUsers, setMyBlockedUsers] = useState<string[]>([]);
   
   // Load user and sounds on mount
   useEffect(() => {
     let feedUnsubscribe: (() => void) | undefined;
+    let blockedUnsubscribe: (() => void) | undefined;
 
     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        blockedUnsubscribe = listenBlockedUsers(user.uid, (blocked) => {
+          setMyBlockedUsers(blocked);
+        });
         initializeApp().then((unsub) => {
           feedUnsubscribe = unsub;
         });
@@ -526,6 +530,7 @@ export default function App() {
         setSounds([]);
         setMySounds([]);
         setLoading(false);
+        if (blockedUnsubscribe) blockedUnsubscribe();
       }
     });
 
@@ -534,6 +539,7 @@ export default function App() {
     return () => {
       authUnsubscribe();
       if (feedUnsubscribe) feedUnsubscribe();
+      if (blockedUnsubscribe) blockedUnsubscribe();
     };
   }, []);
 
@@ -2028,26 +2034,30 @@ if (loading) {
           {/* Blocca / Segnala profilo */}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' }]}
+              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }]}
               onPress={() => {
                 const me = auth.currentUser;
                 if (!me) return;
+                const isBlocked = myBlockedUsers.includes(userProfile.id);
                 Alert.alert(
-                  'Blocca utente',
-                  'Non vedrai più i contenuti di questo utente in feed, mappa e chat.',
+                  isBlocked ? 'Sblocca utente' : 'Blocca utente',
+                  isBlocked ? 'Vuoi sbloccare questo utente?' : 'Non vedrai più i contenuti di questo utente in feed, mappa e chat.',
                   [
                     { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Blocca',
-                      style: 'destructive',
+                      text: isBlocked ? 'Sblocca' : 'Blocca',
+                      style: isBlocked ? 'default' : 'destructive',
                       onPress: async () => {
                         try {
-                          await blockUser(me.uid, userProfile.id);
-                          Alert.alert('✅ Bloccato', 'Utente bloccato con successo.');
-                          setUserProfile(null);
-                          setActiveView('home');
+                          if (isBlocked) {
+                            await unblockUser(me.uid, userProfile.id);
+                            Alert.alert('✅ Sbloccato', 'Utente sbloccato. Scorri in basso nel Feed per aggiornare i suoni.');
+                          } else {
+                            await blockUser(me.uid, userProfile.id);
+                            Alert.alert('✅ Bloccato', 'Utente bloccato. Scorri in basso nel Feed per aggiornare i suoni.');
+                          }
                         } catch {
-                          Alert.alert(t('common.error'), 'Impossibile bloccare l\'utente.');
+                          Alert.alert(t('common.error'), 'Impossibile completare l\'azione.');
                         }
                       }
                     }
@@ -2055,8 +2065,10 @@ if (loading) {
                 );
               }}
             >
-              <Feather name="slash" size={14} color="#ef4444" />
-              <Text style={[styles.profileButtonPrimaryText, { color: '#ef4444' }]}>Blocca</Text>
+              <Feather name={myBlockedUsers.includes(userProfile.id) ? "check-circle" : "slash"} size={14} color={myBlockedUsers.includes(userProfile.id) ? "#22c55e" : "#ef4444"} />
+              <Text style={[styles.profileButtonPrimaryText, { color: myBlockedUsers.includes(userProfile.id) ? '#22c55e' : '#ef4444' }]}>
+                {myBlockedUsers.includes(userProfile.id) ? 'Sblocca' : 'Blocca'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
