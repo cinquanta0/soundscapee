@@ -1525,7 +1525,8 @@ const handleSaveProfile = async () => {
     const matchesSearch = (post.title ?? '').toLowerCase().includes(q) ||
       (post.description ?? '').toLowerCase().includes(q);
     const matchesMood = filterMood === 'all' || post.mood === filterMood;
-    return matchesSearch && matchesMood;
+    const isNotBlocked = !myBlockedUsers.includes(post.userId);
+    return matchesSearch && matchesMood && isNotBlocked;
   });
 
   // Format time ago — gestisce Firestore Timestamp, Date JS e numeri
