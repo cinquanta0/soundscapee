@@ -2310,11 +2310,14 @@ if (loading) {
           setRecordedSound(null);
         }}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <TouchableWithoutFeedback onPress={() => { setShowRecordModal(false); setRecordedSound(null); }}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.recordModal, { maxHeight: '85%', padding: 0 }]} onStartShouldSetResponder={() => true}>
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => { setShowRecordModal(false); setRecordedSound(null); Keyboard.dismiss(); }}
+          />
+          <View style={[styles.recordModal, { maxHeight: '85%', padding: 0 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
             <Text style={styles.recordModalTitle}>{t('upload.title')}</Text>
             
             <TextInput
@@ -2563,9 +2566,7 @@ if (loading) {
               </TouchableOpacity>
             </View>
               </ScrollView>
-            </View>
           </View>
-        </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
 
