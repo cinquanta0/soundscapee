@@ -449,7 +449,7 @@ export default function App() {
           title: s.title || 'Audio',
           artist: s.username || 'Sconosciuto',
           artwork: s.imageUrl || undefined,
-          isPlaying: true,
+          isPlaying: !isSoundPaused,
           type: 'sound',
           id: playingId
         });
@@ -457,7 +457,7 @@ export default function App() {
         setMiniPlayerData({
           title: 'Ascoltando...',
           artist: 'Audio',
-          isPlaying: true,
+          isPlaying: !isSoundPaused,
           type: 'sound',
           id: playingId
         });
@@ -465,7 +465,7 @@ export default function App() {
     } else {
       setMiniPlayerData(prev => prev?.type === 'sound' ? null : prev);
     }
-  }, [playingId, sounds, mySounds]);
+  }, [playingId, sounds, mySounds, isSoundPaused]);
 
   // UI States
   const [showSettings, setShowSettings] = useState(false);
@@ -1033,7 +1033,8 @@ const handlePublish = async () => {
 };
 
   // Play sound
-const [playProgress, setPlayProgress] = useState(0);
+  const [playProgress, setPlayProgress] = useState(0);
+  const [isSoundPaused, setIsSoundPaused] = useState(false);
 
 const stopCurrentSound = async () => {
   if (soundObjRef.current) {
@@ -1042,12 +1043,14 @@ const stopCurrentSound = async () => {
     setSound(null);
   }
   setPlayingId(null);
+  setIsSoundPaused(false);
   setPlayProgress(0);
   setPlayPosition(0);
 };
 
 const onPlaybackStatusUpdate = (status: any) => {
   if (!status.isLoaded) return;
+  setIsSoundPaused(!status.isPlaying && status.positionMillis !== status.durationMillis);
   if (status.durationMillis > 0) {
     setPlayProgress((status.positionMillis / status.durationMillis) * 100);
     setPlayPosition(Math.floor(status.positionMillis / 1000));
@@ -1057,6 +1060,7 @@ const onPlaybackStatusUpdate = (status: any) => {
     soundObjRef.current = null;
     setSound(null);
     setPlayingId(null);
+    setIsSoundPaused(false);
     setPlayProgress(0);
     setPlayPosition(0);
   }
@@ -2280,7 +2284,14 @@ if (loading) {
           }}
           onPlayPause={async () => {
             if (miniPlayerData.type === 'sound') {
-               await stopCurrentSound();
+               if (soundObjRef.current) {
+                 const st = await soundObjRef.current.getStatusAsync();
+                 if (st.isLoaded && st.isPlaying) {
+                   await soundObjRef.current.pauseAsync();
+                 } else if (st.isLoaded && !st.isPlaying) {
+                   await soundObjRef.current.playAsync();
+                 }
+               }
                return;
             }
             try {
