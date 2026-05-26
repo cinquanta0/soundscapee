@@ -2038,8 +2038,9 @@ if (loading) {
               <Text style={[styles.profileButtonPrimaryText, { color: '#94a3b8' }]}>Segnala</Text>
             </TouchableOpacity>
           </View>
-      
-      
+        </View>
+      )}
+
       {/* Richieste amicizia in arrivo (solo sul proprio profilo) */}
       {userProfile?.id === auth.currentUser?.uid && pendingFriendRequests.length > 0 && (
         <TouchableOpacity
