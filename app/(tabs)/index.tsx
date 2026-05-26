@@ -560,17 +560,19 @@ export default function App() {
   useEffect(() => {
     const handleDeepLink = (url: string | null) => {
       if (!url) return;
-      // Supporta sia soundscapemobile:// che exp:// per dev
-      const cleaned = url.replace(/^soundscapemobile:\/\//, '').replace(/^exp:\/\/[^/]+\/--\//, '');
-      const parts = cleaned.split('/');
-      const type = parts[0];
-      const id = parts[1];
-      if (!type || !id) return;
-      if (type === 'profile') {
-        openUserProfile(id);
-      } else if (type === 'sound') {
-        openSoundById(id, 'play');
-      }
+      setTimeout(() => {
+        // Supporta sia soundscapemobile:// che exp:// per dev
+        const cleaned = url.replace(/^soundscapemobile:\/\//, '').replace(/^exp:\/\/[^/]+\/--\//, '');
+        const parts = cleaned.split('/');
+        const type = parts[0];
+        const id = parts[1];
+        if (!type || !id) return;
+        if (type === 'profile') {
+          openUserProfile(id);
+        } else if (type === 'sound') {
+          openSoundById(id, 'play');
+        }
+      }, 1500); // Ritardo per assicurare che l'app e Firebase siano pronti
     };
 
     // Cold start (app chiusa)
