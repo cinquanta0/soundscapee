@@ -1050,7 +1050,6 @@ const stopCurrentSound = async () => {
 
 const onPlaybackStatusUpdate = (status: any) => {
   if (!status.isLoaded) return;
-  setIsSoundPaused(!status.isPlaying && status.positionMillis !== status.durationMillis);
   if (status.durationMillis > 0) {
     setPlayProgress((status.positionMillis / status.durationMillis) * 100);
     setPlayPosition(Math.floor(status.positionMillis / 1000));
@@ -2290,8 +2289,10 @@ if (loading) {
                  const st = await soundObjRef.current.getStatusAsync();
                  if (st.isLoaded && st.isPlaying) {
                    await soundObjRef.current.pauseAsync();
+                   setIsSoundPaused(true);
                  } else if (st.isLoaded && !st.isPlaying) {
                    await soundObjRef.current.playAsync();
+                   setIsSoundPaused(false);
                  }
                }
                return;
