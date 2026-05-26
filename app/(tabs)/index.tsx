@@ -2562,7 +2562,6 @@ if (loading) {
                 )}
               </TouchableOpacity>
             </View>
-            </View>
               </ScrollView>
             </View>
           </View>
