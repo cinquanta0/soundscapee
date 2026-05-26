@@ -1,12 +1,12 @@
-import { doc, updateDoc, onSnapshot, arrayUnion, arrayRemove, Unsubscribe } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, arrayUnion, arrayRemove, Unsubscribe } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 export async function blockUser(myUid: string, targetUid: string): Promise<void> {
-  await updateDoc(doc(db, 'users', myUid), { blockedUsers: arrayUnion(targetUid) });
+  await setDoc(doc(db, 'users', myUid), { blockedUsers: arrayUnion(targetUid) }, { merge: true });
 }
 
 export async function unblockUser(myUid: string, targetUid: string): Promise<void> {
-  await updateDoc(doc(db, 'users', myUid), { blockedUsers: arrayRemove(targetUid) });
+  await setDoc(doc(db, 'users', myUid), { blockedUsers: arrayRemove(targetUid) }, { merge: true });
 }
 
 export function listenBlockedUsers(myUid: string, cb: (blocked: string[]) => void): Unsubscribe {

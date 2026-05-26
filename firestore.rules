@@ -198,7 +198,7 @@ service cloud.firestore {
 
     // ── REPORTS ───────────────────────────────────────────────────────────────
     match /reports/{reportId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
       allow create: if isNotAnonymous()
                     && isOwner(request.resource.data.userId)
                     && validString(request.resource.data.reason, 200);
