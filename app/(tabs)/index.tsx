@@ -2314,7 +2314,7 @@ if (loading) {
         <TouchableWithoutFeedback onPress={() => { setShowRecordModal(false); setRecordedSound(null); }}>
           <View style={styles.modalOverlay}>
             <View style={[styles.recordModal, { maxHeight: '85%', padding: 0 }]} onStartShouldSetResponder={() => true}>
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18 }}>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
             <Text style={styles.recordModalTitle}>{t('upload.title')}</Text>
             
             <TextInput
@@ -2502,9 +2502,9 @@ if (loading) {
                 </View>
               )}
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Visibilità</Text>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ color: '#F7F8FF', fontSize: 13, marginBottom: 8 }}>Visibilità</Text>
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                   {['public', 'followers', 'private'].map(vis => (
                     <TouchableOpacity
                       key={vis}
