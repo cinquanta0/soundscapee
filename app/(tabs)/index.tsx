@@ -399,7 +399,7 @@ export default function App() {
   }, []);
 
   // Mini-player
-  interface MiniPlayerData { title: string; artist: string; artwork?: string; isPlaying: boolean; type: 'radio' | 'podcast'; }
+  interface MiniPlayerData { title: string; artist: string; artwork?: string; isPlaying: boolean; type: 'radio' | 'podcast' | 'sound'; id?: string; }
   const [miniPlayerData, setMiniPlayerData] = useState<MiniPlayerData | null>(null);
 
   useEffect(() => {
@@ -416,9 +416,9 @@ export default function App() {
         ]);
         const st = ps?.state ?? ps;
         const isActive = st === S.State?.Playing || st === S.State?.Paused || st === S.State?.Buffering || st === S.State?.Loading || st === S.State?.Ready;
-        if (!isActive || !track || !sessionStr) { setMiniPlayerData(null); return; }
+        if (!isActive || !track || !sessionStr) { setMiniPlayerData(prev => prev?.type === 'sound' ? prev : null); return; }
         const session = JSON.parse(sessionStr);
-        if (session.type !== 'radio' && session.type !== 'podcast') { setMiniPlayerData(null); return; }
+        if (session.type !== 'radio' && session.type !== 'podcast') { setMiniPlayerData(prev => prev?.type === 'sound' ? prev : null); return; }
         setMiniPlayerData({
           title: track.title ?? '',
           artist: track.artist ?? '',
@@ -426,7 +426,7 @@ export default function App() {
           isPlaying: st === S.State?.Playing || st === S.State?.Buffering,
           type: session.type,
         });
-      } catch { setMiniPlayerData(null); }
+      } catch { setMiniPlayerData(prev => prev?.type === 'sound' ? prev : null); }
     };
 
     syncMiniPlayer();
@@ -439,6 +439,33 @@ export default function App() {
       subTrack?.remove?.();
     };
   }, []);
+
+  // Sincronizza MiniPlayer per i SUONI (expo-av)
+  useEffect(() => {
+    if (playingId) {
+      const s = sounds.find(x => x.id === playingId) || mySounds.find(x => x.id === playingId);
+      if (s) {
+        setMiniPlayerData({
+          title: s.title || 'Audio',
+          artist: s.username || 'Sconosciuto',
+          artwork: s.imageUrl || undefined,
+          isPlaying: true,
+          type: 'sound',
+          id: playingId
+        });
+      } else {
+        setMiniPlayerData({
+          title: 'Ascoltando...',
+          artist: 'Audio',
+          isPlaying: true,
+          type: 'sound',
+          id: playingId
+        });
+      }
+    } else {
+      setMiniPlayerData(prev => prev?.type === 'sound' ? null : prev);
+    }
+  }, [playingId, sounds, mySounds]);
 
   // UI States
   const [showSettings, setShowSettings] = useState(false);
@@ -2244,8 +2271,18 @@ if (loading) {
           artwork={miniPlayerData.artwork}
           isPlaying={miniPlayerData.isPlaying}
           bottomOffset={navBarHeight}
-          onPress={() => setActiveTab('explore')}
+          onPress={() => {
+            if (miniPlayerData.type === 'sound') {
+              setActiveTab('home');
+            } else {
+              setActiveTab('explore');
+            }
+          }}
           onPlayPause={async () => {
+            if (miniPlayerData.type === 'sound') {
+               await stopCurrentSound();
+               return;
+            }
             try {
               const r = require('react-native-track-player');
               const TP = r.default; const S = r;
@@ -2271,6 +2308,11 @@ if (loading) {
             } catch {}
           }}
           onClose={async () => {
+            if (miniPlayerData.type === 'sound') {
+               await stopCurrentSound();
+               setMiniPlayerData(null);
+               return;
+            }
             try {
               const TP = require('react-native-track-player').default;
               // reset() termina il ForegroundService Android e rimuove il widget iOS
@@ -2278,7 +2320,7 @@ if (loading) {
             } catch {}
             try { await AsyncStorage.removeItem('@miuslyk/rntp_session'); } catch {}
             try { await AsyncStorage.removeItem('@miuslyk/live_stream_user_paused'); } catch {}
-            setMiniPlayerData(null);
+            setMiniPlayerData(prev => prev?.type === 'sound' ? prev : null);
           }}
         />
       )}
