@@ -451,6 +451,9 @@ export default function App() {
   const [titleError, setTitleError] = useState('');
 
   // Report states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string>('');
+  const [reportTargetType, setReportTargetType] = useState<'audio' | 'user' | 'profile'>('audio');
   const [reportNote, setReportNote] = useState('');
   const [reportSent, setReportSent] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
