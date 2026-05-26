@@ -2310,9 +2310,11 @@ if (loading) {
           setRecordedSound(null);
         }}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableWithoutFeedback onPress={() => { setShowRecordModal(false); setRecordedSound(null); }}>
           <View style={styles.modalOverlay}>
-            <View style={styles.recordModal} onStartShouldSetResponder={() => true}>
+            <View style={[styles.recordModal, { maxHeight: '85%', padding: 0 }]} onStartShouldSetResponder={() => true}>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18 }}>
             <Text style={styles.recordModalTitle}>{t('upload.title')}</Text>
             
             <TextInput
@@ -2560,9 +2562,12 @@ if (loading) {
                 )}
               </TouchableOpacity>
             </View>
+            </View>
+              </ScrollView>
+            </View>
           </View>
-        </View>
         </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Publish Type Choice Modal */}
