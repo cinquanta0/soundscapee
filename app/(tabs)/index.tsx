@@ -1085,6 +1085,8 @@ const handlePlay = async (item: any) => {
 
     // Stesso suono → stop (toggle)
     if (currentId === item.id) {
+      isLoadingSound.current = false;
+      setSoundActionBusy(false);
       return;
     }
 
