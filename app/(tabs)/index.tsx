@@ -2289,10 +2289,10 @@ if (loading) {
                  const st = await soundObjRef.current.getStatusAsync();
                  if (st.isLoaded && st.isPlaying) {
                    await soundObjRef.current.pauseAsync();
-                   setIsSoundPaused(true);
+                   setMiniPlayerData(prev => prev ? { ...prev, isPlaying: false } : null);
                  } else if (st.isLoaded && !st.isPlaying) {
                    await soundObjRef.current.playAsync();
-                   setIsSoundPaused(false);
+                   setMiniPlayerData(prev => prev ? { ...prev, isPlaying: true } : null);
                  }
                }
                return;
