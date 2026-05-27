@@ -1246,10 +1246,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (!callId || !currentCall) return;
 
     if (currentCall.type !== 'group') {
-      // Upgrade 1:1 → group: costruiamo i profili dei partecipanti originali
+      // Upgrade 1:1 → group: fetch the original participants' photos
+      const [callerSnap, calleeSnap] = await Promise.all([
+        getDoc(doc(db, 'users', currentCall.callerId)).catch(() => null),
+        getDoc(doc(db, 'users', currentCall.calleeId)).catch(() => null),
+      ]);
+      const callerPhoto = callerSnap?.data()?.profilePicture;
+      const calleePhoto = calleeSnap?.data()?.profilePicture;
+
       const existingProfiles: Record<string, ParticipantProfile> = {
-        [currentCall.callerId]: { name: currentCall.callerName, avatar: currentCall.callerAvatar },
-        [currentCall.calleeId]: { name: currentCall.calleeName, avatar: currentCall.calleeAvatar },
+        [currentCall.callerId]: { name: currentCall.callerName, avatar: currentCall.callerAvatar, ...(callerPhoto ? { photo: callerPhoto } : {}) },
+        [currentCall.calleeId]: { name: currentCall.calleeName, avatar: currentCall.calleeAvatar, ...(calleePhoto ? { photo: calleePhoto } : {}) },
       };
       await upgradeCallToGroup(callId, inviteeIds, { ...existingProfiles, ...inviteeProfiles });
     } else {
