@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   where,
+  onSnapshot,
 } from 'firebase/firestore';
 import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -161,9 +162,21 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   }, [sortBy]);
 
   useEffect(() => {
-    if (section === 'leaderboard' && leaderboard.length === 0 && !leaderboardLoading) {
-      loadLeaderboard();
+    let unsubLeaderboard: any = null;
+    if (section === 'leaderboard') {
+      setLeaderboardLoading(true);
+      const q = query(collection(db, 'sounds'), orderBy('listens', 'desc'), limit(10));
+      unsubLeaderboard = onSnapshot(q, (snap) => {
+        setLeaderboard(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLeaderboardLoading(false);
+      }, () => {
+        setLeaderboardLoading(false);
+      });
     }
+    
+    return () => {
+      if (unsubLeaderboard) unsubLeaderboard();
+    };
   }, [section]);
 
   useEffect(() => {
@@ -226,19 +239,6 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadLeaderboard = async () => {
-    setLeaderboardLoading(true);
-    try {
-      const q = query(collection(db, 'sounds'), orderBy('listens', 'desc'), limit(10));
-      const snap = await getDocs(q);
-      setLeaderboard(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch {
-      // silent
-    } finally {
-      setLeaderboardLoading(false);
     }
   };
 
