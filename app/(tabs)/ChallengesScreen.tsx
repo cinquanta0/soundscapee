@@ -197,11 +197,6 @@ export default function ChallengesScreen() {
     try {
       await joinChallenge(selectedChallenge.id, soundId);
       setShowSoundPickerModal(false);
-      const updated = await getChallengeSounds(selectedChallenge.id);
-      setChallengeSounds(updated);
-      // Riapri il modal della challenge con i suoni aggiornati
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setShowChallengeModal(true);
       Alert.alert('🎵', 'Sound inviato alla sfida!');
     } catch (err: any) {
       Alert.alert(t('common.error'), err?.message || 'Errore durante la partecipazione.');
@@ -488,12 +483,7 @@ export default function ChallengesScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Scegli un sound</Text>
-              <TouchableOpacity onPress={async () => {
-                setShowSoundPickerModal(false);
-                // Riapri il modal della challenge
-                await new Promise(resolve => setTimeout(resolve, 300));
-                setShowChallengeModal(true);
-              }}>
+              <TouchableOpacity onPress={() => setShowSoundPickerModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
