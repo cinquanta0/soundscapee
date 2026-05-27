@@ -173,6 +173,10 @@ export default function ChallengesScreen() {
 
   const handleParticipate = async () => {
     if (!uid) return;
+    // iOS non supporta Modal annidati: chiudiamo prima il modal della challenge
+    setShowChallengeModal(false);
+    // Piccolo delay per permettere ad iOS di chiudere il primo modal
+    await new Promise(resolve => setTimeout(resolve, 350));
     setLoadingUserSounds(true);
     setShowSoundPickerModal(true);
     try {
@@ -181,6 +185,7 @@ export default function ChallengesScreen() {
     } catch {
       Alert.alert(t('common.error'), 'Impossibile caricare i tuoi sound.');
       setShowSoundPickerModal(false);
+      setShowChallengeModal(true);
     } finally {
       setLoadingUserSounds(false);
     }
@@ -194,6 +199,9 @@ export default function ChallengesScreen() {
       setShowSoundPickerModal(false);
       const updated = await getChallengeSounds(selectedChallenge.id);
       setChallengeSounds(updated);
+      // Riapri il modal della challenge con i suoni aggiornati
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setShowChallengeModal(true);
       Alert.alert('🎵', 'Sound inviato alla sfida!');
     } catch (err: any) {
       Alert.alert(t('common.error'), err?.message || 'Errore durante la partecipazione.');
@@ -480,7 +488,12 @@ export default function ChallengesScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Scegli un sound</Text>
-              <TouchableOpacity onPress={() => setShowSoundPickerModal(false)}>
+              <TouchableOpacity onPress={async () => {
+                setShowSoundPickerModal(false);
+                // Riapri il modal della challenge
+                await new Promise(resolve => setTimeout(resolve, 300));
+                setShowChallengeModal(true);
+              }}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
