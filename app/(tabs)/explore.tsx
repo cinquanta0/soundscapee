@@ -36,6 +36,13 @@ let _TP: any = null; let _S: any = {};
 try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
 const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 
+const C = {
+  cyan: '#67E8F9',
+  purple: '#8B5CFF',
+  lime: '#D9FF5A',
+  orange: '#FF9B5E',
+};
+
 
 async function searchUsers(searchText: string) {
   const lower = searchText.trim().toLowerCase();
