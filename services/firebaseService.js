@@ -1578,16 +1578,19 @@ export async function voteForChallengeSound(soundId) {
       throw new Error('Hai già votato questo suono!');
     }
 
-    // Aggiungi voto usando l'UID come document ID (così il check è coerente)
-    await setDoc(voteRef, {
+    // Usa un writeBatch per atomicità (se fallisce update, fallisce anche set)
+    const batch = writeBatch(db);
+    
+    batch.set(voteRef, {
       userId: user.uid,
       votedAt: new Date(),
     });
 
-    // Incrementa contatore voti
-    await updateDoc(doc(db, 'sounds', soundId), {
+    batch.update(doc(db, 'sounds', soundId), {
       challengeVotes: increment(1),
     });
+
+    await batch.commit();
 
     console.log('✅ Vote added');
     return true;
