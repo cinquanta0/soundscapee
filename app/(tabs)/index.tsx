@@ -257,6 +257,10 @@ export default function App() {
   
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [loadingFollow, setLoadingFollow] = useState(false);
+  
+  // Follow feed
+  const [feedMode, setFeedMode] = useState<'for-you' | 'following'>('for-you');
+  const [myFollowingList, setMyFollowingList] = useState<string[]>([]);
 
   // Friend requests
   const [friendStatus, setFriendStatus] = useState<'none'|'pending_sent'|'pending_received'|'friends'>('none');
@@ -741,6 +745,7 @@ useEffect(() => {
       setMyOwnProfile(profile);
       setMyStreakCount(profile?.streakCount || 0);
       getFollowStats(user.uid).then(setFollowStats);
+      getFollowingList(user.uid).then(list => setMyFollowingList(list.map((u: any) => u.id)));
     } catch (error) {
       console.error('Profile init error (non-fatal):', error);
     }
@@ -1560,7 +1565,12 @@ const handleSaveProfile = async () => {
       (post.description ?? '').toLowerCase().includes(q);
     const matchesMood = filterMood === 'all' || post.mood === filterMood;
     const isNotBlocked = !myBlockedUsers.includes(post.userId);
-    return matchesSearch && matchesMood && isNotBlocked;
+    
+    const isFollowingOrMe = feedMode === 'for-you' || 
+      post.userId === auth.currentUser?.uid || 
+      myFollowingList.includes(post.userId);
+
+    return matchesSearch && matchesMood && isNotBlocked && isFollowingOrMe;
   });
 
   // Format time ago — gestisce Firestore Timestamp, Date JS e numeri
@@ -1597,7 +1607,7 @@ const handleFriendAction = async (action: 'send'|'cancel'|'accept'|'reject'|'rem
   }
 };
 
-  // Handler bottone
+// Handler bottone
 const handleFollowToggle = async () => {
   setLoadingFollow(true);
   try {
@@ -1606,6 +1616,13 @@ const handleFollowToggle = async () => {
     const updated = await getUserProfile(userProfile.id);
     setUserProfile(updated);
     getFollowStats(userProfile.id).then(setFollowStats);
+    
+    // Aggiorna lista locale per il feed
+    if (res) {
+      setMyFollowingList(prev => [...prev, userProfile.id]);
+    } else {
+      setMyFollowingList(prev => prev.filter(id => id !== userProfile.id));
+    }
   } catch (e) {
     Alert.alert(t('common.error'), t('profile.errors.cannotFollow'));
   } finally {
@@ -1853,9 +1870,17 @@ if (loading) {
             </ScrollView>
 
             <View style={styles.feedSectionHeader}>
-              <View>
-                <Text style={styles.feedSectionEyebrow}>Curated audio feed</Text>
-                <Text style={styles.feedSectionTitle}>Latest sound drops</Text>
+              <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => setFeedMode('for-you')}>
+                  <Text style={[styles.feedSectionTitle, feedMode !== 'for-you' && { color: '#687392' }]}>
+                    Per Te
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setFeedMode('following')}>
+                  <Text style={[styles.feedSectionTitle, feedMode !== 'following' && { color: '#687392' }]}>
+                    Seguiti
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.feedSectionCounter}>
                 <Text style={styles.feedSectionCounterText}>{filteredPosts.length}</Text>
