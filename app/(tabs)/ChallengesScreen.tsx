@@ -255,9 +255,9 @@ export default function ChallengesScreen() {
       setChallengeSounds(updatedSounds);
       
       Alert.alert('✅', t('challenges.voteRegistered'));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error voting:', error);
-      Alert.alert(t('common.error'), t('challenges.errors.alreadyVoted'));
+      Alert.alert(t('common.error'), error?.message || t('challenges.errors.alreadyVoted'));
     }
   };
 
