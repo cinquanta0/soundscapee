@@ -131,6 +131,7 @@ export async function createGroupCall(params: {
   inviteeProfiles: Record<string, ParticipantProfile>;
   callerName: string;
   callerAvatar: string;
+  callerProfile?: ParticipantProfile;
 }): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non autenticato');
@@ -150,7 +151,7 @@ export async function createGroupCall(params: {
     invitees: params.inviteeIds,
     participantStatuses: buildParticipantStatuses(user.uid, params.inviteeIds),
     participantProfiles: {
-      [user.uid]: { name: params.callerName, avatar: params.callerAvatar },
+      [user.uid]: params.callerProfile ?? { name: params.callerName, avatar: params.callerAvatar },
       ...params.inviteeProfiles,
     },
     channelName: '',

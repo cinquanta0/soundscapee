@@ -21,6 +21,7 @@ import {
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
+import { notifyMissedCall } from '../services/notificationService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
 import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
 import { pausePlayerForCall, resumePlayerAfterCall } from '../services/audioPlayer';
@@ -1017,6 +1018,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     missedTimerRef.current = setTimeout(() => {
       updateCallStatus(callId, 'missed').catch(() => {});
+      // Notifica "chiamata persa" al destinatario su Android (FCM via Expo)
+      notifyMissedCall(calleeId, callerName).catch(() => {});
       _finalize('missed');
     }, RING_TIMEOUT_MS);
   }, [_initEngine, _finalize]);
@@ -1057,8 +1060,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const snap = await getDoc(doc(db, 'users', user.uid));
     const callerName: string = snap.data()?.username || snap.data()?.displayName || 'Utente';
     const callerAvatar: string = snap.data()?.avatar || '🎵';
+    const callerPhoto: string | undefined = snap.data()?.profilePicture || undefined;
 
-    const callId = await createGroupCall({ inviteeIds, inviteeProfiles, callerName, callerAvatar });
+    // Include caller's own photo in participantProfiles so it shows in the group call UI
+    const callerProfile: ParticipantProfile = { name: callerName, avatar: callerAvatar, ...(callerPhoto ? { photo: callerPhoto } : {}) };
+    const callId = await createGroupCall({ inviteeIds, inviteeProfiles, callerName, callerAvatar, callerProfile });
     callIdRef.current = callId;
 
     const firstId = inviteeIds[0] ?? '';

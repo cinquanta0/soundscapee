@@ -371,3 +371,36 @@ export async function markAllNotificationsAsRead(userId) {
     console.error('Errore aggiornamento notifiche:', error);
   }
 }
+
+/**
+ * Invia notifica di chiamata persa al destinatario
+ */
+export async function notifyMissedCall(calleeId, callerName) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', calleeId));
+    const data = userDoc.data();
+    if (!data) return;
+
+    // Supports both old pushToken (string) and new pushTokens (array)
+    const tokens = data.pushTokens ?? (data.pushToken ? [data.pushToken] : []);
+    if (!tokens.length) return;
+
+    const messages = tokens.map((token) => ({
+      to: token,
+      sound: 'default',
+      title: '📞 Chiamata persa',
+      body: `Hai perso una chiamata da ${callerName}`,
+      data: { type: 'missed_call' },
+      priority: 'high',
+      channelId: 'default', // uses standard default channel, not the ringing one
+    }));
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages),
+    });
+  } catch (error) {
+    console.error('Errore notifica chiamata persa:', error);
+  }
+}
