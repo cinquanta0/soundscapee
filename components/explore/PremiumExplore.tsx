@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
   Image,
+  Animated,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,13 +24,16 @@ const C = {
   pink: '#F472FF',
   orange: '#FF9B5E',
   red: '#FF5C7A',
+  gold: '#FFD166',
+  silver: '#B0BEC5',
+  bronze: '#CD7C4A',
   border: 'rgba(163, 177, 255, 0.16)',
   borderStrong: 'rgba(103,232,249,0.24)',
   card: 'rgba(17, 22, 45, 0.96)',
   glass: 'rgba(255,255,255,0.03)',
 };
 
-type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti';
+type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti' | 'leaderboard';
 
 type ModeItem = {
   id: Section;
@@ -405,6 +409,350 @@ export function ExploreEmptyState({
     </View>
   );
 }
+
+type LeaderboardProps = {
+  items: any[];
+  playingId: string | null;
+  busy: boolean;
+  onPlay: (item: any) => void;
+};
+
+const RANK_CONFIG = [
+  { color: C.gold, glowColor: 'rgba(255,209,102,0.18)', borderColor: 'rgba(255,209,102,0.45)', label: 'I', icon: 'award' as const },
+  { color: C.silver, glowColor: 'rgba(176,190,197,0.14)', borderColor: 'rgba(176,190,197,0.35)', label: 'II', icon: 'award' as const },
+  { color: C.bronze, glowColor: 'rgba(205,124,74,0.14)', borderColor: 'rgba(205,124,74,0.35)', label: 'III', icon: 'award' as const },
+];
+
+function LeaderboardPodiumCard({ item, rank, isPlaying, busy, onPlay }: { item: any; rank: number; isPlaying: boolean; busy: boolean; onPlay: () => void }) {
+  const cfg = RANK_CONFIG[rank];
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!isPlaying) { pulseAnim.setValue(1); return; }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.06, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isPlaying]);
+
+  const bars = Array.from({ length: 12 }, (_, i) => {
+    let h = 0;
+    const seed = item.id || 'x';
+    for (let j = 0; j < seed.length; j++) h += seed.charCodeAt(j) * (i + 2);
+    return 6 + (h % 18);
+  });
+
+  return (
+    <Animated.View style={[lbStyles.podiumCard, { transform: [{ scale: pulseAnim }] }]}>
+      <LinearGradient
+        colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.99)']}
+        style={[lbStyles.podiumCardInner, { borderColor: cfg.borderColor }]}
+      >
+        <View style={[lbStyles.podiumGlow, { backgroundColor: cfg.glowColor }]} />
+        <View style={lbStyles.podiumTop}>
+          <View style={[lbStyles.rankBadge, { borderColor: cfg.borderColor, backgroundColor: cfg.color + '18' }]}>
+            <Feather name={cfg.icon} size={11} color={cfg.color} />
+            <Text style={[lbStyles.rankLabel, { color: cfg.color }]}>{cfg.label}</Text>
+          </View>
+          <Text style={lbStyles.podiumListens}>{(item.listens || 0).toLocaleString()}</Text>
+        </View>
+        <Text style={lbStyles.podiumTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={lbStyles.podiumAuthor}>{item.username}</Text>
+        <View style={lbStyles.podiumWave}>
+          {bars.map((h, i) => (
+            <View key={i} style={[lbStyles.podiumBar, { height: h, backgroundColor: isPlaying ? cfg.color : cfg.color + '44' }]} />
+          ))}
+        </View>
+        <TouchableOpacity
+          style={[lbStyles.podiumPlay, { borderColor: cfg.borderColor }]}
+          onPress={onPlay}
+          disabled={busy}
+        >
+          <Feather name={isPlaying ? 'pause' : 'play'} size={16} color={cfg.color} style={!isPlaying ? { marginLeft: 2 } : undefined} />
+        </TouchableOpacity>
+      </LinearGradient>
+    </Animated.View>
+  );
+}
+
+function LeaderboardRow({ item, rank, isPlaying, busy, onPlay }: { item: any; rank: number; isPlaying: boolean; busy: boolean; onPlay: () => void }) {
+  return (
+    <TouchableOpacity style={lbStyles.row} onPress={onPlay} disabled={busy} activeOpacity={0.82}>
+      <View style={lbStyles.rowRank}>
+        <Text style={lbStyles.rowRankNum}>{rank + 1}</Text>
+      </View>
+      <View style={lbStyles.rowInfo}>
+        <Text style={lbStyles.rowTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={lbStyles.rowMeta}>{item.username} · {(item.listens || 0).toLocaleString()} ascolti</Text>
+      </View>
+      <View style={[lbStyles.rowPlay, isPlaying && lbStyles.rowPlayActive]}>
+        <Feather name={isPlaying ? 'pause' : 'play'} size={15} color={isPlaying ? C.cyan : C.textDim} style={!isPlaying ? { marginLeft: 1 } : undefined} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+export function ExploreLeaderboard({ items, playingId, busy, onPlay }: LeaderboardProps) {
+  const podium = items.slice(0, 3);
+  const rest = items.slice(3);
+
+  if (items.length === 0) {
+    return (
+      <View style={lbStyles.empty}>
+        <View style={lbStyles.emptyIcon}>
+          <Feather name="bar-chart-2" size={28} color={C.gold} />
+        </View>
+        <Text style={lbStyles.emptyTitle}>Classifica vuota</Text>
+        <Text style={lbStyles.emptySubtitle}>Nessun ascolto registrato ancora. Sii il primo a salire in vetta.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={lbStyles.container}>
+      <View style={lbStyles.header}>
+        <View style={lbStyles.headerIconWrap}>
+          <Feather name="bar-chart-2" size={18} color={C.gold} />
+        </View>
+        <View>
+          <Text style={lbStyles.headerCaption}>GLOBAL CHARTS</Text>
+          <Text style={lbStyles.headerTitle}>Top suoni</Text>
+        </View>
+      </View>
+
+      <View style={lbStyles.podiumRow}>
+        {podium.map((item, i) => (
+          <LeaderboardPodiumCard
+            key={item.id}
+            item={item}
+            rank={i}
+            isPlaying={playingId === item.id}
+            busy={busy}
+            onPlay={() => onPlay(item)}
+          />
+        ))}
+      </View>
+
+      {rest.length > 0 && (
+        <View style={lbStyles.restSection}>
+          <Text style={lbStyles.restCaption}>A SEGUIRE</Text>
+          {rest.map((item, i) => (
+            <LeaderboardRow
+              key={item.id}
+              item={item}
+              rank={i + 3}
+              isPlaying={playingId === item.id}
+              busy={busy}
+              onPlay={() => onPlay(item)}
+            />
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const lbStyles = StyleSheet.create({
+  container: { paddingBottom: 40 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  headerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,209,102,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.3)',
+  },
+  headerCaption: {
+    color: C.gold,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    color: C.text,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  podiumRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    gap: 8,
+    marginBottom: 20,
+  },
+  podiumCard: { flex: 1 },
+  podiumCardInner: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    overflow: 'hidden',
+    minHeight: 150,
+  },
+  podiumGlow: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  podiumTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  rankLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  podiumListens: {
+    color: C.textMute,
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  podiumTitle: {
+    color: C.text,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+    lineHeight: 16,
+  },
+  podiumAuthor: {
+    color: C.textMute,
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  podiumWave: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 2,
+    height: 22,
+    marginBottom: 8,
+  },
+  podiumBar: {
+    width: 3,
+    borderRadius: 2,
+  },
+  podiumPlay: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  restSection: {
+    paddingHorizontal: 16,
+  },
+  restCaption: {
+    color: C.textMute,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(163,177,255,0.08)',
+  },
+  rowRank: {
+    width: 28,
+    alignItems: 'center',
+  },
+  rowRankNum: {
+    color: C.textMute,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  rowInfo: { flex: 1 },
+  rowTitle: {
+    color: C.text,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  rowMeta: {
+    color: C.textMute,
+    fontSize: 11,
+  },
+  rowPlay: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowPlayActive: {
+    borderColor: 'rgba(103,232,249,0.35)',
+    backgroundColor: 'rgba(103,232,249,0.08)',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.25)',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    color: C.text,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    color: C.textMute,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+});
+
 
 const styles = StyleSheet.create({
   header: {

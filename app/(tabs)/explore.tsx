@@ -19,6 +19,7 @@ import {
   ExploreChips,
   ExploreEmptyState,
   ExploreHeader,
+  ExploreLeaderboard,
   ExploreModeRail,
   ExploreSearchBar,
   ExploreSectionHeading,
@@ -86,7 +87,7 @@ async function searchSounds(searchText: string, mood: string, sortBy: string) {
   return results;
 }
 
-type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti';
+type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti' | 'leaderboard';
 
 type ExploreScreenProps = {
   onOpenUserProfile?: (userId: string) => void;
@@ -109,6 +110,11 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const [userSearchText, setUserSearchText] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [lbPlayingId, setLbPlayingId] = useState<string | null>(null);
+  const [lbSoundBusy, setLbSoundBusy] = useState(false);
+  const lbSoundRef = useRef<Audio.Sound | null>(null);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,6 +152,12 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       }
     };
   }, [sortBy]);
+
+  useEffect(() => {
+    if (section === 'leaderboard' && leaderboard.length === 0 && !leaderboardLoading) {
+      loadLeaderboard();
+    }
+  }, [section]);
 
   useEffect(() => {
     if (section !== 'battles') return;
@@ -207,6 +219,52 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    setLeaderboardLoading(true);
+    try {
+      const q = query(collection(db, 'sounds'), orderBy('listens', 'desc'), limit(10));
+      const snap = await getDocs(q);
+      setLeaderboard(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch {
+      // silent
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  const handleLbPlayPause = async (item: any) => {
+    if (lbSoundBusy) return;
+    try {
+      setLbSoundBusy(true);
+      if (lbSoundRef.current && lbPlayingId === item.id) {
+        await lbSoundRef.current.stopAsync();
+        await lbSoundRef.current.unloadAsync();
+        lbSoundRef.current = null;
+        setLbPlayingId(null);
+        return;
+      }
+      if (lbSoundRef.current) {
+        await lbSoundRef.current.unloadAsync();
+        lbSoundRef.current = null;
+        setLbPlayingId(null);
+      }
+      if (!item.audioUrl) return;
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: item.audioUrl },
+        { shouldPlay: true },
+        (status) => { if (!status.isLoaded || status.didJustFinish) { setLbPlayingId(null); lbSoundRef.current = null; } }
+      );
+      lbSoundRef.current = sound;
+      setLbPlayingId(item.id);
+      incrementListens(item.id).catch(() => {});
+    } catch {
+      setLbPlayingId(null);
+    } finally {
+      setLbSoundBusy(false);
     }
   };
 
@@ -294,12 +352,13 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const isPlaying = (id: string) => playingId === id && !isPaused;
 
   const modeItems = [
-    { id: 'suoni', title: t('explore.modeSound'), subtitle: t('explore.modeSoundSubtitle'), icon: 'music', accent: '#67E8F9' },
-    { id: 'utenti', title: t('explore.modeUsers'), subtitle: t('explore.modeUsersSubtitle'), icon: 'users', accent: '#8B5CFF' },
-    { id: 'podcast', title: t('explore.modePodcast'), subtitle: t('explore.modePodcastSubtitle'), icon: 'mic', accent: '#F472FF' },
-    { id: 'radio', title: t('explore.modeRadio'), subtitle: t('explore.modeRadioSubtitle'), icon: 'radio', accent: '#D9FF5A' },
-    { id: 'battles', title: t('explore.modeBattles'), subtitle: t('explore.modeBattlesSubtitle'), icon: 'crosshair', accent: '#FF9B5E' },
-  ];
+    { id: 'suoni', title: t('explore.modeSounds'), subtitle: t('explore.modeSoundsSubtitle'), icon: 'music', accent: C.cyan },
+    { id: 'utenti', title: t('explore.modeCreators'), subtitle: t('explore.modeCreatorsSubtitle'), icon: 'users', accent: '#00FF9C' },
+    { id: 'leaderboard', title: 'Classifiche', subtitle: 'Top suoni globali', icon: 'bar-chart-2', accent: '#FFD166' },
+    { id: 'podcast', title: t('explore.modePodcast'), subtitle: t('explore.modePodcastSubtitle'), icon: 'mic', accent: C.purple },
+    { id: 'radio', title: t('explore.modeRadio'), subtitle: t('explore.modeRadioSubtitle'), icon: 'radio', accent: C.lime },
+    { id: 'battles', title: t('explore.modeBattles'), subtitle: t('explore.modeBattlesSubtitle'), icon: 'crosshair', accent: C.orange },
+  ] as const;
 
   const renderHeader = () => (
     <>
@@ -352,6 +411,27 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       />
     </View>
   );
+
+  if (section === 'leaderboard') {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+        {renderCompactTop()}
+        <View style={styles.embeddedScreen}>
+          {leaderboardLoading ? (
+            <View style={styles.center}><ActivityIndicator size="large" color="#FFD166" /></View>
+          ) : (
+            <ExploreLeaderboard
+              items={leaderboard}
+              playingId={lbPlayingId}
+              busy={lbSoundBusy}
+              onPlay={handleLbPlayPause}
+            />
+          )}
+        </View>
+      </View>
+    );
+  }
 
   if (section === 'podcast') {
     return (
