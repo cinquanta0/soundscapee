@@ -1575,12 +1575,11 @@ export async function voteForChallengeSound(soundId) {
     const voteDoc = await getDoc(voteRef);
 
     if (voteDoc.exists()) {
-      console.log('⚠️ Already voted for this sound');
-      return false;
+      throw new Error('Hai già votato questo suono!');
     }
 
-    // Aggiungi voto
-    await addDoc(collection(db, 'sounds', soundId, 'votes'), {
+    // Aggiungi voto usando l'UID come document ID (così il check è coerente)
+    await setDoc(voteRef, {
       userId: user.uid,
       votedAt: new Date(),
     });
@@ -1597,6 +1596,7 @@ export async function voteForChallengeSound(soundId) {
     throw error;
   }
 }
+
 
 /**
  * Ottieni le challenge dell'utente
