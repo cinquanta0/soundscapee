@@ -1868,3 +1868,42 @@ exports.onSoundJoinedChallenge = onDocumentUpdated(
     });
   },
 );
+
+// ── Trigger: chiamata persa ──────────────────────────────────────────────────
+exports.onCallStatusUpdated = onDocumentUpdated(
+  { document: 'calls/{callId}', region: 'europe-west1' },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+    
+    // Controlla se la chiamata è passata in stato "missed" (chi chiama si è arreso/timeout)
+    if (before.status !== 'missed' && after.status === 'missed') {
+      const db = admin.firestore();
+      const type = after.type || 'audio';
+      const callerName = after.callerName || 'Qualcuno';
+      
+      if (type === 'group') {
+        const statuses = after.participantStatuses || {};
+        for (const [uid, st] of Object.entries(statuses)) {
+          // Notifica tutti quelli che non hanno risposto (o che erano ancora in ringing/missed)
+          if (uid !== after.callerId && (st === 'ringing' || st === 'missed')) {
+            await sendNotificationToUser(db, uid, {
+              title: '📞 Chiamata persa',
+              body: `Hai perso una chiamata di gruppo da ${callerName}`,
+              data: { type: 'missed_call', channelId: 'default' },
+            });
+          }
+        }
+      } else {
+        if (after.calleeId) {
+          await sendNotificationToUser(db, after.calleeId, {
+            title: '📞 Chiamata persa',
+            body: `Hai perso una chiamata da ${callerName}`,
+            data: { type: 'missed_call', channelId: 'default' },
+          });
+        }
+      }
+    }
+  }
+);

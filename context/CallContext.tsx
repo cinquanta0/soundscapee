@@ -21,7 +21,6 @@ import {
   listenForIncomingCall, listenForCallUpdates,
   updateCallDuration, publishCallRecording,
 } from '../services/callService';
-import { notifyMissedCall } from '../services/notificationService';
 import { startOutgoingRingback, stopOutgoingRingback } from '../services/outgoingRingbackService';
 import { showIncomingCall, dismissIncomingCall, notifyCallEnded, getPendingAcceptCallId, getPendingDeclineCallId, setAuthToken, addIncomingCallListener } from '../services/incomingCallService';
 import { pausePlayerForCall, resumePlayerAfterCall } from '../services/audioPlayer';
@@ -1018,8 +1017,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     missedTimerRef.current = setTimeout(() => {
       updateCallStatus(callId, 'missed').catch(() => {});
-      // Notifica "chiamata persa" al destinatario su Android (FCM via Expo)
-      notifyMissedCall(calleeId, callerName).catch(() => {});
       _finalize('missed');
     }, RING_TIMEOUT_MS);
   }, [_initEngine, _finalize]);
