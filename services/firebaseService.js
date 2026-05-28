@@ -1521,7 +1521,7 @@ export async function submitSoundToChallenge(challengeId, soundId) {
 }
 
 /**
- * Ottieni i suoni di una challenge
+ * Ottieni i suoni di una challenge (one-shot, mantenuto per compatibilità)
  */
 export async function getChallengeSounds(challengeId, limitCount = 50) {
   try {
@@ -1534,8 +1534,6 @@ export async function getChallengeSounds(challengeId, limitCount = 50) {
     const sounds = await Promise.all(
       snapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
-        
-        // Get user info
         const userDoc = await getDoc(doc(db, 'users', data.userId));
         const userData = userDoc.data();
 
@@ -1549,18 +1547,55 @@ export async function getChallengeSounds(challengeId, limitCount = 50) {
       })
     );
 
-    // Ordina in locale (per evitare errori di composite index su Firebase)
     sounds.sort((a, b) => (b.challengeVotes || 0) - (a.challengeVotes || 0));
-
-    // Applica limite
-    const limitedSounds = sounds.slice(0, limitCount);
-
-    console.log(`✅ Found ${limitedSounds.length} sounds for challenge ${challengeId}`);
-    return limitedSounds;
+    return sounds.slice(0, limitCount);
   } catch (error) {
     console.error('❌ Error getting challenge sounds:', error);
     return [];
   }
+}
+
+/**
+ * Ascolta in real-time i suoni di una challenge.
+ * Restituisce la funzione di unsubscribe.
+ */
+export function listenChallengeSounds(challengeId, callback, limitCount = 50) {
+  const q = query(
+    collection(db, 'sounds'),
+    where('challengeId', '==', challengeId)
+  );
+
+  const userCache = {};
+
+  const unsubscribe = onSnapshot(q, async (snapshot) => {
+    try {
+      const sounds = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          if (!userCache[data.userId]) {
+            const userDoc = await getDoc(doc(db, 'users', data.userId));
+            userCache[data.userId] = userDoc.data();
+          }
+          const userData = userCache[data.userId];
+          return {
+            id: docSnap.id,
+            ...data,
+            username: userData?.username || 'Anonimo',
+            userAvatar: userData?.avatar || '🎧',
+            createdAt: data.createdAt?.toDate(),
+          };
+        })
+      );
+      sounds.sort((a, b) => (b.challengeVotes || 0) - (a.challengeVotes || 0));
+      callback(sounds.slice(0, limitCount));
+    } catch (error) {
+      console.error('❌ Error in challenge sounds listener:', error);
+    }
+  }, (error) => {
+    console.error('❌ Challenge sounds snapshot error:', error);
+  });
+
+  return unsubscribe;
 }
 
 /**

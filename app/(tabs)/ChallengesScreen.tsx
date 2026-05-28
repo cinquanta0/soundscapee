@@ -1,5 +1,5 @@
 // app/(tabs)/ChallengesScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -19,7 +19,7 @@ import { auth } from '../../firebaseConfig';
 import { C, T, S, R } from '../../constants/design';
 import {
   getActiveChallenges,
-  getChallengeSounds,
+  listenChallengeSounds,
   joinChallenge,
   voteForChallengeSound,
   getMyVoteInChallenge,
@@ -45,6 +45,7 @@ export default function ChallengesScreen() {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [votedSoundId, setVotedSoundId] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
+  const challengeSoundsUnsub = useRef<(() => void) | null>(null);
 
   // Stati per creare challenge
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -87,10 +88,7 @@ export default function ChallengesScreen() {
 
     try {
       await deleteChallenge(selectedChallenge.id);
-      setShowChallengeModal(false);
-      setSelectedChallenge(null);
-      setChallengeSounds([]);
-      setVotedSoundId(null);
+      closeChallengeModal();
       await loadChallenges();
       Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
     } catch (error: any) {
@@ -106,10 +104,7 @@ export default function ChallengesScreen() {
 
     try {
       await deleteChallenge(challengeId);
-      setShowChallengeModal(false);
-      setSelectedChallenge(null);
-      setChallengeSounds([]);
-      setVotedSoundId(null);
+      closeChallengeModal();
       await loadChallenges();
       Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
     } catch (error: any) {
@@ -157,29 +152,46 @@ export default function ChallengesScreen() {
     }
   };
 
-  const handleChallengePress = async (challenge: any) => {
-    try {
-      setSelectedChallenge(challenge);
-      setShowChallengeModal(true);
-      setLoadingSounds(true);
-      setVotedSoundId(null);
+  const closeChallengeModal = () => {
+    challengeSoundsUnsub.current?.();
+    challengeSoundsUnsub.current = null;
+    setShowChallengeModal(false);
+    setSelectedChallenge(null);
+    setChallengeSounds([]);
+    setVotedSoundId(null);
+  };
 
-      const [sounds, myVote] = await Promise.all([
-        getChallengeSounds(challenge.id),
-        getMyVoteInChallenge(challenge.id),
-      ]);
-      setChallengeSounds(sounds);
+  const handleChallengePress = async (challenge: any) => {
+    // Chiudi eventuale listener precedente
+    challengeSoundsUnsub.current?.();
+    challengeSoundsUnsub.current = null;
+
+    setSelectedChallenge(challenge);
+    setShowChallengeModal(true);
+    setLoadingSounds(true);
+    setVotedSoundId(null);
+    setChallengeSounds([]);
+
+    try {
+      const myVote = await getMyVoteInChallenge(challenge.id);
       setVotedSoundId(myVote);
-    } catch (error) {
-      console.error('Error loading challenge sounds:', error);
-      Alert.alert(t('common.error'), t('challenges.errors.cannotLoadSounds'));
-    } finally {
-      setLoadingSounds(false);
+    } catch {
+      // non bloccante
     }
+
+    let firstLoad = true;
+    challengeSoundsUnsub.current = listenChallengeSounds(challenge.id, (sounds: any[]) => {
+      setChallengeSounds(sounds);
+      if (firstLoad) {
+        firstLoad = false;
+        setLoadingSounds(false);
+      }
+    });
   };
 
   const handleParticipate = async () => {
     if (!uid) return;
+    // iOS non supporta Modal annidati: chiudi prima il modal challenge
     setShowChallengeModal(false);
     await new Promise(resolve => setTimeout(resolve, 350));
     setLoadingUserSounds(true);
@@ -196,6 +208,12 @@ export default function ChallengesScreen() {
     }
   };
 
+  const handleCloseSoundPicker = () => {
+    setShowSoundPickerModal(false);
+    // Riapri il modal challenge (il listener è ancora attivo)
+    setTimeout(() => setShowChallengeModal(true), 350);
+  };
+
   const handleSubmitSound = async (soundId: string) => {
     if (!selectedChallenge || submittingChallenge) return;
     setSubmittingChallenge(true);
@@ -203,6 +221,7 @@ export default function ChallengesScreen() {
       await joinChallenge(selectedChallenge.id, soundId);
       setShowSoundPickerModal(false);
       Alert.alert('🎵', 'Sound inviato alla sfida!');
+      setTimeout(() => setShowChallengeModal(true), 350);
     } catch (err: any) {
       Alert.alert(t('common.error'), err?.message || 'Errore durante la partecipazione.');
     } finally {
@@ -474,13 +493,13 @@ export default function ChallengesScreen() {
         visible={showSoundPickerModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowSoundPickerModal(false)}
+        onRequestClose={handleCloseSoundPicker}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Scegli un sound</Text>
-              <TouchableOpacity onPress={() => setShowSoundPickerModal(false)}>
+              <TouchableOpacity onPress={handleCloseSoundPicker}>
                 <Feather name="x" size={24} color={C.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -538,12 +557,7 @@ export default function ChallengesScreen() {
         visible={showChallengeModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => {
-          setShowChallengeModal(false);
-          setSelectedChallenge(null);
-          setChallengeSounds([]);
-          setVotedSoundId(null);
-        }}
+        onRequestClose={closeChallengeModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -580,12 +594,7 @@ export default function ChallengesScreen() {
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
-                      onPress={() => {
-                        setShowChallengeModal(false);
-                        setSelectedChallenge(null);
-                        setChallengeSounds([]);
-                        setVotedSoundId(null);
-                      }}
+                      onPress={closeChallengeModal}
                     >
                       <Feather name="x" size={24} color={C.textSecondary} />
                     </TouchableOpacity>
