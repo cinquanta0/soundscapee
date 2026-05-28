@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { collection, query, where, getDocs, limit, getDoc, doc } from 'firebase/firestore';

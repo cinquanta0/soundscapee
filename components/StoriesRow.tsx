@@ -4,8 +4,9 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Easing, Modal, TextInput,
   KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard,
-  ActivityIndicator, Alert, Image,
+  ActivityIndicator, Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';

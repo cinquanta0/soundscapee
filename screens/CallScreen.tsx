@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Modal, StatusBar, Platform, ScrollView, Image,
+  Modal, StatusBar, Platform, ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';

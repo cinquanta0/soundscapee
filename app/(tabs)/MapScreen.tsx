@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  Image,
   TouchableOpacity,
   Modal,
   ActivityIndicator,
@@ -12,6 +11,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';

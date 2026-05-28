@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';

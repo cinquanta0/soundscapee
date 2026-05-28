@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, StatusBar, Dimensions, Animated, Image,
+  ActivityIndicator, StatusBar, Dimensions, Animated,
   Alert, Vibration, TextInput, KeyboardAvoidingView, Platform, Keyboard, AppState,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
