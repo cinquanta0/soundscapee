@@ -32,6 +32,7 @@ import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
 import { Battle, cancelBattle, finalizeBattle, listenToActiveBattles } from '../../services/battleService';
 import { incrementListens } from '../../services/firebaseService';
+import { listenBlockedUsers } from '../../services/blockService';
 
 let _TP: any = null; let _S: any = {};
 try { const r = require('react-native-track-player'); _TP = r.default; _S = r.State || {}; } catch {}
@@ -127,6 +128,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const soundRef = useRef<Audio.Sound | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blockedUsersRef = useRef<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -149,6 +151,16 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
       setCurrentUserId(user?.uid ?? null);
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    return listenBlockedUsers(uid, (blocked) => {
+      blockedUsersRef.current = blocked;
+      setSounds(prev => prev.filter((s: any) => !blocked.includes(s.userId)));
+      setUsers(prev => prev.filter((u: any) => !blocked.includes(u.id)));
+    });
   }, []);
 
   useEffect(() => {
@@ -222,7 +234,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     setUsersLoading(true);
     try {
       const results = await searchUsers(userSearchText);
-      setUsers(results);
+      setUsers(results.filter((u: any) => !blockedUsersRef.current.includes(u.id)));
     } catch {
       Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
     } finally {
@@ -234,7 +246,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
     setLoading(true);
     try {
       const results = await searchSounds(searchText, 'Tutti', sortBy);
-      setSounds(results);
+      setSounds(results.filter((s: any) => !blockedUsersRef.current.includes(s.userId)));
     } catch {
       Alert.alert(t('common.error'), t('explore.errors.cannotLoad'));
     } finally {
