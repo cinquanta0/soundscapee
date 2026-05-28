@@ -26,7 +26,7 @@ import {
   incrementListens,
   createChallenge,
   deleteChallenge,
-  getUserSounds,
+  getAvailableSoundsForChallenge,
 } from '../../services/firebaseService';
 
 const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'] as const;
@@ -200,8 +200,8 @@ export default function ChallengesScreen() {
     setLoadingUserSounds(true);
     setShowSoundPickerModal(true);
     try {
-      const sounds = await getUserSounds(uid);
-      setUserSounds(sounds.filter((s: any) => !s.challengeId));
+      const sounds = await getAvailableSoundsForChallenge(uid);
+      setUserSounds(sounds);
     } catch {
       Alert.alert(t('common.error'), 'Impossibile caricare i tuoi sound.');
       setShowSoundPickerModal(false);

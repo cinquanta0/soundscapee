@@ -359,14 +359,14 @@ export const subscribeToSoundsFeed = (callback, limitCount = 20) => {
 export const getUserSounds = async (userId, limitCount = 50) => {
   try {
     console.log('👤 [USER SOUNDS] Fetching sounds for user:', userId);
-    
+
     // Query semplificata senza orderBy
     const q = query(
       collection(db, 'sounds'),
       where('userId', '==', userId),
       limit(limitCount)
     );
-    
+
     const snapshot = await getDocs(q);
     const sounds = snapshot.docs.map(doc => {
       const data = doc.data();
@@ -376,15 +376,41 @@ export const getUserSounds = async (userId, limitCount = 50) => {
         createdAt: data.createdAt?.toDate() || new Date()
       };
     });
-    
+
     // Ordina in memoria invece che nel database
     sounds.sort((a, b) => b.createdAt - a.createdAt);
-    
+
     return sounds;
   } catch (error) {
     console.error('❌ [USER SOUNDS] Error getting user sounds:', error);
     throw error;
   }
+};
+
+/**
+ * Restituisce i suoni dell'utente disponibili per una challenge:
+ * esclude quelli già in una challenge ATTIVA (se la challenge è stata
+ * eliminata, il suono torna disponibile anche se ha ancora challengeId).
+ */
+export const getAvailableSoundsForChallenge = async (userId) => {
+  const sounds = await getUserSounds(userId);
+
+  // Raccogli i challengeId unici presenti sui suoni
+  const challengeIds = [...new Set(
+    sounds.filter(s => s.challengeId).map(s => s.challengeId)
+  )];
+
+  // Controlla quali challenge esistono ancora
+  const existingIds = new Set();
+  if (challengeIds.length > 0) {
+    await Promise.all(challengeIds.map(async (cid) => {
+      const snap = await getDoc(doc(db, 'challenges', cid));
+      if (snap.exists()) existingIds.add(cid);
+    }));
+  }
+
+  // Disponibile = nessuna challenge, oppure challenge eliminata
+  return sounds.filter(s => !s.challengeId || !existingIds.has(s.challengeId));
 };
 
 /**
