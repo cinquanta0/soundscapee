@@ -12,6 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../../firebaseConfig';
@@ -21,11 +22,15 @@ import {
   getChallengeSounds,
   joinChallenge,
   voteForChallengeSound,
+  getMyVoteInChallenge,
   incrementListens,
   createChallenge,
   deleteChallenge,
   getUserSounds,
 } from '../../services/firebaseService';
+
+const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'] as const;
+const RANK_BG = ['rgba(255,215,0,0.15)', 'rgba(192,192,192,0.12)', 'rgba(205,127,50,0.12)'] as const;
 
 export default function ChallengesScreen() {
   const { t } = useTranslation();
@@ -38,6 +43,8 @@ export default function ChallengesScreen() {
   const [loadingSounds, setLoadingSounds] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [votedSoundId, setVotedSoundId] = useState<string | null>(null);
+  const [voting, setVoting] = useState(false);
 
   // Stati per creare challenge
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,14 +83,14 @@ export default function ChallengesScreen() {
   const handleDeleteSelectedChallenge = async () => {
     if (!selectedChallenge) return;
     if (!uid) return;
-
-    if (selectedChallenge.createdBy !== uid) return; // solo creatore
+    if (selectedChallenge.createdBy !== uid) return;
 
     try {
       await deleteChallenge(selectedChallenge.id);
       setShowChallengeModal(false);
       setSelectedChallenge(null);
       setChallengeSounds([]);
+      setVotedSoundId(null);
       await loadChallenges();
       Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
     } catch (error: any) {
@@ -102,6 +109,7 @@ export default function ChallengesScreen() {
       setShowChallengeModal(false);
       setSelectedChallenge(null);
       setChallengeSounds([]);
+      setVotedSoundId(null);
       await loadChallenges();
       Alert.alert('✅', 'Sfida rimossa. Puoi rifarla quando vuoi.');
     } catch (error: any) {
@@ -110,13 +118,11 @@ export default function ChallengesScreen() {
     }
   };
 
-  // 🆕 FUNZIONE PER CREARE CHALLENGE
   const handleCreateChallenge = async () => {
     if (!newChallengeTitle.trim()) {
       Alert.alert(t('common.error'), t('challenges.errors.titleRequired'));
       return;
     }
-
     if (!newChallengeDescription.trim()) {
       Alert.alert(t('common.error'), t('challenges.errors.descriptionRequired'));
       return;
@@ -136,16 +142,12 @@ export default function ChallengesScreen() {
         creatorId: uid,
       });
 
-      // Reset form
       setNewChallengeTitle('');
       setNewChallengeDescription('');
       setNewChallengeEmoji('🎵');
       setNewChallengeDuration('7');
       setShowCreateModal(false);
-
-      // Ricarica challenges
       await loadChallenges();
-
       Alert.alert(t('challenges.created'), t('challenges.createdMsg'));
     } catch (error) {
       console.error('Error creating challenge:', error);
@@ -160,9 +162,14 @@ export default function ChallengesScreen() {
       setSelectedChallenge(challenge);
       setShowChallengeModal(true);
       setLoadingSounds(true);
+      setVotedSoundId(null);
 
-      const sounds = await getChallengeSounds(challenge.id);
+      const [sounds, myVote] = await Promise.all([
+        getChallengeSounds(challenge.id),
+        getMyVoteInChallenge(challenge.id),
+      ]);
       setChallengeSounds(sounds);
+      setVotedSoundId(myVote);
     } catch (error) {
       console.error('Error loading challenge sounds:', error);
       Alert.alert(t('common.error'), t('challenges.errors.cannotLoadSounds'));
@@ -173,9 +180,7 @@ export default function ChallengesScreen() {
 
   const handleParticipate = async () => {
     if (!uid) return;
-    // iOS non supporta Modal annidati: chiudiamo prima il modal della challenge
     setShowChallengeModal(false);
-    // Piccolo delay per permettere ad iOS di chiudere il primo modal
     await new Promise(resolve => setTimeout(resolve, 350));
     setLoadingUserSounds(true);
     setShowSoundPickerModal(true);
@@ -213,9 +218,7 @@ export default function ChallengesScreen() {
         setPlayingId(null);
       }
 
-      if (playingId === item.id) {
-        return;
-      }
+      if (playingId === item.id) return;
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -244,32 +247,35 @@ export default function ChallengesScreen() {
   };
 
   const handleVote = async (soundId: string) => {
+    if (!selectedChallenge || voting) return;
+    if (votedSoundId) {
+      Alert.alert('', 'Hai già votato in questa sfida.');
+      return;
+    }
+    setVoting(true);
     try {
-      await voteForChallengeSound(soundId);
-      
-      const updatedSounds = challengeSounds.map((s: any) =>
-        s.id === soundId 
-          ? { ...s, challengeVotes: (s.challengeVotes || 0) + 1 }
-          : s
+      await voteForChallengeSound(soundId, selectedChallenge.id);
+      setVotedSoundId(soundId);
+      setChallengeSounds(prev =>
+        prev.map((s: any) =>
+          s.id === soundId ? { ...s, challengeVotes: (s.challengeVotes || 0) + 1 } : s
+        )
       );
-      setChallengeSounds(updatedSounds);
-      
       Alert.alert('✅', t('challenges.voteRegistered'));
     } catch (error: any) {
       console.error('Error voting:', error);
       Alert.alert(t('common.error'), error?.message || t('challenges.errors.alreadyVoted'));
+    } finally {
+      setVoting(false);
     }
   };
 
   const getTimeRemaining = (endDate: Date) => {
     const now = new Date();
     const diff = endDate.getTime() - now.getTime();
-
     if (diff <= 0) return t('challenges.ended');
-
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
     if (days > 0) return t('challenges.daysHours', { days, hours });
     return t('challenges.hours', { hours });
   };
@@ -294,7 +300,7 @@ export default function ChallengesScreen() {
       <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientA} />
       <View style={styles.ambientB} />
-      
+
       {/* Header */}
       <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={styles.header}>
         <View style={styles.headerGlow} />
@@ -324,7 +330,8 @@ export default function ChallengesScreen() {
                 <View style={styles.challengeHeader}>
                   <Text style={styles.challengeEmoji}>{challenge.emoji}</Text>
                   <View style={styles.challengeTimer}>
-                    <Text style={styles.timerText}>{t('challenges.endsIn', { time: getTimeRemaining(challenge.endDate) })}</Text>
+                    <Feather name="clock" size={11} color="#67E8F9" style={{ marginRight: 4 }} />
+                    <Text style={styles.timerText}>{getTimeRemaining(challenge.endDate)}</Text>
                   </View>
                 </View>
 
@@ -333,16 +340,17 @@ export default function ChallengesScreen() {
 
                 <View style={styles.challengeStats}>
                   <View style={styles.stat}>
-                    <Text style={styles.statIcon}>👥</Text>
+                    <Feather name="users" size={14} color="#94a3b8" />
                     <Text style={styles.statText}>{challenge.participants || 0}</Text>
                   </View>
                   <View style={styles.stat}>
-                    <Text style={styles.statIcon}>🎵</Text>
-                    <Text style={styles.statText}>{challenge.soundCount || 0}</Text>
+                    <Feather name="music" size={14} color="#94a3b8" />
+                    <Text style={styles.statText}>{challenge.soundCount || 0} sound</Text>
                   </View>
                 </View>
 
                 <View style={styles.challengeButton}>
+                  <Feather name="award" size={14} color="#fff" style={{ marginRight: 6 }} />
                   <Text style={styles.challengeButtonText}>{t('challenges.participate')}</Text>
                 </View>
 
@@ -350,7 +358,6 @@ export default function ChallengesScreen() {
                   <TouchableOpacity
                     style={styles.removeChallengeButton}
                     onPress={(e: any) => {
-                      // Evita che il tap apra il modal
                       e.stopPropagation?.();
                       Alert.alert(
                         'Rimuovi sfida',
@@ -362,6 +369,7 @@ export default function ChallengesScreen() {
                       );
                     }}
                   >
+                    <Feather name="trash-2" size={13} color={C.error} style={{ marginRight: 6 }} />
                     <Text style={styles.removeChallengeButtonText}>Rimuovi sfida</Text>
                   </TouchableOpacity>
                 )}
@@ -371,15 +379,12 @@ export default function ChallengesScreen() {
         )}
       </ScrollView>
 
-      {/* 🆕 FLOATING ACTION BUTTON PER CREARE CHALLENGE */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowCreateModal(true)}
-      >
-        <Text style={styles.fabIcon}>➕</Text>
+      {/* FAB per creare challenge */}
+      <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
+        <Feather name="plus" size={24} color="#07110B" />
       </TouchableOpacity>
 
-      {/* 🆕 MODAL PER CREARE CHALLENGE */}
+      {/* Modal crea challenge */}
       <Modal
         visible={showCreateModal}
         animationType="slide"
@@ -391,21 +396,17 @@ export default function ChallengesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('challenges.createTitle')}</Text>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={24} color={C.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.createForm}>
-              {/* Emoji Selector */}
               <Text style={styles.label}>{t('challenges.chooseEmoji')}</Text>
               <View style={styles.emojiGrid}>
                 {['🎵', '🎤', '🎧', '🎸', '🎹', '🥁', '🎺', '🎻', '🎼', '🔥', '⚡', '🌟', '💎', '🎭', '🎪', '🎨'].map(emoji => (
                   <TouchableOpacity
                     key={emoji}
-                    style={[
-                      styles.emojiOption,
-                      newChallengeEmoji === emoji && styles.emojiOptionSelected
-                    ]}
+                    style={[styles.emojiOption, newChallengeEmoji === emoji && styles.emojiOptionSelected]}
                     onPress={() => setNewChallengeEmoji(emoji)}
                   >
                     <Text style={styles.emojiText}>{emoji}</Text>
@@ -413,7 +414,6 @@ export default function ChallengesScreen() {
                 ))}
               </View>
 
-              {/* Title */}
               <Text style={styles.label}>{t('challenges.challengeTitle')}</Text>
               <TextInput
                 style={styles.input}
@@ -425,7 +425,6 @@ export default function ChallengesScreen() {
               />
               <Text style={styles.charCount}>{newChallengeTitle.length}/50</Text>
 
-              {/* Description */}
               <Text style={styles.label}>{t('challenges.description')}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -438,16 +437,12 @@ export default function ChallengesScreen() {
               />
               <Text style={styles.charCount}>{newChallengeDescription.length}/200</Text>
 
-              {/* Duration */}
               <Text style={styles.label}>{t('challenges.duration')}</Text>
               <View style={styles.durationSelector}>
                 {['3', '7', '14', '30'].map(days => (
                   <TouchableOpacity
                     key={days}
-                    style={[
-                      styles.durationOption,
-                      newChallengeDuration === days && styles.durationOptionSelected
-                    ]}
+                    style={[styles.durationOption, newChallengeDuration === days && styles.durationOptionSelected]}
                     onPress={() => setNewChallengeDuration(days)}
                   >
                     <Text style={styles.durationText}>{days}g</Text>
@@ -455,7 +450,6 @@ export default function ChallengesScreen() {
                 ))}
               </View>
 
-              {/* Create Button */}
               <TouchableOpacity
                 style={[styles.createButton, creating && { opacity: 0.5 }]}
                 onPress={handleCreateChallenge}
@@ -464,7 +458,10 @@ export default function ChallengesScreen() {
                 {creating ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.createButtonText}>{t('challenges.createButton')}</Text>
+                  <>
+                    <Feather name="zap" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.createButtonText}>{t('challenges.createButton')}</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -472,7 +469,7 @@ export default function ChallengesScreen() {
         </View>
       </Modal>
 
-      {/* Modal selezione sound per partecipare */}
+      {/* Modal selezione sound */}
       <Modal
         visible={showSoundPickerModal}
         animationType="slide"
@@ -484,7 +481,7 @@ export default function ChallengesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Scegli un sound</Text>
               <TouchableOpacity onPress={() => setShowSoundPickerModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Feather name="x" size={24} color={C.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -494,11 +491,9 @@ export default function ChallengesScreen() {
               </View>
             ) : userSounds.length === 0 ? (
               <View style={[styles.emptyState, { flex: 1 }]}>
-                <Text style={styles.emptyIcon}>🎤</Text>
+                <Feather name="mic" size={48} color={C.textMuted} style={{ marginBottom: S.lg }} />
                 <Text style={styles.emptyText}>Nessun sound disponibile</Text>
-                <Text style={styles.emptySubtext}>
-                  Registra un sound dalla home e torna qui per partecipare.
-                </Text>
+                <Text style={styles.emptySubtext}>Registra un sound dalla home e torna qui per partecipare.</Text>
               </View>
             ) : (
               <ScrollView style={styles.soundsList}>
@@ -516,14 +511,17 @@ export default function ChallengesScreen() {
                         </View>
                       </View>
                       <TouchableOpacity
-                        style={[styles.voteButton, submittingChallenge && { opacity: 0.5 }]}
+                        style={[styles.submitButton, submittingChallenge && { opacity: 0.5 }]}
                         onPress={() => handleSubmitSound(s.id)}
                         disabled={submittingChallenge}
                       >
                         {submittingChallenge ? (
                           <ActivityIndicator size="small" color={C.accent} />
                         ) : (
-                          <Text style={[styles.voteCount, { fontSize: 12 }]}>Invia</Text>
+                          <>
+                            <Feather name="send" size={13} color="#fff" style={{ marginRight: 4 }} />
+                            <Text style={styles.submitButtonText}>Invia</Text>
+                          </>
                         )}
                       </TouchableOpacity>
                     </View>
@@ -535,7 +533,7 @@ export default function ChallengesScreen() {
         </View>
       </Modal>
 
-      {/* Challenge Details Modal (esistente) */}
+      {/* Challenge Details Modal */}
       <Modal
         visible={showChallengeModal}
         animationType="slide"
@@ -544,6 +542,7 @@ export default function ChallengesScreen() {
           setShowChallengeModal(false);
           setSelectedChallenge(null);
           setChallengeSounds([]);
+          setVotedSoundId(null);
         }}
       >
         <View style={styles.modalOverlay}>
@@ -551,42 +550,57 @@ export default function ChallengesScreen() {
             {selectedChallenge && (
               <>
                 <View style={styles.modalHeader}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.modalTitle}>
                       {selectedChallenge.emoji} {selectedChallenge.title}
                     </Text>
-                    <Text style={styles.modalSubtitle}>
-                      {t('challenges.endsIn', { time: getTimeRemaining(selectedChallenge.endDate) })}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Feather name="clock" size={11} color={C.textSecondary} />
+                      <Text style={styles.modalSubtitle}>
+                        {getTimeRemaining(selectedChallenge.endDate)}
+                      </Text>
+                    </View>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowChallengeModal(false);
-                      setSelectedChallenge(null);
-                      setChallengeSounds([]);
-                    }}
-                  >
-                    <Text style={styles.modalClose}>✕</Text>
-                  </TouchableOpacity>
-
-                  {selectedChallenge?.createdBy === uid && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {selectedChallenge?.createdBy === uid && (
+                      <TouchableOpacity
+                        style={styles.modalRemoveButton}
+                        onPress={() => {
+                          Alert.alert(
+                            'Rimuovi sfida',
+                            'Vuoi rimuovere questa sfida?',
+                            [
+                              { text: 'Annulla', style: 'cancel' },
+                              { text: 'Rimuovi', style: 'destructive', onPress: handleDeleteSelectedChallenge },
+                            ]
+                          );
+                        }}
+                      >
+                        <Feather name="trash-2" size={14} color={C.error} />
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                      style={styles.modalRemoveButton}
                       onPress={() => {
-                        Alert.alert(
-                          'Rimuovi sfida',
-                          'Vuoi rimuovere questa sfida? Così potrai rifarla e tutti potranno votare di nuovo.',
-                          [
-                            { text: 'Annulla', style: 'cancel' },
-                            { text: 'Rimuovi', style: 'destructive', onPress: handleDeleteSelectedChallenge },
-                          ]
-                        );
+                        setShowChallengeModal(false);
+                        setSelectedChallenge(null);
+                        setChallengeSounds([]);
+                        setVotedSoundId(null);
                       }}
                     >
-                      <Text style={styles.modalRemoveButtonText}>Rimuovi</Text>
+                      <Feather name="x" size={24} color={C.textSecondary} />
                     </TouchableOpacity>
-                  )}
+                  </View>
                 </View>
+
+                {/* Banner voto già espresso */}
+                {votedSoundId && (
+                  <View style={styles.votedBanner}>
+                    <Feather name="check-circle" size={14} color="#00FF9C" style={{ marginRight: 6 }} />
+                    <Text style={styles.votedBannerText}>
+                      Hai già votato in questa sfida
+                    </Text>
+                  </View>
+                )}
 
                 {loadingSounds ? (
                   <View style={styles.loadingModal}>
@@ -594,63 +608,101 @@ export default function ChallengesScreen() {
                   </View>
                 ) : (
                   <>
-                    <TouchableOpacity
-                      style={styles.participateButton}
-                      onPress={handleParticipate}
-                    >
+                    <TouchableOpacity style={styles.participateButton} onPress={handleParticipate}>
+                      <Feather name="mic" size={16} color="#fff" />
                       <Text style={styles.participateButtonText}>
                         {t('challenges.participateWithSound')}
                       </Text>
                     </TouchableOpacity>
 
                     <ScrollView style={styles.soundsList}>
-                    {challengeSounds.length === 0 ? (
-                      <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>🎤</Text>
-                        <Text style={styles.emptyText}>{t('challenges.noSounds')}</Text>
-                        <Text style={styles.emptySubtext}>{t('challenges.noSoundsHint')}</Text>
-                      </View>
-                    ) : (
-                      challengeSounds.map((soundItem, index) => (
-                        <View key={soundItem.id} style={styles.soundItem}>
-                          <View style={styles.rankBadge}>
-                            <Text style={styles.rankText}>#{index + 1}</Text>
-                          </View>
+                      {challengeSounds.length === 0 ? (
+                        <View style={styles.emptyState}>
+                          <Feather name="mic-off" size={48} color={C.textMuted} style={{ marginBottom: S.lg }} />
+                          <Text style={styles.emptyText}>{t('challenges.noSounds')}</Text>
+                          <Text style={styles.emptySubtext}>{t('challenges.noSoundsHint')}</Text>
+                        </View>
+                      ) : (
+                        challengeSounds.map((soundItem, index) => {
+                          const isTop3 = index < 3;
+                          const rankColor = isTop3 ? RANK_COLORS[index] : '#67E8F9';
+                          const rankBg = isTop3 ? RANK_BG[index] : 'rgba(103,232,249,0.12)';
+                          const isPlaying = playingId === soundItem.id;
+                          const isVoted = votedSoundId === soundItem.id;
+                          const hasVotedOther = votedSoundId !== null && !isVoted;
 
-                          <View style={styles.soundInfo}>
-                            <View style={styles.soundUser}>
-                              <Text style={styles.userAvatar}>{soundItem.userAvatar}</Text>
-                              <View>
-                                <Text style={styles.soundTitle}>{soundItem.title}</Text>
-                                <Text style={styles.username}>{soundItem.username}</Text>
+                          return (
+                            <View
+                              key={soundItem.id}
+                              style={[
+                                styles.soundItem,
+                                isVoted && styles.soundItemVoted,
+                              ]}
+                            >
+                              <View style={[styles.rankBadge, { backgroundColor: rankBg, borderColor: rankColor }]}>
+                                {index === 0 ? (
+                                  <Feather name="award" size={16} color={rankColor} />
+                                ) : (
+                                  <Text style={[styles.rankText, { color: rankColor }]}>#{index + 1}</Text>
+                                )}
+                              </View>
+
+                              <View style={styles.soundInfo}>
+                                <View style={styles.soundUser}>
+                                  <Text style={styles.userAvatar}>{soundItem.userAvatar}</Text>
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={styles.soundTitle} numberOfLines={1}>{soundItem.title}</Text>
+                                    <Text style={styles.username}>{soundItem.username}</Text>
+                                  </View>
+                                </View>
+
+                                <View style={styles.soundActions}>
+                                  <TouchableOpacity
+                                    style={[styles.playButton, isPlaying && styles.playButtonActive]}
+                                    onPress={() => handlePlay(soundItem)}
+                                  >
+                                    <Feather
+                                      name={isPlaying ? 'pause' : 'play'}
+                                      size={15}
+                                      color="#fff"
+                                    />
+                                  </TouchableOpacity>
+
+                                  <TouchableOpacity
+                                    style={[
+                                      styles.voteButton,
+                                      isVoted && styles.voteButtonVoted,
+                                      hasVotedOther && styles.voteButtonDisabled,
+                                    ]}
+                                    onPress={() => handleVote(soundItem.id)}
+                                    disabled={voting || hasVotedOther}
+                                  >
+                                    {voting && !votedSoundId ? (
+                                      <ActivityIndicator size="small" color={C.accent} />
+                                    ) : (
+                                      <>
+                                        <Feather
+                                          name="thumbs-up"
+                                          size={14}
+                                          color={isVoted ? '#00FF9C' : hasVotedOther ? C.textMuted : C.textPrimary}
+                                        />
+                                        <Text style={[
+                                          styles.voteCount,
+                                          isVoted && { color: '#00FF9C' },
+                                          hasVotedOther && { color: C.textMuted },
+                                        ]}>
+                                          {soundItem.challengeVotes || 0}
+                                        </Text>
+                                      </>
+                                    )}
+                                  </TouchableOpacity>
+                                </View>
                               </View>
                             </View>
-
-                            <View style={styles.soundActions}>
-                              <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={() => handlePlay(soundItem)}
-                              >
-                                <Text style={styles.playIcon}>
-                                  {playingId === soundItem.id ? '⏸' : '▶️'}
-                                </Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                style={styles.voteButton}
-                                onPress={() => handleVote(soundItem.id)}
-                              >
-                                <Text style={styles.voteIcon}>👍</Text>
-                                <Text style={styles.voteCount}>
-                                  {soundItem.challengeVotes || 0}
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                  </ScrollView>
+                          );
+                        })
+                      )}
+                    </ScrollView>
                   </>
                 )}
               </>
@@ -791,6 +843,8 @@ const styles = StyleSheet.create({
     fontSize: 38,
   },
   challengeTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(103,232,249,0.12)',
     paddingHorizontal: S.md,
     paddingVertical: 6,
@@ -823,18 +877,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  statIcon: {
-    fontSize: 16,
-  },
   statText: {
     ...T.h3,
     color: C.textPrimary,
   },
   challengeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#8B5CFF',
     paddingVertical: 12,
     borderRadius: R.sm,
-    alignItems: 'center',
   },
   challengeButtonText: {
     ...T.body,
@@ -842,11 +895,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   removeChallengeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: S.md,
     backgroundColor: 'rgba(255,59,48,0.12)',
     paddingVertical: 10,
     borderRadius: R.sm,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,59,48,0.3)',
   },
@@ -867,12 +922,14 @@ const styles = StyleSheet.create({
     ...T.h2,
     color: C.textPrimary,
     marginBottom: S.sm,
+    textAlign: 'center',
   },
   emptySubtext: {
     ...T.body,
     color: C.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: S.lg,
   },
-
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -889,11 +946,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  fabIcon: {
-    fontSize: 26,
-    color: '#07110B',
-  },
-
   createModalContent: {
     backgroundColor: 'rgba(9,12,28,0.98)',
     borderRadius: R.xxl,
@@ -977,10 +1029,12 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
   },
   createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#8B5CFF',
     paddingVertical: S.lg,
     borderRadius: R.sm,
-    alignItems: 'center',
     marginTop: S.xxl,
     marginBottom: S.xl,
   },
@@ -989,7 +1043,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: C.bgOverlay,
@@ -1022,23 +1075,26 @@ const styles = StyleSheet.create({
     ...T.bodyS,
     color: C.textSecondary,
   },
-  modalClose: {
-    fontSize: 28,
-    color: C.textSecondary,
-  },
   modalRemoveButton: {
     backgroundColor: 'rgba(255,59,48,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,59,48,0.3)',
     borderRadius: R.sm,
-    paddingHorizontal: S.md,
-    paddingVertical: S.sm,
-    marginLeft: 10,
+    padding: S.sm,
   },
-  modalRemoveButtonText: {
-    color: C.error,
-    fontWeight: '900',
-    fontSize: 12,
+  votedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,255,156,0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,255,156,0.15)',
+    paddingHorizontal: S.xl,
+    paddingVertical: S.sm,
+  },
+  votedBannerText: {
+    ...T.labelS,
+    color: '#00FF9C',
+    fontWeight: '700',
   },
   loadingModal: {
     flex: 1,
@@ -1058,20 +1114,23 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(163,177,255,0.14)',
     flexDirection: 'row',
     gap: S.md,
+    alignItems: 'center',
+  },
+  soundItemVoted: {
+    borderColor: 'rgba(0,255,156,0.3)',
+    backgroundColor: 'rgba(0,255,156,0.05)',
   },
   rankBadge: {
     width: 40,
     height: 40,
     borderRadius: R.full,
-    backgroundColor: 'rgba(103,232,249,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(103,232,249,0.24)',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   rankText: {
     ...T.labelL,
-    color: '#67E8F9',
     fontWeight: '800',
   },
   soundInfo: {
@@ -1085,6 +1144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     flex: 1,
+    marginRight: S.sm,
   },
   userAvatar: {
     fontSize: 24,
@@ -1101,49 +1161,56 @@ const styles = StyleSheet.create({
   soundActions: {
     flexDirection: 'row',
     gap: S.sm,
+    alignItems: 'center',
   },
   playButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: R.full,
     backgroundColor: '#8B5CFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playIcon: {
-    fontSize: 14,
+  playButtonActive: {
+    backgroundColor: '#6B3CDF',
   },
   voteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.xs,
+    gap: 4,
     backgroundColor: C.glass,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
+    borderColor: 'rgba(163,177,255,0.20)',
     paddingHorizontal: S.md,
     paddingVertical: S.sm,
     borderRadius: R.full,
+    minWidth: 52,
+    justifyContent: 'center',
   },
-  voteIcon: {
-    fontSize: 16,
+  voteButtonVoted: {
+    backgroundColor: 'rgba(0,255,156,0.12)',
+    borderColor: 'rgba(0,255,156,0.35)',
+  },
+  voteButtonDisabled: {
+    opacity: 0.35,
   },
   voteCount: {
     ...T.body,
     fontWeight: '700',
     color: C.textPrimary,
+    fontSize: 13,
   },
-
   participateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: S.sm,
     backgroundColor: '#8B5CFF',
     marginHorizontal: S.lg,
     marginTop: S.lg,
     marginBottom: S.sm,
     paddingVertical: S.lg,
     borderRadius: R.lg,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: S.sm,
     shadowColor: '#8B5CFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1154,5 +1221,18 @@ const styles = StyleSheet.create({
     ...T.body,
     fontWeight: '800',
     color: '#fff',
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B5CFF',
+    paddingHorizontal: S.md,
+    paddingVertical: S.sm,
+    borderRadius: R.full,
+  },
+  submitButtonText: {
+    ...T.label,
+    color: '#fff',
+    fontWeight: '700',
   },
 });

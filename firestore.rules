@@ -337,6 +337,13 @@ service cloud.firestore {
         allow read: if isAuth();
         allow write: if isOwner(userId);
       }
+
+      // Un voto per utente per challenge (uid = doc ID)
+      match /votes/{userId} {
+        allow read: if isAuth();
+        allow create: if isAuth() && request.auth.uid == userId;
+        allow delete: if isAuth() && request.auth.uid == userId;
+      }
     }
 
     // ── NOTIFICATIONS ─────────────────────────────────────────────────────────

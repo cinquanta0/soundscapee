@@ -1564,24 +1564,26 @@ export async function getChallengeSounds(challengeId, limitCount = 50) {
 }
 
 /**
- * Vota un suono in una challenge
+ * Vota un suono in una challenge.
+ * I voti sono scoped alla challenge: challenges/{challengeId}/votes/{uid}
+ * così si azzerano quando la challenge viene eliminata.
  */
-export async function voteForChallengeSound(soundId) {
+export async function voteForChallengeSound(soundId, challengeId) {
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const voteRef = doc(db, 'sounds', soundId, 'votes', user.uid);
+    const voteRef = doc(db, 'challenges', challengeId, 'votes', user.uid);
     const voteDoc = await getDoc(voteRef);
 
     if (voteDoc.exists()) {
-      throw new Error('Hai già votato questo suono!');
+      throw new Error('Hai già votato in questa sfida!');
     }
 
-    // Usa un writeBatch per atomicità (se fallisce update, fallisce anche set)
     const batch = writeBatch(db);
-    
+
     batch.set(voteRef, {
+      soundId,
       userId: user.uid,
       votedAt: new Date(),
     });
@@ -1597,6 +1599,21 @@ export async function voteForChallengeSound(soundId) {
   } catch (error) {
     console.error('❌ Error voting:', error);
     throw error;
+  }
+}
+
+/**
+ * Restituisce il soundId per cui l'utente ha votato nella challenge,
+ * oppure null se non ha ancora votato.
+ */
+export async function getMyVoteInChallenge(challengeId) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return null;
+    const voteDoc = await getDoc(doc(db, 'challenges', challengeId, 'votes', user.uid));
+    return voteDoc.exists() ? voteDoc.data().soundId : null;
+  } catch {
+    return null;
   }
 }
 
