@@ -63,6 +63,9 @@ export default function ChallengesScreen() {
 
   useEffect(() => {
     loadChallenges();
+  }, []);
+
+  useEffect(() => {
     return () => {
       sound?.unloadAsync().catch(() => {});
     };
@@ -251,7 +254,7 @@ export default function ChallengesScreen() {
 
       setSound(newSound);
       setPlayingId(item.id);
-      await incrementListens(item.id);
+      incrementListens(item.id).catch(() => {}); // fire-and-forget, no await
 
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
@@ -274,12 +277,7 @@ export default function ChallengesScreen() {
     setVoting(true);
     try {
       await voteForChallengeSound(soundId, selectedChallenge.id);
-      setVotedSoundId(soundId);
-      setChallengeSounds(prev =>
-        prev.map((s: any) =>
-          s.id === soundId ? { ...s, challengeVotes: (s.challengeVotes || 0) + 1 } : s
-        )
-      );
+      setVotedSoundId(soundId); // onSnapshot aggiornerà il conteggio automaticamente
       Alert.alert('✅', t('challenges.voteRegistered'));
     } catch (error: any) {
       console.error('Error voting:', error);
@@ -637,6 +635,7 @@ export default function ChallengesScreen() {
                           const rankColor = isTop3 ? RANK_COLORS[index] : '#67E8F9';
                           const rankBg = isTop3 ? RANK_BG[index] : 'rgba(103,232,249,0.12)';
                           const isPlaying = playingId === soundItem.id;
+                          const isMine = soundItem.userId === uid;
                           const isVoted = votedSoundId === soundItem.id;
                           const hasVotedOther = votedSoundId !== null && !isVoted;
 
@@ -681,24 +680,24 @@ export default function ChallengesScreen() {
                                     style={[
                                       styles.voteButton,
                                       isVoted && styles.voteButtonVoted,
-                                      hasVotedOther && styles.voteButtonDisabled,
+                                      (hasVotedOther || isMine) && styles.voteButtonDisabled,
                                     ]}
                                     onPress={() => handleVote(soundItem.id)}
-                                    disabled={voting || hasVotedOther}
+                                    disabled={voting || hasVotedOther || isMine}
                                   >
                                     {voting && !votedSoundId ? (
                                       <ActivityIndicator size="small" color={C.accent} />
                                     ) : (
                                       <>
                                         <Feather
-                                          name="thumbs-up"
+                                          name={isMine ? 'user' : 'thumbs-up'}
                                           size={14}
-                                          color={isVoted ? '#00FF9C' : hasVotedOther ? C.textMuted : C.textPrimary}
+                                          color={isVoted ? '#00FF9C' : (hasVotedOther || isMine) ? C.textMuted : C.textPrimary}
                                         />
                                         <Text style={[
                                           styles.voteCount,
                                           isVoted && { color: '#00FF9C' },
-                                          hasVotedOther && { color: C.textMuted },
+                                          (hasVotedOther || isMine) && { color: C.textMuted },
                                         ]}>
                                           {soundItem.challengeVotes || 0}
                                         </Text>
