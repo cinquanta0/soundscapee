@@ -436,17 +436,21 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
         {/* Storie degli altri utenti */}
         {userStati
           .filter((g) => g.userId !== currentUid)
-          .map((group) => (
-            <StoryCircle
-              key={group.id}
-              emoji={group.icon || '🎵'}
-              photo={group.photo}
-              label={group.label}
-              viewed={viewedStati.has(group.id)}
-              highlight={followingIds.has(group.userId) ? 'accent' : 'ice'}
-              onPress={() => openUserStory(group)}
-            />
-          ))}
+          .map((group) => {
+            const vis = group.photoVisibility ?? 'public';
+            const canSeePhoto = vis === 'public' || (vis === 'followers' && followingIds.has(group.userId));
+            return (
+              <StoryCircle
+                key={group.id}
+                emoji={group.icon || '🎵'}
+                photo={canSeePhoto ? group.photo : undefined}
+                label={group.label}
+                viewed={viewedStati.has(group.id)}
+                highlight={followingIds.has(group.userId) ? 'accent' : 'ice'}
+                onPress={() => openUserStory(group)}
+              />
+            );
+          })}
       </ScrollView>
 
       <StoryViewer

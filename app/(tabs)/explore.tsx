@@ -31,7 +31,7 @@ import BattleScreen from '../../screens/BattleScreen';
 import PodcastHubScreen from '../../screens/PodcastHubScreen';
 import RadioScreen from '../../screens/RadioScreen';
 import { Battle, cancelBattle, finalizeBattle, listenToActiveBattles } from '../../services/battleService';
-import { incrementListens } from '../../services/firebaseService';
+import { incrementListens, getFollowingList } from '../../services/firebaseService';
 import { listenBlockedUsers } from '../../services/blockService';
 
 let _TP: any = null; let _S: any = {};
@@ -116,6 +116,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const [cancelingBattleId, setCancelingBattleId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+  const [myFollowingIds, setMyFollowingIds] = useState<Set<string>>(new Set());
   const [userSearchText, setUserSearchText] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -149,6 +150,11 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUserId(user?.uid ?? null);
+      if (user) {
+        getFollowingList(user.uid)
+          .then((list: any[]) => setMyFollowingIds(new Set(list.map((u: any) => u.id))))
+          .catch(() => {});
+      }
     });
     return unsubscribe;
   }, []);
@@ -504,6 +510,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
             return (
               <ExploreUserCard
                 user={item}
+                myFollowingIds={myFollowingIds}
                 onPress={() => onOpenUserProfile?.(item.id)}
               />
             );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -186,6 +186,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   const [totalUnread, setTotalUnread] = useState(0);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
   const me = auth.currentUser;
+  const fetchedPhotosRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!me) return;
@@ -201,6 +202,27 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
     }, blockedIds);
     return unsub;
   }, [me?.uid, blockedIds]);
+
+  useEffect(() => {
+    const missing = conversations.filter(
+      c => !c.otherUserPhoto && !fetchedPhotosRef.current.has(c.otherUserId),
+    );
+    if (missing.length === 0) return;
+    missing.forEach(c => fetchedPhotosRef.current.add(c.otherUserId));
+    Promise.all(missing.map(c => getDoc(doc(db, 'users', c.otherUserId))))
+      .then(snaps => {
+        const photoMap: Record<string, string> = {};
+        snaps.forEach((snap, i) => {
+          const photo = snap.data()?.profilePicture;
+          if (photo) photoMap[missing[i].otherUserId] = photo;
+        });
+        if (Object.keys(photoMap).length === 0) return;
+        setConversations(prev =>
+          prev.map(c => photoMap[c.otherUserId] ? { ...c, otherUserPhoto: photoMap[c.otherUserId] } : c),
+        );
+      })
+      .catch(() => {});
+  }, [conversations]);
 
   useEffect(() => {
     if (initialChat) setActiveChat(initialChat);

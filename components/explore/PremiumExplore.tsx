@@ -86,6 +86,7 @@ type SoundCardProps = {
 
 type UserCardProps = {
   user: any;
+  myFollowingIds?: Set<string>;
   onPress: () => void;
 };
 
@@ -306,13 +307,16 @@ export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardPr
   );
 }
 
-export function ExploreUserCard({ user, onPress }: UserCardProps) {
+export function ExploreUserCard({ user, myFollowingIds, onPress }: UserCardProps) {
   const { t } = useTranslation();
+  const vis = user.photoVisibility ?? 'public';
+  const canSeePhoto = vis === 'public' || (vis === 'followers' && (myFollowingIds?.has(user.id) ?? false));
+  const photo = canSeePhoto ? user.profilePicture : undefined;
   return (
     <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.86}>
-      <View style={[styles.userAvatar, user.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
-        {user.profilePicture ? (
-          <Image source={{ uri: user.profilePicture }} style={{ width: 54, height: 54, borderRadius: 27 }} />
+      <View style={[styles.userAvatar, photo ? { overflow: 'hidden', padding: 0 } : null]}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={{ width: 54, height: 54, borderRadius: 27 }} />
         ) : /^[a-z][a-z-]*$/.test(user.avatar) ? (
           <Feather name={user.avatar as any} size={26} color="#00FF9C" />
         ) : (

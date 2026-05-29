@@ -526,6 +526,7 @@ export default function App() {
   const [editBio, setEditBio] = useState('');
   const bioInputRef = useRef<TextInput>(null);
   const [editAvatar, setEditAvatar] = useState('');
+  const [editPhotoVisibility, setEditPhotoVisibility] = useState<'public' | 'followers' | 'private'>('public');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Profile background theme
@@ -1460,6 +1461,7 @@ const handleEditProfile = () => {
   setEditBio(userProfile?.bio || '');
   setEditAvatar(userProfile?.avatar || '🎧');
   setEditProfilePicture(userProfile?.profilePicture || null);
+  setEditPhotoVisibility(userProfile?.photoVisibility || 'public');
   setShowEditProfileModal(true);
 };
 
@@ -1529,6 +1531,7 @@ const handleSaveProfile = async () => {
       username: editUsername.trim(),
       bio: editBio.trim(),
       avatar: editAvatar,
+      photoVisibility: editPhotoVisibility,
     });
 
     // Ricarica profilo
@@ -1964,12 +1967,20 @@ if (loading) {
           <Text style={styles.profileThemeButtonText}>Sfondo</Text>
         </TouchableOpacity>
       )}
-      <TouchableOpacity
-        activeOpacity={userProfile?.profilePicture ? 0.85 : 1}
-        onPress={() => { if (userProfile?.profilePicture) setZoomPhotoUrl(userProfile.profilePicture); }}
-      >
-        <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} photo={userProfile?.profilePicture} />
-      </TouchableOpacity>
+      {(() => {
+        const isOwn = userProfile?.id === auth.currentUser?.uid;
+        const vis = userProfile?.photoVisibility ?? 'public';
+        const canSee = isOwn || vis === 'public' || (vis === 'followers' && myFollowingList.includes(userProfile?.id));
+        const photo = canSee ? userProfile?.profilePicture : undefined;
+        return (
+          <TouchableOpacity
+            activeOpacity={photo ? 0.85 : 1}
+            onPress={() => { if (photo) setZoomPhotoUrl(photo); }}
+          >
+            <AppAvatar avatar={userProfile?.avatar} username={userProfile?.username} size={80} photo={photo} />
+          </TouchableOpacity>
+        );
+      })()}
       <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
       <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
       {!!userProfile?.bio && <Text style={styles.profileBio}>{userProfile.bio}</Text>}
@@ -3051,6 +3062,27 @@ if (loading) {
           ) : (
             <Text style={{ color: '#687392', fontSize: 11, marginTop: 8 }}>Tocca per aggiungere foto</Text>
           )}
+        </View>
+
+        {/* Visibilità foto profilo */}
+        <Text style={styles.editLabel}>Chi vede la foto profilo</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+          {(['public', 'followers', 'private'] as const).map(vis => (
+            <TouchableOpacity
+              key={vis}
+              style={{
+                flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center',
+                backgroundColor: editPhotoVisibility === vis ? '#00FF9C' : 'rgba(255,255,255,0.08)',
+                borderWidth: 1,
+                borderColor: editPhotoVisibility === vis ? '#00FF9C' : 'rgba(255,255,255,0.1)',
+              }}
+              onPress={() => setEditPhotoVisibility(vis)}
+            >
+              <Text style={{ color: editPhotoVisibility === vis ? '#001A0D' : '#9A9A9A', fontSize: 11, fontWeight: '600' }}>
+                {vis === 'public' ? 'Tutti' : vis === 'followers' ? 'Followers' : 'Solo io'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Avatar Selector */}

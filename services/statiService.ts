@@ -22,6 +22,7 @@ export interface StatiGroup {
   label: string;
   icon: string;
   photo?: string;
+  photoVisibility?: string;
   screens: StatoScreen[];
   userId: string;
   createdAt: Date;
@@ -92,6 +93,7 @@ export async function getRecentStati(): Promise<StatiGroup[]> {
           if (p.username) byUser[uid].label = p.username;
           if (p.avatar) byUser[uid].icon = resolveAvatarEmoji(p.avatar);
           if (p.profilePicture) byUser[uid].photo = p.profilePicture;
+          if (p.photoVisibility) byUser[uid].photoVisibility = p.photoVisibility;
         }
       } catch {
         // profilo non disponibile — usa il valore denormalizzato già presente
