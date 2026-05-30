@@ -4,9 +4,9 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { PanGestureHandler, State, TouchableOpacity } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,12 +28,12 @@ interface BottomNavBarProps {
 }
 
 const TABS: Tab[] = [
-  { id: 'home',       label: 'Feed',       icon: 'activity',       accent: '#67E8F9' },
-  { id: 'explore',    label: 'Explore',    icon: 'compass',         accent: '#8B5CFF' },
-  { id: 'map',        label: 'Map',        icon: 'map-pin',         accent: '#4F7CFF' },
-  { id: 'challenges', label: 'Challenges', icon: 'award',           accent: '#FF9B5E' },
-  { id: 'messages',   label: 'Messages',   icon: 'message-circle',  accent: '#F472FF' },
-  { id: 'profile',    label: 'Profile',    icon: 'user',            accent: '#4F7CFF' },
+  { id: 'home',       label: 'Feed',       icon: 'activity',      accent: '#67E8F9' },
+  { id: 'explore',    label: 'Explore',    icon: 'compass',        accent: '#8B5CFF' },
+  { id: 'map',        label: 'Map',        icon: 'map-pin',        accent: '#4F7CFF' },
+  { id: 'challenges', label: 'Challenges', icon: 'award',          accent: '#FF9B5E' },
+  { id: 'messages',   label: 'Messages',   icon: 'message-circle', accent: '#F472FF' },
+  { id: 'profile',    label: 'Profile',    icon: 'user',           accent: '#4F7CFF' },
 ];
 
 const NAV_KEYS: Record<TabId, string> = {
@@ -42,7 +42,7 @@ const NAV_KEYS: Record<TabId, string> = {
   messages: 'nav.messages', profile: 'nav.profile',
 };
 
-// ─── Single NavItem ───────────────────────────────────────────────────────────
+// ─── NavItem ──────────────────────────────────────────────────────────────────
 
 function NavItem({
   tab,
@@ -55,24 +55,9 @@ function NavItem({
 }) {
   const { t } = useTranslation();
   const scale = useRef(new Animated.Value(1)).current;
-  const iconColor = useRef(new Animated.Value(isActive ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.spring(iconColor, {
-      toValue: isActive ? 1 : 0,
-      useNativeDriver: false,
-      speed: 18,
-      bounciness: 6,
-    }).start();
-  }, [isActive, iconColor]);
 
   const pressIn  = () => Animated.spring(scale, { toValue: 0.82, useNativeDriver: true, speed: 28, bounciness: 4 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 28, bounciness: 4 }).start();
-
-  const animatedIconColor = iconColor.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#8A93B6', '#ffffff'],
-  });
 
   return (
     <TouchableOpacity
@@ -83,12 +68,10 @@ function NavItem({
       style={styles.itemTouch}
     >
       <Animated.View style={[styles.itemInner, { transform: [{ scale }] }]}>
-        <Animated.Text>
-          <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : '#8A93B6'} />
-        </Animated.Text>
-        <Animated.Text style={[styles.label, { color: animatedIconColor }]} numberOfLines={1}>
+        <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : '#8A93B6'} />
+        <Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={1}>
           {t(NAV_KEYS[tab.id])}
-        </Animated.Text>
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -108,33 +91,35 @@ function GlassPill({ translateX, width }: { translateX: Animated.Value; width: n
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.pillAndroidBg]} />
       )}
-      {/* Blue tint overlay */}
       <View style={styles.pillTint} />
-      {/* Top shimmer */}
       <View style={styles.pillShimmer} />
     </Animated.View>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
   const insets = useSafeAreaInsets();
 
-  const [tabWidth, setTabWidth] = useState(0);
-  const tabWidthRef = useRef(0);
-  const pillX       = useRef(new Animated.Value(0)).current;
-  const pillXValue  = useRef(0);
-  const panStartX   = useRef(0);
-  const activeIdxRef = useRef(TABS.findIndex((t) => t.id === activeTab));
+  const [tabWidth, setTabWidth]   = useState(0);
+  const tabWidthRef               = useRef(0);
+  const pillX                     = useRef(new Animated.Value(0)).current;
+  const pillXValue                = useRef(0);
+  const activeIdxRef              = useRef(TABS.findIndex((t) => t.id === activeTab));
 
-  // Track raw pill value for snap-on-release
+  // Touch tracking for drag detection
+  const touchStartX  = useRef(0);
+  const pillStartX   = useRef(0);
+  const isDragging   = useRef(false);
+
+  // Track raw pill value for snap
   useEffect(() => {
     const id = pillX.addListener(({ value }) => { pillXValue.current = value; });
     return () => pillX.removeListener(id);
   }, [pillX]);
 
-  // Slide pill when activeTab changes from outside (e.g. tap)
+  // Slide pill when activeTab changes
   useEffect(() => {
     const idx = TABS.findIndex((t) => t.id === activeTab);
     if (idx < 0 || tabWidthRef.current === 0) return;
@@ -155,8 +140,6 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
     pillX.setValue(activeIdxRef.current * tw);
   }, [pillX]);
 
-  // ── Gesture handlers ────────────────────────────────────────────────────────
-
   const snapToIndex = useCallback((idx: number) => {
     const clamped = Math.max(0, Math.min(idx, TABS.length - 1));
     activeIdxRef.current = clamped;
@@ -169,36 +152,47 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
     }).start();
   }, [pillX, onTabChange]);
 
-  const onGestureEvent = useCallback((e: any) => {
-    const { state, translationX } = e.nativeEvent;
-    if (state !== State.ACTIVE) return;
-    const raw = panStartX.current + translationX;
-    const clamped = Math.max(0, Math.min(raw, tabWidthRef.current * (TABS.length - 1)));
-    pillX.setValue(clamped);
-  }, [pillX]);
+  // ── Responder system: steal only on clear horizontal drag (>6px) ───────────
 
-  const onHandlerStateChange = useCallback((e: any) => {
-    const { state, translationX } = e.nativeEvent;
-    if (state === State.BEGAN) {
-      panStartX.current = pillXValue.current;
-    }
-    if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-      const finalX = Math.max(0, Math.min(
-        panStartX.current + translationX,
-        tabWidthRef.current * (TABS.length - 1),
-      ));
-      const nearestIdx = Math.round(finalX / tabWidthRef.current);
-      snapToIndex(nearestIdx);
-    }
-  }, [snapToIndex]);
+  const responderHandlers = {
+    // Record touch start without claiming the responder — lets children get taps
+    onStartShouldSetResponder: () => false,
+    onStartShouldSetResponderCapture: () => false,
 
-  const handleTabPress = useCallback((tab: Tab, idx: number) => {
-    snapToIndex(idx);
-  }, [snapToIndex]);
+    // Claim responder only when horizontal movement is clear
+    onMoveShouldSetResponder: (e: any) => {
+      const dx = Math.abs(e.nativeEvent.pageX - touchStartX.current);
+      const dy = Math.abs(e.nativeEvent.pageY - (e.nativeEvent.pageY - 0)); // always 0
+      return dx > 6;
+    },
+    onMoveShouldSetResponderCapture: (e: any) => {
+      const dx = Math.abs(e.nativeEvent.pageX - touchStartX.current);
+      return dx > 6;
+    },
+
+    onResponderGrant: () => {
+      isDragging.current = true;
+      pillStartX.current = pillXValue.current;
+    },
+    onResponderMove: (e: any) => {
+      const dx = e.nativeEvent.pageX - touchStartX.current;
+      const raw = pillStartX.current + dx;
+      const clamped = Math.max(0, Math.min(raw, tabWidthRef.current * (TABS.length - 1)));
+      pillX.setValue(clamped);
+    },
+    onResponderRelease: () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      const nearest = Math.round(pillXValue.current / tabWidthRef.current);
+      snapToIndex(nearest);
+    },
+    onResponderTerminate: () => {
+      isDragging.current = false;
+    },
+  };
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      {/* Ambient glow blobs */}
       <View style={styles.ambientLeft} />
       <View style={styles.ambientRight} />
 
@@ -209,30 +203,29 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
           end={{ x: 1, y: 1 }}
           style={styles.bar}
         >
-          {/* Top shine line */}
           <View style={styles.barShine} />
 
-          <PanGestureHandler
-            onGestureEvent={onGestureEvent}
-            onHandlerStateChange={onHandlerStateChange}
-            activeOffsetX={[-6, 6]}
-            failOffsetY={[-10, 10]}
+          <View
+            style={styles.pillTrack}
+            onLayout={onBarLayout}
+            // Record finger position on every touch so moveShouldSetResponder can measure dx
+            onTouchStart={(e) => {
+              touchStartX.current = e.nativeEvent.pageX;
+              pillStartX.current  = pillXValue.current;
+            }}
+            {...responderHandlers}
           >
-            <Animated.View style={styles.pillTrack} onLayout={onBarLayout}>
-              {/* Sliding glass pill (behind tab items) */}
-              <GlassPill translateX={pillX} width={tabWidth} />
+            <GlassPill translateX={pillX} width={tabWidth} />
 
-              {/* Tab items */}
-              {TABS.map((tab, idx) => (
-                <NavItem
-                  key={tab.id}
-                  tab={tab}
-                  isActive={activeTab === tab.id}
-                  onPress={() => handleTabPress(tab, idx)}
-                />
-              ))}
-            </Animated.View>
-          </PanGestureHandler>
+            {TABS.map((tab, idx) => (
+              <NavItem
+                key={tab.id}
+                tab={tab}
+                isActive={activeTab === tab.id}
+                onPress={() => snapToIndex(idx)}
+              />
+            ))}
+          </View>
         </LinearGradient>
       </View>
     </View>
@@ -301,9 +294,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 8,
     paddingBottom: 2,
-    paddingHorizontal: 0,
   },
-  // ── Glass pill ──
   pill: {
     position: 'absolute',
     top: 4,
@@ -312,7 +303,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(79,124,255,0.45)',
-    // subtle outer glow via shadow
     ...Platform.select({
       ios: {
         shadowColor: '#4F7CFF',
@@ -338,7 +328,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.35)',
     borderRadius: 999,
   },
-  // ── Tab items ──
   itemTouch: {
     flex: 1,
     alignItems: 'center',
@@ -353,5 +342,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.2,
+    color: '#8A93B6',
+  },
+  labelActive: {
+    color: '#ffffff',
   },
 });
