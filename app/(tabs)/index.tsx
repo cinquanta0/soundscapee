@@ -2450,7 +2450,7 @@ if (loading) {
                   key={mood}
                   style={[
                     s.moodOption,
-                    { backgroundColor: newSoundMood === mood ? getMoodColor(mood) : 'rgba(255,255,255,0.08)' },
+                    { backgroundColor: newSoundMood === mood ? getMoodColor(mood) : colors.surfaceMedium },
                   ]}
                   onPress={() => setNewSoundMood(mood)}
                   disabled={uploading}
@@ -2473,7 +2473,7 @@ if (loading) {
       <TouchableOpacity
         style={[
           s.challengeChip,
-          !selectedChallengeForSubmit && { backgroundColor: 'rgba(255,255,255,0.08)' }
+          !selectedChallengeForSubmit && { backgroundColor: colors.surfaceMedium }
         ]}
         onPress={() => setSelectedChallengeForSubmit(null)}
         disabled={uploading}
@@ -4465,7 +4465,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   moodOptionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   recordModalInfo: {
     flexDirection: 'row',
@@ -4486,27 +4486,29 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   recordModalButtonCancel: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.bgInput,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   recordModalButtonCancelText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textSecondary,
   },
   recordModalButtonPublish: {
     flex: 1,
-    backgroundColor: '#00FF9C',
+    backgroundColor: colors.green,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
-recordModalButtonPublishText: {
+  recordModalButtonPublishText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#080C14',
   },
   commentItem: {
     backgroundColor: colors.surfaceLight,

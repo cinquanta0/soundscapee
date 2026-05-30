@@ -301,7 +301,7 @@ export function FeedSoundCard({
 
   return (
     <LinearGradient
-      colors={['rgba(17,22,45,0.96)', 'rgba(10,14,29,0.98)']}
+      colors={colors.gradientCard}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.card}
@@ -387,7 +387,7 @@ export function FeedSoundCard({
                     styles.waveBar,
                     {
                       height,
-                      backgroundColor: active ? C.cyan : 'rgba(143, 160, 201, 0.22)',
+                      backgroundColor: active ? C.cyan : C.borderStrong,
                     },
                   ]}
                 />
