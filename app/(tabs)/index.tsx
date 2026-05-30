@@ -2614,7 +2614,7 @@ if (loading) {
                       }}
                       onPress={() => setNewSoundVisibility(vis)}
                     >
-                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
+                      <Text style={{ color: colors.text, fontSize: 11, fontWeight: '600' }}>
                         {vis === 'public' ? 'Pubblico' : vis === 'followers' ? 'Followers' : 'Privato'}
                       </Text>
                     </TouchableOpacity>
@@ -3699,7 +3699,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#fff',
+    color: colors.text,
     letterSpacing: -0.4,
   },
   headerSubtitle: {
@@ -3812,7 +3812,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   heroTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#fff',
+    color: colors.text,
     letterSpacing: -0.6,
     marginBottom: 4,
   },
@@ -4137,7 +4137,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   profileName: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   profileUsername: {
@@ -4656,7 +4656,7 @@ challengeChip: {
   marginRight: 8,
 },
 challengeChipText: {
-  color: '#fff',
+  color: colors.text,
   fontSize: 13,
   fontWeight: '600',
 },
