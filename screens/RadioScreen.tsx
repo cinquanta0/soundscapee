@@ -4,8 +4,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import {
     ActivityIndicator,
     Alert,
@@ -3733,6 +3735,8 @@ const rc = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function RadioScreen({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const ms = useMemo(() => createMsStyles(colors), [colors]);
   const [rooms, setRooms] = useState<RadioRoom[]>([]);
   const [scheduledRooms, setScheduledRooms] = useState<RadioRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3803,7 +3807,7 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
         </View>
       )}
       {!compact && (
-        <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={ms.hero}>
+        <LinearGradient colors={colors.gradientCard} style={ms.hero}>
           <View style={ms.heroGlow} />
           <Text style={ms.heroEyebrow}>{t('radio.liveBroadcast')}</Text>
           <View style={ms.topBar}>
@@ -3895,7 +3899,7 @@ export default function RadioScreen({ compact = false }: { compact?: boolean }) 
   );
 }
 
-const ms = StyleSheet.create({
+function createMsStyles(colors: ThemeColors) { return StyleSheet.create({
   compactActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3908,8 +3912,8 @@ const ms = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
   },
   compactCaption: {
     color: '#67E8F9',
@@ -3920,7 +3924,7 @@ const ms = StyleSheet.create({
     marginBottom: 4,
   },
   compactTitle: {
-    color: '#F7F8FF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '800',
   },
@@ -3952,22 +3956,22 @@ const ms = StyleSheet.create({
     marginBottom: 8,
   },
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  topTitle: { fontSize: 28, fontWeight: '800', color: '#F7F8FF', letterSpacing: -0.8 },
-  topSub: { fontSize: 14, color: '#97A4C7', marginTop: 8, lineHeight: 20 },
+  topTitle: { fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.8 },
+  topSub: { fontSize: 14, color: colors.textSecondary, marginTop: 8, lineHeight: 20 },
   liveBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', alignSelf: 'flex-start' },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF2D55' },
   liveBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { fontSize: 20, color: '#fff', fontStyle: 'italic', marginBottom: 8, fontWeight: '700' },
-  emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', marginBottom: 24, textAlign: 'center', lineHeight: 18 },
+  emptyTitle: { fontSize: 20, color: colors.text, fontStyle: 'italic', marginBottom: 8, fontWeight: '700' },
+  emptyDesc: { fontSize: 13, color: colors.textMuted, fontFamily: 'monospace', marginBottom: 24, textAlign: 'center', lineHeight: 18 },
   emptyBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 24, backgroundColor: 'rgba(255,45,85,0.18)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   emptyBtnTxt: { color: '#FF2D55', fontSize: 15, fontWeight: '700' },
   scheduledSection: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   scheduledTitle: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 },
-  scheduledCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,45,85,0.15)' },
-  scheduledName: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  scheduledEta: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 },
+  scheduledCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceLight, borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,45,85,0.15)' },
+  scheduledName: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  scheduledEta: { color: colors.textMuted, fontSize: 10, fontFamily: 'monospace', marginTop: 2 },
   startNowBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(255,45,85,0.2)', borderWidth: 1, borderColor: 'rgba(255,45,85,0.4)' },
   startNowTxt: { color: '#FF2D55', fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
   stationsSection: { marginBottom: 8 },
@@ -3977,4 +3981,4 @@ const ms = StyleSheet.create({
   stationsTitle: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
   liveSection: { fontSize: 11, color: '#67E8F9', fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', paddingHorizontal: 16, marginBottom: 8, marginTop: 8 },
   emptyLive: { paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center' },
-});
+}); }

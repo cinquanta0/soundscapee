@@ -772,7 +772,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         )}
         activeOpacity={0.7}
       >
-        <Text style={[s.e2eBannerTxt, { color: e2eReady ? '#00FF9C' : colors.textMuted }]}>
+        <Text style={[s.e2eBannerTxt, { color: e2eReady ? colors.greenText : colors.textMuted }]}>
           {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '⏳ Crittografia in inizializzazione...'}
         </Text>
       </TouchableOpacity>
@@ -946,8 +946,8 @@ function createBubbleStyles(colors: ThemeColors) {
     rowRight: { alignItems: 'flex-end' },
     rowLeft: { alignItems: 'flex-start' },
     bubble: { maxWidth: SW * 0.76, borderRadius: 18, padding: 10 },
-    bubbleMine: { backgroundColor: 'rgba(16,28,50,0.96)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)', borderTopRightRadius: 4 },
-    bubbleTheirs: { backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.28)', borderTopLeftRadius: 4 },
+    bubbleMine: { backgroundColor: colors.bubbleMine, borderWidth: 1, borderColor: colors.bubbleMineBorder, borderTopRightRadius: 4 },
+    bubbleTheirs: { backgroundColor: colors.bubbleTheirs, borderWidth: 1, borderColor: colors.bubbleTheirsBorder, borderTopLeftRadius: 4 },
     soundRef: { fontSize: 11, color: colors.textMuted, fontFamily: 'monospace', marginBottom: 6 },
     statusReplyTag: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 6, borderWidth: 1 },
     statusReplyTagMine: { backgroundColor: 'rgba(103,232,249,0.12)', borderColor: 'rgba(103,232,249,0.3)' },

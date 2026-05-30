@@ -427,7 +427,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
                     </View>
                     {c.userId === auth.currentUser?.uid && (
                       <TouchableOpacity onPress={() => handleDeleteComment(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>✕</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 16 }}>✕</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -713,6 +713,8 @@ function getTutorialSteps(t: (key: string) => string) {
 
 function TutorialCard({ step, total, onNext, onSkip }: { step: number; total: number; onNext: () => void; onSkip: () => void }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const tc = useMemo(() => createTcStyles(colors), [colors]);
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -745,7 +747,7 @@ function TutorialCard({ step, total, onNext, onSkip }: { step: number; total: nu
   );
 }
 
-const tc = StyleSheet.create({
+function createTcStyles(colors: ThemeColors) { return StyleSheet.create({
   card: {
     backgroundColor: C.accentDim,
     borderRadius: R.md,
@@ -757,9 +759,9 @@ const tc = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: S.sm },
   emoji: { fontSize: 22 },
   stepLabel: { flex: 1, color: C.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  skip: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
-  title: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: S.xs },
-  body: { color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 18 },
+  skip: { color: colors.textMuted, fontSize: 11 },
+  title: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: S.xs },
+  body: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
   nextBtn: {
     alignSelf: 'flex-end',
     marginTop: 10,
@@ -769,7 +771,7 @@ const tc = StyleSheet.create({
     paddingVertical: 7,
   },
   nextTxt: { color: C.textOnAccent, fontWeight: '700', fontSize: 13 },
-});
+}); }
 
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
@@ -1394,7 +1396,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
             <View style={pm.handle} />
             <Text style={pm.sheetTitle}>{t('podcast.addToPlaylistTitle')}</Text>
             {!!playlistTarget && (
-              <Text style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 12 }} numberOfLines={1}>
+              <Text style={{ color: colors.textSecondary, marginBottom: 12 }} numberOfLines={1}>
                 {playlistTarget.title}
               </Text>
             )}
@@ -1436,7 +1438,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
                   </TouchableOpacity>
                 )}
                 ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                ListEmptyComponent={<Text style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingVertical: 16 }}>{t('podcast.noPlaylists')}</Text>}
+                ListEmptyComponent={<Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 16 }}>{t('podcast.noPlaylists')}</Text>}
               />
             )}
 
@@ -1505,18 +1507,18 @@ function createPlStyles(colors: ThemeColors) {
 function createPcStyles(colors: ThemeColors) { return StyleSheet.create({
   card: { flexDirection: 'row', backgroundColor: colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,255,156,0.1)', padding: 12, gap: 12, alignItems: 'flex-start' },
   cover: { width: 72, height: 72, borderRadius: 10 },
-  coverFallback: { backgroundColor: '#1A0A2E', alignItems: 'center', justifyContent: 'center' },
+  coverFallback: { backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 3, fontStyle: 'italic' },
-  host: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 4 },
-  desc: { fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 17 },
-  duration: { fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', marginTop: 6 },
+  title: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 3, fontStyle: 'italic' },
+  host: { fontSize: 11, color: colors.greenText, fontFamily: 'monospace', marginBottom: 4 },
+  desc: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  duration: { fontSize: 10, color: colors.textMuted, fontFamily: 'monospace', marginTop: 6 },
   playlistBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,255,156,0.35)', backgroundColor: 'rgba(0,255,156,0.08)' },
-  playlistBtnTxt: { color: '#00FF9C', fontSize: 11, fontWeight: '700' },
+  playlistBtnTxt: { color: colors.greenText, fontSize: 11, fontWeight: '700' },
   playPill: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
-  playPillTxt: { color: '#00FF9C', fontSize: 12 },
+  playPillTxt: { color: colors.greenText, fontSize: 12 },
   menuBtn: { paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
-  menuTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 20, letterSpacing: 1 },
+  menuTxt: { color: colors.textMuted, fontSize: 20, letterSpacing: 1 },
 }); }
 
 function createScStyles(colors: ThemeColors) { return StyleSheet.create({
@@ -1618,12 +1620,12 @@ function createPmStyles(colors: ThemeColors) { return StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.bgOverlay },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, overflow: 'hidden', maxHeight: '92%' },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 20 },
-  sheetTitle: { fontSize: 20, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 20 },
-  input: { backgroundColor: C.bgInput, borderRadius: R.sm, paddingHorizontal: S.lg, paddingVertical: 13, color: '#fff', fontSize: 15, marginBottom: S.md, borderWidth: 1, borderColor: C.border },
+  sheetTitle: { fontSize: 20, fontWeight: '700', fontStyle: 'italic', color: colors.text, marginBottom: 20 },
+  input: { backgroundColor: colors.bgInput, borderRadius: R.sm, paddingHorizontal: S.lg, paddingVertical: 13, color: colors.text, fontSize: 15, marginBottom: S.md, borderWidth: 1, borderColor: colors.border },
   itsRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginBottom: S.md },
-  itsToggle: { paddingHorizontal: S.md, paddingVertical: S.md, borderRadius: R.sm, borderWidth: 1, borderColor: C.border, backgroundColor: C.bgCard },
+  itsToggle: { paddingHorizontal: S.md, paddingVertical: S.md, borderRadius: R.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgCard },
   itsToggleActive: { borderColor: C.borderAccent, backgroundColor: C.accentDim },
-  itsToggleText: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
+  itsToggleText: { color: colors.textMuted, fontSize: 12 },
   itsToggleTextActive: { color: C.accent },
   categoryInput: { flex: 1, marginBottom: 0 },
   pickBtn: { padding: 14, borderRadius: R.sm, backgroundColor: C.bgCard, borderWidth: 1, borderColor: C.border, alignItems: 'center', marginBottom: S.xs },
@@ -1680,7 +1682,7 @@ function createPmStyles(colors: ThemeColors) { return StyleSheet.create({
     letterSpacing: 1.5,
   },
   recHint: {
-    color: '#858585',
+    color: colors.textMuted,
     fontSize: 12,
   },
   // ── Preview player ──────────────────────────────────────────────────────────
@@ -1719,7 +1721,7 @@ function createPmStyles(colors: ThemeColors) { return StyleSheet.create({
     backgroundColor: '#00FF9C',
   },
   previewTime: {
-    color: '#858585',
+    color: colors.textMuted,
     fontSize: 10,
     fontFamily: 'monospace',
   },

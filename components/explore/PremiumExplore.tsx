@@ -150,7 +150,7 @@ export function ExploreModeRail({ section, items, onSelect }: ModesProps) {
             onPress={() => onSelect(item.id)}
           >
             <LinearGradient
-              colors={active ? [item.accent + '44', 'rgba(15,20,38,0.92)'] : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
+              colors={active ? [item.accent + '44', 'rgba(15,20,38,0.92)'] : [colors.surfaceMedium, colors.surfaceLight]}
               style={s.modeCardFill}
             >
               <View style={[s.modeIconWrap, { borderColor: active ? item.accent + '55' : colors.border }]}>

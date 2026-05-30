@@ -3,7 +3,7 @@ export interface ThemeColors {
   bg: string;
   bgCard: string;
   bgElevated: string;
-  bgOverlay: string;          // modal/sheet overlay tint
+  bgOverlay: string;
   bgInput: string;
 
   // Text
@@ -12,25 +12,42 @@ export interface ThemeColors {
   textMuted: string;
   textDisabled: string;
 
+  // Icon colors
+  iconInactive: string;   // navbar / tab icon inattivo
+
+  // Accent usable as text/icon (contrasto garantito su bg)
+  textAccent: string;     // in dark = cyan, in light = teal scuro leggibile
+
   // Borders / dividers
   border: string;
   borderSubtle: string;
 
-  // Surface overlays (rgba)
-  surfaceLight: string;       // rgba bianco/nero leggero su card
+  // Surface overlays
+  surfaceLight: string;
   surfaceMedium: string;
 
-  // Gradients (tuple per LinearGradient)
+  // Gradients
   gradientBg: readonly [string, string, string];
   gradientBgAlt: readonly [string, string, string];
   gradientCard: readonly [string, string];
-  gradientOverlay: readonly [string, string];   // hero image overlay
+  gradientOverlay: readonly [string, string];
 
   // Navigation bar
-  navBg: string;              // Android fallback (iOS usa BlurView)
+  navBg: string;
   navBorder: string;
 
-  // Accents — invariati tra temi
+  // Chat bubbles
+  bubbleMine:       string;
+  bubbleMineText:   string;
+  bubbleMineBorder: string;
+  bubbleTheirs:       string;
+  bubbleTheirsText:   string;
+  bubbleTheirsBorder: string;
+
+  // Green leggibile come testo (non fosforescente)
+  greenText: string;
+
+  // Accents decorativi (sfondo, badge, bordi) — NON usare come testo su bianco
   cyan:   string;
   purple: string;
   blue:   string;
@@ -52,6 +69,9 @@ export const dark: ThemeColors = {
   textMuted:     '#4B5563',
   textDisabled:  '#2D3748',
 
+  iconInactive:  'rgba(255,255,255,0.40)',
+  textAccent:    '#67E8F9',
+
   border:        'rgba(163,177,255,0.12)',
   borderSubtle:  'rgba(255,255,255,0.06)',
 
@@ -65,6 +85,15 @@ export const dark: ThemeColors = {
 
   navBg:     'rgba(10,14,30,0.92)',
   navBorder: 'rgba(163,177,255,0.14)',
+
+  bubbleMine:         'rgba(16,28,50,0.96)',
+  bubbleMineText:     '#F7F8FF',
+  bubbleMineBorder:   'rgba(103,232,249,0.28)',
+  bubbleTheirs:         'rgba(23,17,49,0.96)',
+  bubbleTheirsText:     '#F7F8FF',
+  bubbleTheirsBorder:   'rgba(139,92,255,0.28)',
+
+  greenText: '#22C55E',
 
   cyan:   '#67E8F9',
   purple: '#8B5CFF',
@@ -83,9 +112,12 @@ export const light: ThemeColors = {
   bgInput:      'rgba(0,0,0,0.04)',
 
   text:          '#080C14',
-  textSecondary: '#3D4566',
-  textMuted:     '#6B7490',
-  textDisabled:  '#A0A8C0',
+  textSecondary: '#1E2540',   // molto scuro — massimo contrasto
+  textMuted:     '#3A4260',   // scuro — leggibile anche piccolo
+  textDisabled:  '#8A93B6',
+
+  iconInactive:  '#3A4260',   // icone inattive scure su sfondo chiaro
+  textAccent:    '#0A6B7A',   // teal scuro — contrasto 7:1 su bianco
 
   border:        'rgba(0,0,0,0.10)',
   borderSubtle:  'rgba(0,0,0,0.05)',
@@ -100,6 +132,15 @@ export const light: ThemeColors = {
 
   navBg:     'rgba(232,236,245,0.92)',
   navBorder: 'rgba(0,0,0,0.08)',
+
+  bubbleMine:         '#DBEAFE',
+  bubbleMineText:     '#1E3A5F',
+  bubbleMineBorder:   'rgba(79,124,255,0.30)',
+  bubbleTheirs:         '#EDE9FE',
+  bubbleTheirsText:     '#3B1F6E',
+  bubbleTheirsBorder:   'rgba(139,92,255,0.30)',
+
+  greenText: '#16A34A',
 
   cyan:   '#67E8F9',
   purple: '#8B5CFF',

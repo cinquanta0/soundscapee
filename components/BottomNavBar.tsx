@@ -50,6 +50,7 @@ const IRIS = ['#67E8F9', '#818CF8', '#C084FC', '#F472B6', '#67E8F9'] as [string,
 
 function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPress: () => void }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scale, { toValue: 0.82, useNativeDriver: true, speed: 28, bounciness: 4 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 28, bounciness: 4 }).start();
@@ -57,8 +58,8 @@ function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPr
   return (
     <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={1} style={styles.itemTouch}>
       <Animated.View style={[styles.itemInner, { transform: [{ scale }] }]}>
-        <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : 'rgba(255,255,255,0.4)'} />
-        <Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={1}>
+        <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : colors.iconInactive} />
+        <Text style={[styles.label, { color: isActive ? '#ffffff' : colors.iconInactive }]} numberOfLines={1}>
           {t(NAV_KEYS[tab.id])}
         </Text>
       </Animated.View>
