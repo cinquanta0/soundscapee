@@ -639,25 +639,28 @@ export const toggleFollow = async (targetUserId) => {
     const followId = `${user.uid}_${targetUserId}`;
     const followRef = doc(db, 'follows', followId);
     const followDoc = await getDoc(followRef);
-    
+
     const followerRef = doc(db, 'users', user.uid);
     const followingRef = doc(db, 'users', targetUserId);
-    
+    const batch = writeBatch(db);
+
     if (followDoc.exists()) {
-      // Unfollow
-      await deleteDoc(followRef);
-      await updateDoc(followerRef, { followingCount: increment(-1) });
-      await updateDoc(followingRef, { followersCount: increment(-1) });
+      // Unfollow — tutto in un batch atomico
+      batch.delete(followRef);
+      batch.update(followerRef, { followingCount: increment(-1) });
+      batch.update(followingRef, { followersCount: increment(-1) });
+      await batch.commit();
       return false;
     } else {
-      // Follow
-      await setDoc(followRef, {
+      // Follow — tutto in un batch atomico
+      batch.set(followRef, {
         followerId: user.uid,
         followingId: targetUserId,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
-      await updateDoc(followerRef, { followingCount: increment(1) });
-      await updateDoc(followingRef, { followersCount: increment(1) });
+      batch.update(followerRef, { followingCount: increment(1) });
+      batch.update(followingRef, { followersCount: increment(1) });
+      await batch.commit();
       return true;
     }
   } catch (error) {

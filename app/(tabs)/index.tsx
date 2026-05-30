@@ -545,6 +545,8 @@ export default function App() {
   const [followersList, setFollowersList] = useState<any[]>([]);
   const [followingList, setFollowingList] = useState<any[]>([]);
   const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
+  // Stats del profilo ALTRO (non sovrascrive i propri)
+  const [viewedFollowStats, setViewedFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
   const [myBlockedUsers, setMyBlockedUsers] = useState<string[]>([]);
   
   // Load user and sounds on mount
@@ -1621,7 +1623,14 @@ const handleFollowToggle = async () => {
     setIsFollowingUser(res);
     const updated = await getUserProfile(userProfile.id);
     setUserProfile(updated);
-    getFollowStats(userProfile.id).then(setFollowStats);
+    const myUid = auth.currentUser?.uid;
+    if (userProfile.id === myUid) {
+      getFollowStats(userProfile.id).then(setFollowStats);
+    } else {
+      getFollowStats(userProfile.id).then(setViewedFollowStats);
+      // Aggiorna anche i propri stats (followingCount cambia)
+      if (myUid) getFollowStats(myUid).then(setFollowStats);
+    }
     
     // Aggiorna lista locale per il feed
     if (res) {
@@ -1647,13 +1656,11 @@ const handleFollowToggle = async () => {
 const fetchAndShowFollowers = async () => {
   const list = await getFollowersList(userProfile.id);
   setFollowersList(list);
-  setFollowStats(prev => ({ ...prev, followers: list.length }));
   setShowFollowersModal(true);
 };
 const fetchAndShowFollowing = async () => {
   const list = await getFollowingList(userProfile.id);
   setFollowingList(list);
-  setFollowStats(prev => ({ ...prev, following: list.length }));
   setShowFollowingModal(true);
 }; 
 
@@ -1667,8 +1674,13 @@ const fetchAndShowFollowing = async () => {
   try {
     const profile = await getUserProfile(userId);
     setUserProfile(profile);
-    getFollowStats(userId).then(setFollowStats);
-    if (userId !== auth.currentUser?.uid) {
+    const myUid = auth.currentUser?.uid;
+    if (userId === myUid) {
+      getFollowStats(userId).then(setFollowStats);
+    } else {
+      getFollowStats(userId).then(setViewedFollowStats);
+    }
+    if (userId !== myUid) {
       getUserSounds(userId).then(setViewedUserSounds).catch(() => {});
     }
   } catch (error) {
@@ -1994,11 +2006,11 @@ if (loading) {
           <Text style={s.profileStatLabel}>{t('profile.sounds')}</Text>
         </View>
         <TouchableOpacity style={s.profileStat} onPress={fetchAndShowFollowers}>
-          <Text style={s.profileStatNumber}>{followStats.followers}</Text>
+          <Text style={s.profileStatNumber}>{isOwnProfile ? followStats.followers : viewedFollowStats.followers}</Text>
           <Text style={s.profileStatLabel}>{t('profile.followers')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.profileStat} onPress={fetchAndShowFollowing}>
-          <Text style={s.profileStatNumber}>{followStats.following}</Text>
+          <Text style={s.profileStatNumber}>{isOwnProfile ? followStats.following : viewedFollowStats.following}</Text>
           <Text style={s.profileStatLabel}>{t('profile.following')}</Text>
         </TouchableOpacity>
         <View style={s.profileStat}>
