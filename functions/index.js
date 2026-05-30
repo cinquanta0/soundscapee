@@ -1907,3 +1907,69 @@ exports.onCallStatusUpdated = onDocumentUpdated(
     }
   }
 );
+
+// ─── One-time follow count reconciliation ─────────────────────────────────────
+// Chiama questa funzione UNA VOLTA dalla Firebase Console o da curl per
+// ricalcolare followersCount e followingCount di tutti gli utenti dalla
+// collection follows (la sorgente di verità).
+exports.reconcileFollowCounts = onCall(
+  { region: 'europe-west1', timeoutSeconds: 540, memory: '512MiB' },
+  async (request) => {
+    const db = admin.firestore();
+
+    // Solo admin possono triggerare
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Login required');
+
+    const [followsSnap, usersSnap] = await Promise.all([
+      db.collection('follows').get(),
+      db.collection('users').get(),
+    ]);
+
+    // Calcola contatori reali dalla collection follows
+    const followersCounts = {};   // uid → quante volte compare come followingId
+    const followingCounts = {};   // uid → quante volte compare come followerId
+
+    for (const doc of followsSnap.docs) {
+      const { followerId, followingId } = doc.data();
+      if (followerId) followingCounts[followerId] = (followingCounts[followerId] || 0) + 1;
+      if (followingId) followersCounts[followingId] = (followersCounts[followingId] || 0) + 1;
+    }
+
+    // Aggiorna tutti gli utenti in batch da 400 (limite Firestore: 500 ops/batch)
+    let batch = db.batch();
+    let ops = 0;
+    let updated = 0;
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const currentData = userDoc.data();
+      const correctFollowers = followersCounts[uid] || 0;
+      const correctFollowing = followingCounts[uid] || 0;
+
+      if (currentData.followersCount !== correctFollowers ||
+          currentData.followingCount !== correctFollowing) {
+        batch.update(userDoc.ref, {
+          followersCount: correctFollowers,
+          followingCount: correctFollowing,
+        });
+        ops++;
+        updated++;
+
+        if (ops >= 400) {
+          await batch.commit();
+          batch = db.batch();
+          ops = 0;
+        }
+      }
+    }
+
+    if (ops > 0) await batch.commit();
+
+    return {
+      success: true,
+      totalUsers: usersSnap.size,
+      totalFollows: followsSnap.size,
+      usersUpdated: updated,
+    };
+  }
+);

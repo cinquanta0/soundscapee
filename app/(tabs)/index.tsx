@@ -2821,6 +2821,24 @@ if (loading) {
               </View>
 
               <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>Manutenzione</Text>
+                <TouchableOpacity
+                  style={s.settingsItem}
+                  onPress={async () => {
+                    try {
+                      const fn = httpsCallable(functions, 'reconcileFollowCounts');
+                      const result: any = await fn({});
+                      Alert.alert('✅ Fatto', `Aggiornati ${result.data.usersUpdated} utenti su ${result.data.totalUsers}`);
+                    } catch (e: any) {
+                      Alert.alert('Errore', e.message);
+                    }
+                  }}
+                >
+                  <Text style={s.settingsItemText}>🔧 Ricalcola contatori follow</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={s.settingsSection}>
                 <Text style={s.settingsSectionTitle}>Aspetto</Text>
                 <TouchableOpacity
                   style={s.settingsItem}
