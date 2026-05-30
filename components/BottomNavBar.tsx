@@ -79,20 +79,35 @@ function NavItem({
 
 // ─── Glass Pill ───────────────────────────────────────────────────────────────
 
+// Iridescent gradient colors — cycles like a prism
+const IRIS_COLORS = ['#67E8F9', '#818CF8', '#C084FC', '#F472B6', '#67E8F9'] as const;
+
 function GlassPill({ translateX, width }: { translateX: Animated.Value; width: number }) {
   if (width === 0) return null;
   return (
+    // Outer: gradient border (1px via padding)
     <Animated.View
       pointerEvents="none"
-      style={[styles.pill, { width, transform: [{ translateX }] }]}
+      style={[styles.pillOuter, { width, transform: [{ translateX }] }]}
     >
-      {Platform.OS === 'ios' ? (
-        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, styles.pillAndroidBg]} />
-      )}
-      <View style={styles.pillTint} />
-      <View style={styles.pillShimmer} />
+      <LinearGradient
+        colors={IRIS_COLORS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Inner glass surface — 1px inset to reveal gradient border */}
+      <View style={styles.pillInner}>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={72} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.pillAndroidBg]} />
+        )}
+        {/* Very subtle white haze — keeps it glass-like, not colored */}
+        <View style={styles.pillHaze} />
+        {/* Top shimmer */}
+        <View style={styles.pillShimmer} />
+      </View>
     </Animated.View>
   );
 }
@@ -295,37 +310,45 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 2,
   },
-  pill: {
+  // Outer wrapper — the gradient shows as the 1px border
+  pillOuter: {
     position: 'absolute',
     top: 4,
     bottom: 4,
     borderRadius: 22,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(79,124,255,0.45)',
+    padding: 1,
     ...Platform.select({
       ios: {
-        shadowColor: '#4F7CFF',
+        shadowColor: '#818CF8',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
       },
+      android: { elevation: 6 },
     }),
   },
-  pillAndroidBg: {
-    backgroundColor: 'rgba(20,30,70,0.75)',
+  // Inner glass surface — sits inside the 1px gradient border
+  pillInner: {
+    flex: 1,
+    borderRadius: 21,
+    overflow: 'hidden',
   },
-  pillTint: {
+  pillAndroidBg: {
+    backgroundColor: 'rgba(15,20,50,0.80)',
+  },
+  // Barely-there white haze — glass feel without color tint
+  pillHaze: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(79,124,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   pillShimmer: {
     position: 'absolute',
     top: 0,
-    left: 12,
-    right: 12,
+    left: 10,
+    right: 10,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
     borderRadius: 999,
   },
   itemTouch: {
