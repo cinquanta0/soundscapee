@@ -1762,7 +1762,7 @@ if (loading) {
         <View style={s.loadingAuraB} />
         <View style={s.loadingPanel}>
           <Text style={s.loadingEyebrow}>MIUSLYK</Text>
-          <ActivityIndicator size="large" color="#67E8F9" />
+          <ActivityIndicator size="large" color={colors.textAccent} />
           <Text style={s.loadingText}>{t('common.loading')}</Text>
         </View>
       </View>
@@ -1940,7 +1940,7 @@ if (loading) {
     {activeTab === 'profile' && !userProfile && (
       <View style={s.profileLoadingState}>
         <View style={s.profileLoadingOrb}>
-          <ActivityIndicator size="large" color="#67E8F9" />
+          <ActivityIndicator size="large" color={colors.textAccent} />
         </View>
         <Text style={s.profileLoadingText}>Sto preparando il profilo</Text>
       </View>
@@ -2072,7 +2072,7 @@ if (loading) {
             disabled={userProfile.inCall === true}
             onPress={() => initiateCall(userProfile.id, userProfile.username || userProfile.displayName || 'Utente', userProfile.avatar || '🎵')}
           >
-            <Text style={[s.profileButtonPrimaryText, { color: '#00FF9C' }]}>
+            <Text style={[s.profileButtonPrimaryText, { color: colors.greenText }]}>
               {userProfile.inCall ? '🔴 In chiamata' : '📞 Chiama'}
             </Text>
           </TouchableOpacity>
@@ -2274,7 +2274,7 @@ if (loading) {
   <View style={s.content}>
     {loadingRemixSounds ? (
       <View style={s.loadingContainer}>
-        <ActivityIndicator size="large" color="#00FF9C" />
+        <ActivityIndicator size="large" color={colors.greenText} />
         <Text style={s.loadingText}>{t('home.loadingSounds')}</Text>
       </View>
     ) : (
@@ -2518,10 +2518,10 @@ if (loading) {
                       <Image source={{ uri: backstageUri! }} style={{ width: 44, height: 44, borderRadius: 6 }} />
                     ) : (
                       <View style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: 'rgba(0,255,156,0.15)', justifyContent: 'center', alignItems: 'center' }}>
-                        <Feather name="video" size={20} color="#00FF9C" />
+                        <Feather name="video" size={20} color={colors.greenText} />
                       </View>
                     )}
-                    <Text style={{ color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
+                    <Text style={{ color: colors.greenText, fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
                       {backstageTipo === 'video' ? t('upload.videoSelected') : t('upload.photoSelected')}
                     </Text>
                   </View>
@@ -2698,7 +2698,7 @@ if (loading) {
                   <Text style={{ color: colors.text, fontSize: 16, fontStyle: 'italic', fontWeight: '600' }}>{label}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>{sub}</Text>
                 </View>
-                <Text style={{ color: '#00FF9C', fontSize: 18 }}>›</Text>
+                <Text style={{ color: colors.greenText, fontSize: 18 }}>›</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -2855,7 +2855,7 @@ if (loading) {
                   style={[s.settingsItem, { marginBottom: 8 }]}
                   onPress={handleCheckUpdates}
                 >
-                  <Text style={[s.settingsItemText, { color: '#00FF9C' }]}>
+                  <Text style={[s.settingsItemText, { color: colors.greenText }]}>
                     🚀 OTA v9 - test funzionante!
                   </Text>
                 </TouchableOpacity>
@@ -2963,7 +2963,7 @@ if (loading) {
             {/* Comments List */}
             {loadingComments ? (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#00FF9C" />
+                <ActivityIndicator size="large" color={colors.greenText} />
               </View>
             ) : (
               <ScrollView style={{ flex: 1, padding: 16 }}>
@@ -3245,7 +3245,7 @@ if (loading) {
                     loadNotifications();
                   }}
                 >
-                  <Text style={{ color: '#00FF9C', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{t('notifications.markAllRead')}</Text>
+                  <Text style={{ color: colors.greenText, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{t('notifications.markAllRead')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -3276,7 +3276,7 @@ if (loading) {
                       }}
                     >
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={[s.notificationTitle, !notif.read && { color: '#00FF9C' }]}>{notif.title}</Text>
+                        <Text style={[s.notificationTitle, !notif.read && { color: colors.greenText }]}>{notif.title}</Text>
                         {!notif.read && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FF9C', marginTop: 4 }} />}
                       </View>
                       <Text style={s.notificationBody}>{notif.body}</Text>
@@ -3615,7 +3615,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     backgroundColor: colors.bgCard,
   },
   loadingEyebrow: {
-    color: '#67E8F9',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -3643,7 +3643,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     marginBottom: 14,
   },
   feedSectionEyebrow: {
-    color: '#7DD3FC',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.4,
@@ -3728,7 +3728,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   liveText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#00FF9C',
+    color: colors.greenText,
     letterSpacing: 1,
   },
   subtitleText: {
@@ -4045,7 +4045,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     backgroundColor: 'rgba(0,255,156,0.06)',
   },
   backstageBtnText: {
-    color: '#00FF9C',
+    color: colors.greenText,
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.3,
@@ -4115,7 +4115,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   profileEyebrow: {
     alignSelf: 'flex-start',
-    color: '#67E8F9',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -4170,7 +4170,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   profileStatNumber: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#67E8F9',
+    color: colors.textAccent,
   },
   profileStatLabel: {
     fontSize: 11,
@@ -4397,7 +4397,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   settingsSectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#67E8F9',
+    color: colors.textAccent,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -4477,7 +4477,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   recordModalInfoText: {
     fontSize: 12,
-    color: '#00FF9C',
+    color: colors.greenText,
     fontWeight: '600',
   },
   recordModalButtons: {

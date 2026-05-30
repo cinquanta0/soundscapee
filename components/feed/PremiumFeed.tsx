@@ -480,7 +480,7 @@ function createStyles(C: CType) { return StyleSheet.create({
   brandBar: {
     width: 4,
     borderRadius: 999,
-    backgroundColor: '#F7F8FF',
+    backgroundColor: C.text,
   },
   brandTitle: {
     color: C.text,

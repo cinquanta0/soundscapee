@@ -51,7 +51,7 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
           <Image source={{ uri: conv.otherUserPhoto }} style={s.avatarImg} />
         ) : /^[a-z][a-z-]*$/.test(conv.otherUserAvatar) ? (
           <View style={s.avatar}>
-            <Feather name={conv.otherUserAvatar as any} size={22} color="#67E8F9" />
+            <Feather name={conv.otherUserAvatar as any} size={22} color={colors.textAccent} />
           </View>
         ) : conv.otherUserAvatar ? (
           <View style={s.avatar}>
@@ -139,14 +139,14 @@ function NewConvModal({ onSelect, onClose }: { onSelect: (user: OtherUser) => vo
           returnKeyType="search"
           blurOnSubmit
         />
-        {loading && <ActivityIndicator color="#67E8F9" style={{ marginTop: 12 }} />}
+        {loading && <ActivityIndicator color={colors.textAccent} style={{ marginTop: 12 }} />}
         {results.map((u) => (
           <TouchableOpacity key={u.id} style={s.resultRow} onPress={() => onSelect(u)}>
             <View style={[s.resultAvatar, u.profilePicture ? { overflow: 'hidden', padding: 0 } : null]}>
               {u.profilePicture
                 ? <Image source={{ uri: u.profilePicture }} style={{ width: 40, height: 40, borderRadius: 20 }} />
                 : /^[a-z][a-z-]*$/.test(u.avatar)
-                  ? <Feather name={u.avatar as any} size={20} color="#67E8F9" />
+                  ? <Feather name={u.avatar as any} size={20} color={colors.textAccent} />
                   : u.avatar
                     ? <Text style={s.resultAvatarEmojiTxt}>{u.avatar}</Text>
                     : <Text style={s.resultAvatarTxt}>{u.displayName[0]?.toUpperCase()}</Text>}
@@ -278,10 +278,10 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity style={[s.newBtn, { backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)' }]} onPress={() => setShowGroupCall(true)}>
-              <Feather name="users" size={15} color="#00FF9C" />
+              <Feather name="users" size={15} color={colors.greenText} />
             </TouchableOpacity>
             <TouchableOpacity style={[s.newBtn, { backgroundColor: 'rgba(103,232,249,0.10)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.25)' }]} onPress={() => setShowCallHistory(true)}>
-              <Feather name="phone" size={15} color="#67E8F9" />
+              <Feather name="phone" size={15} color={colors.textAccent} />
               {canRejoin && (
                 <View style={s.callBadge}>
                   <Text style={s.callBadgeTxt}>1</Text>
@@ -371,7 +371,7 @@ function createConvRowStyles(colors: ThemeColors) {
       borderColor: 'rgba(103,232,249,0.22)',
     },
     avatarTxt: {
-      color: '#67E8F9',
+      color: colors.textAccent,
       fontSize: 18,
       fontWeight: '800',
     },
@@ -415,12 +415,12 @@ function createNewConvModalStyles(colors: ThemeColors) {
     overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', zIndex: 100 },
     sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 40, overflow: 'hidden', minHeight: 320 },
     handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.borderSubtle, alignSelf: 'center', marginBottom: 18 },
-    eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 8 },
+    eyebrow: { color: colors.textAccent, fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 8 },
     title: { color: colors.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.6, marginBottom: 14 },
     input: { backgroundColor: colors.bgInput, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 14, color: colors.text, fontSize: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
     resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
     resultAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.bgInput, borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)', alignItems: 'center', justifyContent: 'center' },
-    resultAvatarTxt: { color: '#67E8F9', fontSize: 16, fontWeight: '800' },
+    resultAvatarTxt: { color: colors.textAccent, fontSize: 16, fontWeight: '800' },
     resultAvatarEmojiTxt: { fontSize: 22 },
     resultName: { color: colors.text, fontSize: 14, fontWeight: '700' },
     resultUser: { color: colors.textSecondary, fontSize: 11 },
@@ -436,7 +436,7 @@ function createMessagesScreenStyles(colors: ThemeColors) {
     ambientB: { position: 'absolute', left: -70, top: 260, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(139,92,255,0.08)' },
     hero: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, borderRadius: 26, borderWidth: 1, borderColor: colors.border, padding: 18, overflow: 'hidden' },
     heroGlow: { position: 'absolute', right: -20, top: -24, width: 150, height: 150, borderRadius: 999, backgroundColor: 'rgba(139,92,255,0.12)' },
-    eyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 },
+    eyebrow: { color: colors.textAccent, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 },
     header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
     headerTitle: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
     headerSub: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
@@ -444,7 +444,7 @@ function createMessagesScreenStyles(colors: ThemeColors) {
     callBadge: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
     callBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
-    sectionCaption: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    sectionCaption: { color: colors.textAccent, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
     sectionBadge: { minWidth: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgInput, borderWidth: 1, borderColor: 'rgba(79,124,255,0.22)' },
     sectionBadgeText: { color: '#4F7CFF', fontSize: 14, fontWeight: '800' },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
@@ -452,6 +452,6 @@ function createMessagesScreenStyles(colors: ThemeColors) {
     emptyTitle: { color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 8 },
     emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
     emptyBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)' },
-    emptyBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
+    emptyBtnTxt: { color: colors.textAccent, fontSize: 13, fontWeight: '700' },
   });
 }
