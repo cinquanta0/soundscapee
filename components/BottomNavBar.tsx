@@ -42,33 +42,20 @@ const NAV_KEYS: Record<TabId, string> = {
   messages: 'nav.messages', profile: 'nav.profile',
 };
 
+const IRIS = ['#67E8F9', '#818CF8', '#C084FC', '#F472B6', '#67E8F9'] as [string, string, ...string[]];
+
 // ─── NavItem ──────────────────────────────────────────────────────────────────
 
-function NavItem({
-  tab,
-  isActive,
-  onPress,
-}: {
-  tab: Tab;
-  isActive: boolean;
-  onPress: () => void;
-}) {
+function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPress: () => void }) {
   const { t } = useTranslation();
   const scale = useRef(new Animated.Value(1)).current;
-
   const pressIn  = () => Animated.spring(scale, { toValue: 0.82, useNativeDriver: true, speed: 28, bounciness: 4 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 28, bounciness: 4 }).start();
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      onPressIn={pressIn}
-      onPressOut={pressOut}
-      activeOpacity={1}
-      style={styles.itemTouch}
-    >
+    <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={1} style={styles.itemTouch}>
       <Animated.View style={[styles.itemInner, { transform: [{ scale }] }]}>
-        <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : '#8A93B6'} />
+        <Feather name={tab.icon} size={19} color={isActive ? '#ffffff' : 'rgba(255,255,255,0.4)'} />
         <Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={1}>
           {t(NAV_KEYS[tab.id])}
         </Text>
@@ -78,33 +65,25 @@ function NavItem({
 }
 
 // ─── Glass Pill ───────────────────────────────────────────────────────────────
-
-// Iridescent gradient colors — cycles like a prism
-const IRIS_COLORS = ['#67E8F9', '#818CF8', '#C084FC', '#F472B6', '#67E8F9'] as const;
+// On iOS: the bar is already blurred → pill is a lighter "lens" over the blur.
+// On Android: solid tinted pill since BlurView is unreliable.
 
 function GlassPill({ translateX, width }: { translateX: Animated.Value; width: number }) {
   if (width === 0) return null;
   return (
-    // Outer: gradient border (1px via padding)
-    <Animated.View
-      pointerEvents="none"
-      style={[styles.pillOuter, { width, transform: [{ translateX }] }]}
-    >
-      <LinearGradient
-        colors={IRIS_COLORS}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Inner glass surface — 1px inset to reveal gradient border */}
+    <Animated.View pointerEvents="none" style={[styles.pillOuter, { width, transform: [{ translateX }] }]}>
+      {/* Iridescent gradient border via 1px padding */}
+      <LinearGradient colors={IRIS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+
       <View style={styles.pillInner}>
         {Platform.OS === 'ios' ? (
-          <BlurView intensity={72} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+          // Lighter blur over the already-dark-blurred bar → creates depth
+          <BlurView intensity={40} tint="systemUltraThinMaterial" style={StyleSheet.absoluteFill} />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.pillAndroidBg]} />
         )}
-        {/* Very subtle white haze — keeps it glass-like, not colored */}
-        <View style={styles.pillHaze} />
+        {/* White highlight — makes pill brighter than bar */}
+        <View style={styles.pillHighlight} />
         {/* Top shimmer */}
         <View style={styles.pillShimmer} />
       </View>
@@ -117,131 +96,103 @@ function GlassPill({ translateX, width }: { translateX: Animated.Value; width: n
 export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
   const insets = useSafeAreaInsets();
 
-  const [tabWidth, setTabWidth]   = useState(0);
-  const tabWidthRef               = useRef(0);
-  const pillX                     = useRef(new Animated.Value(0)).current;
-  const pillXValue                = useRef(0);
-  const activeIdxRef              = useRef(TABS.findIndex((t) => t.id === activeTab));
-
-  // Touch tracking for drag detection
+  const [tabWidth, setTabWidth] = useState(0);
+  const tabWidthRef  = useRef(0);
+  const pillX        = useRef(new Animated.Value(0)).current;
+  const pillXValue   = useRef(0);
+  const activeIdxRef = useRef(TABS.findIndex((t) => t.id === activeTab));
   const touchStartX  = useRef(0);
   const pillStartX   = useRef(0);
   const isDragging   = useRef(false);
 
-  // Track raw pill value for snap
   useEffect(() => {
     const id = pillX.addListener(({ value }) => { pillXValue.current = value; });
     return () => pillX.removeListener(id);
   }, [pillX]);
 
-  // Slide pill when activeTab changes
   useEffect(() => {
     const idx = TABS.findIndex((t) => t.id === activeTab);
     if (idx < 0 || tabWidthRef.current === 0) return;
     activeIdxRef.current = idx;
-    Animated.spring(pillX, {
-      toValue: idx * tabWidthRef.current,
-      useNativeDriver: false,
-      speed: 14,
-      bounciness: 9,
-    }).start();
+    Animated.spring(pillX, { toValue: idx * tabWidthRef.current, useNativeDriver: false, speed: 14, bounciness: 9 }).start();
   }, [activeTab, pillX]);
 
   const onBarLayout = useCallback((e: any) => {
-    const w = e.nativeEvent.layout.width;
-    const tw = w / TABS.length;
+    const tw = e.nativeEvent.layout.width / TABS.length;
     tabWidthRef.current = tw;
     setTabWidth(tw);
     pillX.setValue(activeIdxRef.current * tw);
   }, [pillX]);
 
   const snapToIndex = useCallback((idx: number) => {
-    const clamped = Math.max(0, Math.min(idx, TABS.length - 1));
-    activeIdxRef.current = clamped;
-    onTabChange(TABS[clamped].id);
-    Animated.spring(pillX, {
-      toValue: clamped * tabWidthRef.current,
-      useNativeDriver: false,
-      speed: 14,
-      bounciness: 9,
-    }).start();
+    const c = Math.max(0, Math.min(idx, TABS.length - 1));
+    activeIdxRef.current = c;
+    onTabChange(TABS[c].id);
+    Animated.spring(pillX, { toValue: c * tabWidthRef.current, useNativeDriver: false, speed: 14, bounciness: 9 }).start();
   }, [pillX, onTabChange]);
 
-  // ── Responder system: steal only on clear horizontal drag (>6px) ───────────
-
   const responderHandlers = {
-    // Record touch start without claiming the responder — lets children get taps
     onStartShouldSetResponder: () => false,
     onStartShouldSetResponderCapture: () => false,
-
-    // Claim responder only when horizontal movement is clear
-    onMoveShouldSetResponder: (e: any) => {
-      const dx = Math.abs(e.nativeEvent.pageX - touchStartX.current);
-      const dy = Math.abs(e.nativeEvent.pageY - (e.nativeEvent.pageY - 0)); // always 0
-      return dx > 6;
-    },
-    onMoveShouldSetResponderCapture: (e: any) => {
-      const dx = Math.abs(e.nativeEvent.pageX - touchStartX.current);
-      return dx > 6;
-    },
-
-    onResponderGrant: () => {
-      isDragging.current = true;
-      pillStartX.current = pillXValue.current;
-    },
+    onMoveShouldSetResponder: (e: any) => Math.abs(e.nativeEvent.pageX - touchStartX.current) > 6,
+    onMoveShouldSetResponderCapture: (e: any) => Math.abs(e.nativeEvent.pageX - touchStartX.current) > 6,
+    onResponderGrant: () => { isDragging.current = true; pillStartX.current = pillXValue.current; },
     onResponderMove: (e: any) => {
-      const dx = e.nativeEvent.pageX - touchStartX.current;
-      const raw = pillStartX.current + dx;
-      const clamped = Math.max(0, Math.min(raw, tabWidthRef.current * (TABS.length - 1)));
-      pillX.setValue(clamped);
+      const raw = pillStartX.current + (e.nativeEvent.pageX - touchStartX.current);
+      pillX.setValue(Math.max(0, Math.min(raw, tabWidthRef.current * (TABS.length - 1))));
     },
     onResponderRelease: () => {
       if (!isDragging.current) return;
       isDragging.current = false;
-      const nearest = Math.round(pillXValue.current / tabWidthRef.current);
-      snapToIndex(nearest);
+      snapToIndex(Math.round(pillXValue.current / tabWidthRef.current));
     },
-    onResponderTerminate: () => {
-      isDragging.current = false;
-    },
+    onResponderTerminate: () => { isDragging.current = false; },
   };
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <View style={styles.ambientLeft} />
-      <View style={styles.ambientRight} />
-
       <View style={styles.barWrap}>
+
+        {/* ── Bar background ────────────────────────────────────────────────── */}
+        {Platform.OS === 'ios' ? (
+          // Full-bar blur → app content behind is blurred (the "underwater" feel)
+          <BlurView intensity={58} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.barAndroidBg]} />
+        )}
+
+        {/* Very thin dark tint so icons stay readable over any bright content */}
+        <View style={styles.barTint} />
+
+        {/* Iridescent top border line */}
         <LinearGradient
-          colors={['rgba(18,23,44,0.96)', 'rgba(10,14,28,0.96)']}
+          colors={IRIS}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.bar}
+          end={{ x: 1, y: 0 }}
+          style={styles.barTopBorder}
+        />
+
+        {/* ── Tab row ──────────────────────────────────────────────────────── */}
+        <View
+          style={styles.pillTrack}
+          onLayout={onBarLayout}
+          onTouchStart={(e) => {
+            touchStartX.current = e.nativeEvent.pageX;
+            pillStartX.current  = pillXValue.current;
+          }}
+          {...responderHandlers}
         >
-          <View style={styles.barShine} />
+          <GlassPill translateX={pillX} width={tabWidth} />
 
-          <View
-            style={styles.pillTrack}
-            onLayout={onBarLayout}
-            // Record finger position on every touch so moveShouldSetResponder can measure dx
-            onTouchStart={(e) => {
-              touchStartX.current = e.nativeEvent.pageX;
-              pillStartX.current  = pillXValue.current;
-            }}
-            {...responderHandlers}
-          >
-            <GlassPill translateX={pillX} width={tabWidth} />
-
-            {TABS.map((tab, idx) => (
-              <NavItem
-                key={tab.id}
-                tab={tab}
-                isActive={activeTab === tab.id}
-                onPress={() => snapToIndex(idx)}
-              />
-            ))}
-          </View>
-        </LinearGradient>
+          {TABS.map((tab, idx) => (
+            <NavItem
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onPress={() => snapToIndex(idx)}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -256,91 +207,64 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 14,
-    backgroundColor: 'transparent',
     zIndex: 20,
-  },
-  ambientLeft: {
-    position: 'absolute',
-    left: 22,
-    bottom: 20,
-    width: 120,
-    height: 62,
-    borderRadius: 999,
-    backgroundColor: 'rgba(79,124,255,0.10)',
-  },
-  ambientRight: {
-    position: 'absolute',
-    right: 18,
-    bottom: 16,
-    width: 108,
-    height: 56,
-    borderRadius: 999,
-    backgroundColor: 'rgba(79,124,255,0.07)',
   },
   barWrap: {
     borderRadius: 30,
-    overflow: 'hidden',
+    overflow: 'hidden',   // clips BlurView to pill shape
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.4,
-        shadowRadius: 22,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
       },
       android: { elevation: 18 },
     }),
   },
-  bar: {
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
-    overflow: 'hidden',
+  barAndroidBg: {
+    backgroundColor: 'rgba(10,14,30,0.92)',
   },
-  barShine: {
+  // Barely-there dark veil so text/icons are readable over bright content
+  barTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8,12,24,0.30)',
+  },
+  // Iridescent 1px line at the very top of the bar
+  barTopBorder: {
     position: 'absolute',
     top: 0,
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    zIndex: 2,
+    opacity: 0.7,
   },
   pillTrack: {
     flexDirection: 'row',
     paddingTop: 8,
     paddingBottom: 2,
   },
-  // Outer wrapper — the gradient shows as the 1px border
+  // ── Pill ──
   pillOuter: {
     position: 'absolute',
     top: 4,
     bottom: 4,
     borderRadius: 22,
     overflow: 'hidden',
-    padding: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#818CF8',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-      },
-      android: { elevation: 6 },
-    }),
+    padding: 1,           // exposes LinearGradient as border
   },
-  // Inner glass surface — sits inside the 1px gradient border
   pillInner: {
     flex: 1,
     borderRadius: 21,
     overflow: 'hidden',
   },
   pillAndroidBg: {
-    backgroundColor: 'rgba(15,20,50,0.80)',
+    backgroundColor: 'rgba(79,100,220,0.28)',
   },
-  // Barely-there white haze — glass feel without color tint
-  pillHaze: {
+  // White-ish overlay to make pill visibly brighter than the bar
+  pillHighlight: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.13)',
   },
   pillShimmer: {
     position: 'absolute',
@@ -348,9 +272,10 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderRadius: 999,
   },
+  // ── Items ──
   itemTouch: {
     flex: 1,
     alignItems: 'center',
@@ -365,7 +290,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.2,
-    color: '#8A93B6',
+    color: 'rgba(255,255,255,0.4)',
   },
   labelActive: {
     color: '#ffffff',
