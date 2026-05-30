@@ -181,7 +181,7 @@ export default function PlaylistListScreen({ onSelectPlaylist }: Props) {
             <TextInput
               style={s.modalInput}
               placeholder={t('playlist.namePlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textMuted}
               value={newName}
               onChangeText={setNewName}
               autoFocus

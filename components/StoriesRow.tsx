@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Easing, Modal, TextInput,
@@ -93,6 +95,8 @@ function getTutorialGroups(t: (key: string) => string): StoryGroup[] {
 
 // ─── Animated border ring ─────────────────────────────────────────────────────
 function AnimatedRing({ viewed }: { viewed: boolean }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStoriesStyles(colors), [colors]);
   const rotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -126,6 +130,8 @@ function AnimatedRing({ viewed }: { viewed: boolean }) {
 function StoryCircle({
   emoji, photo, label, viewed, onPress, highlight,
 }: { emoji: string; photo?: string; label: string; viewed: boolean; onPress: () => void; highlight?: 'accent' | 'ice' }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStoriesStyles(colors), [colors]);
   const ringColors: readonly [string, string] = viewed
     ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.08)']
     : highlight === 'ice'
@@ -160,6 +166,8 @@ const EMOJI_OPTIONS = ['🎵','🎤','🎸','🥁','🎹','🎺','🎻','🔊','
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function StoriesRow({ userProfile }: { userProfile?: any }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStoriesStyles(colors), [colors]);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [activeGroups, setActiveGroups] = useState<StoryGroup[]>([]);
   const [startIdx, setStartIdx] = useState(0);
@@ -582,7 +590,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                 <TextInput
                   style={[styles.input, titleError ? styles.inputError : null]}
                   placeholder={t('stories.titlePlaceholder')}
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={colors.textMuted}
                   value={statoTitle}
                   onChangeText={(t) => { setStatoTitle(t); setTitleError(''); }}
                   maxLength={60}
@@ -598,7 +606,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
                   ref={bodyInputRef}
                   style={[styles.input, styles.inputMulti]}
                   placeholder={t('stories.textPlaceholder')}
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={colors.textMuted}
                   value={statoBody}
                   onChangeText={setStatoBody}
                   multiline
@@ -640,7 +648,7 @@ export default function StoriesRow({ userProfile }: { userProfile?: any }) {
 
 const CIRCLE_SIZE = 64;
 
-const styles = StyleSheet.create({
+function createStoriesStyles(colors: ThemeColors) { return StyleSheet.create({
   row: {
     marginVertical: 10,
   },
@@ -859,12 +867,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: colors.border,
+    backgroundColor: colors.bgInput,
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: '#9A9A9A',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -977,3 +985,4 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+}   // close createStoriesStyles

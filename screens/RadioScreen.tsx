@@ -1058,6 +1058,7 @@ function elapsedStr(ms: number): string {
 // ─── HOST PANEL ───────────────────────────────────────────────────────────────
 function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [room, setRoom] = useState(initialRoom);
   const [ending, setEnding] = useState(false);
@@ -1513,7 +1514,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             ListEmptyComponent={
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 36, marginBottom: 12 }}>💬</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
               </View>
             }
           />
@@ -1591,7 +1592,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             pickedHands.length === 0 && cohosts.length === 0 && (
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🙋</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
                   nessuno ha alzato la mano ancora
                 </Text>
               </View>
@@ -1610,7 +1611,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                 <View key={s.id} style={hm.handCard}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{s.soundName}</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>da {s.userName}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>da {s.userName}</Text>
                   </View>
                   <View style={hm.handBtns}>
                     <TouchableOpacity style={hm.pickBtn} onPress={() => handleApproveSuggestion(s)}>
@@ -1632,7 +1633,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   <Text style={{ fontSize: 16 }}>✅</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={1}>{s.soundName}</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'monospace', marginTop: 1 }}>da {s.userName}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 10, fontFamily: 'monospace', marginTop: 1 }}>da {s.userName}</Text>
                   </View>
                 </View>
               ))}
@@ -1652,7 +1653,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
           {suggestions.length === 0 && (
             <View style={{ alignItems: 'center', marginTop: 60 }}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>🎵</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
                 nessun suggerimento ancora{'\n'}gli ascoltatori possono suggerire suoni
               </Text>
             </View>
@@ -1739,6 +1740,7 @@ const hm = StyleSheet.create({
 // ─── LISTENER SCREEN ──────────────────────────────────────────────────────────
 function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; onClose: () => void }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [room, setRoom] = useState(initialRoom);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -2156,13 +2158,13 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, maxHeight: '70%' }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>🎵 Suggerisci un suono</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
             {loadingSounds ? (
               <ActivityIndicator color="#FF2D55" style={{ marginTop: 20 }} />
             ) : userSounds.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 30 }}>
                 <Text style={{ fontSize: 32, marginBottom: 10 }}>🎵</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>
                   nessun suono caricato{'\n'}registra un suono nella Home!
                 </Text>
               </View>
@@ -2182,7 +2184,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
               </ScrollView>
             )}
             <TouchableOpacity style={{ marginTop: 12, padding: 12, alignItems: 'center' }} onPress={() => setShowSuggest(false)}>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Annulla</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Annulla</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -2211,7 +2213,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             ListEmptyComponent={
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 36, marginBottom: 12 }}>💬</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
               </View>
             }
           />

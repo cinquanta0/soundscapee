@@ -65,11 +65,11 @@ export const dark: ThemeColors = {
   bgInput:      'rgba(255,255,255,0.05)',
 
   text:          '#F7F8FF',
-  textSecondary: '#8A93B6',
-  textMuted:     '#4B5563',
-  textDisabled:  '#2D3748',
+  textSecondary: '#B0BCDE',   // era #8A93B6 — contrasto 8:1 su #050816
+  textMuted:     '#8899BB',   // era #4B5563 — contrasto 5:1 su #050816
+  textDisabled:  '#4A5568',
 
-  iconInactive:  'rgba(255,255,255,0.40)',
+  iconInactive:  'rgba(255,255,255,0.55)',
   textAccent:    '#67E8F9',
 
   border:        'rgba(163,177,255,0.12)',
