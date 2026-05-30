@@ -164,7 +164,7 @@ export function FeedHeroCard({
   const styles = useMemo(() => createStyles(C), [C]);
   return (
     <LinearGradient
-      colors={['#151735', '#0C1831', '#0A0E1F']}
+      colors={colors.gradientCard}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.heroCard}
@@ -358,7 +358,7 @@ export function FeedSoundCard({
           disabled={busy}
         >
           <LinearGradient
-            colors={busy ? ['#374165', '#2A3152'] : ['#67E8F9', '#8B5CFF']}
+            colors={busy ? [colors.bgElevated, colors.bgCard] : ['#67E8F9', '#8B5CFF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.playOrbInner}

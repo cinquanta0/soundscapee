@@ -1538,7 +1538,7 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
   compactCaption: {
-    color: '#67E8F9',
+    color: colors.textAccent,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.2,
@@ -1546,7 +1546,7 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     marginBottom: 4,
   },
   compactTitle: {
-    color: '#F7F8FF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '800',
   },
@@ -1570,7 +1570,7 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     backgroundColor: 'rgba(139,92,255,0.12)',
   },
   heroEyebrow: {
-    color: '#67E8F9',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -1578,10 +1578,10 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     marginBottom: 8,
   },
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  topBarTitle: { fontSize: 28, fontWeight: '800', color: '#F7F8FF', letterSpacing: -0.8 },
-  topBarSub: { color: '#97A4C7', fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
+  topBarTitle: { fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.8 },
+  topBarSub: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: '90%' },
   publishBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', alignSelf: 'flex-start' },
-  publishBtnTxt: { color: '#67E8F9', fontSize: 13, fontWeight: '700' },
+  publishBtnTxt: { color: colors.textAccent, fontSize: 13, fontWeight: '700' },
   sectionHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1590,7 +1590,7 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     marginBottom: 10,
   },
   sectionCaption: {
-    color: '#67E8F9',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.2,

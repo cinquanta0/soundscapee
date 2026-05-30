@@ -150,7 +150,7 @@ export function ExploreModeRail({ section, items, onSelect }: ModesProps) {
             onPress={() => onSelect(item.id)}
           >
             <LinearGradient
-              colors={active ? [item.accent + '44', 'rgba(15,20,38,0.92)'] : [colors.surfaceMedium, colors.surfaceLight]}
+              colors={active ? [item.accent + '44', colors.bgCard] : [colors.surfaceMedium, colors.surfaceLight]}
               style={s.modeCardFill}
             >
               <View style={[s.modeIconWrap, { borderColor: active ? item.accent + '55' : colors.border }]}>
@@ -979,7 +979,7 @@ function createStyles(colors: ThemeColors) {
     marginBottom: 10,
   },
   sectionCaption: {
-    color: C.cyan,
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.2,
@@ -999,12 +999,12 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
-    borderColor: 'rgba(139,92,255,0.22)',
+    borderColor: colors.border,
   },
   sectionCounterText: {
-    color: C.lime,
+    color: colors.textAccent,
     fontWeight: '800',
     fontSize: 14,
   },
