@@ -1909,23 +1909,64 @@ exports.onCallStatusUpdated = onDocumentUpdated(
 );
 
 // ─── One-time follow count reconciliation ─────────────────────────────────────
-// Chiama questa funzione UNA VOLTA dalla Firebase Console o da curl per
-// ricalcolare followersCount e followingCount di tutti gli utenti dalla
-// collection follows (la sorgente di verità).
+// Chiama questa funzione UNA VOLTA dalle impostazioni dell'app per:
+//  1. Ricreare i documenti follows mancanti dalle amicizie accettate
+//     (acceptFriendRequest usava Promise.all non atomico → alcuni follows
+//      reciproci non venivano creati)
+//  2. Ricalcolare followersCount/followingCount di tutti gli utenti dalla
+//     collection follows riparata (la sorgente di verità).
 exports.reconcileFollowCounts = onCall(
   { region: 'europe-west1', timeoutSeconds: 540, memory: '512MiB' },
   async (request) => {
     const db = admin.firestore();
 
-    // Solo admin possono triggerare
     if (!request.auth) throw new HttpsError('unauthenticated', 'Login required');
 
+    // ── FASE 1: ripara i follows mancanti dalle amicizie accettate ──────────
+    const friendsSnap = await db.collection('friendRequests')
+      .where('status', '==', 'accepted')
+      .get();
+
+    // Set di tutti i follows che DEVONO esistere (id = followerId_followingId)
+    const requiredFollows = new Map(); // followId → { followerId, followingId }
+    for (const fdoc of friendsSnap.docs) {
+      const d = fdoc.data();
+      // Il documento friendRequest usa il campo "users" (vedi sendFriendRequest)
+      const parts = Array.isArray(d.users) ? d.users
+        : (Array.isArray(d.participants) ? d.participants : []);
+      if (parts.length !== 2) continue;
+      const [a, b] = parts;
+      // amicizia = follow reciproco
+      requiredFollows.set(`${a}_${b}`, { followerId: a, followingId: b });
+      requiredFollows.set(`${b}_${a}`, { followerId: b, followingId: a });
+    }
+
+    // Crea i follows mancanti
+    let followsCreated = 0;
+    let batch = db.batch();
+    let ops = 0;
+    for (const [followId, data] of requiredFollows.entries()) {
+      const ref = db.collection('follows').doc(followId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        batch.set(ref, {
+          followerId: data.followerId,
+          followingId: data.followingId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        ops++;
+        followsCreated++;
+        if (ops >= 400) { await batch.commit(); batch = db.batch(); ops = 0; }
+      }
+    }
+    if (ops > 0) await batch.commit();
+
+    // ── FASE 2: ricalcola i contatori dai follows (ora riparati) ────────────
     const [followsSnap, usersSnap] = await Promise.all([
       db.collection('follows').get(),
       db.collection('users').get(),
     ]);
 
-    // Calcola contatori reali dalla collection follows
     const followersCounts = {};   // uid → quante volte compare come followingId
     const followingCounts = {};   // uid → quante volte compare come followerId
 
@@ -1935,9 +1976,8 @@ exports.reconcileFollowCounts = onCall(
       if (followingId) followersCounts[followingId] = (followersCounts[followingId] || 0) + 1;
     }
 
-    // Aggiorna tutti gli utenti in batch da 400 (limite Firestore: 500 ops/batch)
-    let batch = db.batch();
-    let ops = 0;
+    batch = db.batch();
+    ops = 0;
     let updated = 0;
 
     for (const userDoc of usersSnap.docs) {
@@ -1954,12 +1994,7 @@ exports.reconcileFollowCounts = onCall(
         });
         ops++;
         updated++;
-
-        if (ops >= 400) {
-          await batch.commit();
-          batch = db.batch();
-          ops = 0;
-        }
+        if (ops >= 400) { await batch.commit(); batch = db.batch(); ops = 0; }
       }
     }
 
@@ -1967,6 +2002,8 @@ exports.reconcileFollowCounts = onCall(
 
     return {
       success: true,
+      acceptedFriendships: friendsSnap.size,
+      followsCreated,
       totalUsers: usersSnap.size,
       totalFollows: followsSnap.size,
       usersUpdated: updated,

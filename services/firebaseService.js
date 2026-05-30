@@ -733,7 +733,7 @@ export const acceptFriendRequest = async (targetUserId) => {
     respondedAt: serverTimestamp(),
   });
 
-  // Crea follow reciproco (A segue B e B segue A)
+  // Crea follow reciproco (A segue B e B segue A) — tutto in un batch atomico
   const meId = user.uid;
   const themId = targetUserId;
   const followAtoB = `${themId}_${meId}`;
@@ -744,27 +744,27 @@ export const acceptFriendRequest = async (targetUserId) => {
     getDoc(doc(db, 'follows', followBtoA)),
   ]);
 
-  const ops = [];
+  const batch = writeBatch(db);
   if (!snapAtoB.exists()) {
-    ops.push(setDoc(doc(db, 'follows', followAtoB), {
+    batch.set(doc(db, 'follows', followAtoB), {
       followerId: themId, followingId: meId, createdAt: serverTimestamp(),
-    }));
-    ops.push(updateDoc(doc(db, 'users', themId), { followingCount: increment(1) }));
-    ops.push(updateDoc(doc(db, 'users', meId), { followersCount: increment(1) }));
+    });
+    batch.update(doc(db, 'users', themId), { followingCount: increment(1) });
+    batch.update(doc(db, 'users', meId), { followersCount: increment(1) });
   }
   if (!snapBtoA.exists()) {
-    ops.push(setDoc(doc(db, 'follows', followBtoA), {
+    batch.set(doc(db, 'follows', followBtoA), {
       followerId: meId, followingId: themId, createdAt: serverTimestamp(),
-    }));
-    ops.push(updateDoc(doc(db, 'users', meId), { followingCount: increment(1) }));
-    ops.push(updateDoc(doc(db, 'users', themId), { followersCount: increment(1) }));
+    });
+    batch.update(doc(db, 'users', meId), { followingCount: increment(1) });
+    batch.update(doc(db, 'users', themId), { followersCount: increment(1) });
   }
   // Aggiorna friendsCount su entrambi
-  ops.push(updateDoc(doc(db, 'users', meId), { friendsCount: increment(1) }));
-  ops.push(updateDoc(doc(db, 'users', themId), { friendsCount: increment(1) }));
+  batch.update(doc(db, 'users', meId), { friendsCount: increment(1) });
+  batch.update(doc(db, 'users', themId), { friendsCount: increment(1) });
 
   try {
-    await Promise.all(ops);
+    await batch.commit();
   } catch (err) {
     console.warn('Avviso: impossibile aggiornare alcuni contatori amicizia (regole di sicurezza Firebase):', err);
   }
