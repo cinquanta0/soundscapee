@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../firebaseConfig';
 import { C, T, S, R } from '../../constants/design';
+import { useTheme } from '../../context/ThemeContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { getCommunities, createCommunity, deleteCommunity, getFollowStats } from '../../services/firebaseService';
 import { joinCommunity, leaveCommunity, requestToJoin, cancelJoinRequest, getMyJoinRequest, getMyRole } from '../../services/communityService';
@@ -23,6 +24,8 @@ import CommunityDetailScreen from '../../screens/CommunityDetailScreen';
 
 export default function CommunitiesScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [communities, setCommunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -182,24 +185,24 @@ export default function CommunitiesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
+      <View style={s.loadingContainer}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#00FF9C" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={[C.bgCanvas, C.bg, C.bgCanvas2]} style={StyleSheet.absoluteFill} />
-      <View style={styles.ambientA} />
-      <View style={styles.ambientB} />
+    <SafeAreaView style={s.container}>
+      <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
+      <View style={s.ambientA} />
+      <View style={s.ambientB} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('communities.title')}</Text>
-        <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
-          <Text style={styles.createButtonText}>{t('communities.create')}</Text>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>{t('communities.title')}</Text>
+        <TouchableOpacity style={s.createButton} onPress={() => setShowCreateModal(true)}>
+          <Text style={s.createButtonText}>{t('communities.create')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -207,72 +210,72 @@ export default function CommunitiesScreen() {
       <FlatList
         data={communities}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={s.list}
         renderItem={({ item }) => {
           const uid = auth.currentUser?.uid;
           const state = membershipState[item.id];
           const isOwner = item.creatorId === uid;
           const joinLabel = state === 'member' ? 'Iscritto ✓' : state === 'pending' ? '⏳ In attesa' : item.isPublic !== false ? t('communities.join') : '🔒 Richiedi';
-          const joinStyle = state === 'member' ? styles.joinButtonMember : state === 'pending' ? styles.joinButtonPending : styles.joinButton;
+          const joinStyle = state === 'member' ? s.joinButtonMember : state === 'pending' ? s.joinButtonPending : s.joinButton;
           return (
-            <TouchableOpacity style={styles.communityCard} onPress={() => setSelectedCommunity(item)}>
-              <View style={styles.communityHeader}>
-                <Text style={styles.communityAvatar}>{item.avatar}</Text>
-                <View style={styles.communityInfo}>
+            <TouchableOpacity style={s.communityCard} onPress={() => setSelectedCommunity(item)}>
+              <View style={s.communityHeader}>
+                <Text style={s.communityAvatar}>{item.avatar}</Text>
+                <View style={s.communityInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.communityName}>{item.name}</Text>
-                    {item.isPublic === false && <Text style={styles.privateBadge}>🔒</Text>}
+                    <Text style={s.communityName}>{item.name}</Text>
+                    {item.isPublic === false && <Text style={s.privateBadge}>🔒</Text>}
                   </View>
-                  <Text style={styles.communityStats}>
+                  <Text style={s.communityStats}>
                     {t('communities.membersAndSounds', { members: item.membersCount, sounds: item.soundsCount })}
                   </Text>
                 </View>
                 {isOwner && item.isPublic === false && (
                   <TouchableOpacity
-                    style={styles.deleteCardBtn}
+                    style={s.deleteCardBtn}
                     onPress={(e) => { e.stopPropagation?.(); handleDeleteCommunity(item); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text style={styles.deleteCardTxt}>🗑</Text>
+                    <Text style={s.deleteCardTxt}>🗑</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              <Text style={styles.communityDescription} numberOfLines={2}>{item.description}</Text>
-              <View style={styles.communityFooter}>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{item.category}</Text>
+              <Text style={s.communityDescription} numberOfLines={2}>{item.description}</Text>
+              <View style={s.communityFooter}>
+                <View style={s.categoryBadge}>
+                  <Text style={s.categoryText}>{item.category}</Text>
                 </View>
                 <TouchableOpacity style={joinStyle} onPress={(e) => { e.stopPropagation?.(); handleJoinAction(item); }}>
-                  <Text style={styles.joinButtonText}>{joinLabel}</Text>
+                  <Text style={s.joinButtonText}>{joinLabel}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
         }}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyText}>{t('communities.noCommunities')}</Text>
-            <Text style={styles.emptySubtext}>{t('communities.noCommunitiesHint')}</Text>
+          <View style={s.emptyState}>
+            <Text style={s.emptyIcon}>👥</Text>
+            <Text style={s.emptyText}>{t('communities.noCommunities')}</Text>
+            <Text style={s.emptySubtext}>{t('communities.noCommunitiesHint')}</Text>
           </View>
         }
       />
 
       {/* Create Community Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('communities.createTitle')}</Text>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <Text style={s.modalTitle}>{t('communities.createTitle')}</Text>
 
             <TextInput
-              style={styles.input}
+              style={s.input}
               placeholder={t('communities.namePlaceholder')}
               placeholderTextColor="#94a3b8"
               value={newCommunity.name}
               onChangeText={(name) => setNewCommunity({ ...newCommunity, name })}
             />
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[s.input, s.textArea]}
               placeholder={t('communities.descriptionPlaceholder')}
               placeholderTextColor="#94a3b8"
               multiline
@@ -281,10 +284,10 @@ export default function CommunitiesScreen() {
             />
 
             {/* Toggle Pubblica / Privata */}
-            <View style={styles.toggleRow}>
+            <View style={s.toggleRow}>
               <View>
-                <Text style={styles.toggleLabel}>{newCommunity.isPublic ? '🌍 Pubblica' : '🔒 Privata'}</Text>
-                <Text style={styles.toggleSub}>{newCommunity.isPublic ? 'Chiunque può entrare' : 'Iscrizione con approvazione'}</Text>
+                <Text style={s.toggleLabel}>{newCommunity.isPublic ? '🌍 Pubblica' : '🔒 Privata'}</Text>
+                <Text style={s.toggleSub}>{newCommunity.isPublic ? 'Chiunque può entrare' : 'Iscrizione con approvazione'}</Text>
               </View>
               <Switch
                 value={!newCommunity.isPublic}
@@ -294,12 +297,12 @@ export default function CommunitiesScreen() {
               />
             </View>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setShowCreateModal(false)}>
-                <Text style={styles.modalButtonText}>{t('common.cancel')}</Text>
+            <View style={s.modalButtons}>
+              <TouchableOpacity style={s.modalButtonCancel} onPress={() => setShowCreateModal(false)}>
+                <Text style={s.modalButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonCreate} onPress={handleCreate}>
-                <Text style={styles.modalButtonText}>{t('common.create')}</Text>
+              <TouchableOpacity style={s.modalButtonCreate} onPress={handleCreate}>
+                <Text style={s.modalButtonText}>{t('common.create')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -309,254 +312,256 @@ export default function CommunitiesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  ambientA: {
-    position: 'absolute',
-    top: -10,
-    left: -30,
-    width: 170,
-    height: 170,
-    borderRadius: 999,
-    backgroundColor: 'rgba(99,214,255,0.07)',
-  },
-  ambientB: {
-    position: 'absolute',
-    top: 80,
-    right: -20,
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,255,156,0.08)',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: C.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: S.lg,
-    paddingTop: S.sm,
-    marginHorizontal: S.lg,
-    marginTop: S.sm,
-    marginBottom: S.sm,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-    borderRadius: R.xl,
-    backgroundColor: C.glassDark,
-  },
-  headerTitle: {
-    ...T.h1,
-    color: C.textPrimary,
-  },
-  createButton: {
-    backgroundColor: '#00FF9C',
-    paddingHorizontal: S.lg,
-    paddingVertical: 10,
-    borderRadius: R.full,
-    shadowColor: '#00FF9C',
-    shadowOpacity: 0.26,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-  },
-  createButtonText: {
-    color: C.textOnAccent,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  list: {
-    padding: S.lg,
-  },
-  communityCard: {
-    backgroundColor: C.glassDark,
-    borderRadius: R.xl,
-    padding: S.lg,
-    marginBottom: S.md,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-  },
-  communityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: S.md,
-  },
-  communityAvatar: {
-    fontSize: 32,
-    marginRight: S.md,
-  },
-  communityInfo: {
-    flex: 1,
-  },
-  communityName: {
-    ...T.h3,
-    color: C.textPrimary,
-    marginBottom: S.xs,
-  },
-  communityStats: {
-    ...T.label,
-    color: C.textSecondary,
-  },
-  communityDescription: {
-    ...T.body,
-    color: C.textSecondary,
-    marginBottom: S.md,
-  },
-  communityFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  categoryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: S.md,
-    paddingVertical: 7,
-    borderRadius: R.full,
-  },
-  categoryText: {
-    ...T.labelS,
-    color: C.textSecondary,
-    fontWeight: '600',
-  },
-  joinButton: {
-    backgroundColor: '#00FF9C',
-    paddingHorizontal: S.lg,
-    paddingVertical: 10,
-    borderRadius: R.full,
-  },
-  joinButtonMember: {
-    backgroundColor: 'rgba(0,255,156,0.12)',
-    paddingHorizontal: S.lg,
-    paddingVertical: S.sm,
-    borderRadius: R.sm,
-    borderWidth: 1,
-    borderColor: C.borderAccent,
-  },
-  joinButtonPending: {
-    backgroundColor: 'rgba(255,159,10,0.12)',
-    paddingHorizontal: S.lg,
-    paddingVertical: S.sm,
-    borderRadius: R.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,159,10,0.3)',
-  },
-  joinButtonText: {
-    ...T.label,
-    color: C.textOnAccent,
-    fontWeight: '700',
-  },
-  privateBadge: {
-    fontSize: 12,
-  },
-  deleteCardBtn: {
-    padding: S.xs,
-    marginLeft: S.sm,
-  },
-  deleteCardTxt: {
-    fontSize: 18,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: R.sm,
-    padding: S.md,
-    marginBottom: S.md,
-  },
-  toggleLabel: {
-    ...T.body,
-    color: C.textPrimary,
-    fontWeight: '600',
-  },
-  toggleSub: {
-    ...T.labelS,
-    color: C.textSecondary,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: S.lg,
-  },
-  emptyText: {
-    ...T.body,
-    color: C.textSecondary,
-  },
-  emptySubtext: {
-    ...T.label,
-    color: C.textMuted,
-    marginTop: S.xs,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: C.bgOverlay,
-    justifyContent: 'center',
-    padding: S.lg,
-  },
-  modalContent: {
-    backgroundColor: C.bgCanvas2,
-    borderRadius: R.xxl,
-    padding: S.xxl,
-    borderWidth: 1,
-    borderColor: C.borderCanvas,
-  },
-  modalTitle: {
-    ...T.h2,
-    color: C.textPrimary,
-    marginBottom: S.lg,
-  },
-  input: {
-    backgroundColor: C.bg,
-    borderRadius: R.sm,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: S.md,
-    color: C.textPrimary,
-    fontSize: 14,
-    marginBottom: S.md,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: S.md,
-    marginTop: S.lg,
-  },
-  modalButtonCancel: {
-    flex: 1,
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 14,
-    borderRadius: R.sm,
-    alignItems: 'center',
-  },
-  modalButtonCreate: {
-    flex: 1,
-    backgroundColor: C.accent,
-    padding: 14,
-    borderRadius: R.sm,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    ...T.body,
-    fontWeight: '600',
-    color: C.textOnAccent,
-  },
-});
+function createStyles(colors: import('../../constants/themes').ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    ambientA: {
+      position: 'absolute',
+      top: -10,
+      left: -30,
+      width: 170,
+      height: 170,
+      borderRadius: 999,
+      backgroundColor: 'rgba(99,214,255,0.07)',
+    },
+    ambientB: {
+      position: 'absolute',
+      top: 80,
+      right: -20,
+      width: 180,
+      height: 180,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,255,156,0.08)',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.bg,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: S.lg,
+      paddingTop: S.sm,
+      marginHorizontal: S.lg,
+      marginTop: S.sm,
+      marginBottom: S.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: R.xl,
+      backgroundColor: colors.bgCard,
+    },
+    headerTitle: {
+      ...T.h1,
+      color: colors.text,
+    },
+    createButton: {
+      backgroundColor: '#00FF9C',
+      paddingHorizontal: S.lg,
+      paddingVertical: 10,
+      borderRadius: R.full,
+      shadowColor: '#00FF9C',
+      shadowOpacity: 0.26,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 5 },
+    },
+    createButtonText: {
+      color: C.textOnAccent,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    list: {
+      padding: S.lg,
+    },
+    communityCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: R.xl,
+      padding: S.lg,
+      marginBottom: S.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    communityHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: S.md,
+    },
+    communityAvatar: {
+      fontSize: 32,
+      marginRight: S.md,
+    },
+    communityInfo: {
+      flex: 1,
+    },
+    communityName: {
+      ...T.h3,
+      color: colors.text,
+      marginBottom: S.xs,
+    },
+    communityStats: {
+      ...T.label,
+      color: colors.textSecondary,
+    },
+    communityDescription: {
+      ...T.body,
+      color: colors.textSecondary,
+      marginBottom: S.md,
+    },
+    communityFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    categoryBadge: {
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: S.md,
+      paddingVertical: 7,
+      borderRadius: R.full,
+    },
+    categoryText: {
+      ...T.labelS,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    joinButton: {
+      backgroundColor: '#00FF9C',
+      paddingHorizontal: S.lg,
+      paddingVertical: 10,
+      borderRadius: R.full,
+    },
+    joinButtonMember: {
+      backgroundColor: 'rgba(0,255,156,0.12)',
+      paddingHorizontal: S.lg,
+      paddingVertical: S.sm,
+      borderRadius: R.sm,
+      borderWidth: 1,
+      borderColor: C.borderAccent,
+    },
+    joinButtonPending: {
+      backgroundColor: 'rgba(255,159,10,0.12)',
+      paddingHorizontal: S.lg,
+      paddingVertical: S.sm,
+      borderRadius: R.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(255,159,10,0.3)',
+    },
+    joinButtonText: {
+      ...T.label,
+      color: C.textOnAccent,
+      fontWeight: '700',
+    },
+    privateBadge: {
+      fontSize: 12,
+    },
+    deleteCardBtn: {
+      padding: S.xs,
+      marginLeft: S.sm,
+    },
+    deleteCardTxt: {
+      fontSize: 18,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: R.sm,
+      padding: S.md,
+      marginBottom: S.md,
+    },
+    toggleLabel: {
+      ...T.body,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    toggleSub: {
+      ...T.labelS,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: S.lg,
+    },
+    emptyText: {
+      ...T.body,
+      color: colors.textSecondary,
+    },
+    emptySubtext: {
+      ...T.label,
+      color: colors.textMuted,
+      marginTop: S.xs,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.bgOverlay,
+      justifyContent: 'center',
+      padding: S.lg,
+    },
+    modalContent: {
+      backgroundColor: colors.bgCard,
+      borderRadius: R.xxl,
+      padding: S.xxl,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalTitle: {
+      ...T.h2,
+      color: colors.text,
+      marginBottom: S.lg,
+    },
+    input: {
+      backgroundColor: colors.bgInput,
+      borderRadius: R.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: S.md,
+      color: colors.text,
+      fontSize: 14,
+      marginBottom: S.md,
+    },
+    textArea: {
+      height: 100,
+      textAlignVertical: 'top',
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: S.md,
+      marginTop: S.lg,
+    },
+    modalButtonCancel: {
+      flex: 1,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      borderRadius: R.sm,
+      alignItems: 'center',
+    },
+    modalButtonCreate: {
+      flex: 1,
+      backgroundColor: C.accent,
+      padding: 14,
+      borderRadius: R.sm,
+      alignItems: 'center',
+    },
+    modalButtonText: {
+      ...T.body,
+      fontWeight: '600',
+      color: C.textOnAccent,
+    },
+  });
+}

@@ -15,6 +15,7 @@ import { registerForPushNotifications, listenUserNotifications } from '../servic
 import { notificationBannerBus } from '../services/notificationBannerBus';
 import { activeChatBus } from '../services/activeChatBus';
 import { CallProvider, useCall } from '../context/CallContext';
+import { ThemeProvider } from '../context/ThemeContext';
 import CallScreen from '../screens/CallScreen';
 
 function RejoinBanner() {
@@ -421,14 +422,16 @@ export default function RootLayout() {
   }
 
   return (
-    <CallProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-      <CallScreen />
-      <RejoinBanner />
-      <InAppNotificationBanner />
-    </CallProvider>
+    <ThemeProvider>
+      <CallProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <CallScreen />
+        <RejoinBanner />
+        <InAppNotificationBanner />
+      </CallProvider>
+    </ThemeProvider>
   );
 }

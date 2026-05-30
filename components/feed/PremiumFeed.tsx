@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,23 +10,28 @@ import { Image } from 'expo-image';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/themes';
 
-const C = {
-  bgCard: '#101428',
-  bgCardAlt: '#121933',
-  bgGlass: 'rgba(142, 161, 255, 0.08)',
-  border: 'rgba(160, 181, 255, 0.16)',
-  borderStrong: 'rgba(115, 231, 255, 0.26)',
-  text: '#F7F8FF',
-  textDim: '#99A3C7',
-  textFaint: '#707A9B',
-  cyan: '#67E8F9',
-  blue: '#4F7CFF',
-  lime: '#D9FF5A',
-  purple: '#8B5CFF',
-  pink: '#F472FF',
-  red: '#FF5C7A',
-};
+function buildC(colors: ThemeColors) {
+  return {
+    bgCard: colors.bgCard,
+    bgCardAlt: colors.bgElevated,
+    bgGlass: colors.surfaceLight,
+    border: colors.border,
+    borderStrong: colors.borderSubtle,
+    text: colors.text,
+    textDim: colors.textSecondary,
+    textFaint: colors.textMuted,
+    cyan: colors.cyan,
+    blue: colors.blue,
+    lime: '#D9FF5A',
+    purple: colors.purple,
+    pink: colors.pink,
+    red: colors.red,
+  };
+}
+type CType = ReturnType<typeof buildC>;
 
 type HeaderProps = {
   soundsCount: number;
@@ -96,6 +101,9 @@ export function FeedHomeHeader({
   onOpenProfile,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.headerWrap}>
       <LinearGradient
@@ -151,6 +159,9 @@ export function FeedHeroCard({
   onPress,
 }: HeroProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <LinearGradient
       colors={['#151735', '#0C1831', '#0A0E1F']}
@@ -193,6 +204,9 @@ export function FeedHeroCard({
 }
 
 export function FeedSearchBar({ value, placeholder, onChangeText }: SearchProps) {
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.searchWrap}>
       <Feather name="search" size={17} color={C.textDim} />
@@ -209,6 +223,9 @@ export function FeedSearchBar({ value, placeholder, onChangeText }: SearchProps)
 }
 
 export function FeedMoodChips({ items, activeId, onSelect }: MoodProps) {
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.chipsRow}>
       {items.map((item) => {
@@ -229,6 +246,9 @@ export function FeedMoodChips({ items, activeId, onSelect }: MoodProps) {
 
 export function FeedQuickActions({ onHowItWorks, onNewDrop }: QuickActionsProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <View style={styles.quickRow}>
       <TouchableOpacity style={styles.quickCard} onPress={onHowItWorks}>
@@ -269,6 +289,9 @@ export function FeedSoundCard({
   onOpenBackstage,
 }: CardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   const waveform = Array.from({ length: 32 }, (_, i) => {
     let h = 0;
     const seed = post.id || 'x';
@@ -404,6 +427,9 @@ export function FeedSoundCard({
 
 export function FeedEmptyState() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const C = useMemo(() => buildC(colors), [colors]);
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <LinearGradient colors={['rgba(16,20,40,0.9)', 'rgba(10,12,24,0.95)']} style={styles.emptyState}>
       <View style={styles.emptyOrb}>
@@ -415,7 +441,7 @@ export function FeedEmptyState() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: CType) { return StyleSheet.create({
   headerWrap: {
     paddingHorizontal: 20,
     paddingTop: 14,
@@ -1030,4 +1056,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
   },
-});
+}); }

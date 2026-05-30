@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -145,6 +145,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { pauseRadioPlayback, playRadioPlayback, syncActiveTrackMetadata, pausePlayerForCall } from '../../services/audioPlayer';
+import { useTheme } from '../../context/ThemeContext';
 
 const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 const LIVE_STREAM_TRACK_KEY = '@miuslyk/live_stream_track';
@@ -232,6 +233,8 @@ function effectiveStreak(streakCount: number | undefined, lastPublishDate: strin
 
 export default function App() {
   const { t } = useTranslation();
+  const { colors, isDark, toggleTheme } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const { initiateCall, phase: callPhase } = useCall();
   const insets = useSafeAreaInsets();
   // Altezza reale della BottomNavBar: parte fissa ~58px + bottom inset del dispositivo
@@ -1753,14 +1756,14 @@ const handleNotificationNavigation = async (data: any) => {
 
 if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingAuraA} />
-        <View style={styles.loadingAuraB} />
-        <View style={styles.loadingPanel}>
-          <Text style={styles.loadingEyebrow}>MIUSLYK</Text>
+      <View style={s.loadingContainer}>
+        <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
+        <View style={s.loadingAuraA} />
+        <View style={s.loadingAuraB} />
+        <View style={s.loadingPanel}>
+          <Text style={s.loadingEyebrow}>MIUSLYK</Text>
           <ActivityIndicator size="large" color="#67E8F9" />
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+          <Text style={s.loadingText}>{t('common.loading')}</Text>
         </View>
       </View>
     );
@@ -1769,10 +1772,10 @@ if (loading) {
   const isFullScreen = ['map', 'communities', 'challenges', 'explore', 'timemachine', 'messages'].includes(activeTab);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient
-        colors={activeTab === 'home' ? ['#050816', '#090E1E', '#070812'] : ['#0A0A0A', '#161616', '#0A0A0A']}
+        colors={activeTab === 'home' ? colors.gradientBg : colors.gradientBgAlt}
         style={StyleSheet.absoluteFill}
       />
       <Modal visible={showOnboarding} animationType="fade" statusBarTranslucent>
@@ -1791,39 +1794,39 @@ if (loading) {
             onOpenProfile={() => setShowSettings(true)}
           />
         ) : (
-          <View style={styles.header}>
+          <View style={s.header}>
             <View>
-              <View style={styles.headerTitle}>
-                <View style={styles.logoBars}>
+              <View style={s.headerTitle}>
+                <View style={s.logoBars}>
                   {[5, 10, 7, 14, 9, 12, 6].map((h, i) => (
-                    <View key={i} style={[styles.logoBar, { height: h }]} />
+                    <View key={i} style={[s.logoBar, { height: h }]} />
                   ))}
                 </View>
-                <Text style={styles.title}>MIUSLYK</Text>
+                <Text style={s.title}>MIUSLYK</Text>
               </View>
-              <View style={styles.headerSubtitle}>
-                <View style={styles.livePill}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>LIVE</Text>
+              <View style={s.headerSubtitle}>
+                <View style={s.livePill}>
+                  <View style={s.liveDot} />
+                  <Text style={s.liveText}>LIVE</Text>
                 </View>
-                <Text style={styles.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
-                <Text style={styles.streakText}>🔥 {effectiveStreak(myStreakCount, myOwnProfile?.lastPublishDate)}</Text>
+                <Text style={s.subtitleText}>{t('home.soundsInWorld', { count: totalSoundsCount ?? sounds.length })}</Text>
+                <Text style={s.streakText}>🔥 {effectiveStreak(myStreakCount, myOwnProfile?.lastPublishDate)}</Text>
               </View>
             </View>
-            <View style={styles.headerButtons}>
+            <View style={s.headerButtons}>
               <TouchableOpacity
-                style={styles.headerButton}
+                style={s.headerButton}
                 onPress={() => { setShowNotificationsModal(true); loadNotifications(); }}
               >
                 <Feather name="bell" size={18} color="#fff" />
                 {unreadCount > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
+                  <View style={s.notificationBadge}>
+                    <Text style={s.notificationBadgeText}>{unreadCount}</Text>
                   </View>
                 )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowSettings(true)}>
-                <View style={styles.headerAvatarRing}>
+                <View style={s.headerAvatarRing}>
                   <AppAvatar avatar={myOwnProfile?.avatar} username={myOwnProfile?.username} size={32} photo={myOwnProfile?.profilePicture} />
                 </View>
               </TouchableOpacity>
@@ -1833,9 +1836,9 @@ if (loading) {
       )}
 
       {/* Main Content — nascosto sui tab full-screen */}
-      {!isFullScreen && <ScrollView ref={mainScrollViewRef} style={styles.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
+      {!isFullScreen && <ScrollView ref={mainScrollViewRef} style={s.scrollView} contentContainerStyle={{ paddingBottom: navBarHeight + (miniPlayerData ? 76 : 16) }} showsVerticalScrollIndicator={false}>
         {activeTab === 'home' && (
-          <View style={styles.content}>
+          <View style={s.content}>
             <StoriesRow userProfile={userProfile} />
 
             <FeedHeroCard
@@ -1856,7 +1859,7 @@ if (loading) {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.filterScroll}
+              style={s.filterScroll}
               contentContainerStyle={{ paddingRight: 8 }}
             >
               <FeedMoodChips
@@ -1872,21 +1875,21 @@ if (loading) {
               />
             </ScrollView>
 
-            <View style={styles.feedSectionHeader}>
+            <View style={s.feedSectionHeader}>
               <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => setFeedMode('for-you')}>
-                  <Text style={[styles.feedSectionTitle, feedMode !== 'for-you' && { color: '#687392' }]}>
+                  <Text style={[s.feedSectionTitle, feedMode !== 'for-you' && { color: colors.textSecondary }]}>
                     Per Te
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setFeedMode('following')}>
-                  <Text style={[styles.feedSectionTitle, feedMode !== 'following' && { color: '#687392' }]}>
+                  <Text style={[s.feedSectionTitle, feedMode !== 'following' && { color: colors.textSecondary }]}>
                     Seguiti
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.feedSectionCounter}>
-                <Text style={styles.feedSectionCounterText}>{filteredPosts.length}</Text>
+              <View style={s.feedSectionCounter}>
+                <Text style={s.feedSectionCounterText}>{filteredPosts.length}</Text>
               </View>
             </View>
 
@@ -1935,11 +1938,11 @@ if (loading) {
         )}
 
     {activeTab === 'profile' && !userProfile && (
-      <View style={styles.profileLoadingState}>
-        <View style={styles.profileLoadingOrb}>
+      <View style={s.profileLoadingState}>
+        <View style={s.profileLoadingOrb}>
           <ActivityIndicator size="large" color="#67E8F9" />
         </View>
-        <Text style={styles.profileLoadingText}>Sto preparando il profilo</Text>
+        <Text style={s.profileLoadingText}>Sto preparando il profilo</Text>
       </View>
     )}
 
@@ -1947,24 +1950,24 @@ if (loading) {
   const isOwnProfile = userProfile.id === auth.currentUser?.uid;
   const profileSounds = isOwnProfile ? mySounds : viewedUserSounds;
   return (
-  <View style={styles.content}>
+  <View style={s.content}>
     {/* Profile Card */}
     <LinearGradient
       colors={getProfileThemeColors(userProfile?.profileTheme)}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.profileCard}
+      style={s.profileCard}
     >
-      <View style={styles.profileCardGlass} />
-      <Text style={styles.profileEyebrow}>{isOwnProfile ? 'Your signal' : 'Creator profile'}</Text>
+      <View style={s.profileCardGlass} />
+      <Text style={s.profileEyebrow}>{isOwnProfile ? 'Your signal' : 'Creator profile'}</Text>
       {/* Change background button — own profile only */}
       {userProfile?.id === auth.currentUser?.uid && (
         <TouchableOpacity
-          style={styles.profileThemeButton}
+          style={s.profileThemeButton}
           onPress={() => setShowThemeModal(true)}
         >
           <Feather name="image" size={13} color="rgba(255,255,255,0.7)" />
-          <Text style={styles.profileThemeButtonText}>Sfondo</Text>
+          <Text style={s.profileThemeButtonText}>Sfondo</Text>
         </TouchableOpacity>
       )}
       {(() => {
@@ -1981,26 +1984,26 @@ if (loading) {
           </TouchableOpacity>
         );
       })()}
-      <Text style={styles.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
-      <Text style={styles.profileUsername}>@{userProfile?.username || 'user'}</Text>
-      {!!userProfile?.bio && <Text style={styles.profileBio}>{userProfile.bio}</Text>}
+      <Text style={s.profileName}>{userProfile?.username || t('profile.defaultName')}</Text>
+      <Text style={s.profileUsername}>@{userProfile?.username || 'user'}</Text>
+      {!!userProfile?.bio && <Text style={s.profileBio}>{userProfile.bio}</Text>}
 
-      <View style={styles.profileStats}>
-        <View style={styles.profileStat}>
-          <Text style={styles.profileStatNumber}>{profileSounds.length}</Text>
-          <Text style={styles.profileStatLabel}>{t('profile.sounds')}</Text>
+      <View style={s.profileStats}>
+        <View style={s.profileStat}>
+          <Text style={s.profileStatNumber}>{profileSounds.length}</Text>
+          <Text style={s.profileStatLabel}>{t('profile.sounds')}</Text>
         </View>
-        <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowers}>
-          <Text style={styles.profileStatNumber}>{followStats.followers}</Text>
-          <Text style={styles.profileStatLabel}>{t('profile.followers')}</Text>
+        <TouchableOpacity style={s.profileStat} onPress={fetchAndShowFollowers}>
+          <Text style={s.profileStatNumber}>{followStats.followers}</Text>
+          <Text style={s.profileStatLabel}>{t('profile.followers')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileStat} onPress={fetchAndShowFollowing}>
-          <Text style={styles.profileStatNumber}>{followStats.following}</Text>
-          <Text style={styles.profileStatLabel}>{t('profile.following')}</Text>
+        <TouchableOpacity style={s.profileStat} onPress={fetchAndShowFollowing}>
+          <Text style={s.profileStatNumber}>{followStats.following}</Text>
+          <Text style={s.profileStatLabel}>{t('profile.following')}</Text>
         </TouchableOpacity>
-        <View style={styles.profileStat}>
-          <Text style={styles.profileStatNumber}>🔥 {effectiveStreak(userProfile?.streakCount, userProfile?.lastPublishDate)}</Text>
-          <Text style={styles.profileStatLabel}>{t('profile.streak')}</Text>
+        <View style={s.profileStat}>
+          <Text style={s.profileStatNumber}>🔥 {effectiveStreak(userProfile?.streakCount, userProfile?.lastPublishDate)}</Text>
+          <Text style={s.profileStatLabel}>{t('profile.streak')}</Text>
         </View>
       </View>
 
@@ -2008,58 +2011,58 @@ if (loading) {
         {/* <<< AGGIUNGI QUI IL BOTTONE >>>
          Solo se NON è il tuo profilo! */}
       {userProfile && userProfile.id !== auth.currentUser?.uid && (
-        <View style={styles.profileActionsStack}>
+        <View style={s.profileActionsStack}>
           {friendStatus === 'none' && (
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, loadingFriend && { opacity: 0.5 }]}
+              style={[s.profileButtonPrimary, loadingFriend && { opacity: 0.5 }]}
               onPress={() => handleFriendAction('send')}
               disabled={loadingFriend}
             >
-              <Text style={styles.profileButtonPrimaryText}>{t('profile.addFriend')}</Text>
+              <Text style={s.profileButtonPrimaryText}>{t('profile.addFriend')}</Text>
             </TouchableOpacity>
           )}
           {friendStatus === 'pending_sent' && (
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(255,255,255,0.08)' }, loadingFriend && { opacity: 0.5 }]}
+              style={[s.profileButtonPrimary, { backgroundColor: 'rgba(255,255,255,0.08)' }, loadingFriend && { opacity: 0.5 }]}
               onPress={() => handleFriendAction('cancel')}
               disabled={loadingFriend}
             >
-              <Text style={styles.profileButtonPrimaryText}>{t('profile.requestSent')}</Text>
+              <Text style={s.profileButtonPrimaryText}>{t('profile.requestSent')}</Text>
             </TouchableOpacity>
           )}
           {friendStatus === 'pending_received' && (
-            <View style={styles.profileDualActions}>
+            <View style={s.profileDualActions}>
               <TouchableOpacity
-                style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
+                style={[s.profileButtonPrimary, { flex: 1, backgroundColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
                 onPress={() => handleFriendAction('accept')}
                 disabled={loadingFriend}
               >
-                <Text style={styles.profileButtonPrimaryText}>{t('profile.accept')}</Text>
+                <Text style={s.profileButtonPrimaryText}>{t('profile.accept')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: '#7f1d1d' }, loadingFriend && { opacity: 0.5 }]}
+                style={[s.profileButtonPrimary, { flex: 1, backgroundColor: '#7f1d1d' }, loadingFriend && { opacity: 0.5 }]}
                 onPress={() => handleFriendAction('reject')}
                 disabled={loadingFriend}
               >
-                <Text style={styles.profileButtonPrimaryText}>{t('profile.reject')}</Text>
+                <Text style={s.profileButtonPrimaryText}>{t('profile.reject')}</Text>
               </TouchableOpacity>
             </View>
           )}
           {friendStatus === 'friends' && (
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { backgroundColor: '#1a2e1a', borderWidth: 1, borderColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
+              style={[s.profileButtonPrimary, { backgroundColor: '#1a2e1a', borderWidth: 1, borderColor: '#065f46' }, loadingFriend && { opacity: 0.5 }]}
               onPress={() => Alert.alert(t('profile.removeFriend'), t('common.areYouSure'), [
                 { text: t('common.cancel'), style: 'cancel' },
                 { text: t('common.remove'), style: 'destructive', onPress: () => handleFriendAction('remove') },
               ])}
               disabled={loadingFriend}
             >
-              <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>{t('profile.friendsButton')}</Text>
+              <Text style={[s.profileButtonPrimaryText, { color: '#4ade80' }]}>{t('profile.friendsButton')}</Text>
             </TouchableOpacity>
           )}
           {/* Bottone Chiamata */}
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, {
+            style={[s.profileButtonPrimary, {
               backgroundColor: 'rgba(0,255,156,0.12)',
               borderWidth: 1,
               borderColor: 'rgba(0,255,156,0.4)',
@@ -2069,14 +2072,14 @@ if (loading) {
             disabled={userProfile.inCall === true}
             onPress={() => initiateCall(userProfile.id, userProfile.username || userProfile.displayName || 'Utente', userProfile.avatar || '🎵')}
           >
-            <Text style={[styles.profileButtonPrimaryText, { color: '#00FF9C' }]}>
+            <Text style={[s.profileButtonPrimaryText, { color: '#00FF9C' }]}>
               {userProfile.inCall ? '🔴 In chiamata' : '📞 Chiama'}
             </Text>
           </TouchableOpacity>
 
           {/* Bottone Collab — sempre visibile su profili altrui */}
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginTop: 8 }]}
+            style={[s.profileButtonPrimary, { backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginTop: 8 }]}
             onPress={() => {
               Alert.alert('🎙 Collab Session', 'Scegli la modalità di registrazione', [
                 { text: '🎙 Sync — insieme', onPress: async () => {
@@ -2091,21 +2094,21 @@ if (loading) {
               ]);
             }}
           >
-            <Text style={[styles.profileButtonPrimaryText, { color: '#a855f7' }]}>🎙 Collab Session</Text>
+            <Text style={[s.profileButtonPrimaryText, { color: '#a855f7' }]}>🎙 Collab Session</Text>
           </TouchableOpacity>
 
           {/* Bottone Battle */}
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, { backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginTop: 8 }]}
+            style={[s.profileButtonPrimary, { backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)', marginTop: 8 }]}
             onPress={() => setShowBattleThemePicker(true)}
           >
-            <Text style={[styles.profileButtonPrimaryText, { color: '#f97316' }]}>⚔️ Sound Battle</Text>
+            <Text style={[s.profileButtonPrimaryText, { color: '#f97316' }]}>⚔️ Sound Battle</Text>
           </TouchableOpacity>
 
           {/* Blocca / Segnala profilo */}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }]}
+              style={[s.profileButtonPrimary, { flex: 1, backgroundColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: myBlockedUsers.includes(userProfile.id) ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }]}
               onPress={() => {
                 const me = auth.currentUser;
                 if (!me) return;
@@ -2137,16 +2140,16 @@ if (loading) {
               }}
             >
               <Feather name={myBlockedUsers.includes(userProfile.id) ? "check-circle" : "slash"} size={14} color={myBlockedUsers.includes(userProfile.id) ? "#22c55e" : "#ef4444"} />
-              <Text style={[styles.profileButtonPrimaryText, { color: myBlockedUsers.includes(userProfile.id) ? '#22c55e' : '#ef4444' }]}>
+              <Text style={[s.profileButtonPrimaryText, { color: myBlockedUsers.includes(userProfile.id) ? '#22c55e' : '#ef4444' }]}>
                 {myBlockedUsers.includes(userProfile.id) ? 'Sblocca' : 'Blocca'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
+              style={[s.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
               onPress={() => openReport(userProfile.id, 'profile')}
             >
               <Feather name="flag" size={14} color="#94a3b8" />
-              <Text style={[styles.profileButtonPrimaryText, { color: '#94a3b8' }]}>Segnala</Text>
+              <Text style={[s.profileButtonPrimaryText, { color: '#94a3b8' }]}>Segnala</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2155,25 +2158,25 @@ if (loading) {
       {/* Richieste amicizia in arrivo (solo sul proprio profilo) */}
       {userProfile?.id === auth.currentUser?.uid && pendingFriendRequests.length > 0 && (
         <TouchableOpacity
-          style={[styles.profileButtonPrimary, { backgroundColor: '#0f2d1a', borderWidth: 1, borderColor: '#065f46', marginBottom: 8 }]}
+          style={[s.profileButtonPrimary, { backgroundColor: '#0f2d1a', borderWidth: 1, borderColor: '#065f46', marginBottom: 8 }]}
           onPress={() => setShowFriendRequestsModal(true)}
         >
-          <Text style={[styles.profileButtonPrimaryText, { color: '#4ade80' }]}>
+          <Text style={[s.profileButtonPrimaryText, { color: '#4ade80' }]}>
             {t('profile.friendRequestsBtn', { count: pendingFriendRequests.length })}
           </Text>
         </TouchableOpacity>
       )}
 
       {userProfile?.id === auth.currentUser?.uid && (
-        <View style={styles.profileDualActions}>
+        <View style={s.profileDualActions}>
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, { flex: 1 }]}
+            style={[s.profileButtonPrimary, { flex: 1 }]}
             onPress={handleEditProfile}
           >
-            <Text style={styles.profileButtonPrimaryText}>{t('profile.edit')}</Text>
+            <Text style={s.profileButtonPrimaryText}>{t('profile.edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }]}
+            style={[s.profileButtonPrimary, { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }]}
             onPress={async () => {
               try {
                 const uid = auth.currentUser?.uid;
@@ -2187,38 +2190,38 @@ if (loading) {
               }
             }}
           >
-            <Text style={styles.profileButtonPrimaryText}>{t('profile.share')}</Text>
+            <Text style={s.profileButtonPrimaryText}>{t('profile.share')}</Text>
           </TouchableOpacity>
         </View>
       )}
     </LinearGradient>
 
     {/* Recordings */}
-    <View style={styles.recordingsSection}>
-      <View style={styles.profileSectionHead}>
-        <Text style={styles.sectionTitle}>{t('profile.mySounds', { count: profileSounds.length })}</Text>
-        <View style={styles.profileSectionBadge}>
-          <Text style={styles.profileSectionBadgeText}>{profileSounds.length}</Text>
+    <View style={s.recordingsSection}>
+      <View style={s.profileSectionHead}>
+        <Text style={s.sectionTitle}>{t('profile.mySounds', { count: profileSounds.length })}</Text>
+        <View style={s.profileSectionBadge}>
+          <Text style={s.profileSectionBadgeText}>{profileSounds.length}</Text>
         </View>
       </View>
       {profileSounds.length === 0 ? (
-        <View style={styles.emptyRecordings}>
-          <Text style={styles.emptyIcon}>🎤</Text>
-          <Text style={styles.emptyText}>{t('profile.noRecordings')}</Text>
-          <Text style={styles.emptySubtext}>{isOwnProfile ? t('profile.noRecordingsHint') : ''}</Text>
+        <View style={s.emptyRecordings}>
+          <Text style={s.emptyIcon}>🎤</Text>
+          <Text style={s.emptyText}>{t('profile.noRecordings')}</Text>
+          <Text style={s.emptySubtext}>{isOwnProfile ? t('profile.noRecordingsHint') : ''}</Text>
         </View>
       ) : (
         profileSounds.map(rec => (
-          <View key={rec.id} style={styles.recordingItem}>
-            <View style={styles.recordingInfo}>
-              <Text style={styles.recordingTitle}>{rec.title}</Text>
-              <Text style={styles.recordingMeta}>
+          <View key={rec.id} style={s.recordingItem}>
+            <View style={s.recordingInfo}>
+              <Text style={s.recordingTitle}>{rec.title}</Text>
+              <Text style={s.recordingMeta}>
                 {rec.duration > 0 ? `${rec.duration}s` : '?s'} · {timeAgo(rec.createdAt)} · ❤️ {rec.likes}
               </Text>
             </View>
-            <View style={styles.recordingActions}>
+            <View style={s.recordingActions}>
               <TouchableOpacity
-                style={[styles.recordingPlayButton, { backgroundColor: 'rgba(255,255,255,0.08)', marginRight: 8, width: 32, height: 32 }]}
+                style={[s.recordingPlayButton, { backgroundColor: 'rgba(255,255,255,0.08)', marginRight: 8, width: 32, height: 32 }]}
                 onPress={async () => {
                   if (rec.allowExternalShare === false) {
                     Alert.alert(t('common.info'), "L'autore non permette la condivisione.");
@@ -2235,14 +2238,14 @@ if (loading) {
                 <Feather name="share" size={14} color="#94a3b8" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.recordingPlayButton}
+                style={s.recordingPlayButton}
                 onPress={() => handlePlay(rec)}
               >
                 <Feather name={playingId === rec.id ? 'pause' : 'play'} size={16} color="#060913" style={playingId === rec.id ? undefined : { marginLeft: 2 }} />
               </TouchableOpacity>
               {isOwnProfile && (
                 <TouchableOpacity
-                  style={styles.recordingDeleteButton}
+                  style={s.recordingDeleteButton}
                   onPress={() => handleDelete(rec.id)}
                 >
                   <Feather name="trash-2" size={14} color="#ef4444" />
@@ -2268,11 +2271,11 @@ if (loading) {
 
 {/* 🎛️ TAB REMIX - DEVE STARE QUI FUORI, ALLO STESSO LIVELLO! */}
 {activeTab === 'remix' && (
-  <View style={styles.content}>
+  <View style={s.content}>
     {loadingRemixSounds ? (
-      <View style={styles.loadingContainer}>
+      <View style={s.loadingContainer}>
         <ActivityIndicator size="large" color="#00FF9C" />
-        <Text style={styles.loadingText}>{t('home.loadingSounds')}</Text>
+        <Text style={s.loadingText}>{t('home.loadingSounds')}</Text>
       </View>
     ) : (
         <RemixScreen 
@@ -2287,7 +2290,7 @@ if (loading) {
 
       {/* Schermate full-screen — occupano tutto lo spazio disponibile sopra il nav bar */}
       {isFullScreen && (
-        <View style={[styles.fullScreenContainer, { paddingBottom: navBarHeight + (miniPlayerData ? 68 : 0) }]}>
+        <View style={[s.fullScreenContainer, { paddingBottom: navBarHeight + (miniPlayerData ? 68 : 0) }]}>
           {activeTab === 'communities' && <CommunitiesScreen />}
           {activeTab === 'map' && <MapScreen />}
           {activeTab === 'timemachine' && <TimeMachineScreen />}
@@ -2404,18 +2407,18 @@ if (loading) {
           setRecordedSound(null);
         }}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
           <TouchableOpacity
             style={StyleSheet.absoluteFillObject}
             activeOpacity={1}
             onPress={() => { setShowRecordModal(false); setRecordedSound(null); Keyboard.dismiss(); }}
           />
-          <View style={[styles.recordModal, { maxHeight: '85%', padding: 0 }]}>
+          <View style={[s.recordModal, { maxHeight: '85%', padding: 0 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
-            <Text style={styles.recordModalTitle}>{t('upload.title')}</Text>
-            
+            <Text style={s.recordModalTitle}>{t('upload.title')}</Text>
+
             <TextInput
-              style={[styles.input, titleError ? { borderColor: '#ef4444', borderWidth: 1 } : {}]}
+              style={[s.input, titleError ? { borderColor: '#ef4444', borderWidth: 1 } : {}]}
               placeholder={t('upload.titlePlaceholder')}
               placeholderTextColor="#4A4D56"
               value={newSoundTitle}
@@ -2429,7 +2432,7 @@ if (loading) {
             
             <TextInput
               ref={uploadDescRef}
-              style={[styles.input, styles.textArea]}
+              style={[s.input, s.textArea]}
               placeholder={t('upload.descriptionPlaceholder')}
               placeholderTextColor="#94a3b8"
               multiline
@@ -2440,19 +2443,19 @@ if (loading) {
               blurOnSubmit
             />
 
-            <Text style={styles.moodLabel}>{t('upload.mood')}</Text>
-            <View style={styles.moodSelector}>
+            <Text style={s.moodLabel}>{t('upload.mood')}</Text>
+            <View style={s.moodSelector}>
               {['Energico', 'Rilassante', 'Gioioso', 'Nostalgico'].map(mood => (
                 <TouchableOpacity
                   key={mood}
                   style={[
-                    styles.moodOption,
+                    s.moodOption,
                     { backgroundColor: newSoundMood === mood ? getMoodColor(mood) : 'rgba(255,255,255,0.08)' },
                   ]}
                   onPress={() => setNewSoundMood(mood)}
                   disabled={uploading}
                 >
-                  <Text style={styles.moodOptionText}>{mood}</Text>
+                  <Text style={s.moodOptionText}>{mood}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -2461,7 +2464,7 @@ if (loading) {
             {/* Challenge Selector */}
 {availableChallenges.length > 0 && (
   <>
-    <Text style={styles.moodLabel}>{t('upload.challenge')}</Text>
+    <Text style={s.moodLabel}>{t('upload.challenge')}</Text>
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false} 
@@ -2469,20 +2472,20 @@ if (loading) {
     >
       <TouchableOpacity
         style={[
-          styles.challengeChip, 
+          s.challengeChip,
           !selectedChallengeForSubmit && { backgroundColor: 'rgba(255,255,255,0.08)' }
         ]}
         onPress={() => setSelectedChallengeForSubmit(null)}
         disabled={uploading}
       >
-        <Text style={styles.challengeChipText}>{t('common.none')}</Text>
+        <Text style={s.challengeChipText}>{t('common.none')}</Text>
       </TouchableOpacity>
       {availableChallenges.map(ch => (
         <TouchableOpacity
           key={ch.id}
           style={[
-            styles.challengeChip,
-            selectedChallengeForSubmit?.id === ch.id && { 
+            s.challengeChip,
+            selectedChallengeForSubmit?.id === ch.id && {
               backgroundColor: '#00FF9C',
               borderWidth: 2,
               borderColor: '#00FF9C'
@@ -2491,7 +2494,7 @@ if (loading) {
           onPress={() => setSelectedChallengeForSubmit(ch)}
           disabled={uploading}
         >
-          <Text style={styles.challengeChipText}>
+          <Text style={s.challengeChipText}>
             {ch.emoji} {ch.title}
           </Text>
         </TouchableOpacity>
@@ -2502,7 +2505,7 @@ if (loading) {
             
             {/* Backstage opzionale */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.moodLabel}>{t('upload.backstage')}</Text>
+              <Text style={s.moodLabel}>{t('upload.backstage')}</Text>
               {backstageUri ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{
@@ -2534,50 +2537,50 @@ if (loading) {
                   <TouchableOpacity
                     style={{
                       flex: 1, padding: 12, borderRadius: 10,
-                      backgroundColor: '#161616',
-                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+                      backgroundColor: colors.bgElevated,
+                      borderWidth: 1, borderColor: colors.borderSubtle,
                       alignItems: 'center', gap: 6,
                     }}
                     onPress={() => selectBackstage('foto')}
                     disabled={uploading}
                   >
-                    <Feather name="camera" size={22} color="#94a3b8" />
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.photo')}</Text>
+                    <Feather name="camera" size={22} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: 'monospace' }}>{t('upload.photo')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{
                       flex: 1, padding: 12, borderRadius: 10,
-                      backgroundColor: '#161616',
-                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+                      backgroundColor: colors.bgElevated,
+                      borderWidth: 1, borderColor: colors.borderSubtle,
                       alignItems: 'center', gap: 6,
                     }}
                     onPress={() => selectBackstage('video')}
                     disabled={uploading}
                   >
-                    <Feather name="video" size={22} color="#94a3b8" />
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}>{t('upload.videoMax30')}</Text>
+                    <Feather name="video" size={22} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: 'monospace' }}>{t('upload.videoMax30')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
 
-            <View style={styles.recordModalInfo}>
-              <Text style={styles.recordModalInfoText}>
+            <View style={s.recordModalInfo}>
+              <Text style={s.recordModalInfoText}>
                 {t('upload.duration', { seconds: recordedSound?.duration })}
               </Text>
-              <Text style={styles.recordModalInfoText}>
+              <Text style={s.recordModalInfoText}>
                 {t('upload.gps', { status: location ? t('upload.gpsOk') : t('upload.gpsNo') })}
               </Text>
             </View>
 
             {/* Privacy Settings */}
-            <View style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 12 }}>
-              <Text style={styles.moodLabel}>Privacy e Sicurezza</Text>
-              
+            <View style={{ marginBottom: 16, backgroundColor: colors.surfaceLight, padding: 12, borderRadius: 12 }}>
+              <Text style={s.moodLabel}>Privacy e Sicurezza</Text>
+
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Mostra sulla mappa</Text>
-                <Switch 
-                  value={newSoundShowOnMap} 
+                <Text style={{ color: colors.text, fontSize: 13 }}>Mostra sulla mappa</Text>
+                <Switch
+                  value={newSoundShowOnMap}
                   onValueChange={setNewSoundShowOnMap}
                   trackColor={{ false: '#3f3f46', true: '#00FF9C' }}
                   thumbColor="#fff"
@@ -2587,11 +2590,11 @@ if (loading) {
               {newSoundShowOnMap && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Usa posizione approssimata</Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Protegge la tua privacy nascondendo le coordinate esatte.</Text>
+                    <Text style={{ color: colors.text, fontSize: 13 }}>Usa posizione approssimata</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>Protegge la tua privacy nascondendo le coordinate esatte.</Text>
                   </View>
-                  <Switch 
-                    value={newSoundLocationPrecision === 'approx'} 
+                  <Switch
+                    value={newSoundLocationPrecision === 'approx'}
                     onValueChange={(val) => setNewSoundLocationPrecision(val ? 'approx' : 'exact')}
                     trackColor={{ false: '#3f3f46', true: '#00FF9C' }}
                     thumbColor="#fff"
@@ -2600,14 +2603,14 @@ if (loading) {
               )}
 
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ color: '#F7F8FF', fontSize: 13, marginBottom: 8 }}>Visibilità</Text>
+                <Text style={{ color: colors.text, fontSize: 13, marginBottom: 8 }}>Visibilità</Text>
                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                   {['public', 'followers', 'private'].map(vis => (
                     <TouchableOpacity
                       key={vis}
                       style={{
                         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-                        backgroundColor: newSoundVisibility === vis ? '#8B5CFF' : 'rgba(255,255,255,0.1)'
+                        backgroundColor: newSoundVisibility === vis ? '#8B5CFF' : colors.surfaceMedium
                       }}
                       onPress={() => setNewSoundVisibility(vis)}
                     >
@@ -2620,9 +2623,9 @@ if (loading) {
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: '#F7F8FF', fontSize: 13 }}>Permetti condivisione</Text>
-                <Switch 
-                  value={newSoundAllowShare} 
+                <Text style={{ color: colors.text, fontSize: 13 }}>Permetti condivisione</Text>
+                <Switch
+                  value={newSoundAllowShare}
                   onValueChange={setNewSoundAllowShare}
                   trackColor={{ false: '#3f3f46', true: '#8B5CFF' }}
                   thumbColor="#fff"
@@ -2630,9 +2633,9 @@ if (loading) {
               </View>
             </View>
 
-            <View style={styles.recordModalButtons}>
+            <View style={s.recordModalButtons}>
               <TouchableOpacity
-                style={styles.recordModalButtonCancel}
+                style={s.recordModalButtonCancel}
                 onPress={() => {
                   setShowRecordModal(false);
                   setRecordedSound(null);
@@ -2645,17 +2648,17 @@ if (loading) {
                 }}
                 disabled={uploading}
               >
-                <Text style={styles.recordModalButtonCancelText}>{t('common.cancel')}</Text>
+                <Text style={s.recordModalButtonCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.recordModalButtonPublish}
+                style={s.recordModalButtonPublish}
                 onPress={handlePublish}
                 disabled={uploading}
               >
                 {uploading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.recordModalButtonPublishText}>{t('upload.publish')}</Text>
+                  <Text style={s.recordModalButtonPublishText}>{t('upload.publish')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -2672,10 +2675,10 @@ if (loading) {
         onRequestClose={() => setShowPublishTypeModal(false)}
       >
         <TouchableWithoutFeedback onPress={() => setShowPublishTypeModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { paddingBottom: 32 }]} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('upload.whatToPublish')}</Text>
+          <View style={s.modalOverlay}>
+            <View style={[s.modalContent, { paddingBottom: 32 }]} onStartShouldSetResponder={() => true}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{t('upload.whatToPublish')}</Text>
               <TouchableOpacity onPress={() => setShowPublishTypeModal(false)}>
                 <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
@@ -2687,13 +2690,13 @@ if (loading) {
             ].map(({ icon, label, sub, action }) => (
               <TouchableOpacity
                 key={label}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, backgroundColor: '#161616', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 10 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: 10 }}
                 onPress={action}
               >
                 <Text style={{ fontSize: 28 }}>{icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontSize: 16, fontStyle: 'italic', fontWeight: '600' }}>{label}</Text>
-                  <Text style={{ color: '#858585', fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>{sub}</Text>
+                  <Text style={{ color: colors.text, fontSize: 16, fontStyle: 'italic', fontWeight: '600' }}>{label}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: 'monospace', marginTop: 2 }}>{sub}</Text>
                 </View>
                 <Text style={{ color: '#00FF9C', fontSize: 18 }}>›</Text>
               </TouchableOpacity>
@@ -2720,10 +2723,10 @@ if (loading) {
         onRequestClose={() => setShowFriendRequestsModal(false)}
       >
         <TouchableWithoutFeedback onPress={() => setShowFriendRequestsModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '70%' }]} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('profile.friendRequestsTitle')}</Text>
+          <View style={s.modalOverlay}>
+            <View style={[s.modalContent, { maxHeight: '70%' }]} onStartShouldSetResponder={() => true}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{t('profile.friendRequestsTitle')}</Text>
               <TouchableOpacity onPress={() => setShowFriendRequestsModal(false)}>
                 <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
@@ -2735,13 +2738,13 @@ if (loading) {
                 </Text>
               ) : (
                 pendingFriendRequests.map((req) => (
-                  <View key={req.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: '#161616' }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#161616', alignItems: 'center', justifyContent: 'center' }}>
+                  <View key={req.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.bgElevated }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: '#00ff9c', fontSize: 18 }}>
                         {(req.initiatedBy || '?')[0].toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={{ flex: 1, color: '#e2e8f0', fontSize: 13 }}>
+                    <Text style={{ flex: 1, color: colors.text, fontSize: 13 }}>
                       {req.initiatedBy}
                     </Text>
                     <TouchableOpacity
@@ -2776,74 +2779,99 @@ if (loading) {
         transparent={true}
         onRequestClose={() => setShowSettings(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={s.modalOverlay}>
             <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowSettings(false)} activeOpacity={1} />
-            <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('settings.title')}</Text>
+            <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{t('settings.title')}</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
                 <Feather name="x" size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.settingsScroll}>
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>{t('settings.account')}</Text>
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemText}>
+            <ScrollView style={s.settingsScroll}>
+              <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>{t('settings.account')}</Text>
+                <View style={s.settingsItem}>
+                  <Text style={s.settingsItemText}>
                     {t('settings.email', { email: auth.currentUser?.email || t('settings.anonymous') })}
                   </Text>
                 </View>
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemText}>
+                <View style={s.settingsItem}>
+                  <Text style={s.settingsItemText}>
                     {t('settings.soundsPublished', { count: mySounds.length })}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>{t('settings.language')}</Text>
+              <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>{t('settings.language')}</Text>
                 <LanguageSwitcher />
               </View>
 
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>{t('settings.legal')}</Text>
+              <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>Aspetto</Text>
                 <TouchableOpacity
-                  style={styles.settingsItem}
-                  onPress={() => Linking.openURL('https://miuslyk.com/privacy')}
+                  style={s.settingsItem}
+                  onPress={toggleTheme}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.settingsItemText}>{t('settings.privacyPolicy')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingsItem}
-                  onPress={() => Linking.openURL('https://miuslyk.com/terms')}
-                >
-                  <Text style={styles.settingsItemText}>{t('settings.termsOfService')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                    <Text style={s.settingsItemText}>{isDark ? '🌙 Tema scuro' : '☀️ Tema chiaro'}</Text>
+                    <View style={{
+                      width: 44, height: 26, borderRadius: 13,
+                      backgroundColor: isDark ? colors.purple : colors.cyan,
+                      justifyContent: 'center',
+                      paddingHorizontal: 3,
+                    }}>
+                      <View style={{
+                        width: 20, height: 20, borderRadius: 10,
+                        backgroundColor: '#fff',
+                        transform: [{ translateX: isDark ? 0 : 18 }],
+                      }} />
+                    </View>
+                  </View>
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>{t('settings.actions')}</Text>
+              <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>{t('settings.legal')}</Text>
                 <TouchableOpacity
-                  style={[styles.settingsItem, { marginBottom: 8 }]}
+                  style={s.settingsItem}
+                  onPress={() => Linking.openURL('https://miuslyk.com/privacy')}
+                >
+                  <Text style={s.settingsItemText}>{t('settings.privacyPolicy')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.settingsItem}
+                  onPress={() => Linking.openURL('https://miuslyk.com/terms')}
+                >
+                  <Text style={s.settingsItemText}>{t('settings.termsOfService')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={s.settingsSection}>
+                <Text style={s.settingsSectionTitle}>{t('settings.actions')}</Text>
+                <TouchableOpacity
+                  style={[s.settingsItem, { marginBottom: 8 }]}
                   onPress={handleCheckUpdates}
                 >
-                  <Text style={[styles.settingsItemText, { color: '#00FF9C' }]}>
+                  <Text style={[s.settingsItemText, { color: '#00FF9C' }]}>
                     🚀 OTA v9 - test funzionante!
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.settingsItem}
+                  style={s.settingsItem}
                   onPress={handleLogout}
                 >
-                  <Text style={[styles.settingsItemText, { color: '#ef4444' }]}>
+                  <Text style={[s.settingsItemText, { color: '#ef4444' }]}>
                     {t('settings.logout')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.settingsItem, { marginTop: 8, borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)' }]}
+                  style={[s.settingsItem, { marginTop: 8, borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)' }]}
                   onPress={() => { setShowSettings(false); setShowDeleteConfirm(true); }}
                 >
-                  <Text style={[styles.settingsItemText, { color: '#ef4444' }]}>
+                  <Text style={[s.settingsItemText, { color: '#ef4444' }]}>
                     {t('settings.deleteAccount')}
                   </Text>
                 </TouchableOpacity>
@@ -2868,12 +2896,12 @@ if (loading) {
         onRequestClose={() => !deletingAccount && setShowDeleteConfirm(false)}
       >
         <TouchableWithoutFeedback onPress={() => !deletingAccount && setShowDeleteConfirm(false)}>
-          <View style={styles.modalOverlay}>
+          <View style={s.modalOverlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
-              <View style={[styles.modalContent, { padding: 28, alignItems: 'center' }]}>
+              <View style={[s.modalContent, { padding: 28, alignItems: 'center' }]}>
                 <Feather name="trash-2" size={36} color="#ef4444" style={{ marginBottom: 12 }} />
-                <Text style={[styles.modalTitle, { marginBottom: 8 }]}>{t('settings.deleteConfirmTitle')}</Text>
-                <Text style={{ color: '#8A8D96', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+                <Text style={[s.modalTitle, { marginBottom: 8 }]}>{t('settings.deleteConfirmTitle')}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
                   {t('settings.deleteConfirmMsg')}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
@@ -2915,11 +2943,11 @@ if (loading) {
         }}
       >
         <TouchableWithoutFeedback onPress={() => { setShowCommentsModal(false); setSelectedSoundForComments(null); setComments([]); setNewComment(''); }}>
-          <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-            <View style={[styles.modalContent, { height: '80%', borderRadius: 24 }]} onStartShouldSetResponder={() => true}>
+          <View style={[s.modalOverlay, { justifyContent: 'flex-end' }]}>
+            <View style={[s.modalContent, { height: '80%', borderRadius: 24 }]} onStartShouldSetResponder={() => true}>
             {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('comments.title')}</Text>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{t('comments.title')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowCommentsModal(false);
@@ -2940,25 +2968,25 @@ if (loading) {
             ) : (
               <ScrollView style={{ flex: 1, padding: 16 }}>
                {(!comments || comments.length === 0) ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyIcon}>💬</Text>
-                    <Text style={styles.emptyText}>{t('comments.noComments')}</Text>
-                    <Text style={styles.emptySubtext}>{t('comments.noCommentsHint')}</Text>
+                  <View style={s.emptyState}>
+                    <Text style={s.emptyIcon}>💬</Text>
+                    <Text style={s.emptyText}>{t('comments.noComments')}</Text>
+                    <Text style={s.emptySubtext}>{t('comments.noCommentsHint')}</Text>
                   </View>
                 ) : (
                   comments.map((comment, idx) => {
                     if (!comment || !comment.id) return null;
                     return (
-                      <View key={comment.id || `comment-${idx}`} style={styles.commentItem}>
-                        <View style={styles.commentHeader}>
+                      <View key={comment.id || `comment-${idx}`} style={s.commentItem}>
+                        <View style={s.commentHeader}>
                           <TouchableOpacity
                             onPress={() => comment.userId && openUserProfile(comment.userId)}
                             style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
                           >
                             <AppAvatar avatar={comment.userAvatar} username={comment.username} size={36} photo={comment.userPhoto} />
                             <View style={{ flex: 1, marginLeft: 8 }}>
-                              <Text style={styles.userName}>{comment.username || 'Anonimo'}</Text>
-                              <Text style={styles.soundLocation}>{timeAgo(comment.createdAt)}</Text>
+                              <Text style={s.userName}>{comment.username || 'Anonimo'}</Text>
+                              <Text style={s.soundLocation}>{timeAgo(comment.createdAt)}</Text>
                             </View>
                           </TouchableOpacity>
                           {comment.userId === auth.currentUser?.uid && (
@@ -2967,7 +2995,7 @@ if (loading) {
                             </TouchableOpacity>
                           )}
                         </View>
-                        <Text style={styles.commentText}>{comment.text}</Text>
+                        <Text style={s.commentText}>{comment.text}</Text>
                       </View>
                     );
                   })
@@ -2976,9 +3004,9 @@ if (loading) {
             )}
 
             {/* Input Box */}
-            <View style={styles.commentInputContainer}>
+            <View style={s.commentInputContainer}>
               <TextInput
-                style={styles.commentInput}
+                style={s.commentInput}
                 placeholder={t('comments.placeholder')}
                 placeholderTextColor="#94a3b8"
                 value={newComment}
@@ -2992,7 +3020,7 @@ if (loading) {
               />
               <TouchableOpacity
                 style={[
-                  styles.commentSendButton,
+                  s.commentSendButton,
                   (!newComment.trim() || sendingComment) && { opacity: 0.5 }
                 ]}
                 onPress={handleSendComment}
@@ -3001,7 +3029,7 @@ if (loading) {
                 {sendingComment ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.commentSendIcon}>➤</Text>
+                  <Text style={s.commentSendIcon}>➤</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -3018,7 +3046,7 @@ if (loading) {
   onRequestClose={() => setShowEditProfileModal(false)}
 >
   <KeyboardAvoidingView
-    style={styles.modalOverlay}
+    style={s.modalOverlay}
     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
   >
     {/* Backdrop separato — non interferisce con lo scroll */}
@@ -3027,9 +3055,9 @@ if (loading) {
       activeOpacity={1}
       onPress={() => { Keyboard.dismiss(); setShowEditProfileModal(false); }}
     />
-    <View style={[styles.modalContent, { maxHeight: '92%' }]}>
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>{t('profile.editProfile')}</Text>
+    <View style={[s.modalContent, { maxHeight: '92%' }]}>
+      <View style={s.modalHeader}>
+        <Text style={s.modalTitle}>{t('profile.editProfile')}</Text>
         <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
           <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
@@ -3041,7 +3069,7 @@ if (loading) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Foto profilo */}
-        <Text style={styles.editLabel}>Foto profilo</Text>
+        <Text style={s.editLabel}>Foto profilo</Text>
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <TouchableOpacity onPress={handlePickProfilePicture} disabled={uploadingPicture} style={{ position: 'relative' }}>
             {editProfilePicture ? (
@@ -3057,15 +3085,15 @@ if (loading) {
           </TouchableOpacity>
           {editProfilePicture ? (
             <TouchableOpacity onPress={handleRemoveProfilePicture} style={{ marginTop: 8 }}>
-              <Text style={{ color: '#687392', fontSize: 11, textDecorationLine: 'underline' }}>Usa avatar invece</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 11, textDecorationLine: 'underline' }}>Usa avatar invece</Text>
             </TouchableOpacity>
           ) : (
-            <Text style={{ color: '#687392', fontSize: 11, marginTop: 8 }}>Tocca per aggiungere foto</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 8 }}>Tocca per aggiungere foto</Text>
           )}
         </View>
 
         {/* Visibilità foto profilo */}
-        <Text style={styles.editLabel}>Chi vede la foto profilo</Text>
+        <Text style={s.editLabel}>Chi vede la foto profilo</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
           {(['public', 'followers', 'private'] as const).map(vis => (
             <TouchableOpacity
@@ -3078,7 +3106,7 @@ if (loading) {
               }}
               onPress={() => setEditPhotoVisibility(vis)}
             >
-              <Text style={{ color: editPhotoVisibility === vis ? '#001A0D' : '#9A9A9A', fontSize: 11, fontWeight: '600' }}>
+              <Text style={{ color: editPhotoVisibility === vis ? '#001A0D' : colors.textMuted, fontSize: 11, fontWeight: '600' }}>
                 {vis === 'public' ? 'Tutti' : vis === 'followers' ? 'Followers' : 'Solo io'}
               </Text>
             </TouchableOpacity>
@@ -3086,18 +3114,18 @@ if (loading) {
         </View>
 
         {/* Avatar Selector */}
-        <Text style={styles.editLabel}>{t('profile.chooseAvatar')}</Text>
+        <Text style={s.editLabel}>{t('profile.chooseAvatar')}</Text>
         {/* Anteprima avatar corrente */}
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
           <AppAvatar avatar={editAvatar} username={editUsername} size={64} />
         </View>
         {/* Icone vettoriali */}
-        <Text style={{ color: '#858585', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>ICONE</Text>
-        <View style={styles.avatarGrid}>
+        <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>ICONE</Text>
+        <View style={s.avatarGrid}>
           {FEATHER_ICON_OPTIONS.map(icon => (
             <TouchableOpacity
               key={icon}
-              style={[styles.avatarOption, editAvatar === icon && styles.avatarOptionSelected]}
+              style={[s.avatarOption, editAvatar === icon && s.avatarOptionSelected]}
               onPress={() => setEditAvatar(icon)}
             >
               <Feather name={icon as any} size={20} color={editAvatar === icon ? '#00FF9C' : '#94a3b8'} />
@@ -3105,23 +3133,23 @@ if (loading) {
           ))}
         </View>
         {/* Emoji personalità */}
-        <Text style={{ color: '#858585', fontSize: 11, fontFamily: 'monospace', marginBottom: 6, marginTop: 8 }}>EMOJI</Text>
-        <View style={styles.avatarGrid}>
+        <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', marginBottom: 6, marginTop: 8 }}>EMOJI</Text>
+        <View style={s.avatarGrid}>
           {['🔥', '💎', '👑', '⚡', '🌟', '🎭', '😎', '🦋', '🐺', '🎯'].map(emoji => (
             <TouchableOpacity
               key={emoji}
-              style={[styles.avatarOption, editAvatar === emoji && styles.avatarOptionSelected]}
+              style={[s.avatarOption, editAvatar === emoji && s.avatarOptionSelected]}
               onPress={() => setEditAvatar(emoji)}
             >
-              <Text style={styles.avatarOptionText}>{emoji}</Text>
+              <Text style={s.avatarOptionText}>{emoji}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Username */}
-        <Text style={styles.editLabel}>{t('profile.username')}</Text>
+        <Text style={s.editLabel}>{t('profile.username')}</Text>
         <TextInput
-          style={styles.input}
+          style={s.input}
           placeholder={t('profile.usernamePlaceholder')}
           placeholderTextColor="#94a3b8"
           value={editUsername}
@@ -3132,13 +3160,13 @@ if (loading) {
           blurOnSubmit={false}
           onSubmitEditing={() => bioInputRef.current?.focus()}
         />
-        <Text style={styles.charCount}>{editUsername.length}/20</Text>
+        <Text style={s.charCount}>{editUsername.length}/20</Text>
 
         {/* Bio */}
-        <Text style={styles.editLabel}>{t('profile.bio')}</Text>
+        <Text style={s.editLabel}>{t('profile.bio')}</Text>
         <TextInput
           ref={bioInputRef}
-          style={[styles.input, styles.textArea]}
+          style={[s.input, s.textArea]}
           placeholder={t('profile.bioPlaceholder')}
           placeholderTextColor="#94a3b8"
           value={editBio}
@@ -3149,12 +3177,12 @@ if (loading) {
           returnKeyType="done"
           blurOnSubmit
         />
-        <Text style={styles.charCount}>{editBio.length}/150</Text>
+        <Text style={s.charCount}>{editBio.length}/150</Text>
 
         {/* Save Button */}
         <TouchableOpacity
           style={[
-            styles.profileButtonPrimary,
+            s.profileButtonPrimary,
             { marginTop: 24, marginBottom: 16 },
             savingProfile && { opacity: 0.5 }
           ]}
@@ -3164,7 +3192,7 @@ if (loading) {
           {savingProfile ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.profileButtonPrimaryText}>{t('profile.saveChanges')}</Text>
+            <Text style={s.profileButtonPrimaryText}>{t('profile.saveChanges')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -3192,7 +3220,7 @@ if (loading) {
               style={{
                 width: '100%',
                 height: '75%',
-                backgroundColor: '#0A0A0A',
+                backgroundColor: colors.bg,
                 borderRadius: 24,
                 borderWidth: 1,
                 borderColor: 'rgba(0,255,156,0.3)',
@@ -3200,8 +3228,8 @@ if (loading) {
                 elevation: 25,
               }}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('notifications.title')}</Text>
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>{t('notifications.title')}</Text>
                 <TouchableOpacity onPress={() => setShowNotificationsModal(false)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
                   <Feather name="x" size={22} color="#94a3b8" />
                 </TouchableOpacity>
@@ -3227,18 +3255,18 @@ if (loading) {
                 showsVerticalScrollIndicator={false}
               >
                 {notifications.length === 0 ? (
-                  <View style={[styles.emptyState, { marginTop: 60 }]}>
+                  <View style={[s.emptyState, { marginTop: 60 }]}>
                     <Text style={{ fontSize: 40, marginBottom: 16 }}>🔔</Text>
-                    <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
-                    <Text style={styles.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
+                    <Text style={s.emptyText}>{t('notifications.noNotifications')}</Text>
+                    <Text style={s.emptySubtext}>{t('notifications.noNotificationsHint')}</Text>
                   </View>
                 ) : (
                   notifications.map((notif) => (
                     <TouchableOpacity
                       key={notif.id}
                       style={[
-                        styles.notificationItem,
-                        !notif.read && { backgroundColor: '#161616', borderColor: '#00FF9C', borderLeftWidth: 4 }
+                        s.notificationItem,
+                        !notif.read && { backgroundColor: colors.bgElevated, borderColor: '#00FF9C', borderLeftWidth: 4 }
                       ]}
                       onPress={async () => {
                         await markNotificationAsRead(notif.id);
@@ -3248,13 +3276,13 @@ if (loading) {
                       }}
                     >
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={[styles.notificationTitle, !notif.read && { color: '#00FF9C' }]}>{notif.title}</Text>
+                        <Text style={[s.notificationTitle, !notif.read && { color: '#00FF9C' }]}>{notif.title}</Text>
                         {!notif.read && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FF9C', marginTop: 4 }} />}
                       </View>
-                      <Text style={styles.notificationBody}>{notif.body}</Text>
+                      <Text style={s.notificationBody}>{notif.body}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, opacity: 0.6 }}>
                         <Feather name="clock" size={10} color="#94a3b8" />
-                        <Text style={[styles.notificationTime, { marginLeft: 4 }]}>
+                        <Text style={[s.notificationTime, { marginLeft: 4 }]}>
                           {timeAgo(notif.createdAt)}
                         </Text>
                       </View>
@@ -3276,10 +3304,10 @@ if (loading) {
   onRequestClose={() => setShowFollowersModal(false)}
 >
   <TouchableWithoutFeedback onPress={() => setShowFollowersModal(false)}>
-    <View style={styles.modalOverlay}>
-      <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>{t('profile.followers')}</Text>
+    <View style={s.modalOverlay}>
+      <View style={[s.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
+      <View style={s.modalHeader}>
+        <Text style={s.modalTitle}>{t('profile.followers')}</Text>
         <TouchableOpacity onPress={() => setShowFollowersModal(false)}>
           <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
@@ -3287,9 +3315,9 @@ if (loading) {
       
       <ScrollView style={{ padding: 16 }}>
         {followersList.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyText}>{t('profile.noFollowers')}</Text>
+          <View style={s.emptyState}>
+            <Text style={s.emptyIcon}>👥</Text>
+            <Text style={s.emptyText}>{t('profile.noFollowers')}</Text>
           </View>
         ) : (
           followersList.map(user => (
@@ -3299,14 +3327,14 @@ if (loading) {
                 setShowFollowersModal(false);
                 openUserProfile(user.id);
               }}
-              style={styles.userListItem}
+              style={s.userListItem}
             >
               <AppAvatar avatar={user.avatar} username={user.username} size={40} photo={user.profilePicture} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.userName}>{user.username}</Text>
-                <Text style={styles.soundLocation}>@{user.username}</Text>
+                <Text style={s.userName}>{user.username}</Text>
+                <Text style={s.soundLocation}>@{user.username}</Text>
               </View>
-              <Text style={styles.navIcon}>→</Text>
+              <Text style={s.navIcon}>→</Text>
             </TouchableOpacity>
           ))
         )}
@@ -3324,10 +3352,10 @@ if (loading) {
   onRequestClose={() => setShowFollowingModal(false)}
 >
   <TouchableWithoutFeedback onPress={() => setShowFollowingModal(false)}>
-    <View style={styles.modalOverlay}>
-      <View style={[styles.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>{t('profile.following')}</Text>
+    <View style={s.modalOverlay}>
+      <View style={[s.modalContent, { maxHeight: '80%' }]} onStartShouldSetResponder={() => true}>
+      <View style={s.modalHeader}>
+        <Text style={s.modalTitle}>{t('profile.following')}</Text>
         <TouchableOpacity onPress={() => setShowFollowingModal(false)}>
           <Feather name="x" size={22} color="#94a3b8" />
         </TouchableOpacity>
@@ -3335,9 +3363,9 @@ if (loading) {
       
       <ScrollView style={{ padding: 16 }}>
         {followingList.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>⭐</Text>
-            <Text style={styles.emptyText}>{t('profile.notFollowing')}</Text>
+          <View style={s.emptyState}>
+            <Text style={s.emptyIcon}>⭐</Text>
+            <Text style={s.emptyText}>{t('profile.notFollowing')}</Text>
           </View>
         ) : (
           followingList.map(user => (
@@ -3347,14 +3375,14 @@ if (loading) {
                 setShowFollowingModal(false);
                 openUserProfile(user.id);
               }}
-              style={styles.userListItem}
+              style={s.userListItem}
             >
               <AppAvatar avatar={user.avatar} username={user.username} size={40} photo={user.profilePicture} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.userName}>{user.username}</Text>
-                <Text style={styles.soundLocation}>@{user.username}</Text>
+                <Text style={s.userName}>{user.username}</Text>
+                <Text style={s.soundLocation}>@{user.username}</Text>
               </View>
-              <Text style={styles.navIcon}>→</Text>
+              <Text style={s.navIcon}>→</Text>
             </TouchableOpacity>
           ))
         )}
@@ -3378,9 +3406,9 @@ if (loading) {
       {/* Battle Theme Picker */}
       <Modal visible={showBattleThemePicker} transparent animationType="slide" onRequestClose={() => setShowBattleThemePicker(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
+          <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
-            <Text style={{ color: '#9A9A9A', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
             {['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'].map(theme => (
               <TouchableOpacity
                 key={theme}
@@ -3404,7 +3432,7 @@ if (loading) {
               style={{ paddingVertical: 14, alignItems: 'center' }}
               onPress={() => setShowBattleThemePicker(false)}
             >
-              <Text style={{ color: '#858585', fontWeight: '600' }}>Annulla</Text>
+              <Text style={{ color: colors.textMuted, fontWeight: '600' }}>Annulla</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -3413,9 +3441,9 @@ if (loading) {
       {/* Profile theme picker */}
       <Modal visible={showThemeModal} transparent animationType="slide" onRequestClose={() => setShowThemeModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
-          <View style={{ backgroundColor: '#0A0A0A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
-            <Text style={{ color: '#858585', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
+          <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: colors.borderSubtle }}>
+            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
               {PROFILE_THEMES.map(theme => {
                 const isActive = (userProfile?.profileTheme ?? 'default') === theme.id;
@@ -3439,7 +3467,7 @@ if (loading) {
                       end={{ x: 1, y: 1 }}
                       style={{ width: 60, height: 60, borderRadius: 16, borderWidth: isActive ? 2.5 : 1, borderColor: isActive ? '#00FF9C' : 'rgba(255,255,255,0.15)' }}
                     />
-                    <Text style={{ color: isActive ? '#00FF9C' : '#9A9A9A', fontSize: 10, fontWeight: isActive ? '700' : '400' }}>
+                    <Text style={{ color: isActive ? '#00FF9C' : colors.textMuted, fontSize: 10, fontWeight: isActive ? '700' : '400' }}>
                       {theme.name}
                     </Text>
                   </TouchableOpacity>
@@ -3450,7 +3478,7 @@ if (loading) {
               style={{ paddingVertical: 14, alignItems: 'center' }}
               onPress={() => setShowThemeModal(false)}
             >
-              <Text style={{ color: '#858585', fontWeight: '600' }}>Chiudi</Text>
+              <Text style={{ color: colors.textMuted, fontWeight: '600' }}>Chiudi</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -3467,10 +3495,10 @@ if (loading) {
       {incomingCollab && !activeCollabSessionId && (
         <Modal visible transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
+            <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
               <Text style={{ fontSize: 36 }}>{incomingCollab.hostAvatar}</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
-              <Text style={{ color: '#9A9A9A', fontSize: 13, textAlign: 'center' }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>
                 {incomingCollab.hostName} ti invita a una {incomingCollab.mode === 'sync' ? 'sessione sync' : 'sessione a turni'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
@@ -3496,10 +3524,10 @@ if (loading) {
       {incomingBattle && !activeBattleId && (
         <Modal visible transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <View style={{ backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
+            <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
               <Text style={{ fontSize: 40 }}>⚔️</Text>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
-              <Text style={{ color: '#9A9A9A', fontSize: 13, textAlign: 'center' }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>
                 {incomingBattle.challengerName} ti ha lanciato una Sound Battle
               </Text>
               <View style={{ backgroundColor: 'rgba(249,115,22,0.12)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(249,115,22,0.3)' }}>
@@ -3545,16 +3573,17 @@ if (loading) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: import('../../constants/themes').ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#050816',
+    backgroundColor: colors.bg,
   },
   loadingAuraA: {
     position: 'absolute',
@@ -3582,8 +3611,8 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
-    backgroundColor: 'rgba(9,12,28,0.84)',
+    borderColor: colors.border,
+    backgroundColor: colors.bgCard,
   },
   loadingEyebrow: {
     color: '#67E8F9',
@@ -3593,7 +3622,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   loadingText: {
-    color: '#F7F8FF',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -3622,7 +3651,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   feedSectionTitle: {
-    color: '#F7F8FF',
+    color: colors.text,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.8,
@@ -3634,7 +3663,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
     borderColor: 'rgba(139,92,255,0.22)',
   },
@@ -3704,11 +3733,11 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontSize: 11,
-    color: '#858585',
+    color: colors.textMuted,
   },
   streakText: {
     fontSize: 11,
-    color: '#858585',
+    color: colors.textMuted,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -3716,14 +3745,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   headerButton: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.borderSubtle,
     borderRadius: 20,
     width: 36,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.surfaceLight,
   },
   headerAvatarRing: {
     width: 38,
@@ -3789,7 +3818,7 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 14,
-    color: '#9A9A9A',
+    color: colors.textMuted,
     marginBottom: 18,
   },
   heroBtn: {
@@ -3818,26 +3847,26 @@ const styles = StyleSheet.create({
   },
   recordHint: {
     fontSize: 11,
-    color: '#9A9A9A',
+    color: colors.textMuted,
     marginTop: 8,
   },
   // ── Search ───────────────────────────────────────────────────────────────────
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     borderRadius: 28,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.borderSubtle,
     gap: 10,
   },
   searchIcon: {},
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     padding: 0,
   },
@@ -3846,20 +3875,20 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   filterChip: {
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 999,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.border,
   },
   filterChipActive: {
     backgroundColor: '#00FF9C',
     borderColor: '#00FF9C',
   },
   filterChipText: {
-    color: '#9A9A9A',
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -3869,11 +3898,11 @@ const styles = StyleSheet.create({
   },
   // ── Sound cards ───────────────────────────────────────────────────────────────
   soundCard: {
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.borderSubtle,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -3888,7 +3917,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: colors.surfaceLight,
   },
   soundUserInfo: {
     flexDirection: 'row',
@@ -3915,12 +3944,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F5F5F5',
+    color: colors.text,
     letterSpacing: -0.1,
   },
   soundLocation: {
     fontSize: 11,
-    color: '#858585',
+    color: colors.textMuted,
     marginTop: 1,
   },
   moodBadge: {
@@ -3941,14 +3970,14 @@ const styles = StyleSheet.create({
   soundTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#F5F5F5',
+    color: colors.text,
     marginBottom: 4,
     letterSpacing: -0.3,
     lineHeight: 22,
   },
   soundDescription: {
     fontSize: 13,
-    color: '#9A9A9A',
+    color: colors.textMuted,
     marginBottom: 14,
     lineHeight: 19,
   },
@@ -3986,7 +4015,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.surfaceLight,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -3997,7 +4026,7 @@ const styles = StyleSheet.create({
   },
   duration: {
     fontSize: 11,
-    color: '#858585',
+    color: colors.textMuted,
     fontVariant: ['tabular-nums'] as any,
     minWidth: 28,
   },
@@ -4028,7 +4057,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: colors.borderSubtle,
   },
   actionsLeft: {
     flexDirection: 'row',
@@ -4041,7 +4070,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    color: '#9A9A9A',
+    color: colors.textMuted,
     fontVariant: ['tabular-nums'] as any,
   },
   deleteButton: {
@@ -4050,7 +4079,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.surfaceLight,
   },
   emptyState: {
     alignItems: 'center',
@@ -4059,7 +4088,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#858585',
+    color: colors.textMuted,
     fontWeight: '500',
   },
   emptyIcon: {
@@ -4067,13 +4096,13 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     overflow: 'hidden',
-    backgroundColor: '#11162D',
+    backgroundColor: colors.bgCard,
     borderRadius: 28,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
+    borderColor: colors.border,
   },
   profileCardGlass: {
     position: 'absolute',
@@ -4113,11 +4142,11 @@ const styles = StyleSheet.create({
   },
   profileUsername: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     marginBottom: 10,
   },
   profileBio: {
-    color: '#97A4C7',
+    color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
@@ -4135,8 +4164,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
   },
   profileStatNumber: {
     fontSize: 20,
@@ -4145,7 +4174,7 @@ const styles = StyleSheet.create({
   },
   profileStatLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   profileButtonPrimary: {
@@ -4175,7 +4204,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
   },
   profileThemeButtonText: {
-    color: '#9A9A9A',
+    color: colors.textMuted,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -4207,7 +4236,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(103,232,249,0.22)',
   },
   profileLoadingText: {
-    color: '#97A4C7',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -4223,7 +4252,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
   },
   profileSectionBadge: {
     minWidth: 38,
@@ -4231,7 +4260,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
     borderColor: 'rgba(139,92,255,0.22)',
   },
@@ -4241,7 +4270,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   emptyRecordings: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
+    backgroundColor: colors.bgCard,
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -4250,11 +4279,11 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#858585',
+    color: colors.textMuted,
     marginTop: 4,
   },
   recordingItem: {
-    backgroundColor: 'rgba(17,22,45,0.96)',
+    backgroundColor: colors.bgCard,
     borderRadius: 22,
     padding: 16,
     marginBottom: 10,
@@ -4262,7 +4291,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
+    borderColor: colors.border,
   },
   recordingInfo: {
     flex: 1,
@@ -4270,12 +4299,12 @@ const styles = StyleSheet.create({
   recordingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F7F8FF',
+    color: colors.text,
     marginBottom: 5,
   },
   recordingMeta: {
     fontSize: 12,
-    color: '#97A4C7',
+    color: colors.textSecondary,
   },
   recordingActions: {
     flexDirection: 'row',
@@ -4293,7 +4322,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   recordingDeleteButton: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.borderSubtle,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -4327,18 +4356,18 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3,6,19,0.82)',
+    backgroundColor: colors.bgOverlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalContent: {
-    backgroundColor: 'rgba(8,12,30,0.96)',
+    backgroundColor: colors.bgCard,
     borderRadius: 28,
     width: '100%',
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
+    borderColor: colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -4347,12 +4376,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(163,177,255,0.12)',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F7F8FF',
+    color: colors.text,
     letterSpacing: -0.4,
   },
   modalClose: {
@@ -4374,43 +4403,43 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   settingsItem: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
     padding: 14,
     borderRadius: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
+    borderColor: colors.border,
   },
   settingsItemText: {
     fontSize: 14,
-    color: '#F7F8FF',
+    color: colors.text,
   },
   recordModal: {
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     borderRadius: 22,
     padding: 18,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.borderSubtle,
   },
   recordModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 12,
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.bgInput,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#F7F8FF',
+    color: colors.text,
     fontSize: 13,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
+    borderColor: colors.border,
   },
   textArea: {
     height: 68,
@@ -4419,7 +4448,7 @@ const styles = StyleSheet.create({
   moodLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   moodSelector: {
@@ -4441,7 +4470,7 @@ const styles = StyleSheet.create({
   recordModalInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bg,
     padding: 10,
     borderRadius: 12,
     marginBottom: 12,
@@ -4480,12 +4509,12 @@ recordModalButtonPublishText: {
     color: '#fff',
   },
   commentItem: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
     borderRadius: 18,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
+    borderColor: colors.border,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -4494,7 +4523,7 @@ recordModalButtonPublishText: {
   },
   commentText: {
     fontSize: 14,
-    color: '#D6DEF7',
+    color: colors.text,
     lineHeight: 20,
     marginLeft: 44,
   },
@@ -4502,19 +4531,19 @@ recordModalButtonPublishText: {
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(163,177,255,0.12)',
+    borderTopColor: colors.border,
     gap: 12,
-    backgroundColor: 'rgba(8,12,30,0.98)',
+    backgroundColor: colors.bgCard,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.bgInput,
     borderRadius: 16,
     padding: 12,
-    color: '#F7F8FF',
+    color: colors.text,
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.12)',
+    borderColor: colors.border,
   },
   commentSendButton: {
     width: 44,
@@ -4532,7 +4561,7 @@ recordModalButtonPublishText: {
 editLabel: {
   fontSize: 14,
   fontWeight: '600',
-  color: '#97A4C7',
+  color: colors.textSecondary,
   marginBottom: 8,
   marginTop: 16,
 },
@@ -4546,11 +4575,11 @@ avatarOption: {
   width: 50,
   height: 50,
   borderRadius: 25,
-  backgroundColor: 'rgba(255,255,255,0.04)',
+  backgroundColor: colors.surfaceLight,
   justifyContent: 'center',
   alignItems: 'center',
   borderWidth: 2,
-  borderColor: 'rgba(163,177,255,0.12)',
+  borderColor: colors.border,
 },
 avatarOptionSelected: {
   borderColor: '#67E8F9',
@@ -4562,7 +4591,7 @@ avatarOptionText: {
 },
 charCount: {
   fontSize: 12,
-  color: '#858585',
+  color: colors.textMuted,
   textAlign: 'right',
   marginTop: 4,
   marginBottom: 8,
@@ -4580,7 +4609,7 @@ notificationBadge: {
   justifyContent: 'center',
   alignItems: 'center',
   borderWidth: 2,
-  borderColor: '#0A0A0A',
+  borderColor: colors.bg,
 },
 notificationBadgeText: {
   color: '#fff',
@@ -4588,12 +4617,12 @@ notificationBadgeText: {
   fontWeight: '700',
 },
 notificationItem: {
-  backgroundColor: 'rgba(255,255,255,0.04)',
+  backgroundColor: colors.surfaceLight,
   borderRadius: 18,
   padding: 14,
   marginBottom: 8,
   borderWidth: 1,
-  borderColor: 'rgba(163,177,255,0.12)',
+  borderColor: colors.border,
 },
 notificationItemUnread: {
   backgroundColor: 'rgba(103,232,249,0.08)',
@@ -4603,17 +4632,17 @@ notificationItemUnread: {
 notificationTitle: {
   fontSize: 15,
   fontWeight: '600',
-  color: '#F7F8FF',
+  color: colors.text,
   marginBottom: 4,
 },
 notificationBody: {
   fontSize: 13,
-  color: '#D6DEF7',
+  color: colors.textSecondary,
   marginBottom: 6,
 },
 notificationTime: {
   fontSize: 11,
-  color: '#97A4C7',
+  color: colors.textSecondary,
 },
 
 
@@ -4634,17 +4663,18 @@ userListItem: {
   flexDirection: 'row',
   alignItems: 'center',
   padding: 12,
-  backgroundColor: 'rgba(255,255,255,0.04)',
+  backgroundColor: colors.surfaceLight,
   borderRadius: 18,
   marginBottom: 8,
   borderWidth: 1,
-  borderColor: 'rgba(163,177,255,0.12)',
+  borderColor: colors.border,
 },
 navIcon: {
   fontSize: 18,
-  color: '#97A4C7',
+  color: colors.textSecondary,
   fontWeight: '700',
 },
 
 
-});  // ⬅️ CHIUDI QUI
+  });  // ⬅️ CHIUDI QUI StyleSheet.create
+}  // ⬅️ CHIUDI QUI createStyles

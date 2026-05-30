@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -22,6 +22,8 @@ import { blockUser } from '../../services/blockService';
 import { getNearbySounds, getSoundsForMap, incrementListens } from '../../services/firebaseService';
 import { useTranslation } from 'react-i18next';
 import ReportModal from '../../components/ReportModal';
+import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/themes';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,6 +42,8 @@ function isFeatherIcon(val: string | undefined): boolean {
 
 export default function MapScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [userLocation, setUserLocation] = useState<any | null>(null);
   const [sounds, setSounds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,9 +211,9 @@ export default function MapScreen() {
       t('map.blockConfirmDesc', 'Sei sicuro di voler bloccare questo utente? Non vedrai più i suoi audio.'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { 
-          text: t('common.block', 'Blocca'), 
-          style: 'destructive', 
+        {
+          text: t('common.block', 'Blocca'),
+          style: 'destructive',
           onPress: async () => {
             try {
               await blockUser(me.uid, userId);
@@ -232,13 +236,13 @@ export default function MapScreen() {
   };
 
   const getMoodColor = (mood: string) => {
-    const colors: Record<string, string> = {
+    const moodColors: Record<string, string> = {
       Energico: '#f97316',
       Rilassante: '#3b82f6',
       Gioioso: '#eab308',
       Nostalgico: '#a855f7',
     };
-    return colors[mood] || '#6b7280';
+    return moodColors[mood] || '#6b7280';
   };
 
   const toggleViewMode = () => {
@@ -252,17 +256,17 @@ export default function MapScreen() {
 
   const renderMarkerAvatar = (soundData: any) => {
     if (soundData.userPhoto) {
-      return <Image source={{ uri: soundData.userPhoto }} style={styles.markerPhoto} />;
+      return <Image source={{ uri: soundData.userPhoto }} style={s.markerPhoto} />;
     }
     const bg = isFeatherIcon(soundData.userAvatar)
       ? getAvatarColor(soundData.username || soundData.userId || '')
       : getMoodColor(soundData.mood);
     return (
-      <View style={[styles.markerAvatarBg, { backgroundColor: bg }]}>
+      <View style={[s.markerAvatarBg, { backgroundColor: bg }]}>
         {isFeatherIcon(soundData.userAvatar) ? (
           <Feather name={soundData.userAvatar as any} size={18} color="#fff" />
         ) : (
-          <Text style={styles.markerEmoji}>{soundData.userAvatar || '🎵'}</Text>
+          <Text style={s.markerEmoji}>{soundData.userAvatar || '🎵'}</Text>
         )}
       </View>
     );
@@ -288,40 +292,40 @@ export default function MapScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingPanel}>
-          <Text style={styles.loadingEyebrow}>Sound map</Text>
+      <View style={s.loadingContainer}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
+        <View style={s.loadingPanel}>
+          <Text style={s.loadingEyebrow}>Sound map</Text>
           <ActivityIndicator size="large" color="#67E8F9" />
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+          <Text style={s.loadingText}>{t('common.loading')}</Text>
         </View>
-        {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+        {errorMsg ? <Text style={s.errorText}>{errorMsg}</Text> : null}
       </View>
     );
   }
 
   if (!userLocation) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#050816', '#0B1230', '#180828']} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingPanel}>
-          <Text style={styles.loadingEyebrow}>Sound map</Text>
-          <Text style={styles.errorText}>❌ {t('map.errors.cannotLoad')}</Text>
-          <Text style={styles.errorText}>{errorMsg}</Text>
+      <View style={s.loadingContainer}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
+        <View style={s.loadingPanel}>
+          <Text style={s.loadingEyebrow}>Sound map</Text>
+          <Text style={s.errorText}>❌ {t('map.errors.cannotLoad')}</Text>
+          <Text style={s.errorText}>{errorMsg}</Text>
         </View>
-        <TouchableOpacity style={styles.retryButton} onPress={initializeMap}>
-          <Text style={styles.retryButtonText}>{t('common.ok')}</Text>
+        <TouchableOpacity style={s.retryButton} onPress={initializeMap}>
+          <Text style={s.retryButtonText}>{t('common.ok')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       {/* Mappa a schermo intero */}
       <MapView
         ref={mapRef}
-        style={styles.map}
+        style={s.map}
         initialRegion={{
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
@@ -350,11 +354,11 @@ export default function MapScreen() {
               onPress={() => handleMarkerPress(soundData)}
               tracksViewChanges={playing}
             >
-              <View style={styles.markerContainer}>
-                <View style={[styles.markerBubble, playing && styles.markerBubblePlaying]}>
+              <View style={s.markerContainer}>
+                <View style={[s.markerBubble, playing && s.markerBubblePlaying]}>
                   {renderMarkerAvatar(soundData)}
                 </View>
-                {playing && <View style={styles.markerPlayDot} />}
+                {playing && <View style={s.markerPlayDot} />}
               </View>
             </Marker>
           );
@@ -365,37 +369,37 @@ export default function MapScreen() {
       <LinearGradient
         pointerEvents="none"
         colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.0)']}
-        style={styles.topGradient}
+        style={s.topGradient}
       />
 
       {/* Barra controlli in alto */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.pillButton} onPress={toggleViewMode}>
+      <View style={s.topBar}>
+        <TouchableOpacity style={s.pillButton} onPress={toggleViewMode}>
           <Feather name={viewMode === 'nearby' ? 'navigation' : 'globe'} size={13} color="#67E8F9" />
-          <Text style={styles.pillButtonText}>{viewMode === 'nearby' ? t('map.nearby') : t('map.all')}</Text>
+          <Text style={s.pillButtonText}>{viewMode === 'nearby' ? t('map.nearby') : t('map.all')}</Text>
         </TouchableOpacity>
 
         {viewMode === 'nearby' && (
-          <View style={styles.radiusPill}>
+          <View style={s.radiusPill}>
             <TouchableOpacity
-              style={styles.radiusBtn}
+              style={s.radiusBtn}
               onPress={() => setSearchRadius(Math.max(1, searchRadius - 5))}
             >
-              <Text style={styles.radiusBtnText}>−</Text>
+              <Text style={s.radiusBtnText}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.radiusValue}>{searchRadius} km</Text>
+            <Text style={s.radiusValue}>{searchRadius} km</Text>
             <TouchableOpacity
-              style={styles.radiusBtn}
+              style={s.radiusBtn}
               onPress={() => setSearchRadius(Math.min(50, searchRadius + 5))}
             >
-              <Text style={styles.radiusBtnText}>+</Text>
+              <Text style={s.radiusBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <View style={styles.countPill}>
+        <View style={s.countPill}>
           <Feather name="music" size={11} color="#D9FF5A" />
-          <Text style={styles.countText}>{sounds.length}</Text>
+          <Text style={s.countText}>{sounds.length}</Text>
         </View>
       </View>
 
@@ -406,84 +410,84 @@ export default function MapScreen() {
         transparent
         onRequestClose={handleCloseModal}
       >
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={handleCloseModal} />
-        <View style={styles.bottomSheet}>
+        <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={handleCloseModal} />
+        <View style={s.bottomSheet}>
           {/* Handle */}
-          <View style={styles.sheetHandle} />
+          <View style={s.sheetHandle} />
 
           {selectedSound && (
             <>
               {/* Header utente */}
-              <View style={styles.sheetHeader}>
-                <View style={styles.sheetAvatarWrap}>
+              <View style={s.sheetHeader}>
+                <View style={s.sheetAvatarWrap}>
                   {renderModalAvatar(selectedSound, 50)}
-                  <View style={[styles.moodDot, { backgroundColor: getMoodColor(selectedSound.mood) }]} />
+                  <View style={[s.moodDot, { backgroundColor: getMoodColor(selectedSound.mood) }]} />
                 </View>
-                <View style={styles.sheetUserInfo}>
-                  <Text style={styles.sheetUsername}>{selectedSound.username}</Text>
-                  <View style={styles.sheetMeta}>
+                <View style={s.sheetUserInfo}>
+                  <Text style={s.sheetUsername}>{selectedSound.username}</Text>
+                  <View style={s.sheetMeta}>
                     {selectedSound.distance ? (
-                      <View style={styles.metaChip}>
+                      <View style={s.metaChip}>
                         <Feather name="map-pin" size={11} color="#94a3b8" />
-                        <Text style={styles.metaChipText}>{selectedSound.distance.toFixed(1)} km</Text>
+                        <Text style={s.metaChipText}>{selectedSound.distance.toFixed(1)} km</Text>
                       </View>
                     ) : null}
-                    <View style={[styles.metaChip, { backgroundColor: getMoodColor(selectedSound.mood) + '22' }]}>
-                      <Text style={[styles.metaChipText, { color: getMoodColor(selectedSound.mood) }]}>{selectedSound.mood}</Text>
+                    <View style={[s.metaChip, { backgroundColor: getMoodColor(selectedSound.mood) + '22' }]}>
+                      <Text style={[s.metaChipText, { color: getMoodColor(selectedSound.mood) }]}>{selectedSound.mood}</Text>
                     </View>
                   </View>
                 </View>
               </View>
 
               {/* Titolo e descrizione */}
-              <View style={styles.sheetBody}>
-                <Text style={styles.sheetTitle}>{selectedSound.title}</Text>
+              <View style={s.sheetBody}>
+                <Text style={s.sheetTitle}>{selectedSound.title}</Text>
                 {selectedSound.description ? (
-                  <Text style={styles.sheetDesc}>{selectedSound.description}</Text>
+                  <Text style={s.sheetDesc}>{selectedSound.description}</Text>
                 ) : null}
 
                 {/* Stats */}
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
+                <View style={s.statsRow}>
+                  <View style={s.statItem}>
                     <Feather name="heart" size={14} color="#ef4444" />
-                    <Text style={styles.statValue}>{selectedSound.likes}</Text>
+                    <Text style={s.statValue}>{selectedSound.likes}</Text>
                   </View>
-                  <View style={styles.statItem}>
+                  <View style={s.statItem}>
                     <Feather name="headphones" size={14} color="#67E8F9" />
-                    <Text style={styles.statValue}>{selectedSound.listens}</Text>
+                    <Text style={s.statValue}>{selectedSound.listens}</Text>
                   </View>
-                  <View style={styles.statItem}>
+                  <View style={s.statItem}>
                     <Feather name="clock" size={14} color="#94a3b8" />
-                    <Text style={styles.statValue}>{selectedSound.duration}s</Text>
+                    <Text style={s.statValue}>{selectedSound.duration}s</Text>
                   </View>
                 </View>
               </View>
 
               {/* Azioni Secondarie */}
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, justifyContent: 'space-between' }}>
-                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleShare(selectedSound)}>
+                <TouchableOpacity style={s.actionIconBtn} onPress={() => handleShare(selectedSound)}>
                   <Feather name="share" size={18} color="#94a3b8" />
-                  <Text style={styles.actionIconText}>{t('map.share', 'Condividi')}</Text>
+                  <Text style={s.actionIconText}>{t('map.share', 'Condividi')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleReport(selectedSound)}>
+                <TouchableOpacity style={s.actionIconBtn} onPress={() => handleReport(selectedSound)}>
                   <Feather name="flag" size={18} color="#94a3b8" />
-                  <Text style={styles.actionIconText}>{t('map.report', 'Segnala')}</Text>
+                  <Text style={s.actionIconText}>{t('map.report', 'Segnala')}</Text>
                 </TouchableOpacity>
                 {selectedSound.userId !== auth.currentUser?.uid && (
-                  <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleBlockUser(selectedSound.userId)}>
+                  <TouchableOpacity style={s.actionIconBtn} onPress={() => handleBlockUser(selectedSound.userId)}>
                     <Feather name="slash" size={18} color="#ef4444" />
-                    <Text style={styles.actionIconTextRed}>{t('map.block', 'Blocca')}</Text>
+                    <Text style={s.actionIconTextRed}>{t('map.block', 'Blocca')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Azioni Primarie */}
-              <View style={styles.sheetActions}>
-                <TouchableOpacity style={styles.closeBtn} onPress={handleCloseModal}>
-                  <Text style={styles.closeBtnText}>{t('common.close')}</Text>
+              <View style={s.sheetActions}>
+                <TouchableOpacity style={s.closeBtn} onPress={handleCloseModal}>
+                  <Text style={s.closeBtnText}>{t('common.close')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.playBtn, isCurrentSoundPlaying(selectedSound.id) && styles.playBtnPausing]}
+                  style={[s.playBtn, isCurrentSoundPlaying(selectedSound.id) && s.playBtnPausing]}
                   onPress={() => handlePlayPause(selectedSound)}
                 >
                   <Feather
@@ -491,7 +495,7 @@ export default function MapScreen() {
                     size={16}
                     color="#fff"
                   />
-                  <Text style={styles.playBtnText}>
+                  <Text style={s.playBtnText}>
                     {playingId === selectedSound.id
                       ? (isPaused ? t('map.listen') : t('map.pause'))
                       : t('map.listen')}
@@ -515,261 +519,263 @@ export default function MapScreen() {
 
 const TOP_OFFSET = Platform.OS === 'ios' ? 54 : 14;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f0f0' },
-  map: { width: '100%', height: '100%' },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#f0f0f0' },
+    map: { width: '100%', height: '100%' },
 
-  topGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 130,
-  },
+    topGradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 130,
+    },
 
-  topBar: {
-    position: 'absolute',
-    top: TOP_OFFSET,
-    left: 14,
-    right: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+    topBar: {
+      position: 'absolute',
+      top: TOP_OFFSET,
+      left: 14,
+      right: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
 
-  pillButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(7,10,20,0.82)',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  pillButtonText: {
-    color: '#F7F8FF',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
+    pillButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    pillButtonText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
 
-  radiusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(7,10,20,0.82)',
-    borderRadius: 999,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  radiusBtn: {
-    width: 32,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radiusBtnText: {
-    color: '#67E8F9',
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  radiusValue: {
-    color: '#F7F8FF',
-    fontSize: 13,
-    fontWeight: '700',
-    minWidth: 46,
-    textAlign: 'center',
-  },
+    radiusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bgCard,
+      borderRadius: 999,
+      paddingHorizontal: 4,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    radiusBtn: {
+      width: 32,
+      height: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radiusBtnText: {
+      color: '#67E8F9',
+      fontSize: 18,
+      fontWeight: '700',
+      lineHeight: 22,
+    },
+    radiusValue: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      minWidth: 46,
+      textAlign: 'center',
+    },
 
-  countPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(7,10,20,0.82)',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    marginLeft: 'auto',
-  },
-  countText: {
-    color: '#D9FF5A',
-    fontSize: 13,
-    fontWeight: '800',
-  },
+    countPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      marginLeft: 'auto',
+    },
+    countText: {
+      color: '#D9FF5A',
+      fontSize: 13,
+      fontWeight: '800',
+    },
 
-  // Marker
-  markerContainer: { alignItems: 'center' },
-  markerBubble: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 3,
-    borderColor: '#ffffff',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  markerBubblePlaying: {
-    borderColor: '#FBBF24',
-    shadowColor: '#FBBF24',
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
-  },
-  markerPhoto: { width: 40, height: 40 },
-  markerAvatarBg: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  markerEmoji: { fontSize: 20 },
-  markerPlayDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: '#FBBF24',
-    borderWidth: 2,
-    borderColor: '#fff',
-    marginTop: -5,
-  },
+    // Marker
+    markerContainer: { alignItems: 'center' },
+    markerBubble: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      borderWidth: 3,
+      borderColor: '#ffffff',
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+      elevation: 5,
+    },
+    markerBubblePlaying: {
+      borderColor: '#FBBF24',
+      shadowColor: '#FBBF24',
+      shadowOpacity: 0.7,
+      shadowRadius: 10,
+    },
+    markerPhoto: { width: 40, height: 40 },
+    markerAvatarBg: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    markerEmoji: { fontSize: 20 },
+    markerPlayDot: {
+      width: 11,
+      height: 11,
+      borderRadius: 6,
+      backgroundColor: '#FBBF24',
+      borderWidth: 2,
+      borderColor: '#fff',
+      marginTop: -5,
+    },
 
-  // Loading
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  loadingPanel: {
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 28,
-    paddingVertical: 24,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
-    backgroundColor: 'rgba(9,12,28,0.84)',
-  },
-  loadingEyebrow: {
-    color: '#67E8F9',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  loadingText: { color: '#F7F8FF', fontSize: 15, fontWeight: '700' },
-  errorText: { color: '#ef4444', marginTop: 8, fontSize: 14, textAlign: 'center' },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: '#8B5CFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 16,
-  },
-  retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    // Loading
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    loadingPanel: {
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 28,
+      paddingVertical: 24,
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.bgCard,
+    },
+    loadingEyebrow: {
+      color: '#67E8F9',
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    loadingText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+    errorText: { color: '#ef4444', marginTop: 8, fontSize: 14, textAlign: 'center' },
+    retryButton: {
+      marginTop: 20,
+      backgroundColor: '#8B5CFF',
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 16,
+    },
+    retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // Modal / Bottom sheet
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  bottomSheet: {
-    backgroundColor: '#111827',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 34,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignSelf: 'center',
-    marginBottom: 18,
-  },
+    // Modal / Bottom sheet
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    bottomSheet: {
+      backgroundColor: colors.bgCard,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingBottom: 34,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.surfaceMedium,
+      alignSelf: 'center',
+      marginBottom: 18,
+    },
 
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 16,
-  },
-  sheetAvatarWrap: { position: 'relative' },
-  moodDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#111827',
-  },
-  sheetUserInfo: { flex: 1, gap: 6 },
-  sheetUsername: { color: '#F7F8FF', fontSize: 16, fontWeight: '700' },
-  sheetMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  metaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  metaChipText: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      marginBottom: 16,
+    },
+    sheetAvatarWrap: { position: 'relative' },
+    moodDot: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: colors.bgCard,
+    },
+    sheetUserInfo: { flex: 1, gap: 6 },
+    sheetUsername: { color: colors.text, fontSize: 16, fontWeight: '700' },
+    sheetMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    metaChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.surfaceLight,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    metaChipText: { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
 
-  sheetBody: { marginBottom: 20 },
-  sheetTitle: { color: '#F7F8FF', fontSize: 18, fontWeight: '700', marginBottom: 6 },
-  sheetDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 14 },
+    sheetBody: { marginBottom: 20 },
+    sheetTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
+    sheetDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginBottom: 14 },
 
-  statsRow: { flexDirection: 'row', gap: 20 },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statValue: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' },
+    statsRow: { flexDirection: 'row', gap: 20 },
+    statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    statValue: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
 
-  sheetActions: { flexDirection: 'row', gap: 10 },
-  closeBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
-  },
-  closeBtnText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-  playBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#8B5CFF',
-  },
-  playBtnPausing: { backgroundColor: '#67E8F9' },
-  playBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    sheetActions: { flexDirection: 'row', gap: 10 },
+    closeBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: 'center',
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    closeBtnText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+    playBtn: {
+      flex: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: '#8B5CFF',
+    },
+    playBtnPausing: { backgroundColor: '#67E8F9' },
+    playBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
-  actionIconBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  actionIconText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-  actionIconTextRed: { color: '#ef4444', fontSize: 13, fontWeight: '600' },
-});
+    actionIconBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      backgroundColor: colors.surfaceLight,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    actionIconText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    actionIconTextRed: { color: '#ef4444', fontSize: 13, fontWeight: '600' },
+  });
+}

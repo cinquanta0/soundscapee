@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   Animated,
   Platform,
@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 
 export type TabId = 'home' | 'explore' | 'map' | 'challenges' | 'communities' | 'profile' | 'messages';
 
@@ -95,6 +97,8 @@ function GlassPill({ translateX, width }: { translateX: Animated.Value; width: n
 
 export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const dynStyles = useMemo(() => createDynStyles(colors), [colors]);
 
   const [tabWidth, setTabWidth] = useState(0);
   const tabWidthRef  = useRef(0);
@@ -158,7 +162,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
           // Full-bar blur → app content behind is blurred (the "underwater" feel)
           <BlurView intensity={58} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, styles.barAndroidBg]} />
+          <View style={[StyleSheet.absoluteFill, dynStyles.barAndroidBg]} />
         )}
 
         {/* Very thin dark tint so icons stay readable over any bright content */}
@@ -169,7 +173,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
           colors={IRIS}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.barTopBorder}
+          style={[styles.barTopBorder, { opacity: 0.7 }]}
         />
 
         {/* ── Tab row ──────────────────────────────────────────────────────── */}
@@ -198,7 +202,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Static styles (unchanged between themes) ─────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -222,9 +226,6 @@ const styles = StyleSheet.create({
       android: { elevation: 18 },
     }),
   },
-  barAndroidBg: {
-    backgroundColor: 'rgba(10,14,30,0.92)',
-  },
   // Barely-there dark veil so text/icons are readable over bright content
   barTint: {
     ...StyleSheet.absoluteFillObject,
@@ -237,7 +238,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    opacity: 0.7,
   },
   pillTrack: {
     flexDirection: 'row',
@@ -296,3 +296,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
+
+// ─── Dynamic styles (theme-dependent) ────────────────────────────────────────
+
+function createDynStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    barAndroidBg: {
+      backgroundColor: colors.navBg,
+    },
+  });
+}

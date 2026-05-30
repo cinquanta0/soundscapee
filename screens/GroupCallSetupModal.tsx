@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Modal, ActivityIndicator, StatusBar, Image,
@@ -38,6 +40,8 @@ export default function GroupCallSetupModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { initiateGroupCall } = useCall();
+  const { colors } = useTheme();
+  const st = useMemo(() => createStyles(colors), [colors]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -122,7 +126,7 @@ export default function GroupCallSetupModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={['#050508', '#0A0A18', '#05050C']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
 
       <View style={[st.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
         <View style={st.header}>
@@ -183,135 +187,137 @@ export default function GroupCallSetupModal({
   );
 }
 
-const st = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 20,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    color: '#F7F8FF',
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    color: 'rgba(247,248,255,0.4)',
-    fontSize: 13,
-    marginTop: 2,
-  },
-  selectedBar: {
-    backgroundColor: 'rgba(0,255,156,0.08)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,255,156,0.2)',
-  },
-  selectedCount: {
-    color: '#00FF9C',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  list: {
-    paddingTop: 4,
-    paddingBottom: 16,
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-  },
-  rowSelected: {
-    backgroundColor: 'rgba(0,255,156,0.06)',
-  },
-  rowDisabled: {
-    opacity: 0.35,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  avatarTxt: {
-    fontSize: 22,
-  },
-  name: {
-    flex: 1,
-    color: 'rgba(247,248,255,0.7)',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkSelected: {
-    backgroundColor: '#00FF9C',
-    borderColor: '#00FF9C',
-  },
-  sep: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginLeft: 62,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  emptyTxt: {
-    color: 'rgba(247,248,255,0.4)',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  emptySubtxt: {
-    color: 'rgba(247,248,255,0.25)',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  startBtn: {
-    backgroundColor: '#00FF9C',
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  startBtnDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  startBtnTxt: {
-    color: '#060913',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      marginBottom: 20,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    selectedBar: {
+      backgroundColor: 'rgba(0,255,156,0.08)',
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(0,255,156,0.2)',
+    },
+    selectedCount: {
+      color: '#00FF9C',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    list: {
+      paddingTop: 4,
+      paddingBottom: 16,
+      flex: 1,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 8,
+      borderRadius: 14,
+    },
+    rowSelected: {
+      backgroundColor: 'rgba(0,255,156,0.06)',
+    },
+    rowDisabled: {
+      opacity: 0.35,
+    },
+    avatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1.5,
+      borderColor: colors.borderSubtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    avatarTxt: {
+      fontSize: 22,
+    },
+    name: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    check: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkSelected: {
+      backgroundColor: '#00FF9C',
+      borderColor: '#00FF9C',
+    },
+    sep: {
+      height: 1,
+      backgroundColor: colors.borderSubtle,
+      marginLeft: 62,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    emptyTxt: {
+      color: colors.textMuted,
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    emptySubtxt: {
+      color: colors.textMuted,
+      fontSize: 14,
+      textAlign: 'center',
+    },
+    startBtn: {
+      backgroundColor: '#00FF9C',
+      borderRadius: 18,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    startBtnDisabled: {
+      backgroundColor: colors.surfaceLight,
+    },
+    startBtnTxt: {
+      color: '#060913',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -24,6 +24,8 @@ import {
   decryptForConversation, openAudioKey, decryptAudioBytes,
   computeSharedKey, decodeBase64, encodeBase64,
 } from '../services/e2eService';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 
 const RECORDING_OPTIONS_AAC: Audio.RecordingOptions = {
   isMeteringEnabled: true,
@@ -50,17 +52,6 @@ const REACTION_EMOJIS = ['❤️', '🔥', '🎵', '👏', '😂', '🎤'];
 const { width: SW } = Dimensions.get('window');
 const ME = () => auth.currentUser?.uid ?? '';
 
-const C = {
-  text: '#F7F8FF',
-  textDim: '#97A4C7',
-  textMute: '#687392',
-  cyan: '#67E8F9',
-  blue: '#4F7CFF',
-  purple: '#8B5CFF',
-  pink: '#F472FF',
-  red: '#FF5C79',
-};
-
 function fmtTime(d: Date) {
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
@@ -79,7 +70,7 @@ function previewForMessage(msg: Messaggio, t: (key: string, opts?: object) => st
 }
 
 function WaveformBars({ waveform, isPlaying, isMine }: { waveform: number[]; isPlaying: boolean; isMine: boolean }) {
-  const color = isMine ? C.cyan : C.purple;
+  const color = isMine ? '#67E8F9' : '#8B5CFF';
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>
       {waveform.map((h, i) => (
@@ -121,13 +112,15 @@ function MessageBubble({
   playingPosition: number;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createBubbleStyles(colors), [colors]);
   const isMine = msg.senderId === ME();
 
   if (msg.isDeleted) {
     return (
-      <View style={[bs.row, isMine ? bs.rowRight : bs.rowLeft]}>
-        <View style={[bs.bubble, isMine ? bs.bubbleMine : bs.bubbleTheirs, { opacity: 0.45 }]}>
-          <Text style={[bs.messageText, { fontStyle: 'italic', color: '#7A8099' }]}>
+      <View style={[s.row, isMine ? s.rowRight : s.rowLeft]}>
+        <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleTheirs, { opacity: 0.45 }]}>
+          <Text style={[s.messageText, { fontStyle: 'italic', color: '#7A8099' }]}>
             🗑 Messaggio eliminato
           </Text>
         </View>
@@ -137,7 +130,7 @@ function MessageBubble({
 
   const isPlaying = playingId === msg.id;
   const wf = msg.waveform?.length ? msg.waveform : genWaveform(msg.id);
-  const color = isMine ? C.cyan : C.purple;
+  const color = isMine ? '#67E8F9' : '#8B5CFF';
   const myUid = ME();
   const reactionEntries = Object.entries(msg.reactions ?? {}).filter(([, users]) => users.length > 0);
 
@@ -146,23 +139,23 @@ function MessageBubble({
     : `${msg.duration ?? 0}s`;
 
   return (
-    <View style={[bs.row, isMine ? bs.rowRight : bs.rowLeft]}>
+    <View style={[s.row, isMine ? s.rowRight : s.rowLeft]}>
       {menuOpen && openUpwards && (
-        <View style={[bs.menu, isMine ? bs.menuMine : bs.menuTheirs, bs.menuAbove]}>
-          <View style={bs.menuEmojiRow}>
+        <View style={[s.menu, isMine ? s.menuMine : s.menuTheirs, s.menuAbove]}>
+          <View style={s.menuEmojiRow}>
             {REACTION_EMOJIS.map((emoji) => (
-              <TouchableOpacity key={emoji} style={bs.menuEmojiBtn} onPress={() => onReact(msg, emoji)}>
-                <Text style={bs.menuEmojiTxt}>{emoji}</Text>
+              <TouchableOpacity key={emoji} style={s.menuEmojiBtn} onPress={() => onReact(msg, emoji)}>
+                <Text style={s.menuEmojiTxt}>{emoji}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <View style={bs.menuActions}>
-            <TouchableOpacity style={bs.menuActionBtn} onPress={() => onReply(msg)}>
-              <Text style={bs.menuActionTxt}>{t('chat.reply')}</Text>
+          <View style={s.menuActions}>
+            <TouchableOpacity style={s.menuActionBtn} onPress={() => onReply(msg)}>
+              <Text style={s.menuActionTxt}>{t('chat.reply')}</Text>
             </TouchableOpacity>
             {isMine && (
-              <TouchableOpacity style={[bs.menuActionBtn, bs.menuActionBtnDanger]} onPress={() => onDelete(msg)}>
-                <Text style={[bs.menuActionTxt, bs.menuActionTxtDanger]}>{t('common.delete')}</Text>
+              <TouchableOpacity style={[s.menuActionBtn, s.menuActionBtnDanger]} onPress={() => onDelete(msg)}>
+                <Text style={[s.menuActionTxt, s.menuActionTxtDanger]}>{t('common.delete')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -170,7 +163,7 @@ function MessageBubble({
       )}
 
       <TouchableOpacity
-        style={[bs.bubble, isMine ? bs.bubbleMine : bs.bubbleTheirs]}
+        style={[s.bubble, isMine ? s.bubbleMine : s.bubbleTheirs]}
         onPress={() => {
           if (msg.type === 'audio') onPlay(msg);
         }}
@@ -179,54 +172,54 @@ function MessageBubble({
         activeOpacity={0.88}
       >
         {msg.replyTo && (
-          <View style={[bs.replyCard, isMine ? bs.replyCardMine : bs.replyCardTheirs]}>
-            <Text style={bs.replyName}>{msg.replyTo.senderName}</Text>
-            <Text style={bs.replyPreview} numberOfLines={1}>{msg.replyTo.preview}</Text>
+          <View style={[s.replyCard, isMine ? s.replyCardMine : s.replyCardTheirs]}>
+            <Text style={s.replyName}>{msg.replyTo.senderName}</Text>
+            <Text style={s.replyPreview} numberOfLines={1}>{msg.replyTo.preview}</Text>
           </View>
         )}
 
         {msg.soundTitle && (
-          <Text style={bs.soundRef}>🎵 {msg.soundTitle}</Text>
+          <Text style={s.soundRef}>🎵 {msg.soundTitle}</Text>
         )}
 
         {msg.statusReply && (
-          <View style={[bs.statusReplyTag, isMine ? bs.statusReplyTagMine : bs.statusReplyTagTheirs]}>
-            <Text style={bs.statusReplyTxt}>💬 {msg.statusReplyLabel || t('chat.statusReply')}</Text>
+          <View style={[s.statusReplyTag, isMine ? s.statusReplyTagMine : s.statusReplyTagTheirs]}>
+            <Text style={s.statusReplyTxt}>💬 {msg.statusReplyLabel || t('chat.statusReply')}</Text>
           </View>
         )}
 
         {msg.type === 'text' ? (
-          <Text style={bs.messageText}>{msg.text}</Text>
+          <Text style={s.messageText}>{msg.text}</Text>
         ) : (
-          <View style={bs.audioRow}>
-            <View style={[bs.playCircle, isMine ? bs.playCircleMine : bs.playCircleTheirs]}>
-              <Text style={[bs.playIcon, { color }]}>
+          <View style={s.audioRow}>
+            <View style={[s.playCircle, isMine ? s.playCircleMine : s.playCircleTheirs]}>
+              <Text style={[s.playIcon, { color }]}>
                 {isPlaying ? '⏸' : '▶'}
               </Text>
             </View>
             <WaveformBars waveform={wf} isPlaying={isPlaying} isMine={isMine} />
-            <Text style={[bs.durTxt, isPlaying && { color }]}>{durDisplay}</Text>
+            <Text style={[s.durTxt, isPlaying && { color }]}>{durDisplay}</Text>
           </View>
         )}
 
         {reactionEntries.length > 0 && (
-          <View style={bs.reactionsRow}>
+          <View style={s.reactionsRow}>
             {reactionEntries.map(([emoji, users]) => (
               <TouchableOpacity
                 key={emoji}
-                style={[bs.reactionChip, users.includes(myUid) && bs.reactionChipActive]}
+                style={[s.reactionChip, users.includes(myUid) && s.reactionChipActive]}
                 onPress={() => onReact(msg, emoji)}
               >
-                <Text style={bs.reactionChipTxt}>{emoji} {users.length}</Text>
+                <Text style={s.reactionChipTxt}>{emoji} {users.length}</Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        <View style={bs.meta}>
-          <Text style={bs.timeTxt}>{fmtTime(msg.timestamp)}</Text>
+        <View style={s.meta}>
+          <Text style={s.timeTxt}>{fmtTime(msg.timestamp)}</Text>
           {isMine && (
-            <Text style={[bs.check, msg.ascoltato && bs.checkRead]}>
+            <Text style={[s.check, msg.ascoltato && s.checkRead]}>
               {msg.ascoltato ? '✓✓' : '✓'}
             </Text>
           )}
@@ -234,21 +227,21 @@ function MessageBubble({
       </TouchableOpacity>
 
       {menuOpen && !openUpwards && (
-        <View style={[bs.menu, isMine ? bs.menuMine : bs.menuTheirs]}>
-          <View style={bs.menuEmojiRow}>
+        <View style={[s.menu, isMine ? s.menuMine : s.menuTheirs]}>
+          <View style={s.menuEmojiRow}>
             {REACTION_EMOJIS.map((emoji) => (
-              <TouchableOpacity key={emoji} style={bs.menuEmojiBtn} onPress={() => onReact(msg, emoji)}>
-                <Text style={bs.menuEmojiTxt}>{emoji}</Text>
+              <TouchableOpacity key={emoji} style={s.menuEmojiBtn} onPress={() => onReact(msg, emoji)}>
+                <Text style={s.menuEmojiTxt}>{emoji}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <View style={bs.menuActions}>
-            <TouchableOpacity style={bs.menuActionBtn} onPress={() => onReply(msg)}>
-              <Text style={bs.menuActionTxt}>{t('chat.reply')}</Text>
+          <View style={s.menuActions}>
+            <TouchableOpacity style={s.menuActionBtn} onPress={() => onReply(msg)}>
+              <Text style={s.menuActionTxt}>{t('chat.reply')}</Text>
             </TouchableOpacity>
             {isMine && (
-              <TouchableOpacity style={[bs.menuActionBtn, bs.menuActionBtnDanger]} onPress={() => onDelete(msg)}>
-                <Text style={[bs.menuActionTxt, bs.menuActionTxtDanger]}>{t('common.delete')}</Text>
+              <TouchableOpacity style={[s.menuActionBtn, s.menuActionBtnDanger]} onPress={() => onDelete(msg)}>
+                <Text style={[s.menuActionTxt, s.menuActionTxtDanger]}>{t('common.delete')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -340,6 +333,8 @@ interface Props {
 export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, otherUserPhoto, onBack, onViewProfile }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const s = useMemo(() => createChatScreenStyles(colors), [colors]);
   const [messages, setMessages] = useState<Messaggio[]>([]);
   const [queryError, setQueryError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -715,59 +710,59 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
 
   return (
     <KeyboardAvoidingView
-      style={cs.container}
+      style={s.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
     >
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#050508', '#0D0D1A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
 
-      <View style={cs.header}>
-        <TouchableOpacity onPress={onBack} style={cs.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={cs.backTxt}>‹</Text>
+      <View style={s.header}>
+        <TouchableOpacity onPress={onBack} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onViewProfile?.(otherUserId)}
           activeOpacity={onViewProfile ? 0.7 : 1}
-          style={cs.headerMain}
+          style={s.headerMain}
         >
           {otherUserPhoto ? (
-            <Image source={{ uri: otherUserPhoto }} style={cs.headerAvatarImg} />
+            <Image source={{ uri: otherUserPhoto }} style={s.headerAvatarImg} />
           ) : (
-            <View style={cs.headerAvatar}>
+            <View style={s.headerAvatar}>
               {/^[a-z][a-z-]*$/.test(otherUserAvatar) ? (
-                <Feather name={otherUserAvatar as any} size={18} color={C.purple} />
+                <Feather name={otherUserAvatar as any} size={18} color="#8B5CFF" />
               ) : otherUserAvatar ? (
-                <Text style={cs.headerAvatarEmoji}>{otherUserAvatar}</Text>
+                <Text style={s.headerAvatarEmoji}>{otherUserAvatar}</Text>
               ) : (
-                <Text style={cs.headerAvatarTxt}>{initial}</Text>
+                <Text style={s.headerAvatarTxt}>{initial}</Text>
               )}
             </View>
           )}
           <View>
-            <Text style={cs.headerName}>{otherUserName}</Text>
-            <Text style={cs.headerSub}>{t('chat.privateMessages')}</Text>
+            <Text style={s.headerName}>{otherUserName}</Text>
+            <Text style={s.headerSub}>{t('chat.privateMessages')}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[cs.callBtn, !!callPhase && cs.callBtnDisabled]}
+          style={[s.callBtn, !!callPhase && s.callBtnDisabled]}
           onPress={() => initiateCall(otherUserId, otherUserName, otherUserAvatar)}
           disabled={!!callPhase}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={cs.callBtnTxt}>📞</Text>
+          <Text style={s.callBtnTxt}>📞</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={cs.menuBtn}
+          style={s.menuBtn}
           onPress={handleBlockMenu}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[cs.menuBtnTxt, isBlocked && { color: C.red }]}>⋯</Text>
+          <Text style={[s.menuBtnTxt, isBlocked && { color: colors.red }]}>⋯</Text>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity
-        style={cs.e2eBanner}
+        style={s.e2eBanner}
         onPress={() => Alert.alert(
           e2eReady ? '🔒 Crittografia end-to-end' : '⚠️ Crittografia',
           e2eReady
@@ -777,21 +772,21 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         )}
         activeOpacity={0.7}
       >
-        <Text style={[cs.e2eBannerTxt, { color: e2eReady ? '#00FF9C' : C.textMute }]}>
+        <Text style={[s.e2eBannerTxt, { color: e2eReady ? '#00FF9C' : colors.textMuted }]}>
           {e2eReady ? '🔒 Crittografia end-to-end attiva  ›' : '⏳ Crittografia in inizializzazione...'}
         </Text>
       </TouchableOpacity>
 
       {showScrollBtn && (
-        <View style={cs.scrollDownRow}>
+        <View style={s.scrollDownRow}>
           <TouchableOpacity
             onPress={() => {
               listRef.current?.scrollToEnd({ animated: true });
               setShowScrollBtn(false);
             }}
-            style={cs.scrollDownBtn}
+            style={s.scrollDownBtn}
           >
-            <Text style={cs.scrollDownTxt}>↓</Text>
+            <Text style={s.scrollDownTxt}>↓</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -852,43 +847,43 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           setShowScrollBtn(distanceFromBottom > 200);
         }}
         scrollEventThrottle={16}
-        contentContainerStyle={[cs.list, { paddingBottom: listBottomPadding }]}
+        contentContainerStyle={[s.list, { paddingBottom: listBottomPadding }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={cs.empty}>
+          <View style={s.empty}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>💬</Text>
-            <Text style={cs.emptyTxt}>{t('chat.empty')}</Text>
+            <Text style={s.emptyTxt}>{t('chat.empty')}</Text>
           </View>
         }
       />
 
       {!!otherTypingStatus && (
-        <View style={cs.typingBubble}>
-          <Text style={cs.typingTxt}>
+        <View style={s.typingBubble}>
+          <Text style={s.typingTxt}>
             {otherUserName} {otherTypingStatus === 'recording' ? 'sta registrando...' : 'sta scrivendo...'}
           </Text>
         </View>
       )}
 
-      <View style={[cs.inputShell, { paddingBottom: Math.max(insets.bottom + 10, 22) }]}>
+      <View style={[s.inputShell, { paddingBottom: Math.max(insets.bottom + 10, 22) }]}>
         {replyTo && (
-          <View style={cs.replyBar}>
+          <View style={s.replyBar}>
             <View style={{ flex: 1 }}>
-              <Text style={cs.replyBarTitle}>{t('chat.replyingTo', { name: replyTo.senderName })}</Text>
-              <Text style={cs.replyBarPreview} numberOfLines={1}>{replyTo.preview}</Text>
+              <Text style={s.replyBarTitle}>{t('chat.replyingTo', { name: replyTo.senderName })}</Text>
+              <Text style={s.replyBarPreview} numberOfLines={1}>{replyTo.preview}</Text>
             </View>
-            <TouchableOpacity onPress={() => setReplyTo(null)} style={cs.replyBarClose}>
-              <Text style={cs.replyBarCloseTxt}>✕</Text>
+            <TouchableOpacity onPress={() => setReplyTo(null)} style={s.replyBarClose}>
+              <Text style={s.replyBarCloseTxt}>✕</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <View style={cs.inputBar}>
-          <View style={cs.textInputWrap}>
+        <View style={s.inputBar}>
+          <View style={s.textInputWrap}>
             <TextInput
-              style={cs.textInput}
+              style={s.textInput}
               placeholder={t('chat.textPlaceholder')}
-              placeholderTextColor={C.textMute}
+              placeholderTextColor={colors.textMuted}
               value={text}
               onChangeText={(val) => {
                 setText(val);
@@ -906,17 +901,17 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           </View>
 
           <TouchableOpacity
-            style={[cs.sendBtn, (!text.trim() || sending) && cs.sendBtnDisabled]}
+            style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnDisabled]}
             onPress={handleSendText}
             disabled={!text.trim() || sending}
           >
             {sending && text.trim()
               ? <ActivityIndicator color="#08111E" />
-              : <Text style={cs.sendBtnTxt}>→</Text>}
+              : <Text style={s.sendBtnTxt}>→</Text>}
           </TouchableOpacity>
 
           {sending
-            ? <ActivityIndicator color={C.cyan} style={{ marginLeft: 6, marginBottom: 12 }} />
+            ? <ActivityIndicator color="#67E8F9" style={{ marginLeft: 6, marginBottom: 12 }} />
             : <RecordButton
                 onSend={handleSendAudio}
                 onStartRecording={() => setTypingStatus(conversationId, 'recording').catch(() => {})}
@@ -925,7 +920,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
         </View>
 
         {!keyboardVisible && (
-          <Text style={cs.inputHintTxt}>
+          <Text style={s.inputHintTxt}>
             {sending ? t('chat.sending') : t('chat.holdHint')}
           </Text>
         )}
@@ -934,52 +929,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
   );
 }
 
-const bs = StyleSheet.create({
-  row: { marginVertical: 3, paddingHorizontal: 12 },
-  rowRight: { alignItems: 'flex-end' },
-  rowLeft: { alignItems: 'flex-start' },
-  bubble: { maxWidth: SW * 0.76, borderRadius: 18, padding: 10 },
-  bubbleMine: { backgroundColor: 'rgba(16,28,50,0.96)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)', borderTopRightRadius: 4 },
-  bubbleTheirs: { backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.28)', borderTopLeftRadius: 4 },
-  soundRef: { fontSize: 11, color: C.textMute, fontFamily: 'monospace', marginBottom: 6 },
-  statusReplyTag: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 6, borderWidth: 1 },
-  statusReplyTagMine: { backgroundColor: 'rgba(103,232,249,0.12)', borderColor: 'rgba(103,232,249,0.3)' },
-  statusReplyTagTheirs: { backgroundColor: 'rgba(139,92,255,0.12)', borderColor: 'rgba(139,92,255,0.32)' },
-  statusReplyTxt: { color: 'rgba(255,255,255,0.82)', fontSize: 10, fontFamily: 'monospace' },
-  replyCard: { borderLeftWidth: 2, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  replyCardMine: { backgroundColor: 'rgba(103,232,249,0.08)', borderLeftColor: C.cyan },
-  replyCardTheirs: { backgroundColor: 'rgba(139,92,255,0.08)', borderLeftColor: C.purple },
-  replyName: { color: C.text, fontSize: 11, fontWeight: '700', marginBottom: 2 },
-  replyPreview: { color: C.textDim, fontSize: 11, lineHeight: 15 },
-  messageText: { color: C.text, fontSize: 15, lineHeight: 21 },
-  audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  playCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  playCircleMine: { borderColor: C.cyan, backgroundColor: 'rgba(103,232,249,0.12)' },
-  playCircleTheirs: { borderColor: C.purple, backgroundColor: 'rgba(139,92,255,0.1)' },
-  playIcon: { fontSize: 13, fontWeight: '700' },
-  durTxt: { fontSize: 11, color: C.textMute, fontFamily: 'monospace', minWidth: 28 },
-  reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  reactionChip: { borderRadius: 14, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  reactionChipActive: { borderColor: 'rgba(103,232,249,0.35)', backgroundColor: 'rgba(103,232,249,0.1)' },
-  reactionChipTxt: { color: C.text, fontSize: 11 },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 6 },
-  timeTxt: { fontSize: 9, color: C.textMute, fontFamily: 'monospace' },
-  check: { fontSize: 11, color: C.textMute },
-  checkRead: { color: C.cyan },
-  menu: { width: SW * 0.76, marginTop: 6, borderRadius: 18, padding: 10, borderWidth: 1, backgroundColor: 'rgba(7,11,24,0.96)' },
-  menuAbove: { marginTop: 0, marginBottom: 6 },
-  menuMine: { borderColor: 'rgba(103,232,249,0.22)' },
-  menuTheirs: { borderColor: 'rgba(139,92,255,0.22)' },
-  menuEmojiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  menuEmojiBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
-  menuEmojiTxt: { fontSize: 18 },
-  menuActions: { flexDirection: 'row', gap: 8 },
-  menuActionBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
-  menuActionBtnDanger: { backgroundColor: 'rgba(255,92,121,0.08)' },
-  menuActionTxt: { color: C.text, fontSize: 12, fontWeight: '700' },
-  menuActionTxtDanger: { color: C.red },
-});
-
+// RecordButton styles are accent-only (no theme colors needed), keep static
 const rb = StyleSheet.create({
   wrap: { alignItems: 'flex-end', gap: 6 },
   recordingHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,45,85,0.15)' },
@@ -990,44 +940,94 @@ const rb = StyleSheet.create({
   icon: { fontSize: 22 },
 });
 
-const cs = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050816' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(103,232,249,0.08)' },
-  backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: C.cyan, fontSize: 28, fontWeight: '300', lineHeight: 32 },
-  headerMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1.5, borderColor: 'rgba(139,92,255,0.35)', alignItems: 'center', justifyContent: 'center' },
-  headerAvatarImg: { width: 38, height: 38, borderRadius: 19 },
-  headerAvatarTxt: { color: C.purple, fontSize: 18, fontStyle: 'italic' },
-  headerAvatarEmoji: { fontSize: 20 },
-  headerName: { color: C.text, fontSize: 15, fontWeight: '700' },
-  headerSub: { color: C.textMute, fontSize: 10, fontFamily: 'monospace' },
-  list: { paddingVertical: 12, flexGrow: 1, paddingBottom: 10 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
-  emptyTxt: { color: C.textMute, fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
-  inputShell: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 22, borderTopWidth: 1, borderTopColor: 'rgba(103,232,249,0.08)' },
-  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, padding: 12, marginBottom: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  replyBarTitle: { color: C.cyan, fontSize: 11, fontWeight: '700', marginBottom: 2 },
-  replyBarPreview: { color: C.textDim, fontSize: 12 },
-  replyBarClose: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
-  replyBarCloseTxt: { color: C.text, fontSize: 12 },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  textInputWrap: { flex: 1, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 14, paddingVertical: 10, minHeight: 52, maxHeight: 120 },
-  textInput: { color: C.text, fontSize: 14, lineHeight: 20, padding: 0 },
-  sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: C.cyan },
-  sendBtnDisabled: { opacity: 0.45 },
-  sendBtnTxt: { color: '#08111E', fontSize: 20, fontWeight: '800' },
-  inputHintTxt: { color: C.textMute, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
-  e2eBanner: { alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 4 },
-  e2eBannerTxt: { color: C.textMute, fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 16 },
-  scrollDownRow: { alignItems: 'flex-end', paddingHorizontal: 16, paddingVertical: 2 },
-  scrollDownBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.35)', alignItems: 'center', justifyContent: 'center' },
-  scrollDownTxt: { color: C.cyan, fontSize: 18, fontWeight: '700', lineHeight: 22 },
-  typingBubble: { alignSelf: 'flex-start', marginHorizontal: 12, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(139,92,255,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,255,0.2)' },
-  typingTxt: { color: C.textDim, fontSize: 12, fontStyle: 'italic' },
-  callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
-  callBtnDisabled: { opacity: 0.3 },
-  callBtnTxt: { fontSize: 16 },
-  menuBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
-  menuBtnTxt: { fontSize: 22, color: C.textDim, lineHeight: 22 },
-});
+function createBubbleStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    row: { marginVertical: 3, paddingHorizontal: 12 },
+    rowRight: { alignItems: 'flex-end' },
+    rowLeft: { alignItems: 'flex-start' },
+    bubble: { maxWidth: SW * 0.76, borderRadius: 18, padding: 10 },
+    bubbleMine: { backgroundColor: 'rgba(16,28,50,0.96)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.28)', borderTopRightRadius: 4 },
+    bubbleTheirs: { backgroundColor: 'rgba(23,17,49,0.96)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.28)', borderTopLeftRadius: 4 },
+    soundRef: { fontSize: 11, color: colors.textMuted, fontFamily: 'monospace', marginBottom: 6 },
+    statusReplyTag: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 6, borderWidth: 1 },
+    statusReplyTagMine: { backgroundColor: 'rgba(103,232,249,0.12)', borderColor: 'rgba(103,232,249,0.3)' },
+    statusReplyTagTheirs: { backgroundColor: 'rgba(139,92,255,0.12)', borderColor: 'rgba(139,92,255,0.32)' },
+    statusReplyTxt: { color: 'rgba(255,255,255,0.82)', fontSize: 10, fontFamily: 'monospace' },
+    replyCard: { borderLeftWidth: 2, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+    replyCardMine: { backgroundColor: 'rgba(103,232,249,0.08)', borderLeftColor: '#67E8F9' },
+    replyCardTheirs: { backgroundColor: 'rgba(139,92,255,0.08)', borderLeftColor: '#8B5CFF' },
+    replyName: { color: colors.text, fontSize: 11, fontWeight: '700', marginBottom: 2 },
+    replyPreview: { color: colors.textSecondary, fontSize: 11, lineHeight: 15 },
+    messageText: { color: colors.text, fontSize: 15, lineHeight: 21 },
+    audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    playCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+    playCircleMine: { borderColor: '#67E8F9', backgroundColor: 'rgba(103,232,249,0.12)' },
+    playCircleTheirs: { borderColor: '#8B5CFF', backgroundColor: 'rgba(139,92,255,0.1)' },
+    playIcon: { fontSize: 13, fontWeight: '700' },
+    durTxt: { fontSize: 11, color: colors.textMuted, fontFamily: 'monospace', minWidth: 28 },
+    reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+    reactionChip: { borderRadius: 14, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.borderSubtle },
+    reactionChipActive: { borderColor: 'rgba(103,232,249,0.35)', backgroundColor: 'rgba(103,232,249,0.1)' },
+    reactionChipTxt: { color: colors.text, fontSize: 11 },
+    meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 6 },
+    timeTxt: { fontSize: 9, color: colors.textMuted, fontFamily: 'monospace' },
+    check: { fontSize: 11, color: colors.textMuted },
+    checkRead: { color: '#67E8F9' },
+    menu: { width: SW * 0.76, marginTop: 6, borderRadius: 18, padding: 10, borderWidth: 1, backgroundColor: colors.bgCard },
+    menuAbove: { marginTop: 0, marginBottom: 6 },
+    menuMine: { borderColor: 'rgba(103,232,249,0.22)' },
+    menuTheirs: { borderColor: 'rgba(139,92,255,0.22)' },
+    menuEmojiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    menuEmojiBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceLight },
+    menuEmojiTxt: { fontSize: 18 },
+    menuActions: { flexDirection: 'row', gap: 8 },
+    menuActionBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', backgroundColor: colors.surfaceLight },
+    menuActionBtnDanger: { backgroundColor: 'rgba(255,92,121,0.08)' },
+    menuActionTxt: { color: colors.text, fontSize: 12, fontWeight: '700' },
+    menuActionTxtDanger: { color: '#FF5C79' },
+  });
+}
+
+function createChatScreenStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.bg },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(103,232,249,0.08)' },
+    backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    backTxt: { color: '#67E8F9', fontSize: 28, fontWeight: '300', lineHeight: 32 },
+    headerMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    headerAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.bgCard, borderWidth: 1.5, borderColor: 'rgba(139,92,255,0.35)', alignItems: 'center', justifyContent: 'center' },
+    headerAvatarImg: { width: 38, height: 38, borderRadius: 19 },
+    headerAvatarTxt: { color: '#8B5CFF', fontSize: 18, fontStyle: 'italic' },
+    headerAvatarEmoji: { fontSize: 20 },
+    headerName: { color: colors.text, fontSize: 15, fontWeight: '700' },
+    headerSub: { color: colors.textMuted, fontSize: 10, fontFamily: 'monospace' },
+    list: { paddingVertical: 12, flexGrow: 1, paddingBottom: 10 },
+    empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
+    emptyTxt: { color: colors.textMuted, fontSize: 13, fontFamily: 'monospace', textAlign: 'center', lineHeight: 20 },
+    inputShell: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 22, borderTopWidth: 1, borderTopColor: 'rgba(103,232,249,0.08)' },
+    replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, padding: 12, marginBottom: 10, backgroundColor: colors.bgInput, borderWidth: 1, borderColor: colors.borderSubtle },
+    replyBarTitle: { color: '#67E8F9', fontSize: 11, fontWeight: '700', marginBottom: 2 },
+    replyBarPreview: { color: colors.textSecondary, fontSize: 12 },
+    replyBarClose: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.borderSubtle },
+    replyBarCloseTxt: { color: colors.text, fontSize: 12 },
+    inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    textInputWrap: { flex: 1, borderRadius: 22, backgroundColor: colors.bgInput, borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: 14, paddingVertical: 10, minHeight: 52, maxHeight: 120 },
+    textInput: { color: colors.text, fontSize: 14, lineHeight: 20, padding: 0 },
+    sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#67E8F9' },
+    sendBtnDisabled: { opacity: 0.45 },
+    sendBtnTxt: { color: '#08111E', fontSize: 20, fontWeight: '800' },
+    inputHintTxt: { color: colors.textMuted, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },
+    e2eBanner: { alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 4 },
+    e2eBannerTxt: { color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 16 },
+    scrollDownRow: { alignItems: 'flex-end', paddingHorizontal: 16, paddingVertical: 2 },
+    scrollDownBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(103,232,249,0.12)', borderWidth: 1, borderColor: 'rgba(103,232,249,0.35)', alignItems: 'center', justifyContent: 'center' },
+    scrollDownTxt: { color: '#67E8F9', fontSize: 18, fontWeight: '700', lineHeight: 22 },
+    typingBubble: { alignSelf: 'flex-start', marginHorizontal: 12, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(139,92,255,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,255,0.2)' },
+    typingTxt: { color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' },
+    callBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,255,156,0.1)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.25)', alignItems: 'center', justifyContent: 'center' },
+    callBtnDisabled: { opacity: 0.3 },
+    callBtnTxt: { fontSize: 16 },
+    menuBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
+    menuBtnTxt: { fontSize: 22, color: colors.textSecondary, lineHeight: 22 },
+  });
+}

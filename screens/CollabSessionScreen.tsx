@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, TextInput, Modal, Pressable, Animated, Image,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,6 +68,8 @@ interface Props {
 
 export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [session, setSession] = useState<CollabSession | null>(null);
   const [recSeconds, setRecSeconds] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -299,7 +303,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   if (session?.status === 'pending' && !isHost) {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           {hostPhoto
             ? <Image source={{ uri: hostPhoto }} style={s.invitePhoto} />
@@ -330,7 +334,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
   if (session?.status === 'rejected' || session?.status === 'cancelled') {
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <Text style={{ fontSize: 48, marginBottom: 12 }}>{session.status === 'rejected' ? '😔' : '❌'}</Text>
           <Text style={s.inviteTitle}>{session.status === 'rejected' ? t('collab.rejected', { name: otherName }) : t('collab.cancelled')}</Text>
@@ -344,7 +348,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
     // Host in attesa che il guest risponda
     return (
       <View style={s.overlay}>
-        <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
         <View style={s.inviteCard}>
           <ActivityIndicator color="#a855f7" size="large" style={{ marginBottom: 16 }} />
           <Text style={s.inviteTitle}>{t('collab.waitingForGuest', { name: session?.guestName ?? '…' })}</Text>
@@ -369,7 +373,7 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#0A0A0A', '#1a0533']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={s.header}>
@@ -508,77 +512,79 @@ export default function CollabSessionScreen({ sessionId, onClose }: Props) {
 }
 
 // ─── Stili ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: C.bg },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: colors.bg },
 
-  // Invite
-  inviteCard: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  invitePhoto: { width: 80, height: 80, borderRadius: 40, marginBottom: 12, borderWidth: 3, borderColor: '#a855f7' },
-  inviteAvatarBg: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 2, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  inviteEmoji: { fontSize: 64, marginBottom: 12 },
-  inviteTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  inviteSub: { color: '#9A9A9A', fontSize: 14, marginBottom: 16 },
-  modeBadge: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginBottom: 16 },
-  modeBadgeTxt: { color: '#a855f7', fontSize: 14, fontWeight: '700' },
-  inviteDesc: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 32 },
-  inviteActions: { flexDirection: 'row', gap: 16 },
-  rejectBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
-  rejectTxt: { color: '#FF3B30', fontWeight: '700', fontSize: 15 },
-  acceptBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: '#a855f7' },
-  acceptTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    // Invite
+    inviteCard: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+    invitePhoto: { width: 80, height: 80, borderRadius: 40, marginBottom: 12, borderWidth: 3, borderColor: '#a855f7' },
+    inviteAvatarBg: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 2, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    inviteEmoji: { fontSize: 64, marginBottom: 12 },
+    inviteTitle: { color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 4 },
+    inviteSub: { color: colors.textSecondary, fontSize: 14, marginBottom: 16 },
+    modeBadge: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)', marginBottom: 16 },
+    modeBadgeTxt: { color: '#a855f7', fontSize: 14, fontWeight: '700' },
+    inviteDesc: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+    inviteActions: { flexDirection: 'row', gap: 16 },
+    rejectBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(255,59,48,0.15)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
+    rejectTxt: { color: '#FF3B30', fontWeight: '700', fontSize: 15 },
+    acceptBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: '#a855f7' },
+    acceptTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#9A9A9A', fontSize: 16 },
-  modePill: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)' },
-  modePillTxt: { color: '#a855f7', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+    // Header
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+    closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center' },
+    closeTxt: { color: colors.textSecondary, fontSize: 16 },
+    modePill: { backgroundColor: 'rgba(168,85,247,0.2)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)' },
+    modePillTxt: { color: '#a855f7', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
 
-  // Partecipanti
-  participants: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 24, paddingVertical: 32 },
-  participant: { alignItems: 'center', gap: 6, flex: 1 },
-  participantPhoto: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.2)' },
-  participantAvatarBg: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  participantAvatar: { fontSize: 48 },
-  participantName: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  participantRole: { color: '#858585', fontSize: 10, fontWeight: '600', letterSpacing: 1 },
-  trackDone: { color: '#4ade80', fontSize: 10, fontWeight: '600' },
-  vsCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(168,85,247,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
-  vsTxt: { fontSize: 20 },
+    // Partecipanti
+    participants: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 24, paddingVertical: 32 },
+    participant: { alignItems: 'center', gap: 6, flex: 1 },
+    participantPhoto: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, borderColor: colors.border },
+    participantAvatarBg: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.surfaceLight, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    participantAvatar: { fontSize: 48 },
+    participantName: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    participantRole: { color: colors.textSecondary, fontSize: 10, fontWeight: '600', letterSpacing: 1 },
+    trackDone: { color: '#4ade80', fontSize: 10, fontWeight: '600' },
+    vsCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(168,85,247,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
+    vsTxt: { fontSize: 20 },
 
-  // Status
-  statusLabel: { color: '#9A9A9A', fontSize: 13, textAlign: 'center', marginBottom: 32, paddingHorizontal: 24 },
+    // Status
+    statusLabel: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 32, paddingHorizontal: 24 },
 
-  // Controls
-  controls: { alignItems: 'center', gap: 20, paddingHorizontal: 32 },
-  micBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  micBtnOn: { backgroundColor: 'rgba(168,85,247,0.2)', borderColor: 'rgba(168,85,247,0.4)' },
-  micIcon: { fontSize: 18 },
-  micLabel: { color: '#9A9A9A', fontSize: 12, fontWeight: '600' },
+    // Controls
+    controls: { alignItems: 'center', gap: 20, paddingHorizontal: 32 },
+    micBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.borderSubtle },
+    micBtnOn: { backgroundColor: 'rgba(168,85,247,0.2)', borderColor: 'rgba(168,85,247,0.4)' },
+    micIcon: { fontSize: 18 },
+    micLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
 
-  recBtn: { alignItems: 'center', gap: 8 },
-  recBtnDisabled: { opacity: 0.4 },
-  recBtnInner: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.2)', borderWidth: 3, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' },
-  recBtnInnerActive: { backgroundColor: 'rgba(255,59,48,0.3)', borderColor: '#FF3B30' },
-  recBtnIcon: { fontSize: 28 },
-  recBtnLabel: { color: '#9A9A9A', fontSize: 12, fontWeight: '600' },
+    recBtn: { alignItems: 'center', gap: 8 },
+    recBtnDisabled: { opacity: 0.4 },
+    recBtnInner: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(168,85,247,0.2)', borderWidth: 3, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' },
+    recBtnInnerActive: { backgroundColor: 'rgba(255,59,48,0.3)', borderColor: '#FF3B30' },
+    recBtnIcon: { fontSize: 28 },
+    recBtnLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
 
-  actionBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, backgroundColor: C.accentDim, borderWidth: 1, borderColor: C.borderAccent },
-  actionBtnTxt: { color: C.accent, fontWeight: '700' },
-  mixBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: '#a855f7' },
-  mixBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    actionBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, backgroundColor: C.accentDim, borderWidth: 1, borderColor: C.borderAccent },
+    actionBtnTxt: { color: C.accent, fontWeight: '700' },
+    mixBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: '#a855f7' },
+    mixBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
-  // Publish modal
-  publishOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  publishCard: { backgroundColor: C.bgCard, borderTopLeftRadius: R.xxl, borderTopRightRadius: R.xxl, padding: S.xxl, gap: S.lg, borderTopWidth: 1, borderColor: C.borderStrong },
-  publishTitle: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' },
-  previewBtn: { backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
-  previewBtnTxt: { color: '#a855f7', fontWeight: '700' },
-  titleInput: { backgroundColor: C.bgInput, borderRadius: R.sm, borderWidth: 1, borderColor: C.border, padding: S.md, color: '#fff', fontSize: 15 },
-  publishHint: { color: '#858585', fontSize: 11, textAlign: 'center' },
-  publishActions: { flexDirection: 'row', gap: 12 },
-  publishCancel: { flex: 1, backgroundColor: C.glass, borderWidth: 1, borderColor: C.border, borderRadius: R.sm, paddingVertical: 14, alignItems: 'center' },
-  publishCancelTxt: { color: '#9A9A9A', fontWeight: '600' },
-  publishBtn: { flex: 2, backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  publishBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
-});
+    // Publish modal
+    publishOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+    publishCard: { backgroundColor: colors.bgCard, borderTopLeftRadius: R.xxl, borderTopRightRadius: R.xxl, padding: S.xxl, gap: S.lg, borderTopWidth: 1, borderColor: colors.border },
+    publishTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+    previewBtn: { backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' },
+    previewBtnTxt: { color: '#a855f7', fontWeight: '700' },
+    titleInput: { backgroundColor: colors.bgInput, borderRadius: R.sm, borderWidth: 1, borderColor: colors.border, padding: S.md, color: colors.text, fontSize: 15 },
+    publishHint: { color: colors.textSecondary, fontSize: 11, textAlign: 'center' },
+    publishActions: { flexDirection: 'row', gap: 12 },
+    publishCancel: { flex: 1, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, borderRadius: R.sm, paddingVertical: 14, alignItems: 'center' },
+    publishCancelTxt: { color: colors.textSecondary, fontWeight: '600' },
+    publishBtn: { flex: 2, backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    publishBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  });
+}

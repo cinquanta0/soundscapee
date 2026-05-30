@@ -12,7 +12,8 @@ import {
 } from 'firebase/firestore';
 import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../firebaseConfig';
 import {
@@ -104,6 +105,8 @@ type ExploreScreenProps = {
 
 export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [section, setSection] = useState<Section>('suoni');
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState('recent');
@@ -428,7 +431,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   );
 
   const renderCompactTop = () => (
-    <View style={styles.compactTop}>
+    <View style={s.compactTop}>
       <ExploreModeRail
         section={section}
         onSelect={setSection}
@@ -439,12 +442,12 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   if (section === 'leaderboard') {
     return (
-      <View style={styles.container}>
-        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+      <View style={s.container}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
         {renderCompactTop()}
-        <View style={styles.embeddedScreen}>
+        <View style={s.embeddedScreen}>
           {leaderboardLoading ? (
-            <View style={styles.center}><ActivityIndicator size="large" color="#FFD166" /></View>
+            <View style={s.center}><ActivityIndicator size="large" color="#FFD166" /></View>
           ) : (
             <ExploreLeaderboard
               items={leaderboard}
@@ -460,10 +463,10 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   if (section === 'podcast') {
     return (
-      <View style={styles.container}>
-        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+      <View style={s.container}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
         {renderCompactTop()}
-        <View style={styles.embeddedScreen}>
+        <View style={s.embeddedScreen}>
           <PodcastHubScreen compact />
         </View>
       </View>
@@ -472,10 +475,10 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
 
   if (section === 'radio') {
     return (
-      <View style={styles.container}>
-        <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
+      <View style={s.container}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
         {renderCompactTop()}
-        <View style={styles.embeddedScreen}>
+        <View style={s.embeddedScreen}>
           <RadioScreen compact />
         </View>
       </View>
@@ -483,10 +486,10 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#050816', '#090E1E', '#070812']} style={StyleSheet.absoluteFill} />
-      <View style={styles.ambientA} />
-      <View style={styles.ambientB} />
+    <View style={s.container}>
+      <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
+      <View style={s.ambientA} />
+      <View style={s.ambientB} />
 
       <FlatList
         data={section === 'utenti' ? users : section === 'battles' ? battles : sounds}
@@ -539,7 +542,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
         }}
         ListEmptyComponent={
           usersLoading || loading ? (
-            <View style={styles.center}>
+            <View style={s.center}>
               <ActivityIndicator size="large" color="#67E8F9" />
             </View>
           ) : section === 'utenti' ? (
@@ -570,7 +573,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
             />
           )
         }
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
       />
 
@@ -583,43 +586,45 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#050816',
-  },
-  ambientA: {
-    position: 'absolute',
-    right: -80,
-    top: 70,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(103,232,249,0.08)',
-  },
-  ambientB: {
-    position: 'absolute',
-    left: -70,
-    top: 280,
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    backgroundColor: 'rgba(139,92,255,0.08)',
-  },
-  listContent: {
-    paddingBottom: 110,
-  },
-  compactTop: {
-    paddingTop: 8,
-    paddingBottom: 6,
-  },
-  embeddedScreen: {
-    flex: 1,
-    minHeight: 0,
-  },
-  center: {
-    minHeight: 240,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+function createStyles(colors: import('../../constants/themes').ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    ambientA: {
+      position: 'absolute',
+      right: -80,
+      top: 70,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: 'rgba(103,232,249,0.08)',
+    },
+    ambientB: {
+      position: 'absolute',
+      left: -70,
+      top: 280,
+      width: 210,
+      height: 210,
+      borderRadius: 105,
+      backgroundColor: 'rgba(139,92,255,0.08)',
+    },
+    listContent: {
+      paddingBottom: 110,
+    },
+    compactTop: {
+      paddingTop: 8,
+      paddingBottom: 6,
+    },
+    embeddedScreen: {
+      flex: 1,
+      minHeight: 0,
+    },
+    center: {
+      minHeight: 240,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+}

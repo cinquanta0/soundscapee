@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,11 +12,11 @@ import { Image } from 'expo-image';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/themes';
 
-const C = {
-  text: '#F7F8FF',
-  textDim: '#9BA7C8',
-  textMute: '#6F7896',
+// Invariant accent/medal colors (never change between themes)
+const ACCENT = {
   cyan: '#67E8F9',
   blue: '#4F7CFF',
   lime: '#D9FF5A',
@@ -27,11 +27,26 @@ const C = {
   gold: '#FFD166',
   silver: '#B0BEC5',
   bronze: '#CD7C4A',
-  border: 'rgba(163, 177, 255, 0.16)',
   borderStrong: 'rgba(103,232,249,0.24)',
-  card: 'rgba(17, 22, 45, 0.96)',
-  glass: 'rgba(255,255,255,0.03)',
 };
+
+function buildC(colors: ThemeColors) {
+  return {
+    text: colors.text,
+    textDim: colors.textSecondary,
+    textMute: colors.textMuted,
+    glass: colors.surfaceLight,
+    border: colors.border,
+    borderStrong: colors.borderSubtle,
+    cyan: ACCENT.cyan,
+    gold: ACCENT.gold,
+    lime: ACCENT.lime,
+    orange: ACCENT.orange,
+    red: ACCENT.red,
+  };
+}
+type CType = ReturnType<typeof buildC>;
+
 
 type Section = 'suoni' | 'podcast' | 'radio' | 'battles' | 'utenti' | 'leaderboard';
 
@@ -100,45 +115,49 @@ type BattleCardProps = {
 
 export function ExploreHeader({ title, subtitle }: HeaderProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <View style={styles.header}>
+    <View style={s.header}>
       <LinearGradient
         colors={['rgba(79,124,255,0.14)', 'rgba(10,13,26,0)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGlow}
+        style={s.headerGlow}
       />
-      <Text style={styles.eyebrow}>{t('explore.discoverHub')}</Text>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Text style={s.eyebrow}>{t('explore.discoverHub')}</Text>
+      <Text style={s.title}>{title}</Text>
+      <Text style={s.subtitle}>{subtitle}</Text>
     </View>
   );
 }
 
 export function ExploreModeRail({ section, items, onSelect }: ModesProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.modeRail}
+      contentContainerStyle={s.modeRail}
     >
       {items.map((item) => {
         const active = item.id === section;
         return (
           <TouchableOpacity
             key={item.id}
-            style={[styles.modeCard, active && styles.modeCardActive]}
+            style={[s.modeCard, active && s.modeCardActive]}
             onPress={() => onSelect(item.id)}
           >
             <LinearGradient
               colors={active ? [item.accent + '44', 'rgba(15,20,38,0.92)'] : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
-              style={styles.modeCardFill}
+              style={s.modeCardFill}
             >
-              <View style={[styles.modeIconWrap, { borderColor: active ? item.accent + '55' : C.border }]}>
-                <Feather name={item.icon} size={16} color={active ? item.accent : C.textDim} />
+              <View style={[s.modeIconWrap, { borderColor: active ? item.accent + '55' : colors.border }]}>
+                <Feather name={item.icon} size={16} color={active ? item.accent : colors.textSecondary} />
               </View>
-              <Text style={[styles.modeTitle, active && { color: C.text }]}>{item.title}</Text>
-              <Text style={styles.modeSubtitle}>{item.subtitle}</Text>
+              <Text style={[s.modeTitle, active && { color: colors.text }]}>{item.title}</Text>
+              <Text style={s.modeSubtitle}>{item.subtitle}</Text>
             </LinearGradient>
           </TouchableOpacity>
         );
@@ -148,41 +167,45 @@ export function ExploreModeRail({ section, items, onSelect }: ModesProps) {
 }
 
 export function ExploreSearchBar({ value, placeholder, onChangeText, onClear }: SearchProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <View style={styles.searchWrap}>
-      <Feather name="search" size={18} color={C.textDim} />
+    <View style={s.searchWrap}>
+      <Feather name="search" size={18} color={colors.textSecondary} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={C.textMute}
-        style={styles.searchInput}
+        placeholderTextColor={colors.textMuted}
+        style={s.searchInput}
         returnKeyType="search"
         blurOnSubmit
       />
       {value.length > 0 ? (
-        <TouchableOpacity style={styles.clearButton} onPress={onClear}>
-          <Feather name="x" size={16} color={C.textDim} />
+        <TouchableOpacity style={s.clearButton} onPress={onClear}>
+          <Feather name="x" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
       ) : (
-        <View style={styles.searchPulse} />
+        <View style={s.searchPulse} />
       )}
     </View>
   );
 }
 
 export function ExploreChips({ items, activeId, onSelect }: ChipsProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
       {items.map((item) => {
         const active = item.id === activeId;
         return (
           <TouchableOpacity
             key={item.id}
-            style={[styles.chip, active && styles.chipActive]}
+            style={[s.chip, active && s.chipActive]}
             onPress={() => onSelect(item.id)}
           >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+            <Text style={[s.chipText, active && s.chipTextActive]}>{item.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -192,45 +215,47 @@ export function ExploreChips({ items, activeId, onSelect }: ChipsProps) {
 
 export function ExploreFeatureStrip({ section, onOpenSection }: FeatureProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const items = [
     {
       id: 'radio' as Section,
       title: 'Live radio',
       subtitle: t('explore.featureRadioSubtitle'),
-      accent: C.cyan,
+      accent: ACCENT.cyan,
       icon: 'radio' as const,
     },
     {
       id: 'podcast' as Section,
       title: 'Podcast vault',
       subtitle: t('explore.featurePodcastSubtitle'),
-      accent: C.purple,
+      accent: ACCENT.purple,
       icon: 'mic' as const,
     },
     {
       id: 'battles' as Section,
       title: 'Sound battles',
       subtitle: t('explore.featureBattlesSubtitle'),
-      accent: C.orange,
+      accent: ACCENT.orange,
       icon: 'crosshair' as const,
     },
   ];
 
   return (
-    <View style={styles.featureRow}>
+    <View style={s.featureRow}>
       {items.map((item) => {
         const active = section === item.id;
         return (
           <TouchableOpacity
             key={item.id}
-            style={[styles.featureCard, active && { borderColor: item.accent + '55' }]}
+            style={[s.featureCard, active && { borderColor: item.accent + '55' }]}
             onPress={() => onOpenSection(item.id)}
           >
-            <View style={[styles.featureIcon, { backgroundColor: item.accent + '16', borderColor: item.accent + '33' }]}>
+            <View style={[s.featureIcon, { backgroundColor: item.accent + '16', borderColor: item.accent + '33' }]}>
               <Feather name={item.icon} size={16} color={item.accent} />
             </View>
-            <Text style={styles.featureTitle}>{item.title}</Text>
-            <Text style={styles.featureSubtitle}>{item.subtitle}</Text>
+            <Text style={s.featureTitle}>{item.title}</Text>
+            <Text style={s.featureSubtitle}>{item.subtitle}</Text>
           </TouchableOpacity>
         );
       })}
@@ -243,15 +268,17 @@ export function ExploreSectionHeading({
   caption,
   counter,
 }: { title: string; caption: string; counter?: number | string }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <View style={styles.sectionHead}>
+    <View style={s.sectionHead}>
       <View>
-        <Text style={styles.sectionCaption}>{caption}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={s.sectionCaption}>{caption}</Text>
+        <Text style={s.sectionTitle}>{title}</Text>
       </View>
       {counter != null ? (
-        <View style={styles.sectionCounter}>
-          <Text style={styles.sectionCounterText}>{counter}</Text>
+        <View style={s.sectionCounter}>
+          <Text style={s.sectionCounterText}>{counter}</Text>
         </View>
       ) : null}
     </View>
@@ -259,6 +286,8 @@ export function ExploreSectionHeading({
 }
 
 export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const bars = Array.from({ length: 18 }, (_, i) => {
     let h = 0;
     const seed = item.id || 'x';
@@ -267,26 +296,26 @@ export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardPr
   });
 
   return (
-    <LinearGradient colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.98)']} style={styles.soundCard}>
-      <View style={styles.soundMetaRow}>
-        <Text style={styles.soundAuthorText}>{item.username}</Text>
+    <LinearGradient colors={colors.gradientCard} style={s.soundCard}>
+      <View style={s.soundMetaRow}>
+        <Text style={s.soundAuthorText}>{item.username}</Text>
       </View>
 
-      <View style={styles.soundMainRow}>
+      <View style={s.soundMainRow}>
         <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={styles.soundTitle} numberOfLines={2}>{item.title}</Text>
-          <Text style={styles.soundSubline}>
+          <Text style={s.soundTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={s.soundSubline}>
             {item.duration > 0 ? `${item.duration}s` : '?s'} · {item.likes || 0} likes · {item.listens || 0} listens
           </Text>
-          <View style={styles.waveRow}>
+          <View style={s.waveRow}>
             {bars.map((height, index) => (
               <View
                 key={`${item.id}-${index}`}
                 style={[
-                  styles.waveBar,
+                  s.waveBar,
                   {
                     height,
-                    backgroundColor: isPlaying ? C.cyan : 'rgba(150,166,207,0.22)',
+                    backgroundColor: isPlaying ? ACCENT.cyan : 'rgba(150,166,207,0.22)',
                   },
                 ]}
               />
@@ -294,12 +323,12 @@ export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardPr
           </View>
         </View>
 
-        <TouchableOpacity style={[styles.playButton, busy && styles.playButtonDisabled]} onPress={onPress} disabled={busy}>
+        <TouchableOpacity style={[s.playButton, busy && s.playButtonDisabled]} onPress={onPress} disabled={busy}>
           <LinearGradient
             colors={busy ? ['#354067', '#2A3357'] : ['#67E8F9', '#8B5CFF']}
-            style={styles.playButtonFill}
+            style={s.playButtonFill}
           >
-            <Feather name={isPlaying ? 'pause' : 'play'} size={20} color="#050816" style={!isPlaying ? { marginLeft: 2 } : undefined} />
+            <Feather name={isPlaying ? 'pause' : 'play'} size={20} color={colors.bg} style={!isPlaying ? { marginLeft: 2 } : undefined} />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -309,12 +338,14 @@ export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardPr
 
 export function ExploreUserCard({ user, myFollowingIds, onPress }: UserCardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const vis = user.photoVisibility ?? 'public';
   const canSeePhoto = vis === 'public' || (vis === 'followers' && (myFollowingIds?.has(user.id) ?? false));
   const photo = canSeePhoto ? user.profilePicture : undefined;
   return (
-    <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.86}>
-      <View style={[styles.userAvatar, photo ? { overflow: 'hidden', padding: 0 } : null]}>
+    <TouchableOpacity style={s.userCard} onPress={onPress} activeOpacity={0.86}>
+      <View style={[s.userAvatar, photo ? { overflow: 'hidden', padding: 0 } : null]}>
         {photo ? (
           <Image source={{ uri: photo }} style={{ width: 54, height: 54, borderRadius: 27 }} />
         ) : /^[a-z][a-z-]*$/.test(user.avatar) ? (
@@ -324,10 +355,10 @@ export function ExploreUserCard({ user, myFollowingIds, onPress }: UserCardProps
         )}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.userName}>@{user.username || t('profile.defaultName').toLowerCase()}</Text>
-        <Text style={styles.userBio} numberOfLines={1}>{user.bio || t('explore.userBioFallback')}</Text>
+        <Text style={s.userName}>@{user.username || t('profile.defaultName').toLowerCase()}</Text>
+        <Text style={s.userBio} numberOfLines={1}>{user.bio || t('explore.userBioFallback')}</Text>
       </View>
-      <Feather name="arrow-up-right" size={17} color={C.textDim} />
+      <Feather name="arrow-up-right" size={17} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -340,6 +371,8 @@ export function ExploreBattleCard({
   onCancel,
 }: BattleCardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const total = battle.challengerVotes + battle.opponentVotes;
   const challPct = total > 0 ? Math.round((battle.challengerVotes / total) * 100) : 50;
   const timeLeft = battle.votingEndsAt ? Math.max(0, battle.votingEndsAt.getTime() - Date.now()) : 0;
@@ -347,48 +380,48 @@ export function ExploreBattleCard({
   const mLeft = Math.floor((timeLeft % 3600000) / 60000);
 
   return (
-    <TouchableOpacity style={styles.battleCard} onPress={onPress} activeOpacity={0.86}>
-      <View style={styles.battleTop}>
-        <View style={styles.battleTheme}>
-          <Ionicons name="flame-outline" size={12} color={C.orange} />
-          <Text style={styles.battleThemeText}>{battle.theme}</Text>
+    <TouchableOpacity style={s.battleCard} onPress={onPress} activeOpacity={0.86}>
+      <View style={s.battleTop}>
+        <View style={s.battleTheme}>
+          <Ionicons name="flame-outline" size={12} color={ACCENT.orange} />
+          <Text style={s.battleThemeText}>{battle.theme}</Text>
         </View>
-        <Text style={styles.battleTime}>{hLeft}h {mLeft}m</Text>
+        <Text style={s.battleTime}>{hLeft}h {mLeft}m</Text>
       </View>
 
-      <View style={styles.battleCenter}>
-        <View style={styles.battleUserBlock}>
+      <View style={s.battleCenter}>
+        <View style={s.battleUserBlock}>
           {battle.challengerPhoto
-            ? <Image source={{ uri: battle.challengerPhoto }} style={[styles.battleAvatarImg, { borderColor: C.orange }]} />
+            ? <Image source={{ uri: battle.challengerPhoto }} style={[s.battleAvatarImg, { borderColor: ACCENT.orange }]} />
             : /^[a-z][a-z-]*$/.test(battle.challengerAvatar)
-              ? <Feather name={battle.challengerAvatar as any} size={28} color={C.orange} />
-              : <Text style={styles.battleAvatar}>{battle.challengerAvatar}</Text>}
-          <Text style={[styles.battleName, { color: C.orange }]} numberOfLines={1}>{battle.challengerName}</Text>
-          <Text style={styles.battleVotes}>{battle.challengerVotes}</Text>
+              ? <Feather name={battle.challengerAvatar as any} size={28} color={ACCENT.orange} />
+              : <Text style={s.battleAvatar}>{battle.challengerAvatar}</Text>}
+          <Text style={[s.battleName, { color: ACCENT.orange }]} numberOfLines={1}>{battle.challengerName}</Text>
+          <Text style={s.battleVotes}>{battle.challengerVotes}</Text>
         </View>
-        <View style={styles.battleVersus}>
-          <Text style={styles.battleVs}>VS</Text>
+        <View style={s.battleVersus}>
+          <Text style={s.battleVs}>VS</Text>
         </View>
-        <View style={styles.battleUserBlock}>
+        <View style={s.battleUserBlock}>
           {battle.opponentPhoto
-            ? <Image source={{ uri: battle.opponentPhoto }} style={[styles.battleAvatarImg, { borderColor: C.purple }]} />
+            ? <Image source={{ uri: battle.opponentPhoto }} style={[s.battleAvatarImg, { borderColor: ACCENT.purple }]} />
             : /^[a-z][a-z-]*$/.test(battle.opponentAvatar)
-              ? <Feather name={battle.opponentAvatar as any} size={28} color={C.purple} />
-              : <Text style={styles.battleAvatar}>{battle.opponentAvatar}</Text>}
-          <Text style={[styles.battleName, { color: C.purple }]} numberOfLines={1}>{battle.opponentName}</Text>
-          <Text style={styles.battleVotes}>{battle.opponentVotes}</Text>
+              ? <Feather name={battle.opponentAvatar as any} size={28} color={ACCENT.purple} />
+              : <Text style={s.battleAvatar}>{battle.opponentAvatar}</Text>}
+          <Text style={[s.battleName, { color: ACCENT.purple }]} numberOfLines={1}>{battle.opponentName}</Text>
+          <Text style={s.battleVotes}>{battle.opponentVotes}</Text>
         </View>
       </View>
 
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${challPct}%` }]} />
+      <View style={s.progressTrack}>
+        <View style={[s.progressFill, { width: `${challPct}%` }]} />
       </View>
 
-      <View style={styles.battleFooter}>
-        <Text style={styles.battleFooterText}>{t('explore.votesCta', { count: total })}</Text>
+      <View style={s.battleFooter}>
+        <Text style={s.battleFooterText}>{t('explore.votesCta', { count: total })}</Text>
         {canCancel ? (
-          <TouchableOpacity style={styles.cancelPill} onPress={onCancel} disabled={canceling}>
-            <Text style={styles.cancelPillText}>{canceling ? t('explore.canceling') : t('common.cancel')}</Text>
+          <TouchableOpacity style={s.cancelPill} onPress={onCancel} disabled={canceling}>
+            <Text style={s.cancelPillText}>{canceling ? t('explore.canceling') : t('common.cancel')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -405,11 +438,13 @@ export function ExploreEmptyState({
   title: string;
   subtitle: string;
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>{icon}</Text>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySubtitle}>{subtitle}</Text>
+    <View style={s.emptyState}>
+      <Text style={s.emptyIcon}>{icon}</Text>
+      <Text style={s.emptyTitle}>{title}</Text>
+      <Text style={s.emptySubtitle}>{subtitle}</Text>
     </View>
   );
 }
@@ -422,12 +457,14 @@ type LeaderboardProps = {
 };
 
 const RANK_CONFIG = [
-  { color: C.gold, glowColor: 'rgba(255,209,102,0.18)', borderColor: 'rgba(255,209,102,0.45)', label: 'I', icon: 'award' as const },
-  { color: C.silver, glowColor: 'rgba(176,190,197,0.14)', borderColor: 'rgba(176,190,197,0.35)', label: 'II', icon: 'award' as const },
-  { color: C.bronze, glowColor: 'rgba(205,124,74,0.14)', borderColor: 'rgba(205,124,74,0.35)', label: 'III', icon: 'award' as const },
+  { color: ACCENT.gold, glowColor: 'rgba(255,209,102,0.18)', borderColor: 'rgba(255,209,102,0.45)', label: 'I', icon: 'award' as const },
+  { color: ACCENT.silver, glowColor: 'rgba(176,190,197,0.14)', borderColor: 'rgba(176,190,197,0.35)', label: 'II', icon: 'award' as const },
+  { color: ACCENT.bronze, glowColor: 'rgba(205,124,74,0.14)', borderColor: 'rgba(205,124,74,0.35)', label: 'III', icon: 'award' as const },
 ];
 
 function LeaderboardPodiumCard({ item, rank, isPlaying, busy, onPlay }: { item: any; rank: number; isPlaying: boolean; busy: boolean; onPlay: () => void }) {
+  const { colors } = useTheme();
+  const lb = useMemo(() => createLbStyles(colors), [colors]);
   const cfg = RANK_CONFIG[rank];
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -451,28 +488,28 @@ function LeaderboardPodiumCard({ item, rank, isPlaying, busy, onPlay }: { item: 
   });
 
   return (
-    <Animated.View style={[lbStyles.podiumCard, { transform: [{ scale: pulseAnim }] }]}>
+    <Animated.View style={[lb.podiumCard, { transform: [{ scale: pulseAnim }] }]}>
       <LinearGradient
-        colors={['rgba(17,22,45,0.98)', 'rgba(10,14,28,0.99)']}
-        style={[lbStyles.podiumCardInner, { borderColor: cfg.borderColor }]}
+        colors={colors.gradientCard}
+        style={[lb.podiumCardInner, { borderColor: cfg.borderColor }]}
       >
-        <View style={[lbStyles.podiumGlow, { backgroundColor: cfg.glowColor }]} />
-        <View style={lbStyles.podiumTop}>
-          <View style={[lbStyles.rankBadge, { borderColor: cfg.borderColor, backgroundColor: cfg.color + '18' }]}>
+        <View style={[lb.podiumGlow, { backgroundColor: cfg.glowColor }]} />
+        <View style={lb.podiumTop}>
+          <View style={[lb.rankBadge, { borderColor: cfg.borderColor, backgroundColor: cfg.color + '18' }]}>
             <Feather name={cfg.icon} size={11} color={cfg.color} />
-            <Text style={[lbStyles.rankLabel, { color: cfg.color }]}>{cfg.label}</Text>
+            <Text style={[lb.rankLabel, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
-          <Text style={lbStyles.podiumListens}>{(item.listens || 0).toLocaleString()}</Text>
+          <Text style={lb.podiumListens}>{(item.listens || 0).toLocaleString()}</Text>
         </View>
-        <Text style={lbStyles.podiumTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={lbStyles.podiumAuthor}>{item.username}</Text>
-        <View style={lbStyles.podiumWave}>
+        <Text style={lb.podiumTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={lb.podiumAuthor}>{item.username}</Text>
+        <View style={lb.podiumWave}>
           {bars.map((h, i) => (
-            <View key={i} style={[lbStyles.podiumBar, { height: h, backgroundColor: isPlaying ? cfg.color : cfg.color + '44' }]} />
+            <View key={i} style={[lb.podiumBar, { height: h, backgroundColor: isPlaying ? cfg.color : cfg.color + '44' }]} />
           ))}
         </View>
         <TouchableOpacity
-          style={[lbStyles.podiumPlay, { borderColor: cfg.borderColor }]}
+          style={[lb.podiumPlay, { borderColor: cfg.borderColor }]}
           onPress={onPlay}
           disabled={busy}
         >
@@ -484,51 +521,55 @@ function LeaderboardPodiumCard({ item, rank, isPlaying, busy, onPlay }: { item: 
 }
 
 function LeaderboardRow({ item, rank, isPlaying, busy, onPlay }: { item: any; rank: number; isPlaying: boolean; busy: boolean; onPlay: () => void }) {
+  const { colors } = useTheme();
+  const lb = useMemo(() => createLbStyles(colors), [colors]);
   return (
-    <TouchableOpacity style={lbStyles.row} onPress={onPlay} disabled={busy} activeOpacity={0.82}>
-      <View style={lbStyles.rowRank}>
-        <Text style={lbStyles.rowRankNum}>{rank + 1}</Text>
+    <TouchableOpacity style={lb.row} onPress={onPlay} disabled={busy} activeOpacity={0.82}>
+      <View style={lb.rowRank}>
+        <Text style={lb.rowRankNum}>{rank + 1}</Text>
       </View>
-      <View style={lbStyles.rowInfo}>
-        <Text style={lbStyles.rowTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={lbStyles.rowMeta}>{item.username} · {(item.listens || 0).toLocaleString()} ascolti</Text>
+      <View style={lb.rowInfo}>
+        <Text style={lb.rowTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={lb.rowMeta}>{item.username} · {(item.listens || 0).toLocaleString()} ascolti</Text>
       </View>
-      <View style={[lbStyles.rowPlay, isPlaying && lbStyles.rowPlayActive]}>
-        <Feather name={isPlaying ? 'pause' : 'play'} size={15} color={isPlaying ? C.cyan : C.textDim} style={!isPlaying ? { marginLeft: 1 } : undefined} />
+      <View style={[lb.rowPlay, isPlaying && lb.rowPlayActive]}>
+        <Feather name={isPlaying ? 'pause' : 'play'} size={15} color={isPlaying ? ACCENT.cyan : colors.textSecondary} style={!isPlaying ? { marginLeft: 1 } : undefined} />
       </View>
     </TouchableOpacity>
   );
 }
 
 export function ExploreLeaderboard({ items, playingId, busy, onPlay }: LeaderboardProps) {
+  const { colors } = useTheme();
+  const lb = useMemo(() => createLbStyles(colors), [colors]);
   const podium = items.slice(0, 3);
   const rest = items.slice(3);
 
   if (items.length === 0) {
     return (
-      <View style={lbStyles.empty}>
-        <View style={lbStyles.emptyIcon}>
-          <Feather name="bar-chart-2" size={28} color={C.gold} />
+      <View style={lb.empty}>
+        <View style={lb.emptyIcon}>
+          <Feather name="bar-chart-2" size={28} color={ACCENT.gold} />
         </View>
-        <Text style={lbStyles.emptyTitle}>Classifica vuota</Text>
-        <Text style={lbStyles.emptySubtitle}>Nessun ascolto registrato ancora. Sii il primo a salire in vetta.</Text>
+        <Text style={lb.emptyTitle}>Classifica vuota</Text>
+        <Text style={lb.emptySubtitle}>Nessun ascolto registrato ancora. Sii il primo a salire in vetta.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={lbStyles.container}>
-      <View style={lbStyles.header}>
-        <View style={lbStyles.headerIconWrap}>
-          <Feather name="bar-chart-2" size={18} color={C.gold} />
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={lb.container}>
+      <View style={lb.header}>
+        <View style={lb.headerIconWrap}>
+          <Feather name="bar-chart-2" size={18} color={ACCENT.gold} />
         </View>
         <View>
-          <Text style={lbStyles.headerCaption}>GLOBAL CHARTS</Text>
-          <Text style={lbStyles.headerTitle}>Top suoni</Text>
+          <Text style={lb.headerCaption}>GLOBAL CHARTS</Text>
+          <Text style={lb.headerTitle}>Top suoni</Text>
         </View>
       </View>
 
-      <View style={lbStyles.podiumRow}>
+      <View style={lb.podiumRow}>
         {podium.map((item, i) => (
           <LeaderboardPodiumCard
             key={item.id}
@@ -542,8 +583,8 @@ export function ExploreLeaderboard({ items, playingId, busy, onPlay }: Leaderboa
       </View>
 
       {rest.length > 0 && (
-        <View style={lbStyles.restSection}>
-          <Text style={lbStyles.restCaption}>A SEGUIRE</Text>
+        <View style={lb.restSection}>
+          <Text style={lb.restCaption}>A SEGUIRE</Text>
           {rest.map((item, i) => (
             <LeaderboardRow
               key={item.id}
@@ -560,205 +601,209 @@ export function ExploreLeaderboard({ items, playingId, busy, onPlay }: Leaderboa
   );
 }
 
-const lbStyles = StyleSheet.create({
-  container: { paddingBottom: 40 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  headerIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,209,102,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,209,102,0.3)',
-  },
-  headerCaption: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.6,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    color: C.text,
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  podiumRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 14,
-    gap: 8,
-    marginBottom: 20,
-  },
-  podiumCard: { flex: 1 },
-  podiumCardInner: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 12,
-    overflow: 'hidden',
-    minHeight: 150,
-  },
-  podiumGlow: {
-    position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  podiumTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rankBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  rankLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  podiumListens: {
-    color: C.textMute,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  podiumTitle: {
-    color: C.text,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginBottom: 3,
-    lineHeight: 16,
-  },
-  podiumAuthor: {
-    color: C.textMute,
-    fontSize: 10,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  podiumWave: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    height: 22,
-    marginBottom: 8,
-  },
-  podiumBar: {
-    width: 3,
-    borderRadius: 2,
-  },
-  podiumPlay: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  restSection: {
-    paddingHorizontal: 16,
-  },
-  restCaption: {
-    color: C.textMute,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    marginBottom: 10,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(163,177,255,0.08)',
-  },
-  rowRank: {
-    width: 28,
-    alignItems: 'center',
-  },
-  rowRankNum: {
-    color: C.textMute,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  rowInfo: { flex: 1 },
-  rowTitle: {
-    color: C.text,
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 3,
-  },
-  rowMeta: {
-    color: C.textMute,
-    fontSize: 11,
-  },
-  rowPlay: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: C.border,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowPlayActive: {
-    borderColor: 'rgba(103,232,249,0.35)',
-    backgroundColor: 'rgba(103,232,249,0.08)',
-  },
-  empty: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 40,
-  },
-  emptyIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,209,102,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,209,102,0.25)',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    color: C.text,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    color: C.textMute,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-});
+function createLbStyles(colors: import('../../constants/themes').ThemeColors) {
+  return StyleSheet.create({
+    container: { paddingBottom: 40 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 18,
+      paddingTop: 8,
+      paddingBottom: 16,
+    },
+    headerIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,209,102,0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,209,102,0.3)',
+    },
+    headerCaption: {
+      color: ACCENT.gold,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.6,
+      marginBottom: 2,
+    },
+    headerTitle: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+    },
+    podiumRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 14,
+      gap: 8,
+      marginBottom: 20,
+    },
+    podiumCard: { flex: 1 },
+    podiumCardInner: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 12,
+      overflow: 'hidden',
+      minHeight: 150,
+    },
+    podiumGlow: {
+      position: 'absolute',
+      top: -20,
+      right: -20,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+    },
+    podiumTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    rankBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    rankLabel: {
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    podiumListens: {
+      color: colors.textMuted,
+      fontSize: 9,
+      fontWeight: '700',
+    },
+    podiumTitle: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+      marginBottom: 3,
+      lineHeight: 16,
+    },
+    podiumAuthor: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    podiumWave: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 2,
+      height: 22,
+      marginBottom: 8,
+    },
+    podiumBar: {
+      width: 3,
+      borderRadius: 2,
+    },
+    podiumPlay: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceLight,
+    },
+    restSection: {
+      paddingHorizontal: 16,
+    },
+    restCaption: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.4,
+      marginBottom: 10,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    rowRank: {
+      width: 28,
+      alignItems: 'center',
+    },
+    rowRankNum: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '900',
+    },
+    rowInfo: { flex: 1 },
+    rowTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+      marginBottom: 3,
+    },
+    rowMeta: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+    rowPlay: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowPlayActive: {
+      borderColor: 'rgba(103,232,249,0.35)',
+      backgroundColor: 'rgba(103,232,249,0.08)',
+    },
+    empty: {
+      alignItems: 'center',
+      paddingTop: 60,
+      paddingHorizontal: 40,
+    },
+    emptyIcon: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,209,102,0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,209,102,0.25)',
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '800',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 19,
+    },
+  });
+}
 
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  const C = buildC(colors);
+  return StyleSheet.create({
   header: {
     paddingHorizontal: 18,
     paddingTop: 8,
@@ -1210,3 +1255,4 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
 });
+}

@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
   Alert, StyleSheet,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import PodcastCard from '../components/PodcastCard';
@@ -24,6 +26,8 @@ interface Props {
 
 export default function PlaylistDetailScreen({ playlistId, playlistName, onBack }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [playlist, setPlaylist]       = useState<Playlist | null>(null);
   const [episodes, setEpisodes]       = useState<Podcast[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -95,7 +99,7 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={s.header}>
@@ -188,63 +192,65 @@ export default function PlaylistDetailScreen({ playlistId, playlistName, onBack 
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  root: { flex: 1 },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1 },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center',
-  },
-  backTxt: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center', fontStyle: 'italic' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center',
+    },
+    backTxt: { color: colors.text, fontSize: 22, fontWeight: '700' },
+    headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.text, textAlign: 'center', fontStyle: 'italic' },
 
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  emptyContainer: { flexGrow: 1 },
-  listContent: { padding: 16, gap: 10 },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+    emptyContainer: { flexGrow: 1 },
+    listContent: { padding: 16, gap: 10 },
 
-  emptyIcon: { fontSize: 48 },
-  emptyTxt: { fontSize: 14, color: 'rgba(255,255,255,0.35)', textAlign: 'center', lineHeight: 21 },
-  errorIcon: { fontSize: 36 },
-  errorTxt: { fontSize: 14, color: 'rgba(255,100,100,0.9)', textAlign: 'center' },
+    emptyIcon: { fontSize: 48 },
+    emptyTxt: { fontSize: 14, color: colors.textMuted, textAlign: 'center', lineHeight: 21 },
+    errorIcon: { fontSize: 36 },
+    errorTxt: { fontSize: 14, color: 'rgba(255,100,100,0.9)', textAlign: 'center' },
 
-  // Episode row
-  episodeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
-  nowPlayingDot: {
-    width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF9C',
-    alignSelf: 'center', flexShrink: 0,
-  },
-  cardWrap: { flex: 1 },
-  removeBtn: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  removeTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+    // Episode row
+    episodeRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+    },
+    nowPlayingDot: {
+      width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF9C',
+      alignSelf: 'center', flexShrink: 0,
+    },
+    cardWrap: { flex: 1 },
+    removeBtn: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    },
+    removeTxt: { color: colors.textMuted, fontSize: 12 },
 
-  // Player bottom sheet
-  playerWrap: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#0A0A0A',
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    borderTopWidth: 1, borderColor: 'rgba(0,255,156,0.2)',
-    paddingBottom: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5, shadowRadius: 12, elevation: 20,
-  },
-  playerHandle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginTop: 10,
-  },
-  playerNav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4,
-  },
-  playerNavTxt: { flex: 1, fontSize: 12, color: '#00FF9C', fontFamily: 'monospace' },
-  playerCloseTxt: { color: 'rgba(255,255,255,0.4)', fontSize: 16, paddingLeft: 12 },
-});
+    // Player bottom sheet
+    playerWrap: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      backgroundColor: colors.bgCard,
+      borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      borderTopWidth: 1, borderColor: 'rgba(0,255,156,0.2)',
+      paddingBottom: 16,
+      shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.5, shadowRadius: 12, elevation: 20,
+    },
+    playerHandle: {
+      width: 36, height: 4, borderRadius: 2,
+      backgroundColor: colors.borderSubtle, alignSelf: 'center', marginTop: 10,
+    },
+    playerNav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4,
+    },
+    playerNavTxt: { flex: 1, fontSize: 12, color: '#00FF9C', fontFamily: 'monospace' },
+    playerCloseTxt: { color: colors.textMuted, fontSize: 16, paddingLeft: 12 },
+  });
+}

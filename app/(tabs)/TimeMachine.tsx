@@ -1,5 +1,5 @@
 // screens/TimeMachine.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -21,23 +21,27 @@ import {
   incrementListens,
 } from '../../services/firebaseService';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
+import { ThemeColors } from '../../constants/themes';
 
 const { width } = Dimensions.get('window');
 
 export default function TimeMachineScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [userLocation, setUserLocation] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [timelineData, setTimelineData] = useState<any[]>([]);
   const [selectedSound, setSelectedSound] = useState<any | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  
+
   // Time controls
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [timeRange, setTimeRange] = useState('day'); // day, week, month, year
   const [selectedHour, setSelectedHour] = useState(12);
-  
+
   // Stats
   const [locationStats, setLocationStats] = useState<any | null>(null);
   const [compareMode, setCompareMode] = useState(false);
@@ -74,7 +78,7 @@ export default function TimeMachineScreen() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       };
-      
+
       setUserLocation(userPos);
       setLoading(false);
     } catch (error) {
@@ -89,7 +93,7 @@ export default function TimeMachineScreen() {
 
     try {
       setLoading(true);
-      
+
       // Get timeline data for this location
       const timeline = await getSoundTimeline(
         userLocation,
@@ -97,7 +101,7 @@ export default function TimeMachineScreen() {
         timeRange,
         selectedHour
       );
-      
+
       setTimelineData(timeline.sounds || []);
       setLocationStats(timeline.stats || null);
     } catch (error) {
@@ -168,13 +172,13 @@ export default function TimeMachineScreen() {
   };
 
   const getMoodColor = (mood: string) => {
-    const colors = {
+    const moodColors = {
       Energico: '#f97316',
       Rilassante: '#3b82f6',
       Gioioso: '#eab308',
       Nostalgico: '#a855f7',
     };
-    return colors[mood as keyof typeof colors] || '#6b7280';
+    return moodColors[mood as keyof typeof moodColors] || '#6b7280';
   };
 
   const formatDate = (date: Date) => {
@@ -196,10 +200,10 @@ export default function TimeMachineScreen() {
 
   if (loading && !userLocation) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={['#0A0A0A', '#161616']} style={StyleSheet.absoluteFill} />
+      <View style={s.loadingContainer}>
+        <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#00FF9C" />
-        <Text style={styles.loadingText}>{t('timeMachine.loading')}</Text>
+        <Text style={s.loadingText}>{t('timeMachine.loading')}</Text>
       </View>
     );
   }
@@ -207,35 +211,35 @@ export default function TimeMachineScreen() {
   const timeOfDay = getTimeOfDay(selectedHour);
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#07080C', '#0A0A0A', '#11131A']} style={StyleSheet.absoluteFill} />
-      <View style={styles.ambientA} />
-      <View style={styles.ambientB} />
-      
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <View style={s.container}>
+      <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
+      <View style={s.ambientA} />
+      <View style={s.ambientB} />
+
+      <ScrollView style={s.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
           colors={['#3b82f6', '#8b5cf6']}
-          style={styles.header}
+          style={s.header}
         >
-          <Text style={styles.headerEmoji}>⏰</Text>
-          <Text style={styles.headerTitle}>{t('timeMachine.title')}</Text>
-          <Text style={styles.headerSubtitle}>{t('timeMachine.subtitle')}</Text>
+          <Text style={s.headerEmoji}>⏰</Text>
+          <Text style={s.headerTitle}>{t('timeMachine.title')}</Text>
+          <Text style={s.headerSubtitle}>{t('timeMachine.subtitle')}</Text>
         </LinearGradient>
 
         {/* Date Selector */}
-        <View style={styles.dateCard}>
-          <View style={styles.dateHeader}>
+        <View style={s.dateCard}>
+          <View style={s.dateHeader}>
             <TouchableOpacity
-              style={styles.dateNavButton}
+              style={s.dateNavButton}
               onPress={() => jumpToDate(-1)}
             >
-              <Text style={styles.dateNavText}>◀</Text>
+              <Text style={s.dateNavText}>◀</Text>
             </TouchableOpacity>
-            
-            <View style={styles.dateInfo}>
-              <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
-              <Text style={styles.dateSubtext}>
+
+            <View style={s.dateInfo}>
+              <Text style={s.dateText}>{formatDate(selectedDate)}</Text>
+              <Text style={s.dateSubtext}>
                 {selectedDate.toLocaleDateString() === new Date().toLocaleDateString()
                   ? t('timeMachine.todayLabel')
                   : t('timeMachine.daysAgo', { count: Math.floor((new Date().getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24)) })}
@@ -244,98 +248,98 @@ export default function TimeMachineScreen() {
 
             <TouchableOpacity
               style={[
-                styles.dateNavButton,
-                selectedDate >= new Date() && styles.dateNavButtonDisabled
+                s.dateNavButton,
+                selectedDate >= new Date() && s.dateNavButtonDisabled
               ]}
               onPress={() => jumpToDate(1)}
               disabled={selectedDate >= new Date()}
             >
-              <Text style={styles.dateNavText}>▶</Text>
+              <Text style={s.dateNavText}>▶</Text>
             </TouchableOpacity>
           </View>
 
           {/* Quick Jump */}
-          <View style={styles.quickJump}>
+          <View style={s.quickJump}>
             <TouchableOpacity
-              style={styles.quickJumpButton}
+              style={s.quickJumpButton}
               onPress={() => setSelectedDate(new Date())}
             >
-              <Text style={styles.quickJumpText}>{t('timeMachine.today')}</Text>
+              <Text style={s.quickJumpText}>{t('timeMachine.today')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.quickJumpButton}
+              style={s.quickJumpButton}
               onPress={() => jumpToDate(-7)}
             >
-              <Text style={styles.quickJumpText}>{t('timeMachine.weekMinus')}</Text>
+              <Text style={s.quickJumpText}>{t('timeMachine.weekMinus')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.quickJumpButton}
+              style={s.quickJumpButton}
               onPress={() => jumpToDate(-30)}
             >
-              <Text style={styles.quickJumpText}>{t('timeMachine.monthMinus')}</Text>
+              <Text style={s.quickJumpText}>{t('timeMachine.monthMinus')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.quickJumpButton}
+              style={s.quickJumpButton}
               onPress={() => jumpToDate(-365)}
             >
-              <Text style={styles.quickJumpText}>{t('timeMachine.yearMinus')}</Text>
+              <Text style={s.quickJumpText}>{t('timeMachine.yearMinus')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Hour Slider */}
-        <View style={styles.hourCard}>
-          <View style={styles.hourHeader}>
-            <Text style={styles.hourEmoji}>{timeOfDay.emoji}</Text>
+        <View style={s.hourCard}>
+          <View style={s.hourHeader}>
+            <Text style={s.hourEmoji}>{timeOfDay.emoji}</Text>
             <View>
-              <Text style={styles.hourLabel}>{timeOfDay.label}</Text>
-              <Text style={styles.hourTime}>
+              <Text style={s.hourLabel}>{timeOfDay.label}</Text>
+              <Text style={s.hourTime}>
                 {selectedHour.toString().padStart(2, '0')}:00
               </Text>
             </View>
           </View>
-          
+
           <Slider
-            style={styles.slider}
+            style={s.slider}
             minimumValue={0}
             maximumValue={23}
             step={1}
             value={selectedHour}
             onValueChange={setSelectedHour}
             minimumTrackTintColor="#00FF9C"
-            maximumTrackTintColor="rgba(255,255,255,0.08)"
+            maximumTrackTintColor={colors.borderSubtle}
             thumbTintColor="#00FF9C"
           />
 
-          <View style={styles.hourMarkers}>
-            <Text style={styles.hourMarker}>00:00</Text>
-            <Text style={styles.hourMarker}>06:00</Text>
-            <Text style={styles.hourMarker}>12:00</Text>
-            <Text style={styles.hourMarker}>18:00</Text>
-            <Text style={styles.hourMarker}>23:00</Text>
+          <View style={s.hourMarkers}>
+            <Text style={s.hourMarker}>00:00</Text>
+            <Text style={s.hourMarker}>06:00</Text>
+            <Text style={s.hourMarker}>12:00</Text>
+            <Text style={s.hourMarker}>18:00</Text>
+            <Text style={s.hourMarker}>23:00</Text>
           </View>
         </View>
 
         {/* Stats Card */}
         {locationStats && (
-          <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>{t('timeMachine.statsTitle')}</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{locationStats.totalSounds}</Text>
-                <Text style={styles.statLabel}>{t('timeMachine.totalSounds')}</Text>
+          <View style={s.statsCard}>
+            <Text style={s.statsTitle}>{t('timeMachine.statsTitle')}</Text>
+            <View style={s.statsGrid}>
+              <View style={s.statItem}>
+                <Text style={s.statValue}>{locationStats.totalSounds}</Text>
+                <Text style={s.statLabel}>{t('timeMachine.totalSounds')}</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{locationStats.uniqueUsers}</Text>
-                <Text style={styles.statLabel}>{t('timeMachine.users')}</Text>
+              <View style={s.statItem}>
+                <Text style={s.statValue}>{locationStats.uniqueUsers}</Text>
+                <Text style={s.statLabel}>{t('timeMachine.users')}</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{locationStats.mostPopularMood}</Text>
-                <Text style={styles.statLabel}>{t('timeMachine.topMood')}</Text>
+              <View style={s.statItem}>
+                <Text style={s.statValue}>{locationStats.mostPopularMood}</Text>
+                <Text style={s.statLabel}>{t('timeMachine.topMood')}</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{locationStats.avgDuration}s</Text>
-                <Text style={styles.statLabel}>{t('timeMachine.avgDuration')}</Text>
+              <View style={s.statItem}>
+                <Text style={s.statValue}>{locationStats.avgDuration}s</Text>
+                <Text style={s.statLabel}>{t('timeMachine.avgDuration')}</Text>
               </View>
             </View>
           </View>
@@ -343,43 +347,43 @@ export default function TimeMachineScreen() {
 
         {/* Compare Mode Toggle */}
         <TouchableOpacity
-          style={[styles.compareButton, compareMode && styles.compareButtonActive]}
+          style={[s.compareButton, compareMode && s.compareButtonActive]}
           onPress={toggleCompareMode}
         >
-          <Text style={styles.compareButtonText}>
+          <Text style={s.compareButtonText}>
             {compareMode ? t('timeMachine.compareModeOn') : t('timeMachine.comparePast')}
           </Text>
         </TouchableOpacity>
 
         {/* Timeline */}
-        <View style={styles.timelineSection}>
-          <Text style={styles.sectionTitle}>
+        <View style={s.timelineSection}>
+          <Text style={s.sectionTitle}>
             {t('timeMachine.soundsAt', { date: formatDate(selectedDate), hour: selectedHour })}
           </Text>
 
           {loading ? (
-            <View style={styles.loadingState}>
+            <View style={s.loadingState}>
               <ActivityIndicator size="large" color="#00FF9C" />
             </View>
           ) : timelineData.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔇</Text>
-              <Text style={styles.emptyText}>{t('timeMachine.noSounds')}</Text>
-              <Text style={styles.emptySubtext}>{t('timeMachine.noSoundsHint')}</Text>
+            <View style={s.emptyState}>
+              <Text style={s.emptyIcon}>🔇</Text>
+              <Text style={s.emptyText}>{t('timeMachine.noSounds')}</Text>
+              <Text style={s.emptySubtext}>{t('timeMachine.noSoundsHint')}</Text>
             </View>
           ) : (
             timelineData.map((soundData) => (
-              <View key={soundData.id} style={styles.soundCard}>
-                <View style={styles.soundHeader}>
-                  <View style={styles.soundUser}>
-                    <View style={[styles.avatar, soundData.userPhoto ? { overflow: 'hidden', backgroundColor: 'transparent' } : null]}>
+              <View key={soundData.id} style={s.soundCard}>
+                <View style={s.soundHeader}>
+                  <View style={s.soundUser}>
+                    <View style={[s.avatar, soundData.userPhoto ? { overflow: 'hidden', backgroundColor: 'transparent' } : null]}>
                       {soundData.userPhoto
                         ? <Image source={{ uri: soundData.userPhoto }} style={{ width: 40, height: 40, borderRadius: 20 }} />
-                        : <Text style={styles.avatarText}>{soundData.userAvatar}</Text>}
+                        : <Text style={s.avatarText}>{soundData.userAvatar}</Text>}
                     </View>
                     <View>
-                      <Text style={styles.userName}>{soundData.username}</Text>
-                      <Text style={styles.soundTime}>
+                      <Text style={s.userName}>{soundData.username}</Text>
+                      <Text style={s.soundTime}>
                         {new Date(soundData.createdAt).toLocaleTimeString('it-IT', {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -389,33 +393,33 @@ export default function TimeMachineScreen() {
                   </View>
                   <View
                     style={[
-                      styles.moodBadge,
+                      s.moodBadge,
                       { backgroundColor: getMoodColor(soundData.mood) }
                     ]}
                   >
-                    <Text style={styles.moodText}>{soundData.mood}</Text>
+                    <Text style={s.moodText}>{soundData.mood}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.soundTitle}>{soundData.title}</Text>
+                <Text style={s.soundTitle}>{soundData.title}</Text>
                 {soundData.description && (
-                  <Text style={styles.soundDescription}>{soundData.description}</Text>
+                  <Text style={s.soundDescription}>{soundData.description}</Text>
                 )}
 
-                <View style={styles.soundStats}>
-                  <Text style={styles.soundStat}>❤️ {soundData.likes}</Text>
-                  <Text style={styles.soundStat}>🎧 {soundData.listens}</Text>
-                  <Text style={styles.soundStat}>⏱️ {soundData.duration}s</Text>
+                <View style={s.soundStats}>
+                  <Text style={s.soundStat}>❤️ {soundData.likes}</Text>
+                  <Text style={s.soundStat}>🎧 {soundData.listens}</Text>
+                  <Text style={s.soundStat}>⏱️ {soundData.duration}s</Text>
                 </View>
 
                 <TouchableOpacity
                   style={[
-                    styles.playButton,
-                    playingId === soundData.id && styles.playButtonActive
+                    s.playButton,
+                    playingId === soundData.id && s.playButtonActive
                   ]}
                   onPress={() => handlePlaySound(soundData)}
                 >
-                  <Text style={styles.playButtonText}>
+                  <Text style={s.playButtonText}>
                     {playingId === soundData.id ? t('timeMachine.pause') : t('timeMachine.listen')}
                   </Text>
                 </TouchableOpacity>
@@ -426,27 +430,27 @@ export default function TimeMachineScreen() {
 
         {/* Compare Section */}
         {compareMode && compareSounds.length > 0 && (
-          <View style={styles.compareSection}>
-            <Text style={styles.sectionTitle}>
+          <View style={s.compareSection}>
+            <Text style={s.sectionTitle}>
               {t('timeMachine.comparison', { date: compareDate ? formatDate(compareDate) : '' })}
             </Text>
             {compareSounds.map((soundData) => (
-              <View key={soundData.id} style={styles.soundCardCompare}>
-                <View style={styles.soundHeader}>
-                  <Text style={styles.userName}>{soundData.username}</Text>
-                  <Text style={styles.soundTime}>
+              <View key={soundData.id} style={s.soundCardCompare}>
+                <View style={s.soundHeader}>
+                  <Text style={s.userName}>{soundData.username}</Text>
+                  <Text style={s.soundTime}>
                     {new Date(soundData.createdAt).toLocaleTimeString('it-IT', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
                   </Text>
                 </View>
-                <Text style={styles.soundTitle}>{soundData.title}</Text>
+                <Text style={s.soundTitle}>{soundData.title}</Text>
                 <TouchableOpacity
-                  style={styles.playButtonSmall}
+                  style={s.playButtonSmall}
                   onPress={() => handlePlaySound(soundData)}
                 >
-                  <Text style={styles.playButtonText}>
+                  <Text style={s.playButtonText}>
                     {playingId === soundData.id ? '⏸' : '▶️'}
                   </Text>
                 </TouchableOpacity>
@@ -461,366 +465,368 @@ export default function TimeMachineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0A',
-  },
-  ambientA: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: 'rgba(99,214,255,0.08)',
-  },
-  ambientB: {
-    position: 'absolute',
-    top: 70,
-    right: -30,
-    width: 200,
-    height: 200,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,255,156,0.08)',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#94a3b8',
-    marginTop: 16,
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    alignItems: 'center',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    marginBottom: 16,
-    marginHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
-  headerEmoji: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  dateCard: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 22,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  dateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  dateNavButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dateNavButtonDisabled: {
-    opacity: 0.3,
-  },
-  dateNavText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  dateInfo: {
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 16,
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  dateSubtext: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginTop: 4,
-  },
-  quickJump: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  quickJumpButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  quickJumpText: {
-    color: '#00FF9C',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  hourCard: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 22,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  hourHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  hourEmoji: {
-    fontSize: 32,
-  },
-  hourLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  hourTime: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#00FF9C',
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  hourMarkers: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  hourMarker: {
-    fontSize: 10,
-    color: '#64748b',
-  },
-  statsCard: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 22,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  statsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    padding: 12,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#00FF9C',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 4,
-  },
-  compareButton: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    marginHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  compareButtonActive: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#a78bfa',
-  },
-  compareButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  timelineSection: {
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  loadingState: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyState: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 22,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 12,
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  soundCard: {
-    backgroundColor: 'rgba(8,12,18,0.82)',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(125,255,208,0.16)',
-  },
-  soundHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  soundUser: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#00FF9C',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  soundTime: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  moodBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  moodText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  soundTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  soundDescription: {
-    fontSize: 13,
-    color: '#cbd5e1',
-    marginBottom: 12,
-  },
-  soundStats: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
-  },
-  soundStat: {
-    fontSize: 12,
-    color: '#94a3b8',
-  },
-  playButton: {
-    backgroundColor: '#00FF9C',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  playButtonActive: {
-    backgroundColor: '#f97316',
-  },
-  playButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  compareSection: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  soundCardCompare: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#a78bfa',
-  },
-  playButtonSmall: {
-    backgroundColor: '#8b5cf6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    ambientA: {
+      position: 'absolute',
+      top: -20,
+      left: -20,
+      width: 180,
+      height: 180,
+      borderRadius: 999,
+      backgroundColor: 'rgba(99,214,255,0.08)',
+    },
+    ambientB: {
+      position: 'absolute',
+      top: 70,
+      right: -30,
+      width: 200,
+      height: 200,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,255,156,0.08)',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      color: colors.textSecondary,
+      marginTop: 16,
+      fontSize: 16,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    header: {
+      padding: 24,
+      paddingTop: 60,
+      alignItems: 'center',
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      marginBottom: 16,
+      marginHorizontal: 16,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    headerEmoji: {
+      fontSize: 48,
+      marginBottom: 8,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: '#fff',
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.8)',
+    },
+    dateCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 22,
+      padding: 16,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    dateHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    dateNavButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceLight,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    dateNavButtonDisabled: {
+      opacity: 0.3,
+    },
+    dateNavText: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    dateInfo: {
+      flex: 1,
+      alignItems: 'center',
+      marginHorizontal: 16,
+    },
+    dateText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    dateSubtext: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    quickJump: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    quickJumpButton: {
+      flex: 1,
+      backgroundColor: colors.surfaceLight,
+      paddingVertical: 8,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    quickJumpText: {
+      color: '#00FF9C',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    hourCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 22,
+      padding: 16,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    hourHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    hourEmoji: {
+      fontSize: 32,
+    },
+    hourLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    hourTime: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: '#00FF9C',
+    },
+    slider: {
+      width: '100%',
+      height: 40,
+    },
+    hourMarkers: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
+    hourMarker: {
+      fontSize: 10,
+      color: colors.textMuted,
+    },
+    statsCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 22,
+      padding: 16,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statsTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statItem: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: colors.surfaceLight,
+      borderRadius: 16,
+      padding: 12,
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: '#00FF9C',
+    },
+    statLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    compareButton: {
+      backgroundColor: colors.surfaceLight,
+      marginHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginBottom: 16,
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    compareButtonActive: {
+      backgroundColor: '#8b5cf6',
+      borderColor: '#a78bfa',
+    },
+    compareButtonText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    timelineSection: {
+      paddingHorizontal: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    loadingState: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyState: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 22,
+      padding: 32,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: colors.text,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    emptySubtext: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    soundCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    soundHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    soundUser: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#00FF9C',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      fontSize: 20,
+    },
+    userName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    soundTime: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    moodBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    moodText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#fff',
+    },
+    soundTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    soundDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    soundStats: {
+      flexDirection: 'row',
+      gap: 16,
+      marginBottom: 12,
+    },
+    soundStat: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    playButton: {
+      backgroundColor: '#00FF9C',
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    playButtonActive: {
+      backgroundColor: '#f97316',
+    },
+    playButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    compareSection: {
+      paddingHorizontal: 16,
+      marginTop: 24,
+    },
+    soundCardCompare: {
+      backgroundColor: 'rgba(139, 92, 246, 0.2)',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: '#a78bfa',
+    },
+    playButtonSmall: {
+      backgroundColor: '#8b5cf6',
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+  });
+}

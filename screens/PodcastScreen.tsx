@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, Animated, Image, StatusBar,
@@ -48,6 +50,8 @@ function fmtTime(secs: number) {
 // ─── Player modal ─────────────────────────────────────────────────────────────
 function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast; onClose: () => void; currentUsername: string }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const pl = useMemo(() => createPlStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [position, setPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -298,7 +302,7 @@ function PodcastPlayer({ podcast, onClose, currentUsername }: { podcast: Podcast
   return (
     <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <StatusBar hidden />
-      <LinearGradient colors={['#050508', '#0D0D1A', '#1A0A2E']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
       <View style={pl.orb} />
 
       <KeyboardAvoidingView
@@ -468,6 +472,8 @@ function PodcastCard({
   const isOwn = auth.currentUser?.uid === item.userId;
 
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const pc = useMemo(() => createPcStyles(colors), [colors]);
   const showMenu = () => {
     Alert.alert(item.title, '', [
       { text: t('podcast.editMenu'), onPress: onEdit },
@@ -520,6 +526,9 @@ function EditPodcastModal({
   const [coverUri, setCoverUri] = useState<string | null | undefined>(undefined); // undefined = invariata
   const [coverPreview, setCoverPreview] = useState<string | null>(podcast.coverUrl);
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const pm = useMemo(() => createPmStyles(colors), [colors]);
+  const pc = useMemo(() => createPcStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
 
   const pickCover = async () => {
@@ -561,7 +570,7 @@ function EditPodcastModal({
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={pm.overlay}>
         <View style={pm.sheet}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
+          <LinearGradient colors={colors.gradientCard} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           <View style={pm.handle} />
           <Text style={pm.sheetTitle}>{t('podcast.editTitle')}</Text>
 
@@ -625,6 +634,9 @@ function SoundSearchView({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const pm = useMemo(() => createPmStyles(colors), [colors]);
+  const ss = useMemo(() => createSsStyles(colors), [colors]);
   const [queryText, setQueryText] = useState('');
   const [results, setResults] = useState<SoundResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -762,6 +774,9 @@ const tc = StyleSheet.create({
 // ─── Publish modal ────────────────────────────────────────────────────────────
 function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const pm = useMemo(() => createPmStyles(colors), [colors]);
+  const ss = useMemo(() => createSsStyles(colors), [colors]);
   const TUTORIAL_STEPS = getTutorialSteps(t);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -1011,7 +1026,7 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
     >
       <View style={pm.overlay}>
         <View style={pm.sheet}>
-          <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
+          <LinearGradient colors={colors.gradientCard} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
           <View style={pm.handle} />
 
           {showSearch ? (
@@ -1163,6 +1178,10 @@ function PublishModal({ onDone, onClose }: { onDone: () => void; onClose: () => 
 // ─── Main screen ───────────────────────────────────────────────────────────────
 export default function PodcastScreen({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const sc = useMemo(() => createScStyles(colors), [colors]);
+  const pm = useMemo(() => createPmStyles(colors), [colors]);
+  const pc = useMemo(() => createPcStyles(colors), [colors]);
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Podcast | null>(null);
@@ -1307,7 +1326,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
       )}
       {!compact && (
         <>
-          <LinearGradient colors={['rgba(17,22,45,0.96)', 'rgba(10,14,28,0.96)']} style={sc.hero}>
+          <LinearGradient colors={colors.gradientCard} style={sc.hero}>
             <View style={sc.heroGlow} />
             <Text style={sc.heroEyebrow}>Podcast studio</Text>
             <View style={sc.topBar}>
@@ -1371,7 +1390,7 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
       <Modal visible={playlistModalVisible} transparent animationType="slide" onRequestClose={() => setPlaylistModalVisible(false)}>
         <View style={pm.overlay}>
           <View style={pm.sheet}>
-            <LinearGradient colors={['#0D0D1A', '#1A0A2E']} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
+            <LinearGradient colors={colors.gradientCard} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} />
             <View style={pm.handle} />
             <Text style={pm.sheetTitle}>{t('podcast.addToPlaylistTitle')}</Text>
             {!!playlistTarget && (
@@ -1434,55 +1453,57 @@ export default function PodcastScreen({ compact = false }: { compact?: boolean }
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const pl = StyleSheet.create({
-  orb: { position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: 'rgba(0,255,156,0.05)', top: -60, right: -80 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  headerLabel: { color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1 },
-  coverWrap: { alignItems: 'center', marginVertical: 12 },
-  cover: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(0,255,156,0.2)' },
-  coverFallback: { backgroundColor: '#0D0D1A', alignItems: 'center', justifyContent: 'center' },
-  info: { paddingHorizontal: 24, marginBottom: 12 },
-  podcastTitle: { fontSize: 22, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 4, lineHeight: 28 },
-  podcastHost: { fontSize: 12, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 8 },
-  podcastDesc: { fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 18 },
-  seekSection: { paddingHorizontal: 28, marginBottom: 8 },
-  seekTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative', marginBottom: 6 },
-  seekFill: { height: '100%', backgroundColor: '#00FF9C', borderRadius: 2 },
-  seekThumb: { position: 'absolute', top: -6, marginLeft: -8, width: 16, height: 16, borderRadius: 8, backgroundColor: '#00FF9C', shadowColor: '#00FF9C', shadowOpacity: 0.6, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
-  seekTimes: { flexDirection: 'row', justifyContent: 'space-between' },
-  seekTime: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32, marginBottom: 24 },
-  skipBtn: { padding: 10 },
-  skipTxt: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: 'monospace' },
-  playBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center', shadowColor: '#00FF9C', shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  playIcon: { fontSize: 26, color: '#050508' },
-  speedRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
-  speedBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'transparent' },
-  speedBtnActive: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },
-  speedTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'monospace' },
-  speedTxtActive: { color: '#00FF9C' },
-  actionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingVertical: 16 },
-  actionBtn: { alignItems: 'center', gap: 4 },
-  actionIcon: { fontSize: 24 },
-  actionCount: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' },
-  actionActive: { color: '#00FF9C' },
-  actionActiveRed: { color: '#FF4444' },
-  commentsSection: { maxHeight: 280, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  commentsList: { flexGrow: 0, maxHeight: 180, paddingHorizontal: 16, paddingTop: 8 },
-  noComments: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', paddingVertical: 16 },
-  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  commentUser: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 2 },
-  commentText: { fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 18 },
-  commentInput: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  commentField: { flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: '#fff', fontSize: 14, maxHeight: 80 },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
-  sendTxt: { fontSize: 18, color: '#050508', fontWeight: '700' },
-});
+function createPlStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    orb: { position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: 'rgba(0,255,156,0.05)', top: -60, right: -80 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center' },
+    closeTxt: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    headerLabel: { color: '#00FF9C', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1 },
+    coverWrap: { alignItems: 'center', marginVertical: 12 },
+    cover: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(0,255,156,0.2)' },
+    coverFallback: { backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center' },
+    info: { paddingHorizontal: 24, marginBottom: 12 },
+    podcastTitle: { fontSize: 22, fontWeight: '700', fontStyle: 'italic', color: colors.text, marginBottom: 4, lineHeight: 28 },
+    podcastHost: { fontSize: 12, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 8 },
+    podcastDesc: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    seekSection: { paddingHorizontal: 28, marginBottom: 8 },
+    seekTrack: { height: 4, backgroundColor: colors.surfaceLight, borderRadius: 2, position: 'relative', marginBottom: 6 },
+    seekFill: { height: '100%', backgroundColor: '#00FF9C', borderRadius: 2 },
+    seekThumb: { position: 'absolute', top: -6, marginLeft: -8, width: 16, height: 16, borderRadius: 8, backgroundColor: '#00FF9C', shadowColor: '#00FF9C', shadowOpacity: 0.6, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
+    seekTimes: { flexDirection: 'row', justifyContent: 'space-between' },
+    seekTime: { fontSize: 11, color: colors.textMuted, fontFamily: 'monospace' },
+    controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32, marginBottom: 24 },
+    skipBtn: { padding: 10 },
+    skipTxt: { color: colors.textSecondary, fontSize: 13, fontFamily: 'monospace' },
+    playBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center', shadowColor: '#00FF9C', shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+    playIcon: { fontSize: 26, color: '#050508' },
+    speedRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
+    speedBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: colors.borderSubtle, backgroundColor: 'transparent' },
+    speedBtnActive: { borderColor: '#00FF9C', backgroundColor: 'rgba(0,255,156,0.1)' },
+    speedTxt: { color: colors.textSecondary, fontSize: 12, fontFamily: 'monospace' },
+    speedTxtActive: { color: '#00FF9C' },
+    actionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingVertical: 16 },
+    actionBtn: { alignItems: 'center', gap: 4 },
+    actionIcon: { fontSize: 24 },
+    actionCount: { fontSize: 12, color: colors.textSecondary, fontFamily: 'monospace' },
+    actionActive: { color: '#00FF9C' },
+    actionActiveRed: { color: '#FF4444' },
+    commentsSection: { maxHeight: 280, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
+    commentsList: { flexGrow: 0, maxHeight: 180, paddingHorizontal: 16, paddingTop: 8 },
+    noComments: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 16 },
+    commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+    commentUser: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace', marginBottom: 2 },
+    commentText: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    commentInput: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
+    commentField: { flex: 1, backgroundColor: colors.bgInput, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: colors.text, fontSize: 14, maxHeight: 80 },
+    sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00FF9C', alignItems: 'center', justifyContent: 'center' },
+    sendTxt: { fontSize: 18, color: '#050508', fontWeight: '700' },
+  });
+}
 
-const pc = StyleSheet.create({
-  card: { flexDirection: 'row', backgroundColor: '#0D0D1A', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,255,156,0.1)', padding: 12, gap: 12, alignItems: 'flex-start' },
+function createPcStyles(colors: ThemeColors) { return StyleSheet.create({
+  card: { flexDirection: 'row', backgroundColor: colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(0,255,156,0.1)', padding: 12, gap: 12, alignItems: 'flex-start' },
   cover: { width: 72, height: 72, borderRadius: 10 },
   coverFallback: { backgroundColor: '#1A0A2E', alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
@@ -1496,9 +1517,9 @@ const pc = StyleSheet.create({
   playPillTxt: { color: '#00FF9C', fontSize: 12 },
   menuBtn: { paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
   menuTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 20, letterSpacing: 1 },
-});
+}); }
 
-const sc = StyleSheet.create({
+function createScStyles(colors: ThemeColors) { return StyleSheet.create({
   compactActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1589,12 +1610,12 @@ const sc = StyleSheet.create({
     paddingTop: 8,
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { fontSize: 18, color: '#fff', fontStyle: 'italic', marginBottom: 6 },
-  emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' },
-});
+  emptyTitle: { fontSize: 18, color: colors.text, fontStyle: 'italic', marginBottom: 6 },
+  emptyDesc: { fontSize: 13, color: colors.textMuted, fontFamily: 'monospace' },
+}); }
 
-const pm = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
+function createPmStyles(colors: ThemeColors) { return StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.bgOverlay },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, overflow: 'hidden', maxHeight: '92%' },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 20, fontWeight: '700', fontStyle: 'italic', color: '#fff', marginBottom: 20 },
@@ -1711,16 +1732,16 @@ const pm = StyleSheet.create({
     justifyContent: 'center',
   },
   rerecordTxt: {
-    color: '#9A9A9A',
+    color: colors.textMuted,
     fontSize: 20,
   },
-});
+}); }
 
-const ss = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  soundTitle: { fontSize: 14, color: '#fff', fontWeight: '600', marginBottom: 2 },
+function createSsStyles(colors: ThemeColors) { return StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+  soundTitle: { fontSize: 14, color: colors.text, fontWeight: '600', marginBottom: 2 },
   soundMeta: { fontSize: 11, color: '#00FF9C', fontFamily: 'monospace' },
   usaBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, backgroundColor: 'rgba(0,255,156,0.12)', borderWidth: 1, borderColor: 'rgba(0,255,156,0.3)' },
   usaTxt: { color: '#00FF9C', fontSize: 12, fontWeight: '700' },
-  emptyTxt: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
-});
+  emptyTxt: { color: colors.textMuted, fontSize: 13, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
+}); }

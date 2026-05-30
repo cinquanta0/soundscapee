@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -15,10 +15,14 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,7 +91,7 @@ export default function LoginScreen() {
       style={s.root}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
 
       {/* Ambient orbs */}
       <View style={s.orbA} />
@@ -179,7 +183,7 @@ export default function LoginScreen() {
               style={s.primaryBtnGrad}
             >
               {loading
-                ? <ActivityIndicator color="#050816" />
+                ? <ActivityIndicator color={colors.bg} />
                 : <Text style={s.primaryBtnTxt}>
                     {isForgot ? t('common.send') : isSignUp ? t('auth.signUp') : t('auth.signIn')}
                   </Text>
@@ -216,208 +220,210 @@ export default function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#050816',
-  },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 48,
-  },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      paddingVertical: 48,
+    },
 
-  // Orbs
-  orbA: {
-    position: 'absolute',
-    top: -60,
-    right: -80,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: 'rgba(103,232,249,0.07)',
-  },
-  orbB: {
-    position: 'absolute',
-    bottom: 80,
-    left: -100,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(139,92,255,0.08)',
-  },
-  orbC: {
-    position: 'absolute',
-    top: '40%',
-    right: -60,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(217,255,90,0.05)',
-  },
+    // Orbs
+    orbA: {
+      position: 'absolute',
+      top: -60,
+      right: -80,
+      width: 280,
+      height: 280,
+      borderRadius: 140,
+      backgroundColor: 'rgba(103,232,249,0.07)',
+    },
+    orbB: {
+      position: 'absolute',
+      bottom: 80,
+      left: -100,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: 'rgba(139,92,255,0.08)',
+    },
+    orbC: {
+      position: 'absolute',
+      top: '40%',
+      right: -60,
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: 'rgba(217,255,90,0.05)',
+    },
 
-  // Logo
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoImg: {
-    width: 140,
-    height: 140,
-    borderRadius: 28,
-    marginBottom: 16,
-  },
-  eyebrow: {
-    color: '#67E8F9',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 4,
-    marginBottom: 10,
-  },
-  tagline: {
-    color: '#97A4C7',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 260,
-  },
+    // Logo
+    logoWrap: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    logoImg: {
+      width: 140,
+      height: 140,
+      borderRadius: 28,
+      marginBottom: 16,
+    },
+    eyebrow: {
+      color: '#67E8F9',
+      fontSize: 13,
+      fontWeight: '800',
+      letterSpacing: 4,
+      marginBottom: 10,
+    },
+    tagline: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      textAlign: 'center',
+      lineHeight: 20,
+      maxWidth: 260,
+    },
 
-  // Card
-  card: {
-    backgroundColor: 'rgba(9,12,28,0.82)',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.14)',
-    padding: 28,
-    marginBottom: 24,
-  },
-  cardTitle: {
-    color: '#F7F8FF',
-    fontSize: 22,
-    fontWeight: '800',
-    fontStyle: 'italic',
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  cardDesc: {
-    color: '#97A4C7',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
+    // Card
+    card: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 28,
+      marginBottom: 24,
+    },
+    cardTitle: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '800',
+      fontStyle: 'italic',
+      letterSpacing: -0.5,
+      marginBottom: 6,
+    },
+    cardDesc: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 20,
+      marginBottom: 20,
+    },
 
-  // Success
-  successBox: {
-    backgroundColor: 'rgba(103,232,249,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(103,232,249,0.25)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 20,
-  },
-  successTxt: {
-    color: '#67E8F9',
-    fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
+    // Success
+    successBox: {
+      backgroundColor: 'rgba(103,232,249,0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(103,232,249,0.25)',
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 20,
+    },
+    successTxt: {
+      color: '#67E8F9',
+      fontSize: 13,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
 
-  // Inputs
-  inputWrap: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    color: '#67E8F9',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.18)',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    color: '#F7F8FF',
-    fontSize: 15,
-  },
+    // Inputs
+    inputWrap: {
+      marginBottom: 16,
+    },
+    inputLabel: {
+      color: '#67E8F9',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+      marginBottom: 8,
+    },
+    input: {
+      backgroundColor: colors.bgInput,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      color: colors.text,
+      fontSize: 15,
+    },
 
-  // Forgot
-  forgotWrap: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-    marginTop: -4,
-  },
-  forgotTxt: {
-    color: '#67E8F9',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+    // Forgot
+    forgotWrap: {
+      alignSelf: 'flex-end',
+      marginBottom: 20,
+      marginTop: -4,
+    },
+    forgotTxt: {
+      color: '#67E8F9',
+      fontSize: 12,
+      fontWeight: '600',
+    },
 
-  // Primary button
-  primaryBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 8,
-    shadowColor: '#67E8F9',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  primaryBtnGrad: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  primaryBtnTxt: {
-    color: '#050816',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
+    // Primary button
+    primaryBtn: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginTop: 8,
+      shadowColor: '#67E8F9',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    primaryBtnGrad: {
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    primaryBtnTxt: {
+      color: colors.bg,
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
 
-  // Divider
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(163,177,255,0.12)',
-  },
-  dividerTxt: {
-    color: '#4A5270',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+    // Divider
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 20,
+      gap: 12,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    dividerTxt: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
 
-  // Secondary button
-  secondaryBtn: {
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(163,177,255,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    alignItems: 'center',
-  },
-  secondaryBtnTxt: {
-    color: '#97A4C7',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+    // Secondary button
+    secondaryBtn: {
+      paddingVertical: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceLight,
+      alignItems: 'center',
+    },
+    secondaryBtnTxt: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
 
-  // Terms
-  terms: {
-    color: '#3A4260',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 17,
-  },
-});
+    // Terms
+    terms: {
+      color: colors.textMuted,
+      fontSize: 11,
+      textAlign: 'center',
+      lineHeight: 17,
+    },
+  });
+}

@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, Animated,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../constants/themes';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -28,6 +30,8 @@ function fmtSec(s: number) {
 }
 
 function TimerBar({ seconds, total, color }: { seconds: number; total: number; color: string }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const pct = Math.max(0, Math.min(1, seconds / total));
   return (
     <View style={s.timerTrack}>
@@ -40,6 +44,8 @@ function PlayerCard({ name, avatar, photo, votes, trackDone, isRecording, isWinn
   name: string; avatar: string; photo?: string; votes: number; trackDone: boolean;
   isRecording: boolean; isWinner: boolean; color: string;
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (!isRecording) { pulse.setValue(1); return; }
@@ -85,9 +91,11 @@ function CenterState({
   description?: string;
   children?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
       <View style={s.ambientA} />
       <View style={s.ambientB} />
       <View style={s.cardShell}>
@@ -105,6 +113,8 @@ interface Props { battleId: string; onClose: () => void; }
 
 export default function BattleScreen({ battleId, onClose }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [battle, setBattle] = useState<Battle | null>(null);
   const [recSecs, setRecSecs] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -324,7 +334,7 @@ export default function BattleScreen({ battleId, onClose }: Props) {
 
   return (
     <View style={s.overlay}>
-      <LinearGradient colors={['#050816', '#0b1230', '#180828']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={colors.gradientBgAlt} style={StyleSheet.absoluteFill} />
       <View style={s.ambientA} />
       <View style={s.ambientB} />
       <View style={s.heroGlow} />
@@ -530,70 +540,72 @@ export default function BattleScreen({ battleId, onClose }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#050816' },
-  ambientA: { position: 'absolute', right: -90, top: 84, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(103,232,249,0.08)' },
-  ambientB: { position: 'absolute', left: -70, bottom: 120, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(139,92,246,0.08)' },
-  heroGlow: { position: 'absolute', right: 28, top: 118, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(217,255,90,0.08)' },
-  cardShell: { flex: 1, margin: 20, marginTop: 72, marginBottom: 36, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', backgroundColor: 'rgba(9,12,28,0.82)', alignItems: 'center', justifyContent: 'center', padding: 32, overflow: 'hidden' },
-  heroEyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 },
-  centerIcon: { fontSize: 58, marginBottom: 10 },
-  cardTitle: { color: '#F7F8FF', fontSize: 26, fontWeight: '800', marginBottom: 12, textAlign: 'center', letterSpacing: -0.7 },
-  cardDesc: { color: '#97A4C7', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
-  themePill: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', marginBottom: 12 },
-  themePillTxt: { color: '#67E8F9', fontWeight: '700', fontSize: 14 },
-  themePillSmall: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)' },
-  themePillSmallTxt: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
-  rowBtns: { flexDirection: 'row', gap: 14 },
-  acceptBtn: { paddingHorizontal: 26, paddingVertical: 13, borderRadius: 16, backgroundColor: '#8B5CF6' },
-  acceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  rejectBtn: { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' },
-  rejectTxt: { color: '#FF6B6B', fontWeight: '700', fontSize: 14 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 52, paddingBottom: 12 },
-  headerMeta: { alignItems: 'center', gap: 8 },
-  closeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#97A4C7', fontSize: 15 },
-  cancelBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', alignItems: 'center', justifyContent: 'center' },
-  cancelTxt: { color: '#FF6B6B', fontSize: 15, fontWeight: '700' },
-  stageCard: { flex: 1, marginHorizontal: 16, marginBottom: 24, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(163,177,255,0.14)', backgroundColor: 'rgba(9,12,28,0.82)', overflow: 'hidden' },
-  introBlock: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
-  heroTitle: { color: '#F7F8FF', fontSize: 28, fontWeight: '800', letterSpacing: -0.9 },
-  heroSub: { color: '#97A4C7', fontSize: 14, lineHeight: 21, marginTop: 8, maxWidth: '92%' },
-  vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 22 },
-  vsText: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
-  playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 22, padding: 14, borderWidth: 1, marginHorizontal: 4 },
-  playerCardWinner: { backgroundColor: 'rgba(217,255,90,0.08)', borderColor: '#D9FF5A' },
-  crownEmoji: { fontSize: 20, position: 'absolute', top: -12 },
-  playerAvatar: { fontSize: 44 },
-  playerAvatarImg: { width: 56, height: 56, borderRadius: 28 },
-  playerName: { color: '#F7F8FF', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  trackReadyBadge: { color: '#D9FF5A', fontSize: 10, fontWeight: '700' },
-  recBadge: { fontSize: 10, fontWeight: '800' },
-  votesBubble: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, alignItems: 'center', marginTop: 4 },
-  votesCount: { fontSize: 20, fontWeight: '900' },
-  votesLabel: { color: '#97A4C7', fontSize: 9 },
-  voteBarWrap: { paddingHorizontal: 20, marginBottom: 16 },
-  voteBarTrack: { height: 10, backgroundColor: 'rgba(139,92,246,0.3)', borderRadius: 999, overflow: 'hidden' },
-  voteBarFill: { height: '100%', backgroundColor: '#67E8F9' },
-  voteBarMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  voteBarLeft: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
-  voteBarMid: { color: '#97A4C7', fontSize: 11 },
-  voteBarRight: { color: '#8B5CF6', fontSize: 11, fontWeight: '700' },
-  controls: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: 20, gap: 20 },
-  focusPanel: { width: '100%', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 18, borderWidth: 1, borderColor: 'rgba(163,177,255,0.12)' },
-  focusLabel: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase' },
-  recordCountdown: { color: '#F7F8FF', fontSize: 38, fontWeight: '900' },
-  timerTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden', width: '100%' },
-  statusTitle: { color: '#F7F8FF', fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  statusSub: { color: '#97A4C7', fontSize: 12, textAlign: 'center', lineHeight: 18 },
-  successTitle: { color: '#D9FF5A', fontSize: 14, fontWeight: '800', textAlign: 'center' },
-  voteHint: { color: '#97A4C7', fontSize: 12, textAlign: 'center' },
-  winnerTitle: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', textAlign: 'center' },
-  startBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 18, shadowColor: '#8B5CF6', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
-  startBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 17 },
-  stopBtn: { backgroundColor: 'rgba(239,68,68,0.14)', borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.28)' },
-  stopBtnTxt: { color: '#FF6B6B', fontWeight: '800', fontSize: 15 },
-  dualActionRow: { flexDirection: 'row', gap: 12, width: '100%' },
-  previewBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 12, borderWidth: 1 },
-  voteBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 1.5 },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: colors.bg },
+    ambientA: { position: 'absolute', right: -90, top: 84, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(103,232,249,0.08)' },
+    ambientB: { position: 'absolute', left: -70, bottom: 120, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(139,92,246,0.08)' },
+    heroGlow: { position: 'absolute', right: 28, top: 118, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(217,255,90,0.08)' },
+    cardShell: { flex: 1, margin: 20, marginTop: 72, marginBottom: 36, borderRadius: 30, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', padding: 32, overflow: 'hidden' },
+    heroEyebrow: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 },
+    centerIcon: { fontSize: 58, marginBottom: 10 },
+    cardTitle: { color: colors.text, fontSize: 26, fontWeight: '800', marginBottom: 12, textAlign: 'center', letterSpacing: -0.7 },
+    cardDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+    themePill: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(103,232,249,0.24)', marginBottom: 12 },
+    themePillTxt: { color: '#67E8F9', fontWeight: '700', fontSize: 14 },
+    themePillSmall: { backgroundColor: 'rgba(103,232,249,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(103,232,249,0.22)' },
+    themePillSmallTxt: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
+    rowBtns: { flexDirection: 'row', gap: 14 },
+    acceptBtn: { paddingHorizontal: 26, paddingVertical: 13, borderRadius: 16, backgroundColor: '#8B5CF6' },
+    acceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    rejectBtn: { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' },
+    rejectTxt: { color: '#FF6B6B', fontWeight: '700', fontSize: 14 },
+    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 52, paddingBottom: 12 },
+    headerMeta: { alignItems: 'center', gap: 8 },
+    closeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    closeTxt: { color: colors.textSecondary, fontSize: 15 },
+    cancelBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', alignItems: 'center', justifyContent: 'center' },
+    cancelTxt: { color: '#FF6B6B', fontSize: 15, fontWeight: '700' },
+    stageCard: { flex: 1, marginHorizontal: 16, marginBottom: 24, borderRadius: 30, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgCard, overflow: 'hidden' },
+    introBlock: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
+    heroTitle: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.9 },
+    heroSub: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8, maxWidth: '92%' },
+    vsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 16, paddingVertical: 22 },
+    vsText: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
+    playerCard: { flex: 1, alignItems: 'center', gap: 6, backgroundColor: colors.surfaceLight, borderRadius: 22, padding: 14, borderWidth: 1, marginHorizontal: 4 },
+    playerCardWinner: { backgroundColor: 'rgba(217,255,90,0.08)', borderColor: '#D9FF5A' },
+    crownEmoji: { fontSize: 20, position: 'absolute', top: -12 },
+    playerAvatar: { fontSize: 44 },
+    playerAvatarImg: { width: 56, height: 56, borderRadius: 28 },
+    playerName: { color: colors.text, fontSize: 13, fontWeight: '700', textAlign: 'center' },
+    trackReadyBadge: { color: '#D9FF5A', fontSize: 10, fontWeight: '700' },
+    recBadge: { fontSize: 10, fontWeight: '800' },
+    votesBubble: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, alignItems: 'center', marginTop: 4 },
+    votesCount: { fontSize: 20, fontWeight: '900' },
+    votesLabel: { color: colors.textSecondary, fontSize: 9 },
+    voteBarWrap: { paddingHorizontal: 20, marginBottom: 16 },
+    voteBarTrack: { height: 10, backgroundColor: 'rgba(139,92,246,0.3)', borderRadius: 999, overflow: 'hidden' },
+    voteBarFill: { height: '100%', backgroundColor: '#67E8F9' },
+    voteBarMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+    voteBarLeft: { color: '#67E8F9', fontSize: 11, fontWeight: '700' },
+    voteBarMid: { color: colors.textSecondary, fontSize: 11 },
+    voteBarRight: { color: '#8B5CF6', fontSize: 11, fontWeight: '700' },
+    controls: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: 20, gap: 20 },
+    focusPanel: { width: '100%', alignItems: 'center', gap: 8, backgroundColor: colors.surfaceLight, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 18, borderWidth: 1, borderColor: colors.border },
+    focusLabel: { color: '#67E8F9', fontSize: 11, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase' },
+    recordCountdown: { color: colors.text, fontSize: 38, fontWeight: '900' },
+    timerTrack: { height: 8, backgroundColor: colors.surfaceLight, borderRadius: 999, overflow: 'hidden', width: '100%' },
+    statusTitle: { color: colors.text, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+    statusSub: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18 },
+    successTitle: { color: '#D9FF5A', fontSize: 14, fontWeight: '800', textAlign: 'center' },
+    voteHint: { color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
+    winnerTitle: { color: '#D9FF5A', fontSize: 22, fontWeight: '900', textAlign: 'center' },
+    startBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 18, shadowColor: '#8B5CF6', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+    startBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 17 },
+    stopBtn: { backgroundColor: 'rgba(239,68,68,0.14)', borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.28)' },
+    stopBtnTxt: { color: '#FF6B6B', fontWeight: '800', fontSize: 15 },
+    dualActionRow: { flexDirection: 'row', gap: 12, width: '100%' },
+    previewBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surfaceLight, borderRadius: 16, padding: 12, borderWidth: 1 },
+    voteBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 1.5 },
+  });
+}
