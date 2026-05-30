@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebaseConfig';
 
 export type CallStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed' | 'busy';
-export type CallPhase = 'ringing' | 'incoming' | 'connecting' | 'active' | 'ended' | null;
+export type CallPhase = 'ringing' | 'incoming' | 'connecting' | 'active' | 'ended' | 'answered_elsewhere' | null;
 export type CallType = 'audio' | 'group';
 export type ParticipantCallStatus = 'calling' | 'ringing' | 'active' | 'declined' | 'missed' | 'left';
 

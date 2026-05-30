@@ -98,6 +98,8 @@ interface CallContextValue {
   toggleMute: () => void;
   toggleSpeaker: () => void;
   toggleRecording: () => void;
+  joinFromOtherDevice: () => Promise<void>;
+  dismissAnsweredElsewhere: () => void;
 }
 
 const CallContext = createContext<CallContextValue | null>(null);
@@ -147,6 +149,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [rejoinableCall, setRejoinableCall] = useState<Call | null>(null);
   const blockedUsersRef = useRef<Set<string>>(new Set());
   const wasPlayingBeforeCallRef = useRef(false);
+  const unsubAnsweredElsewhereRef = useRef<(() => void) | null>(null);
+  const isSecondaryDeviceRef = useRef(false);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { incomingCallRef.current = call; }, [call]);
@@ -386,6 +390,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       unsubCall = listenForIncomingCall(user.uid, (incoming) => {
         if (!incoming) {
+          unsubAnsweredElsewhereRef.current?.();
+          unsubAnsweredElsewhereRef.current = null;
           dismissedIncomingIdsRef.current.clear();
           // Caller cancelled while we were waiting for PIN — drop the deferred accept
           if (pendingAcceptCallRef.current) {
@@ -480,11 +486,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             }
             pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
             setPhase('incoming');
+            _watchAnsweredElsewhere(incoming);
             if (appStateRef.current === 'active') _startRinging(incoming);
           }).catch(() => {
             if (phaseRef.current === null && !pendingAcceptCallRef.current) {
               pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
               setPhase('incoming');
+              _watchAnsweredElsewhere(incoming);
               if (appStateRef.current === 'active') _startRinging(incoming);
             }
           });
@@ -495,6 +503,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setUseSystemIncomingUI(false);
         pausePlayerForCall().then((was) => { if (was) wasPlayingBeforeCallRef.current = true; }).catch(() => {});
         setPhase('incoming');
+        _watchAnsweredElsewhere(incoming);
         _startRinging(incoming);
       });
     });
@@ -668,6 +677,34 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return engine;
   }, []);
 
+  // ─── "Answered on another device" watcher ────────────────────────────────
+  const _watchAnsweredElsewhere = (incoming: Call) => {
+    unsubAnsweredElsewhereRef.current?.();
+    unsubAnsweredElsewhereRef.current = listenForCallUpdates(incoming.id, (updated) => {
+      if (!updated) return;
+      if (acceptingCallRef.current) return;
+      const p = phaseRef.current;
+      if (p === 'incoming' && updated.status === 'active') {
+        unsubAnsweredElsewhereRef.current?.();
+        unsubAnsweredElsewhereRef.current = null;
+        _stopRinging();
+        setCall(updated);
+        setPhase('answered_elsewhere');
+        return;
+      }
+      if (p === 'answered_elsewhere' && ['ended', 'declined', 'missed'].includes(updated.status)) {
+        unsubAnsweredElsewhereRef.current?.();
+        unsubAnsweredElsewhereRef.current = null;
+        if (wasPlayingBeforeCallRef.current) {
+          resumePlayerAfterCall().catch(() => {});
+          wasPlayingBeforeCallRef.current = false;
+        }
+        setPhase(null);
+        setCall(null);
+      }
+    });
+  };
+
   // ─── Ringtone ──────────────────────────────────────────────────────────────
   // Android: IncomingCallService handles ringtone (STREAM_RING = ring volume)
   //          + vibration + full-screen intent + notification action buttons.
@@ -747,6 +784,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (cleaningUpRef.current) return;
     cleaningUpRef.current = true;
     acceptingCallRef.current = false;
+    isSecondaryDeviceRef.current = false;
+    unsubAnsweredElsewhereRef.current?.();
+    unsubAnsweredElsewhereRef.current = null;
 
     _stopRinging();
     stopOutgoingRingback().catch(() => {});
@@ -1159,8 +1199,80 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     await updateCallStatus(incoming.id, 'declined').catch(() => {});
   }, []);
 
+  const dismissAnsweredElsewhere = useCallback(() => {
+    unsubAnsweredElsewhereRef.current?.();
+    unsubAnsweredElsewhereRef.current = null;
+    if (wasPlayingBeforeCallRef.current) {
+      resumePlayerAfterCall().catch(() => {});
+      wasPlayingBeforeCallRef.current = false;
+    }
+    setPhase(null);
+    setCall(null);
+  }, []);
+
+  const joinFromOtherDevice = useCallback(async () => {
+    const callToJoin = incomingCallRef.current;
+    if (!callToJoin || phaseRef.current !== 'answered_elsewhere') return;
+
+    const { status, canAskAgain } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') {
+      alertMicPermission(canAskAgain);
+      return;
+    }
+
+    wasPlayingBeforeCallRef.current = wasPlayingBeforeCallRef.current || (await pausePlayerForCall().catch(() => false));
+
+    if (Platform.OS === 'android') {
+      NativeModules.CallPip?.requestCallAudioFocus?.();
+      NativeModules.CallPip?.startCallForegroundService?.();
+    } else if (Platform.OS === 'ios') {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
+    }
+
+    isSecondaryDeviceRef.current = true;
+    callIdRef.current = callToJoin.id;
+    setPhase('connecting');
+
+    let engine: ReturnType<typeof _initEngine>;
+    try { engine = _initEngine(); } catch {
+      isSecondaryDeviceRef.current = false;
+      callIdRef.current = null;
+      setPhase('answered_elsewhere');
+      return;
+    }
+
+    const { token, encKey, encSalt } = await fetchAgoraToken(callToJoin.channelName)
+      .catch(() => ({ token: null, encKey: null, encSalt: null }));
+    applyChannelEncryption(engine, encKey, encSalt);
+    engine.joinChannel(token ?? '', callToJoin.channelName, 0, {
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: true,
+      autoSubscribeAudio: true,
+    });
+
+    unsubCallRef.current = listenForCallUpdates(callToJoin.id, (updated) => {
+      if (updated) setCall(updated);
+      if (!updated || cleaningUpRef.current) return;
+      if (updated.status === 'ended') _finalize('ended');
+      else if (updated.status === 'missed') _finalize('missed');
+      else if (updated.status === 'declined') _finalize('declined');
+      else if (updated.type === 'group' && updated.participantStatuses?.[auth.currentUser?.uid ?? ''] === 'left') _finalize('left');
+    });
+  }, [_initEngine, _finalize]);
+
   const endCall = useCallback(async () => {
     if (!callIdRef.current) return;
+    // Secondary device (joined via "answered elsewhere") — leave Agora only, no Firestore writes
+    if (isSecondaryDeviceRef.current) {
+      _finalize('ended');
+      return;
+    }
     if (incomingCallRef.current?.type === 'group') {
       const uid = auth.currentUser?.uid;
       if (!uid) return;
@@ -1404,6 +1516,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       initiateCall, initiateGroupCall, acceptCall, declineCall, endCall,
       rejoinGroupCall, dismissEndedCall, inviteParticipantsToCurrentCall,
       toggleMute, toggleSpeaker, toggleRecording,
+      joinFromOtherDevice, dismissAnsweredElsewhere,
     }}>
       {children}
     </CallContext.Provider>

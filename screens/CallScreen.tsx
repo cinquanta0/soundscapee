@@ -275,6 +275,7 @@ export default function CallScreen() {
     call, phase, useSystemIncomingUI, isMuted, isSpeaker, isRecording, isPipMode, duration, endReason, canRejoin,
     acceptCall, declineCall, endCall, toggleMute, toggleSpeaker, toggleRecording,
     inviteParticipantsToCurrentCall, rejoinGroupCall, dismissEndedCall,
+    joinFromOtherDevice, dismissAnsweredElsewhere,
   } = useCall();
   const [showInviteModal, setShowInviteModal] = React.useState(false);
   const [declinedBanner, setDeclinedBanner] = useState<{ name: string; uid: string; status: string } | null>(null);
@@ -341,10 +342,11 @@ export default function CallScreen() {
 
   const statusText = (): string => {
     switch (phase) {
-      case 'ringing':    return t('call.calling');
-      case 'incoming':   return isGroup ? 'Chiamata di gruppo' : t('call.incoming');
-      case 'connecting': return t('call.connecting');
-      case 'active':     return fmtDuration(duration);
+      case 'ringing':            return t('call.calling');
+      case 'incoming':           return isGroup ? 'Chiamata di gruppo' : t('call.incoming');
+      case 'connecting':         return t('call.connecting');
+      case 'active':             return fmtDuration(duration);
+      case 'answered_elsewhere': return 'Risposto su un altro dispositivo';
       case 'ended': {
         if (endReason === 'left')     return 'Sei uscito dalla chiamata';
         if (endReason === 'declined') return t('call.declined');
@@ -356,13 +358,13 @@ export default function CallScreen() {
   };
 
   const statusColor = (): string => {
-    if (phase === 'incoming') return '#00FF9C';
+    if (phase === 'incoming' || phase === 'answered_elsewhere') return '#00FF9C';
     if (phase === 'active')   return '#67E8F9';
     if (phase === 'ended')    return '#FF5C79';
     return '#97A4C7';
   };
 
-  const pulseColor = phase === 'incoming' ? '#00FF9C' : '#67E8F9';
+  const pulseColor = (phase === 'incoming' || phase === 'answered_elsewhere') ? '#00FF9C' : '#67E8F9';
 
   // -------------------------------------------------------------------------
   // Full-screen layout — PiP usa lo stesso Modal con contenuto minimale
@@ -500,6 +502,33 @@ export default function CallScreen() {
                   <Feather name="phone" size={28} color="#fff" />
                 </TouchableOpacity>
                 <Text style={s.btnLabel}>Rispondi</Text>
+              </View>
+            </View>
+          )}
+
+          {/* ANSWERED ELSEWHERE — compact banner with Chiudi / Entra qui */}
+          {phase === 'answered_elsewhere' && (
+            <View style={s.answeredElsewhereRow}>
+              <View style={s.btnCol}>
+                <TouchableOpacity
+                  style={[s.circleBtn, s.circleBtnRed]}
+                  onPress={dismissAnsweredElsewhere}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="x" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text style={s.btnLabel}>Chiudi</Text>
+              </View>
+
+              <View style={s.btnCol}>
+                <TouchableOpacity
+                  style={[s.circleBtn, s.circleBtnGreen]}
+                  onPress={joinFromOtherDevice}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="phone" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text style={s.btnLabel}>Entra qui</Text>
               </View>
             </View>
           )}
@@ -943,6 +972,15 @@ const s = StyleSheet.create({
 
   // Incoming row
   incomingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 24,
+  },
+
+  // Answered elsewhere row (same layout as incomingRow)
+  answeredElsewhereRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-around',
