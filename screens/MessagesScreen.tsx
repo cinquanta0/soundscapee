@@ -77,7 +77,7 @@ function ConvRow({ conv, onPress }: { conv: Conversazione; onPress: () => void }
         <View style={s.bottom}>
           <Text style={s.preview} numberOfLines={1}>{preview}</Text>
           {isMe && (
-            <Text style={[s.check, { color: conv.lastMessageAscoltato ? '#67E8F9' : '#687392' }]}>
+            <Text style={[s.check, { color: conv.lastMessageAscoltato ? colors.textAccent : colors.textMuted }]}>
               {conv.lastMessageAscoltato ? '✓✓' : '✓'}
             </Text>
           )}

@@ -4596,7 +4596,7 @@ avatarOption: {
   borderColor: colors.border,
 },
 avatarOptionSelected: {
-  borderColor: '#67E8F9',
+  borderColor: colors.textAccent,
   backgroundColor: 'rgba(103,232,249,0.08)',
   transform: [{ scale: 1.1 }],
 },
@@ -4640,7 +4640,7 @@ notificationItem: {
 },
 notificationItemUnread: {
   backgroundColor: 'rgba(103,232,249,0.08)',
-  borderColor: '#67E8F9',
+  borderColor: colors.textAccent,
   borderLeftWidth: 4,
 },
 notificationTitle: {
