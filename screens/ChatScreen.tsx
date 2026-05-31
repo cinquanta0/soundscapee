@@ -333,7 +333,7 @@ interface Props {
 export default function ChatScreen({ conversationId, otherUserId, otherUserName, otherUserAvatar, otherUserPhoto, onBack, onViewProfile }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const s = useMemo(() => createChatScreenStyles(colors), [colors]);
   const [messages, setMessages] = useState<Messaggio[]>([]);
   const [queryError, setQueryError] = useState<string | null>(null);
