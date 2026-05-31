@@ -382,7 +382,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
   const modeItems = [
     { id: 'suoni', title: t('explore.modeSound'), subtitle: t('explore.modeSoundSubtitle'), icon: 'music', accent: C.cyan },
     { id: 'utenti', title: t('explore.modeUsers'), subtitle: t('explore.modeUsersSubtitle'), icon: 'users', accent: '#00FF9C' },
-    { id: 'leaderboard', title: 'Classifiche', subtitle: 'Top suoni globali', icon: 'bar-chart-2', accent: '#FFD166' },
+    { id: 'leaderboard', title: t('explore.modeLeaderboard'), subtitle: t('explore.modeLeaderboardSubtitle'), icon: 'bar-chart-2', accent: '#FFD166' },
     { id: 'podcast', title: t('explore.modePodcast'), subtitle: t('explore.modePodcastSubtitle'), icon: 'mic', accent: C.purple },
     { id: 'radio', title: t('explore.modeRadio'), subtitle: t('explore.modeRadioSubtitle'), icon: 'radio', accent: C.lime },
     { id: 'battles', title: t('explore.modeBattles'), subtitle: t('explore.modeBattlesSubtitle'), icon: 'crosshair', accent: C.orange },

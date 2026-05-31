@@ -380,7 +380,9 @@
     "globalCharts": "GLOBAL CHARTS",
     "topSounds": "Top suoni",
     "upNext": "A SEGUIRE",
-    "listensCount": "ascolti"
+    "listensCount": "ascolti",
+    "modeLeaderboard": "Classifiche",
+    "modeLeaderboardSubtitle": "Top suoni globali"
   },
   "map": {
     "nearby": "Vicini",

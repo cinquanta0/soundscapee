@@ -521,6 +521,7 @@ function LeaderboardPodiumCard({ item, rank, isPlaying, busy, onPlay }: { item: 
 }
 
 function LeaderboardRow({ item, rank, isPlaying, busy, onPlay }: { item: any; rank: number; isPlaying: boolean; busy: boolean; onPlay: () => void }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const lb = useMemo(() => createLbStyles(colors), [colors]);
   return (
