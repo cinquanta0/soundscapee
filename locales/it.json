@@ -21,7 +21,23 @@
     "accept": "Accetta",
     "reject": "Rifiuta",
     "areYouSure": "Sei sicuro?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "months": {
+      "gen": "gen",
+      "feb": "feb",
+      "mar": "mar",
+      "apr": "apr",
+      "mag": "mag",
+      "giu": "giu",
+      "lug": "lug",
+      "ago": "ago",
+      "set": "set",
+      "ott": "ott",
+      "nov": "nov",
+      "dic": "dic"
+    }
   },
   "auth": {
     "login": "Accedi",
@@ -126,7 +142,12 @@
       "cannotStop": "Impossibile fermare la registrazione",
       "tooShort": "Troppo breve",
       "tooShortMsg": "Registra almeno 3 secondi"
-    }
+    },
+    "showOnMap": "Mostra sulla mappa",
+    "exactLocation": "Posizione esatta",
+    "privacySecurity": "Privacy e Sicurezza",
+    "useApproxLocation": "Usa posizione approssimata",
+    "approxLocationDesc": "Protegge la tua privacy nascondendo le coordinate esatte."
   },
   "podcast": {
     "title": "Nuovo Podcast",
@@ -347,7 +368,13 @@
     "errors": {
       "cannotLoad": "Impossibile caricare i suoni",
       "cannotPlay": "Impossibile riprodurre il suono"
-    }
+    },
+    "emptyLeaderboardTitle": "Classifica vuota",
+    "emptyLeaderboardDesc": "Nessun ascolto registrato ancora. Sii il primo a salire in vetta.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top suoni",
+    "upNext": "A SEGUIRE",
+    "listensCount": "ascolti"
   },
   "map": {
     "nearby": "Vicini",
@@ -644,7 +671,12 @@
     "myRemixes": "I Miei Remix",
     "remixes": "Remix",
     "startRemixing": "Inizia a Remixare",
-    "deleteRemix": "Elimina Remix"
+    "deleteRemix": "Elimina Remix",
+    "createFirstRemix": "Crea il tuo primo remix mixando i tuoi suoni!",
+    "newBtn": "Nuovo",
+    "statsTitle": "Stats Remix",
+    "tracksRmx": "Tracce/Rmx",
+    "totSec": "Tot Sec"
   },
   "stories": {
     "newStatus": "Nuovo stato 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Chiamata vocale",
-    "incoming": "Chiamata in arrivo",
+    "incoming": "In entrata",
     "calling": "Chiamata in corso...",
     "connecting": "Connessione...",
     "connected": "In chiamata",
     "ended": "Chiamata terminata",
     "declined": "Chiamata rifiutata",
-    "missed": "Chiamata persa",
+    "missed": "Persa",
     "accept": "Rispondi",
     "decline": "Rifiuta",
     "cancel": "Annulla",
@@ -895,7 +927,16 @@
       "failed": "Impossibile avviare la chiamata.",
       "busy": "Utente occupato."
     },
-    "history": "Cronologia chiamate"
+    "history": "Cronologia chiamate",
+    "groupCall": "Chiamata di gruppo",
+    "group": "Gruppo",
+    "outgoing": "In uscita",
+    "ongoing": "Chiamata in corso",
+    "othersStillConnected": "Altri partecipanti ancora connessi",
+    "areStillConnected_one": "è ancora connesso",
+    "areStillConnected_other": "sono ancora connessi",
+    "rejoin": "Rientra",
+    "noCalls": "Nessuna chiamata"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Il Mondo Suona",

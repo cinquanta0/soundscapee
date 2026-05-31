@@ -214,7 +214,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
         <View style={dynStyles.statsCard}>
           <View style={dynStyles.statsTitleRow}>
             <Feather name="bar-chart-2" size={15} color="#a855f7" />
-            <Text style={dynStyles.statsTitle}>Stats Remix</Text>
+            <Text style={dynStyles.statsTitle}>{t('remix.statsTitle')}</Text>
           </View>
           <View style={dynStyles.statsGrid}>
             <View style={dynStyles.statItem}>
@@ -242,7 +242,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
         <Text style={dynStyles.sectionTitle}>{isOwnProfile ? t('remix.myRemixes') : t('remix.remixes')} ({remixes.length})</Text>
         {isOwnProfile && (
           <TouchableOpacity style={dynStyles.createButton} onPress={onOpenRemixStudio}>
-            <Text style={dynStyles.createButtonText}>Nuovo</Text>
+            <Text style={dynStyles.createButtonText}>{t('remix.newBtn')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -254,7 +254,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
           <Text style={dynStyles.emptyText}>Nessun remix ancora</Text>
           {isOwnProfile && (
             <>
-              <Text style={dynStyles.emptySubtext}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
+              <Text style={dynStyles.emptySubtext}>{t('remix.createFirstRemix')}</Text>
               <TouchableOpacity style={dynStyles.emptyButton} onPress={onOpenRemixStudio}>
                 <Text style={dynStyles.emptyButtonText}>{t('remix.startRemixing')}</Text>
               </TouchableOpacity>

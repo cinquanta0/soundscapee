@@ -326,7 +326,7 @@ export function FeedSoundCard({
         <View style={styles.cardHeaderRight}>
           <View style={[styles.moodPill, { borderColor: moodColor + '66', backgroundColor: moodColor + '16' }]}>
             <View style={[styles.moodPillDot, { backgroundColor: moodColor }]} />
-            <Text style={[styles.moodPillText, { color: moodColor }]}>{post.mood}</Text>
+            <Text style={[styles.moodPillText, { color: moodColor }]}>{post.mood ? t(`moods.${post.mood.toLowerCase()}`, post.mood) : ''}</Text>
           </View>
           <TouchableOpacity style={styles.moreButton} onPress={onOptions}>
             <Feather name="more-horizontal" size={17} color={C.textDim} />

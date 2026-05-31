@@ -21,7 +21,23 @@
     "accept": "Accept",
     "reject": "Reject",
     "areYouSure": "Are you sure?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "months": {
+      "gen": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "mag": "May",
+      "giu": "Jun",
+      "lug": "Jul",
+      "ago": "Aug",
+      "set": "Sep",
+      "ott": "Oct",
+      "nov": "Nov",
+      "dic": "Dec"
+    }
   },
   "auth": {
     "login": "Login",
@@ -126,7 +142,12 @@
       "cannotStop": "Unable to stop recording",
       "tooShort": "Too short",
       "tooShortMsg": "Record at least 3 seconds"
-    }
+    },
+    "showOnMap": "Show on map",
+    "exactLocation": "Exact location",
+    "privacySecurity": "Privacy & Security",
+    "useApproxLocation": "Use approximate location",
+    "approxLocationDesc": "Protects your privacy by hiding exact coordinates."
   },
   "podcast": {
     "title": "New Podcast",
@@ -347,7 +368,13 @@
     "errors": {
       "cannotLoad": "Unable to load sounds",
       "cannotPlay": "Unable to play the sound"
-    }
+    },
+    "emptyLeaderboardTitle": "Empty leaderboard",
+    "emptyLeaderboardDesc": "No listens recorded yet. Be the first to reach the top.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top sounds",
+    "upNext": "UP NEXT",
+    "listensCount": "listens"
   },
   "map": {
     "nearby": "Nearby",
@@ -644,7 +671,12 @@
     "myRemixes": "My Remixes",
     "remixes": "Remixes",
     "startRemixing": "Start Remixing",
-    "deleteRemix": "Delete Remix"
+    "deleteRemix": "Delete Remix",
+    "createFirstRemix": "Create your first remix by mixing your sounds!",
+    "newBtn": "New",
+    "statsTitle": "Remix Stats",
+    "tracksRmx": "Tracks/Rmx",
+    "totSec": "Total Sec"
   },
   "stories": {
     "newStatus": "New status 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Voice call",
-    "incoming": "Incoming call",
+    "incoming": "Incoming",
     "calling": "Calling...",
     "connecting": "Connecting...",
     "connected": "In call",
     "ended": "Call ended",
     "declined": "Call declined",
-    "missed": "Missed call",
+    "missed": "Missed",
     "accept": "Answer",
     "decline": "Decline",
     "cancel": "Cancel",
@@ -895,7 +927,16 @@
       "failed": "Could not start the call.",
       "busy": "User is busy."
     },
-    "history": "Call history"
+    "history": "Call history",
+    "groupCall": "Group call",
+    "group": "Group",
+    "outgoing": "Outgoing",
+    "ongoing": "Ongoing call",
+    "othersStillConnected": "Other participants still connected",
+    "areStillConnected_one": "is still connected",
+    "areStillConnected_other": "are still connected",
+    "rejoin": "Rejoin",
+    "noCalls": "No calls"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — The World Sounds",

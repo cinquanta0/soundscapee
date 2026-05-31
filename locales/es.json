@@ -21,7 +21,23 @@
     "accept": "Aceptar",
     "reject": "Rechazar",
     "areYouSure": "¿Estás seguro?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "months": {
+      "gen": "ene",
+      "feb": "feb",
+      "mar": "mar",
+      "apr": "abr",
+      "mag": "may",
+      "giu": "jun",
+      "lug": "jul",
+      "ago": "ago",
+      "set": "sep",
+      "ott": "oct",
+      "nov": "nov",
+      "dic": "dic"
+    }
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -126,7 +142,12 @@
       "cannotStop": "No se puede detener la grabación",
       "tooShort": "Demasiado corto",
       "tooShortMsg": "Graba al menos 3 segundos"
-    }
+    },
+    "showOnMap": "Mostrar en mapa",
+    "exactLocation": "Ubicación exacta",
+    "privacySecurity": "Privacidad y Seguridad",
+    "useApproxLocation": "Usar ubicación aproximada",
+    "approxLocationDesc": "Protege tu privacidad ocultando las coordenadas exactas."
   },
   "podcast": {
     "title": "Nuevo Podcast",
@@ -347,7 +368,13 @@
     "modeBattlesSubtitle": "desafíos y votaciones",
     "featureRadioSubtitle": "estaciones, DJ, salas en directo",
     "featurePodcastSubtitle": "episodios, hub, series curadas",
-    "featureBattlesSubtitle": "desafíos de audio y votaciones"
+    "featureBattlesSubtitle": "desafíos de audio y votaciones",
+    "emptyLeaderboardTitle": "Clasificación vacía",
+    "emptyLeaderboardDesc": "No hay escuchas registradas aún. Sé el primero en llegar a la cima.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top sonidos",
+    "upNext": "A CONTINUACIÓN",
+    "listensCount": "escuchas"
   },
   "map": {
     "nearby": "Cercanos",
@@ -644,7 +671,12 @@
     "myRemixes": "Mis Remixes",
     "remixes": "Remixes",
     "startRemixing": "Empezar a Remixar",
-    "deleteRemix": "Eliminar Remix"
+    "deleteRemix": "Eliminar Remix",
+    "createFirstRemix": "¡Crea tu primer remix mezclando tus sonidos!",
+    "newBtn": "Nuevo",
+    "statsTitle": "Estadísticas",
+    "tracksRmx": "Pistas/Rmx",
+    "totSec": "Total Seg"
   },
   "stories": {
     "newStatus": "Nuevo estado 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Llamada de voz",
-    "incoming": "Llamada entrante",
+    "incoming": "Entrante",
     "calling": "Llamando...",
     "connecting": "Conectando...",
     "connected": "En llamada",
     "ended": "Llamada finalizada",
     "declined": "Llamada rechazada",
-    "missed": "Llamada perdida",
+    "missed": "Perdida",
     "accept": "Responder",
     "decline": "Rechazar",
     "cancel": "Cancelar",
@@ -895,7 +927,16 @@
       "failed": "No se pudo iniciar la llamada.",
       "busy": "Usuario ocupado."
     },
-    "history": "Historial de llamadas"
+    "history": "Historial de llamadas",
+    "groupCall": "Llamada grupal",
+    "group": "Grupo",
+    "outgoing": "Saliente",
+    "ongoing": "Llamada en curso",
+    "othersStillConnected": "Otros participantes aún conectados",
+    "areStillConnected_one": "aún está conectado",
+    "areStillConnected_other": "aún están conectados",
+    "rejoin": "Reunirse",
+    "noCalls": "Sin llamadas"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — El Mundo Suena",

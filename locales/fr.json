@@ -21,7 +21,23 @@
     "accept": "Accepter",
     "reject": "Refuser",
     "areYouSure": "Êtes-vous sûr ?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "months": {
+      "gen": "janv",
+      "feb": "févr",
+      "mar": "mars",
+      "apr": "avr",
+      "mag": "mai",
+      "giu": "juin",
+      "lug": "juil",
+      "ago": "août",
+      "set": "sept",
+      "ott": "oct",
+      "nov": "nov",
+      "dic": "déc"
+    }
   },
   "auth": {
     "login": "Se connecter",
@@ -126,7 +142,12 @@
       "cannotStop": "Impossible d'arrêter l'enregistrement",
       "tooShort": "Trop court",
       "tooShortMsg": "Enregistrez au moins 3 secondes"
-    }
+    },
+    "showOnMap": "Afficher sur la carte",
+    "exactLocation": "Emplacement exact",
+    "privacySecurity": "Confidentialité et Sécurité",
+    "useApproxLocation": "Utiliser la position approximative",
+    "approxLocationDesc": "Protège votre confidentialité en masquant les coordonnées exactes."
   },
   "podcast": {
     "title": "Nouveau Podcast",
@@ -347,7 +368,13 @@
     "modeBattlesSubtitle": "défis et votes",
     "featureRadioSubtitle": "stations, DJ, salles en direct",
     "featurePodcastSubtitle": "épisodes, hub, séries curées",
-    "featureBattlesSubtitle": "défis audio et votes"
+    "featureBattlesSubtitle": "défis audio et votes",
+    "emptyLeaderboardTitle": "Classement vide",
+    "emptyLeaderboardDesc": "Aucune écoute enregistrée pour le moment. Soyez le premier à atteindre le sommet.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top sons",
+    "upNext": "À SUIVRE",
+    "listensCount": "écoutes"
   },
   "map": {
     "nearby": "À proximité",
@@ -644,7 +671,12 @@
     "myRemixes": "Mes Remix",
     "remixes": "Remix",
     "startRemixing": "Commencer le Remix",
-    "deleteRemix": "Supprimer le Remix"
+    "deleteRemix": "Supprimer le Remix",
+    "createFirstRemix": "Créez votre premier remix en mixant vos sons !",
+    "newBtn": "Nouveau",
+    "statsTitle": "Statistiques",
+    "tracksRmx": "Pistes/Rmx",
+    "totSec": "Total Sec"
   },
   "stories": {
     "newStatus": "Nouveau statut 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Appel vocal",
-    "incoming": "Appel entrant",
+    "incoming": "Entrant",
     "calling": "Appel en cours...",
     "connecting": "Connexion...",
     "connected": "En appel",
     "ended": "Appel terminé",
     "declined": "Appel refusé",
-    "missed": "Appel manqué",
+    "missed": "Manqué",
     "accept": "Répondre",
     "decline": "Refuser",
     "cancel": "Annuler",
@@ -895,7 +927,16 @@
       "failed": "Impossible de démarrer l'appel.",
       "busy": "Utilisateur occupé."
     },
-    "history": "Historique d'appels"
+    "history": "Historique d'appels",
+    "groupCall": "Appel de groupe",
+    "group": "Groupe",
+    "outgoing": "Sortant",
+    "ongoing": "Appel en cours",
+    "othersStillConnected": "Autres participants encore connectés",
+    "areStillConnected_one": "est toujours connecté",
+    "areStillConnected_other": "sont toujours connectés",
+    "rejoin": "Rejoindre",
+    "noCalls": "Aucun appel"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Le Monde Sonne",

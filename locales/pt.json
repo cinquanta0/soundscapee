@@ -21,7 +21,23 @@
     "accept": "Aceitar",
     "reject": "Rejeitar",
     "areYouSure": "Tem certeza?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "months": {
+      "gen": "jan",
+      "feb": "fev",
+      "mar": "mar",
+      "apr": "abr",
+      "mag": "mai",
+      "giu": "jun",
+      "lug": "jul",
+      "ago": "ago",
+      "set": "set",
+      "ott": "out",
+      "nov": "nov",
+      "dic": "dez"
+    }
   },
   "auth": {
     "login": "Entrar",
@@ -126,7 +142,12 @@
       "cannotStop": "Não é possível parar a gravação",
       "tooShort": "Muito curto",
       "tooShortMsg": "Grave pelo menos 3 segundos"
-    }
+    },
+    "showOnMap": "Mostrar no mapa",
+    "exactLocation": "Localização exata",
+    "privacySecurity": "Privacidade e Segurança",
+    "useApproxLocation": "Usar localização aproximada",
+    "approxLocationDesc": "Protege sua privacidade ocultando coordenadas exatas."
   },
   "podcast": {
     "title": "Novo Podcast",
@@ -347,7 +368,13 @@
     "modeBattlesSubtitle": "desafios e votações",
     "featureRadioSubtitle": "estações, DJ, salas ao vivo",
     "featurePodcastSubtitle": "episódios, hub, séries curadas",
-    "featureBattlesSubtitle": "desafios de áudio e votações"
+    "featureBattlesSubtitle": "desafios de áudio e votações",
+    "emptyLeaderboardTitle": "Classificação vazia",
+    "emptyLeaderboardDesc": "Nenhuma escuta registrada ainda. Seja o primeiro a chegar ao topo.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top sons",
+    "upNext": "A SEGUIR",
+    "listensCount": "escutas"
   },
   "map": {
     "nearby": "Próximos",
@@ -644,7 +671,12 @@
     "myRemixes": "Meus Remixes",
     "remixes": "Remixes",
     "startRemixing": "Começar a Remixar",
-    "deleteRemix": "Excluir Remix"
+    "deleteRemix": "Excluir Remix",
+    "createFirstRemix": "Crie seu primeiro remix misturando seus sons!",
+    "newBtn": "Novo",
+    "statsTitle": "Estatísticas",
+    "tracksRmx": "Faixas/Rmx",
+    "totSec": "Total Seg"
   },
   "stories": {
     "newStatus": "Novo status 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Chamada de voz",
-    "incoming": "Chamada recebida",
+    "incoming": "Recebida",
     "calling": "Chamando...",
     "connecting": "Conectando...",
     "connected": "Em chamada",
     "ended": "Chamada encerrada",
     "declined": "Chamada recusada",
-    "missed": "Chamada perdida",
+    "missed": "Perdida",
     "accept": "Atender",
     "decline": "Recusar",
     "cancel": "Cancelar",
@@ -895,7 +927,16 @@
       "failed": "Não foi possível iniciar a chamada.",
       "busy": "Usuário ocupado."
     },
-    "history": "Histórico de chamadas"
+    "history": "Histórico de chamadas",
+    "groupCall": "Chamada de grupo",
+    "group": "Grupo",
+    "outgoing": "Efetuada",
+    "ongoing": "Chamada em andamento",
+    "othersStillConnected": "Outros participantes ainda conectados",
+    "areStillConnected_one": "ainda está conectado",
+    "areStillConnected_other": "ainda estão conectados",
+    "rejoin": "Reentrar",
+    "noCalls": "Sem chamadas"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — O Mundo Soa",

@@ -2467,7 +2467,7 @@ if (loading) {
                   onPress={() => setNewSoundMood(mood)}
                   disabled={uploading}
                 >
-                  <Text style={s.moodOptionText}>{mood}</Text>
+                  <Text style={s.moodOptionText}>{t(`moods.${mood.toLowerCase()}`, mood)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -2587,10 +2587,10 @@ if (loading) {
 
             {/* Privacy Settings */}
             <View style={{ marginBottom: 16, backgroundColor: colors.surfaceLight, padding: 12, borderRadius: 12 }}>
-              <Text style={s.moodLabel}>Privacy e Sicurezza</Text>
+              <Text style={s.moodLabel}>{t('upload.privacySecurity')}</Text>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ color: colors.text, fontSize: 13 }}>Mostra sulla mappa</Text>
+                <Text style={{ color: colors.text, fontSize: 13 }}>{t('upload.showOnMap')}</Text>
                 <Switch
                   value={newSoundShowOnMap}
                   onValueChange={setNewSoundShowOnMap}
@@ -2602,8 +2602,8 @@ if (loading) {
               {newSoundShowOnMap && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={{ color: colors.text, fontSize: 13 }}>Usa posizione approssimata</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>Protegge la tua privacy nascondendo le coordinate esatte.</Text>
+                    <Text style={{ color: colors.text, fontSize: 13 }}>{t('upload.useApproxLocation')}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>{t('upload.approxLocationDesc')}</Text>
                   </View>
                   <Switch
                     value={newSoundLocationPrecision === 'approx'}

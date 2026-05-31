@@ -32,7 +32,7 @@ function formatDuration(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-function formatTimestamp(date: Date): string {
+function formatTimestamp(date: Date, t: any): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -41,10 +41,10 @@ function formatTimestamp(date: Date): string {
   const minutes = date.getMinutes().toString().padStart(2, '0');
   const time = `${hours}:${minutes}`;
 
-  if (diffDays === 0) return `Oggi ${time}`;
-  if (diffDays === 1) return `Ieri ${time}`;
+  if (diffDays === 0) return `${t('common.today')} ${time}`;
+  if (diffDays === 1) return `${t('common.yesterday')} ${time}`;
 
-  const months = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const months = [t('common.months.gen'), t('common.months.feb'), t('common.months.mar'), t('common.months.apr'), t('common.months.mag'), t('common.months.giu'), t('common.months.lug'), t('common.months.ago'), t('common.months.set'), t('common.months.ott'), t('common.months.nov'), t('common.months.dic')];
   if (diffDays < 7) return `${date.getDate()} ${months[date.getMonth()]} ${time}`;
   return `${date.getDate()} ${months[date.getMonth()]}`;
 }
@@ -99,7 +99,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
       const names = others.slice(0, 2).map(([, p]) => p.name).join(', ');
       const extra = others.length > 2 ? ` +${others.length - 2}` : '';
       return {
-        name: names ? `${names}${extra}` : 'Chiamata di gruppo',
+        name: names ? `${names}${extra}` : t('call.groupCall'),
         avatar: '👥',
         otherUid: '',
       };
@@ -116,16 +116,16 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
     const uid = auth.currentUser?.uid;
     if (call.type === 'group') {
       const myStatus = call.participantStatuses?.[uid ?? ''];
-      if (myStatus === 'declined' || myStatus === 'missed') return { label: 'Persa', color: '#FF5C79', icon: 'phone-missed' };
-      return { label: 'Gruppo', color: '#8B5CF6', icon: 'users' };
+      if (myStatus === 'declined' || myStatus === 'missed') return { label: t('call.missed'), color: '#FF5C79', icon: 'phone-missed' };
+      return { label: t('call.group'), color: '#8B5CF6', icon: 'users' };
     }
     if (call.status === 'missed' || call.status === 'declined') {
-      return { label: 'Persa', color: '#FF5C79', icon: 'phone-missed' };
+      return { label: t('call.missed'), color: '#FF5C79', icon: 'phone-missed' };
     }
     if (call.callerId === uid) {
-      return { label: 'In uscita', color: '#67E8F9', icon: 'phone-outgoing' };
+      return { label: t('call.outgoing'), color: '#67E8F9', icon: 'phone-outgoing' };
     }
-    return { label: 'In entrata', color: '#00FF9C', icon: 'phone-incoming' };
+    return { label: t('call.incoming'), color: '#00FF9C', icon: 'phone-incoming' };
   }, []);
 
   const renderItem = ({ item }: { item: Call }) => {
@@ -159,7 +159,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
         </View>
 
         <View style={s.right}>
-          <Text style={s.timestamp}>{formatTimestamp(item.createdAt)}</Text>
+          <Text style={s.timestamp}>{formatTimestamp(item.createdAt, t)}</Text>
           {!!otherUid && (
             <TouchableOpacity
               style={s.callBtn}
@@ -192,8 +192,8 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
         const names = activeProfiles.slice(0, 3).map((p) => p.name).join(', ');
         const extra = activeProfiles.length > 3 ? ` +${activeProfiles.length - 3}` : '';
         const subtitle = activeProfiles.length > 0
-          ? `${names}${extra} ${activeProfiles.length === 1 ? 'e ancora connesso' : 'sono ancora connessi'}`
-          : 'Altri partecipanti ancora connessi';
+          ? `${names}${extra} ${activeProfiles.length === 1 ? t('call.areStillConnected_one') : t('call.areStillConnected_other')}`
+          : t('call.othersStillConnected');
         return (
           <TouchableOpacity style={s.liveCard} onPress={rejoinGroupCall} activeOpacity={0.8}>
             <View style={s.liveDotWrap}>
@@ -210,12 +210,12 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
               })}
             </View>
             <View style={s.liveInfo}>
-              <Text style={s.liveTitle}>Chiamata in corso</Text>
+              <Text style={s.liveTitle}>{t('call.ongoing')}</Text>
               <Text style={s.liveSubtitle} numberOfLines={1}>{subtitle}</Text>
             </View>
             <View style={s.liveJoinBtn}>
               <Feather name="phone" size={16} color="#000" />
-              <Text style={s.liveJoinTxt}>Rientra</Text>
+              <Text style={s.liveJoinTxt}>{t('call.rejoin')}</Text>
             </View>
           </TouchableOpacity>
         );
@@ -228,7 +228,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
       ) : calls.length === 0 ? (
         <View style={s.center}>
           <Feather name="phone-missed" size={48} color={colors.textMuted} />
-          <Text style={s.emptyText}>Nessuna chiamata</Text>
+          <Text style={s.emptyText}>{t('call.noCalls')}</Text>
         </View>
       ) : (
         <FlatList

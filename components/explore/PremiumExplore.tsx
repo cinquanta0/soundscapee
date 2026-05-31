@@ -540,6 +540,7 @@ function LeaderboardRow({ item, rank, isPlaying, busy, onPlay }: { item: any; ra
 }
 
 export function ExploreLeaderboard({ items, playingId, busy, onPlay }: LeaderboardProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const lb = useMemo(() => createLbStyles(colors), [colors]);
   const podium = items.slice(0, 3);
@@ -551,8 +552,8 @@ export function ExploreLeaderboard({ items, playingId, busy, onPlay }: Leaderboa
         <View style={lb.emptyIcon}>
           <Feather name="bar-chart-2" size={28} color={ACCENT.gold} />
         </View>
-        <Text style={lb.emptyTitle}>Classifica vuota</Text>
-        <Text style={lb.emptySubtitle}>Nessun ascolto registrato ancora. Sii il primo a salire in vetta.</Text>
+        <Text style={lb.emptyTitle}>{t('explore.emptyLeaderboardTitle')}</Text>
+        <Text style={lb.emptySubtitle}>{t('explore.emptyLeaderboardDesc')}</Text>
       </View>
     );
   }
@@ -564,8 +565,8 @@ export function ExploreLeaderboard({ items, playingId, busy, onPlay }: Leaderboa
           <Feather name="bar-chart-2" size={18} color={ACCENT.gold} />
         </View>
         <View>
-          <Text style={lb.headerCaption}>GLOBAL CHARTS</Text>
-          <Text style={lb.headerTitle}>Top suoni</Text>
+          <Text style={lb.headerCaption}>{t('explore.globalCharts')}</Text>
+          <Text style={lb.headerTitle}>{t('explore.topSounds')}</Text>
         </View>
       </View>
 
@@ -584,7 +585,7 @@ export function ExploreLeaderboard({ items, playingId, busy, onPlay }: Leaderboa
 
       {rest.length > 0 && (
         <View style={lb.restSection}>
-          <Text style={lb.restCaption}>A SEGUIRE</Text>
+          <Text style={lb.restCaption}>{t('explore.upNext')}</Text>
           {rest.map((item, i) => (
             <LeaderboardRow
               key={item.id}

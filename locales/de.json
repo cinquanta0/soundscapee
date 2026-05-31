@@ -21,7 +21,23 @@
     "accept": "Annehmen",
     "reject": "Ablehnen",
     "areYouSure": "Bist du sicher?",
-    "info": "Info"
+    "info": "Info",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "months": {
+      "gen": "Jan",
+      "feb": "Feb",
+      "mar": "Mär",
+      "apr": "Apr",
+      "mag": "Mai",
+      "giu": "Jun",
+      "lug": "Jul",
+      "ago": "Aug",
+      "set": "Sep",
+      "ott": "Okt",
+      "nov": "Nov",
+      "dic": "Dez"
+    }
   },
   "auth": {
     "login": "Anmelden",
@@ -126,7 +142,12 @@
       "cannotStop": "Aufnahme kann nicht gestoppt werden",
       "tooShort": "Zu kurz",
       "tooShortMsg": "Nehme mindestens 3 Sekunden auf"
-    }
+    },
+    "showOnMap": "Auf Karte zeigen",
+    "exactLocation": "Genauer Standort",
+    "privacySecurity": "Datenschutz & Sicherheit",
+    "useApproxLocation": "Ungefähren Standort verwenden",
+    "approxLocationDesc": "Schützt Ihre Privatsphäre durch Verbergen genauer Koordinaten."
   },
   "podcast": {
     "title": "Neuer Podcast",
@@ -347,7 +368,13 @@
     "modeBattlesSubtitle": "Challenges und Abstimmungen",
     "featureRadioSubtitle": "Sender, DJ, Live-Räume",
     "featurePodcastSubtitle": "Episoden, Hub, kuratierte Serien",
-    "featureBattlesSubtitle": "Audio-Challenges und Abstimmungen"
+    "featureBattlesSubtitle": "Audio-Challenges und Abstimmungen",
+    "emptyLeaderboardTitle": "Leere Bestenliste",
+    "emptyLeaderboardDesc": "Noch keine Wiedergaben aufgezeichnet. Sei der Erste an der Spitze.",
+    "globalCharts": "GLOBAL CHARTS",
+    "topSounds": "Top-Sounds",
+    "upNext": "ALS NÄCHSTES",
+    "listensCount": "Aufrufe"
   },
   "map": {
     "nearby": "In der Nähe",
@@ -644,7 +671,12 @@
     "myRemixes": "Meine Remixes",
     "remixes": "Remixes",
     "startRemixing": "Remixen starten",
-    "deleteRemix": "Remix löschen"
+    "deleteRemix": "Remix löschen",
+    "createFirstRemix": "Erstelle deinen ersten Remix, indem du deine Sounds mischst!",
+    "newBtn": "Neu",
+    "statsTitle": "Remix-Statistiken",
+    "tracksRmx": "Titel/Rmx",
+    "totSec": "Gesamt Sek"
   },
   "stories": {
     "newStatus": "Neuer Status 🎵",
@@ -876,13 +908,13 @@
   },
   "call": {
     "MIUSLYK": "MIUSLYK · Sprachanruf",
-    "incoming": "Eingehender Anruf",
+    "incoming": "Eingehend",
     "calling": "Wird angerufen...",
     "connecting": "Verbinden...",
     "connected": "Im Gespräch",
     "ended": "Anruf beendet",
     "declined": "Anruf abgelehnt",
-    "missed": "Verpasster Anruf",
+    "missed": "Verpasst",
     "accept": "Annehmen",
     "decline": "Ablehnen",
     "cancel": "Abbrechen",
@@ -895,7 +927,16 @@
       "failed": "Anruf konnte nicht gestartet werden.",
       "busy": "Benutzer ist beschäftigt."
     },
-    "history": "Anrufliste"
+    "history": "Anrufliste",
+    "groupCall": "Gruppenanruf",
+    "group": "Gruppe",
+    "outgoing": "Ausgehend",
+    "ongoing": "Laufender Anruf",
+    "othersStillConnected": "Andere Teilnehmer noch verbunden",
+    "areStillConnected_one": "ist noch verbunden",
+    "areStillConnected_other": "sind noch verbunden",
+    "rejoin": "Wieder beitreten",
+    "noCalls": "Keine Anrufe"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Die Welt klingt",
