@@ -4176,17 +4176,17 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceLight,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   profileStatNumber: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.textAccent,
+    color: '#fff',
   },
   profileStatLabel: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
   },
   profileButtonPrimary: {
