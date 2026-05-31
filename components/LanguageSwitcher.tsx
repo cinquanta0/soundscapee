@@ -108,9 +108,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 12,
     marginBottom: 4,
   },
-  optionSelected: { backgroundColor: colors.accent + '20' },
+  optionSelected: { backgroundColor: colors.textAccent + '20' },
   optionFlag: { fontSize: 22 },
   optionLabel: { flex: 1, color: colors.text, fontSize: 16 },
-  optionLabelSelected: { color: colors.accent, fontWeight: '600' },
-  check: { color: colors.accent, fontSize: 16, fontWeight: '700' },
+  optionLabelSelected: { color: colors.textAccent, fontWeight: '600' },
+  check: { color: colors.textAccent, fontSize: 16, fontWeight: '700' },
 });

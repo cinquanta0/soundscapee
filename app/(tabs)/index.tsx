@@ -4149,7 +4149,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   profileName: {
     fontSize: 24,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   profileUsername: {

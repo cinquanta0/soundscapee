@@ -315,7 +315,7 @@ export function ExploreSoundCard({ item, isPlaying, busy, onPress }: SoundCardPr
                   s.waveBar,
                   {
                     height,
-                    backgroundColor: isPlaying ? ACCENT.cyan : 'rgba(150,166,207,0.22)',
+                    backgroundColor: isPlaying ? colors.textAccent : colors.border,
                   },
                 ]}
               />
@@ -863,7 +863,7 @@ function createStyles(colors: ThemeColors) {
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -925,8 +925,8 @@ function createStyles(colors: ThemeColors) {
     backgroundColor: C.glass,
   },
   chipActive: {
-    borderColor: 'rgba(103,232,249,0.26)',
-    backgroundColor: 'rgba(103,232,249,0.09)',
+    borderColor: colors.textAccent + '44',
+    backgroundColor: colors.textAccent + '18',
   },
   chipText: {
     color: C.textDim,
@@ -934,7 +934,7 @@ function createStyles(colors: ThemeColors) {
     fontWeight: '700',
   },
   chipTextActive: {
-    color: C.cyan,
+    color: colors.textAccent,
   },
   featureRow: {
     flexDirection: 'row',
@@ -1113,7 +1113,7 @@ function createStyles(colors: ThemeColors) {
     borderColor: 'rgba(103,232,249,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.surfaceLight,
   },
   userName: {
     color: C.text,
@@ -1131,7 +1131,7 @@ function createStyles(colors: ThemeColors) {
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,155,94,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: colors.surfaceLight,
     padding: 16,
   },
   battleTop: {
@@ -1194,7 +1194,7 @@ function createStyles(colors: ThemeColors) {
     alignItems: 'center',
   },
   battleVs: {
-    color: 'rgba(255,255,255,0.25)',
+    color: colors.textMuted,
     fontSize: 18,
     fontWeight: '900',
   },
