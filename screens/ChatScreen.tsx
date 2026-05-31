@@ -189,7 +189,7 @@ function MessageBubble({
         )}
 
         {msg.type === 'text' ? (
-          <Text style={s.messageText}>{msg.text}</Text>
+          <Text style={[s.messageText, { color: isMine ? colors.bubbleMineText : colors.bubbleTheirsText }]}>{msg.text}</Text>
         ) : (
           <View style={s.audioRow}>
             <View style={[s.playCircle, isMine ? s.playCircleMine : s.playCircleTheirs]}>
@@ -198,7 +198,7 @@ function MessageBubble({
               </Text>
             </View>
             <WaveformBars waveform={wf} isPlaying={isPlaying} isMine={isMine} />
-            <Text style={[s.durTxt, isPlaying && { color }]}>{durDisplay}</Text>
+            <Text style={[s.durTxt, { color: isMine ? colors.bubbleMineText : colors.bubbleTheirsText, opacity: 0.7 }, isPlaying && { color, opacity: 1 }]}>{durDisplay}</Text>
           </View>
         )}
 
@@ -217,9 +217,9 @@ function MessageBubble({
         )}
 
         <View style={s.meta}>
-          <Text style={s.timeTxt}>{fmtTime(msg.timestamp)}</Text>
+          <Text style={[s.timeTxt, { color: isMine ? colors.bubbleMineText : colors.bubbleTheirsText, opacity: 0.65 }]}>{fmtTime(msg.timestamp)}</Text>
           {isMine && (
-            <Text style={[s.check, msg.ascoltato && s.checkRead]}>
+            <Text style={[s.check, { color: colors.bubbleMineText, opacity: 0.65 }, msg.ascoltato && s.checkRead]}>
               {msg.ascoltato ? '✓✓' : '✓'}
             </Text>
           )}
