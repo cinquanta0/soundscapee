@@ -714,7 +714,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
     >
-      <StatusBar barStyle={colors.text === '#161616' ? "dark-content" : "light-content"} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <LinearGradient colors={colors.gradientBg} style={StyleSheet.absoluteFill} />
 
       <View style={s.header}>
