@@ -398,7 +398,7 @@ export default function MapScreen() {
         )}
 
         <View style={s.countPill}>
-          <Feather name="music" size={11} color="#D9FF5A" />
+          <Feather name="music" size={11} color="#16A34A" />
           <Text style={s.countText}>{sounds.length}</Text>
         </View>
       </View>
@@ -602,7 +602,7 @@ function createStyles(colors: ThemeColors) {
       marginLeft: 'auto',
     },
     countText: {
-      color: '#D9FF5A',
+      color: '#16A34A',
       fontSize: 13,
       fontWeight: '800',
     },

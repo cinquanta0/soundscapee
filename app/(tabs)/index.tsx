@@ -4127,7 +4127,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   profileEyebrow: {
     alignSelf: 'flex-start',
-    color: colors.textAccent,
+    color: '#4F7CFF',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -4154,11 +4154,11 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   profileUsername: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 10,
   },
   profileBio: {
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
