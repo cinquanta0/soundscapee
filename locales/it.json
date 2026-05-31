@@ -294,7 +294,10 @@
     "deleteForever": "Elimina definitivamente",
     "errors": {
       "cannotDelete": "Impossibile eliminare l'account. Riprova."
-    }
+    },
+    "themeDark": "🌙 Tema scuro",
+    "themeLight": "☀️ Tema chiaro",
+    "themeSaved": "Tema salvato automaticamente"
   },
   "explore": {
     "searchPlaceholder": "Cerca suoni, utenti...",
@@ -636,7 +639,12 @@
       "processingError": "❌ Errore processing",
       "noAudioUrl": "❌ Errore",
       "noAudioUrlMsg": "URL audio mancante per questo suono"
-    }
+    },
+    "badge": "REMIX",
+    "myRemixes": "I Miei Remix",
+    "remixes": "Remix",
+    "startRemixing": "Inizia a Remixare",
+    "deleteRemix": "Elimina Remix"
   },
   "stories": {
     "newStatus": "Nuovo stato 🎵",
@@ -886,7 +894,8 @@
     "errors": {
       "failed": "Impossibile avviare la chiamata.",
       "busy": "Utente occupato."
-    }
+    },
+    "history": "Cronologia chiamate"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Il Mondo Suona",
@@ -919,7 +928,9 @@
     "listens": "ascolti",
     "backstage": "Backstage",
     "emptyTitle": "Nessun suono trovato",
-    "emptyCaption": "Prova un mood diverso o pubblica il tuo primo drop."
+    "emptyCaption": "Prova un mood diverso o pubblica il tuo primo drop.",
+    "forYou": "Per Te",
+    "following": "Seguiti"
   },
   "player": {
     "nowPlaying": "IN RIPRODUZIONE",

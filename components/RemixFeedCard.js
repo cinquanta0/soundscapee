@@ -14,12 +14,14 @@ import {
   incrementRemixPlays
 } from '../services/remixService';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Card per mostrare i remix nel feed principale
  * Usa questo componente nel tuo home feed insieme ai normali sound cards
  */
 export default function RemixFeedCard({ remix, onPlay }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const dynStyles = useMemo(() => createStyles(colors), [colors]);
   const [isLiked, setIsLiked] = useState(false);
@@ -99,7 +101,7 @@ export default function RemixFeedCard({ remix, onPlay }) {
         end={{ x: 1, y: 0 }}
         style={dynStyles.remixBadge}
       >
-        <Text style={dynStyles.remixBadgeText}>REMIX</Text>
+        <Text style={dynStyles.remixBadgeText}>{t('remix.badge')}</Text>
       </LinearGradient>
 
       {/* Header */}

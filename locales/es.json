@@ -294,7 +294,10 @@
     "deleteForever": "Eliminar permanentemente",
     "errors": {
       "cannotDelete": "No se puede eliminar la cuenta. Inténtalo de nuevo."
-    }
+    },
+    "themeDark": "🌙 Tema oscuro",
+    "themeLight": "☀️ Tema claro",
+    "themeSaved": "Tema guardado automáticamente"
   },
   "explore": {
     "searchPlaceholder": "Buscar sonidos, usuarios...",
@@ -636,7 +639,12 @@
       "processingError": "❌ Error de procesamiento",
       "noAudioUrl": "❌ Error",
       "noAudioUrlMsg": "URL de audio no disponible para este sonido"
-    }
+    },
+    "badge": "REMIX",
+    "myRemixes": "Mis Remixes",
+    "remixes": "Remixes",
+    "startRemixing": "Empezar a Remixar",
+    "deleteRemix": "Eliminar Remix"
   },
   "stories": {
     "newStatus": "Nuevo estado 🎵",
@@ -886,7 +894,8 @@
     "errors": {
       "failed": "No se pudo iniciar la llamada.",
       "busy": "Usuario ocupado."
-    }
+    },
+    "history": "Historial de llamadas"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — El Mundo Suena",
@@ -919,7 +928,9 @@
     "listens": "escuchas",
     "backstage": "Backstage",
     "emptyTitle": "Sin sonidos",
-    "emptyCaption": "Prueba otro mood o publica tu primer drop."
+    "emptyCaption": "Prueba otro mood o publica tu primer drop.",
+    "forYou": "Para ti",
+    "following": "Siguiendo"
   },
   "player": {
     "nowPlaying": "REPRODUCIENDO",

@@ -294,7 +294,10 @@
     "deleteForever": "Delete permanently",
     "errors": {
       "cannotDelete": "Unable to delete account. Please try again."
-    }
+    },
+    "themeDark": "🌙 Dark theme",
+    "themeLight": "☀️ Light theme",
+    "themeSaved": "Theme saved automatically"
   },
   "explore": {
     "searchPlaceholder": "Search sounds, users...",
@@ -636,7 +639,12 @@
       "processingError": "❌ Processing error",
       "noAudioUrl": "❌ Error",
       "noAudioUrlMsg": "Audio URL missing for this sound"
-    }
+    },
+    "badge": "REMIX",
+    "myRemixes": "My Remixes",
+    "remixes": "Remixes",
+    "startRemixing": "Start Remixing",
+    "deleteRemix": "Delete Remix"
   },
   "stories": {
     "newStatus": "New status 🎵",
@@ -886,7 +894,8 @@
     "errors": {
       "failed": "Could not start the call.",
       "busy": "User is busy."
-    }
+    },
+    "history": "Call history"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — The World Sounds",
@@ -919,7 +928,9 @@
     "listens": "listens",
     "backstage": "Backstage",
     "emptyTitle": "No sounds found",
-    "emptyCaption": "Try a different mood or publish your first drop."
+    "emptyCaption": "Try a different mood or publish your first drop.",
+    "forYou": "For You",
+    "following": "Following"
   },
   "player": {
     "nowPlaying": "NOW PLAYING",

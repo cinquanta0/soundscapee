@@ -294,7 +294,10 @@
     "deleteForever": "Dauerhaft löschen",
     "errors": {
       "cannotDelete": "Konto kann nicht gelöscht werden. Bitte erneut versuchen."
-    }
+    },
+    "themeDark": "🌙 Dunkles Design",
+    "themeLight": "☀️ Helles Design",
+    "themeSaved": "Design automatisch gespeichert"
   },
   "explore": {
     "searchPlaceholder": "Klänge, Benutzer suchen...",
@@ -636,7 +639,12 @@
       "processingError": "❌ Verarbeitungsfehler",
       "noAudioUrl": "❌ Fehler",
       "noAudioUrlMsg": "Audio-URL für diesen Sound fehlt"
-    }
+    },
+    "badge": "REMIX",
+    "myRemixes": "Meine Remixes",
+    "remixes": "Remixes",
+    "startRemixing": "Remixen starten",
+    "deleteRemix": "Remix löschen"
   },
   "stories": {
     "newStatus": "Neuer Status 🎵",
@@ -886,7 +894,8 @@
     "errors": {
       "failed": "Anruf konnte nicht gestartet werden.",
       "busy": "Benutzer ist beschäftigt."
-    }
+    },
+    "history": "Anrufliste"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Die Welt klingt",
@@ -919,7 +928,9 @@
     "listens": "Plays",
     "backstage": "Backstage",
     "emptyTitle": "Keine Sounds gefunden",
-    "emptyCaption": "Probiere eine andere Stimmung oder veröffentliche deinen ersten Drop."
+    "emptyCaption": "Probiere eine andere Stimmung oder veröffentliche deinen ersten Drop.",
+    "forYou": "Für dich",
+    "following": "Abonnements"
   },
   "player": {
     "nowPlaying": "LÄUFT",

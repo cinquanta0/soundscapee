@@ -294,7 +294,10 @@
     "deleteForever": "Supprimer définitivement",
     "errors": {
       "cannotDelete": "Impossible de supprimer le compte. Veuillez réessayer."
-    }
+    },
+    "themeDark": "🌙 Thème sombre",
+    "themeLight": "☀️ Thème clair",
+    "themeSaved": "Thème enregistré automatiquement"
   },
   "explore": {
     "searchPlaceholder": "Rechercher sons, utilisateurs...",
@@ -636,7 +639,12 @@
       "processingError": "❌ Erreur de traitement",
       "noAudioUrl": "❌ Erreur",
       "noAudioUrlMsg": "URL audio manquante pour ce son"
-    }
+    },
+    "badge": "REMIX",
+    "myRemixes": "Mes Remix",
+    "remixes": "Remix",
+    "startRemixing": "Commencer le Remix",
+    "deleteRemix": "Supprimer le Remix"
   },
   "stories": {
     "newStatus": "Nouveau statut 🎵",
@@ -886,7 +894,8 @@
     "errors": {
       "failed": "Impossible de démarrer l'appel.",
       "busy": "Utilisateur occupé."
-    }
+    },
+    "history": "Historique d'appels"
   },
   "onboarding": {
     "slide1_title": "MIUSLYK — Le Monde Sonne",
@@ -919,7 +928,9 @@
     "listens": "écoutes",
     "backstage": "Backstage",
     "emptyTitle": "Aucun son trouvé",
-    "emptyCaption": "Essaie un autre mood ou publie ton premier drop."
+    "emptyCaption": "Essaie un autre mood ou publie ton premier drop.",
+    "forYou": "Pour vous",
+    "following": "Abonnements"
   },
   "player": {
     "nowPlaying": "EN LECTURE",

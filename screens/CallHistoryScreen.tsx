@@ -176,7 +176,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
   return (
     <LinearGradient colors={colors.gradientBg} style={s.container}>
       <View style={s.header}>
-        <Text style={s.headerTitle}>Cronologia chiamate</Text>
+        <Text style={s.headerTitle}>{t('call.history')}</Text>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
           <Feather name="x" size={22} color={colors.text} />
         </TouchableOpacity>

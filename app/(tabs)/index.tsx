@@ -1891,12 +1891,12 @@ if (loading) {
               <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => setFeedMode('for-you')}>
                   <Text style={[s.feedSectionTitle, feedMode !== 'for-you' && { color: colors.textSecondary }]}>
-                    Per Te
+                    {t('feed.forYou')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setFeedMode('following')}>
                   <Text style={[s.feedSectionTitle, feedMode !== 'following' && { color: colors.textSecondary }]}>
-                    Seguiti
+                    {t('feed.following')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -2828,7 +2828,7 @@ if (loading) {
                   activeOpacity={0.7}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-                    <Text style={s.settingsItemText}>{isDark ? '🌙 Tema scuro' : '☀️ Tema chiaro'}</Text>
+                    <Text style={s.settingsItemText}>{isDark ? t('settings.themeDark') : t('settings.themeLight')}</Text>
                     <View style={{
                       width: 44, height: 26, borderRadius: 13,
                       backgroundColor: isDark ? colors.purple : colors.cyan,
@@ -3455,7 +3455,7 @@ if (loading) {
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
           <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: colors.borderSubtle }}>
             <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20 }}>Tema salvato automaticamente</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20 }}>{t('settings.themeSaved')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
               {PROFILE_THEMES.map(theme => {
                 const isActive = (userProfile?.profileTheme ?? 'default') === theme.id;

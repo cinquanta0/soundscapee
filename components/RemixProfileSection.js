@@ -21,8 +21,10 @@ import {
   incrementRemixPlays,
 } from '../services/remixService';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function RemixProfileSection({ onOpenRemixStudio, userId = null }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const dynStyles = useMemo(() => createRemixStyles(colors), [colors]);
   const isOwnProfile = !userId;
@@ -167,7 +169,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
   const handleDelete = async (remixId) => {
     Alert.alert(
-      'Elimina Remix',
+      t('remix.deleteRemix'),
       'Vuoi davvero eliminare questo remix?',
       [
         { text: 'Annulla', style: 'cancel' },
@@ -237,7 +239,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
       {/* Header */}
       <View style={dynStyles.header}>
-        <Text style={dynStyles.sectionTitle}>{isOwnProfile ? 'I Miei Remix' : 'Remix'} ({remixes.length})</Text>
+        <Text style={dynStyles.sectionTitle}>{isOwnProfile ? t('remix.myRemixes') : t('remix.remixes')} ({remixes.length})</Text>
         {isOwnProfile && (
           <TouchableOpacity style={dynStyles.createButton} onPress={onOpenRemixStudio}>
             <Text style={dynStyles.createButtonText}>Nuovo</Text>
@@ -254,7 +256,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
             <>
               <Text style={dynStyles.emptySubtext}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
               <TouchableOpacity style={dynStyles.emptyButton} onPress={onOpenRemixStudio}>
-                <Text style={dynStyles.emptyButtonText}>Inizia a Remixare</Text>
+                <Text style={dynStyles.emptyButtonText}>{t('remix.startRemixing')}</Text>
               </TouchableOpacity>
             </>
           )}
