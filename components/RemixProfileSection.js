@@ -20,8 +20,10 @@ import {
   getUserRemixStats,
   incrementRemixPlays,
 } from '../services/remixService';
+import { useTheme } from '../context/ThemeContext';
 
 export default function RemixProfileSection({ onOpenRemixStudio, userId = null }) {
+  const { colors } = useTheme();
   const isOwnProfile = !userId;
   const [remixes, setRemixes] = useState([]);
   const [stats, setStats] = useState(null);
