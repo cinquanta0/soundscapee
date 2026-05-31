@@ -40,7 +40,7 @@ try { const r = require('react-native-track-player'); _TP = r.default; _S = r.St
 const RNTP_SESSION_KEY = '@miuslyk/rntp_session';
 
 const C = {
-  cyan: '#67E8F9',
+  cyan: '#1D4ED8',
   purple: '#8B5CFF',
   lime: '#D9FF5A',
   orange: '#FF9B5E',
@@ -543,7 +543,7 @@ export default function ExploreScreen({ onOpenUserProfile }: ExploreScreenProps)
         ListEmptyComponent={
           usersLoading || loading ? (
             <View style={s.center}>
-              <ActivityIndicator size="large" color="#67E8F9" />
+              <ActivityIndicator size="large" color={colors.textAccent} />
             </View>
           ) : section === 'utenti' ? (
             !userSearchText.trim() ? (

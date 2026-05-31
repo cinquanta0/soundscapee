@@ -23,7 +23,7 @@ function buildC(colors: ThemeColors) {
     text: colors.text,
     textDim: colors.textSecondary,
     textFaint: colors.textMuted,
-    cyan: colors.cyan,
+    cyan: colors.textAccent,
     blue: colors.blue,
     lime: '#D9FF5A',
     purple: colors.purple,

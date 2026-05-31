@@ -911,7 +911,7 @@ export default function ChatScreen({ conversationId, otherUserId, otherUserName,
           </TouchableOpacity>
 
           {sending
-            ? <ActivityIndicator color="#67E8F9" style={{ marginLeft: 6, marginBottom: 12 }} />
+            ? <ActivityIndicator color={colors.textAccent} style={{ marginLeft: 6, marginBottom: 12 }} />
             : <RecordButton
                 onSend={handleSendAudio}
                 onStartRecording={() => setTypingStatus(conversationId, 'recording').catch(() => {})}
@@ -954,14 +954,14 @@ function createBubbleStyles(colors: ThemeColors) {
     statusReplyTagTheirs: { backgroundColor: 'rgba(139,92,255,0.12)', borderColor: 'rgba(139,92,255,0.32)' },
     statusReplyTxt: { color: 'rgba(255,255,255,0.82)', fontSize: 10, fontFamily: 'monospace' },
     replyCard: { borderLeftWidth: 2, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-    replyCardMine: { backgroundColor: 'rgba(103,232,249,0.08)', borderLeftColor: '#67E8F9' },
+    replyCardMine: { backgroundColor: 'rgba(103,232,249,0.08)', borderLeftColor: colors.textAccent },
     replyCardTheirs: { backgroundColor: 'rgba(139,92,255,0.08)', borderLeftColor: '#8B5CFF' },
     replyName: { color: colors.text, fontSize: 11, fontWeight: '700', marginBottom: 2 },
     replyPreview: { color: colors.textSecondary, fontSize: 11, lineHeight: 15 },
     messageText: { color: colors.text, fontSize: 15, lineHeight: 21 },
     audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     playCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-    playCircleMine: { borderColor: '#67E8F9', backgroundColor: 'rgba(103,232,249,0.12)' },
+    playCircleMine: { borderColor: colors.textAccent, backgroundColor: 'rgba(103,232,249,0.12)' },
     playCircleTheirs: { borderColor: '#8B5CFF', backgroundColor: 'rgba(139,92,255,0.1)' },
     playIcon: { fontSize: 13, fontWeight: '700' },
     durTxt: { fontSize: 11, color: colors.textMuted, fontFamily: 'monospace', minWidth: 28 },
@@ -1013,7 +1013,7 @@ function createChatScreenStyles(colors: ThemeColors) {
     inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
     textInputWrap: { flex: 1, borderRadius: 22, backgroundColor: colors.bgInput, borderWidth: 1, borderColor: colors.borderSubtle, paddingHorizontal: 14, paddingVertical: 10, minHeight: 52, maxHeight: 120 },
     textInput: { color: colors.text, fontSize: 14, lineHeight: 20, padding: 0 },
-    sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#67E8F9' },
+    sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.textAccent },
     sendBtnDisabled: { opacity: 0.45 },
     sendBtnTxt: { color: '#08111E', fontSize: 20, fontWeight: '800' },
     inputHintTxt: { color: colors.textMuted, fontSize: 12, fontFamily: 'monospace', marginTop: 8 },

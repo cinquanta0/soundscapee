@@ -38,7 +38,7 @@ function buildC(colors: ThemeColors) {
     glass: colors.surfaceLight,
     border: colors.border,
     borderStrong: colors.borderSubtle,
-    cyan: ACCENT.cyan,
+    cyan: colors.textAccent,
     gold: ACCENT.gold,
     lime: ACCENT.lime,
     orange: ACCENT.orange,
