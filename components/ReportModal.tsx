@@ -17,6 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db as firestoreDb, auth } from '../firebaseConfig';
+import { useTheme } from '../context/ThemeContext';
 
 interface ReportModalProps {
   visible: boolean;
@@ -28,6 +29,8 @@ interface ReportModalProps {
 
 export default function ReportModal({ visible, onClose, targetId, targetType, onReportSuccess }: ReportModalProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const dynStyles = React.useMemo(() => createStyles(colors), [colors]);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -89,29 +92,29 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
     >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
-        <View style={styles.modalOverlay}>
+        <View style={dynStyles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={styles.modalContent}>
+            <View style={dynStyles.modalContent}>
               {sent ? (
-                <View style={styles.sentContainer}>
-                  <View style={styles.checkIconWrapper}>
-                    <Feather name="check" size={22} color="#10b981" />
+                <View style={dynStyles.sentContainer}>
+                  <View style={dynStyles.checkIconWrapper}>
+                    <Feather name="check" size={22} color={colors.success || "#10b981"} />
                   </View>
-                  <Text style={styles.sentText}>{t('report.sent', 'Segnalazione inviata.')}</Text>
-                  <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                    <Text style={{ color: '#F8F4EF' }}>{t('common.close', 'Chiudi')}</Text>
+                  <Text style={dynStyles.sentText}>{t('report.sent', 'Segnalazione inviata.')}</Text>
+                  <TouchableOpacity style={dynStyles.closeButton} onPress={onClose}>
+                    <Text style={{ color: colors.text }}>{t('common.close', 'Chiudi')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>{t('report.title', 'Segnala')}</Text>
+                  <View style={dynStyles.modalHeader}>
+                    <Text style={dynStyles.modalTitle}>{t('report.title', 'Segnala')}</Text>
                     <TouchableOpacity onPress={onClose}>
-                      <Feather name="x" size={22} color="#94a3b8" />
+                      <Feather name="x" size={22} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.subtitle}>{t('report.selectReason', 'Seleziona un motivo per la segnalazione:')}</Text>
-                  <View style={styles.reasonsContainer}>
+                  <Text style={dynStyles.subtitle}>{t('report.selectReason', 'Seleziona un motivo per la segnalazione:')}</Text>
+                  <View style={dynStyles.reasonsContainer}>
                     {[
                       { key: 'Spam', label: t('report.spam', 'Spam') },
                       { key: 'Molestie', label: t('report.harassment', 'Molestie / Bullismo') },
@@ -122,34 +125,34 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
                       <TouchableOpacity
                         key={key}
                         style={[
-                          styles.reasonBtn,
-                          reason === key && styles.reasonBtnActive
+                          dynStyles.reasonBtn,
+                          reason === key && dynStyles.reasonBtnActive
                         ]}
                         onPress={() => setReason(key)}
                       >
-                        <Text style={[styles.reasonText, reason === key && styles.reasonTextActive]}>
+                        <Text style={[dynStyles.reasonText, reason === key && dynStyles.reasonTextActive]}>
                           {label}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={dynStyles.input}
                     placeholder={t('report.notesPlaceholder', 'Aggiungi un commento opzionale...')}
-                    placeholderTextColor="#4A4D56"
+                    placeholderTextColor={colors.textSecondary}
                     multiline
                     value={note}
                     onChangeText={setNote}
                   />
                   <TouchableOpacity
-                    style={[styles.submitBtn, (!reason || loading) && styles.submitBtnDisabled]}
+                    style={[dynStyles.submitBtn, (!reason || loading) && dynStyles.submitBtnDisabled]}
                     onPress={handleSendReport}
                     disabled={!reason || loading}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#fff" />
+                      <ActivityIndicator color={colors.bg} />
                     ) : (
-                      <Text style={styles.submitBtnText}>{t('report.submit', 'Invia Segnalazione')}</Text>
+                      <Text style={dynStyles.submitBtnText}>{t('report.submit', 'Invia Segnalazione')}</Text>
                     )}
                   </TouchableOpacity>
                 </>
@@ -163,19 +166,19 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
     borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -184,48 +187,48 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    color: '#F8F4EF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '700',
   },
-  subtitle: { color: '#8A8D96', fontSize: 13, marginBottom: 14 },
+  subtitle: { color: colors.textSecondary, fontSize: 13, marginBottom: 14 },
   reasonsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   reasonBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: colors.border,
+    backgroundColor: colors.bgCard,
   },
   reasonBtnActive: {
-    borderColor: '#00FF9C',
-    backgroundColor: 'rgba(0,255,156,0.15)',
+    borderColor: colors.accent,
+    backgroundColor: colors.accent + '20',
   },
-  reasonText: { color: '#8A8D96', fontSize: 13 },
-  reasonTextActive: { color: '#00FF9C', fontWeight: '600' },
+  reasonText: { color: colors.textSecondary, fontSize: 13 },
+  reasonTextActive: { color: colors.accent, fontWeight: '600' },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
-    color: '#F8F4EF',
+    color: colors.text,
     fontSize: 13,
     marginBottom: 16,
     minHeight: 80,
     textAlignVertical: 'top'
   },
   submitBtn: {
-    backgroundColor: '#00FF9C',
+    backgroundColor: colors.accent,
     padding: 14,
     borderRadius: 10,
     alignItems: 'center',
   },
   submitBtnDisabled: {
-    backgroundColor: 'rgba(0,255,156,0.3)',
+    backgroundColor: colors.accent + '50',
   },
-  submitBtnText: { color: '#161616', fontWeight: '700', fontSize: 15 },
+  submitBtnText: { color: colors.bg, fontWeight: '700', fontSize: 15 },
   sentContainer: { alignItems: 'center', padding: 20, gap: 12 },
   checkIconWrapper: {
     width: 48, height: 48, borderRadius: 24,
@@ -233,12 +236,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
     alignItems: 'center', justifyContent: 'center'
   },
-  sentText: { color: '#F8F4EF', fontSize: 16, fontWeight: '600' },
+  sentText: { color: colors.text, fontSize: 16, fontWeight: '600' },
   closeButton: {
     marginTop: 12,
     paddingVertical: 12,
     paddingHorizontal: 32,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.border,
     borderRadius: 10
   }
 });

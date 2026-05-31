@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../i18n';
+import { useTheme } from '../context/ThemeContext';
 
 const LANGUAGES = [
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
@@ -16,8 +17,10 @@ const LANGUAGES = [
 
 export default function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
   const current = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
+  const dynStyles = React.useMemo(() => createStyles(colors), [colors]);
 
   const select = async (code: string) => {
     await changeLanguage(code);
@@ -26,29 +29,29 @@ export default function LanguageSwitcher() {
 
   return (
     <>
-      <TouchableOpacity style={styles.trigger} onPress={() => setVisible(true)}>
-        <Text style={styles.flag}>{current.flag}</Text>
-        <Text style={styles.triggerLabel}>{current.label}</Text>
-        <Text style={styles.chevron}>›</Text>
+      <TouchableOpacity style={dynStyles.trigger} onPress={() => setVisible(true)}>
+        <Text style={dynStyles.flag}>{current.flag}</Text>
+        <Text style={dynStyles.triggerLabel}>{current.label}</Text>
+        <Text style={dynStyles.chevron}>›</Text>
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setVisible(false)}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('language.select')}</Text>
+        <Pressable style={dynStyles.backdrop} onPress={() => setVisible(false)}>
+          <View style={dynStyles.sheet}>
+            <Text style={dynStyles.sheetTitle}>{t('language.select')}</Text>
             <FlatList
               data={LANGUAGES}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.option, item.code === i18n.language && styles.optionSelected]}
+                  style={[dynStyles.option, item.code === i18n.language && dynStyles.optionSelected]}
                   onPress={() => select(item.code)}
                 >
-                  <Text style={styles.optionFlag}>{item.flag}</Text>
-                  <Text style={[styles.optionLabel, item.code === i18n.language && styles.optionLabelSelected]}>
+                  <Text style={dynStyles.optionFlag}>{item.flag}</Text>
+                  <Text style={[dynStyles.optionLabel, item.code === i18n.language && dynStyles.optionLabelSelected]}>
                     {item.label}
                   </Text>
-                  {item.code === i18n.language && <Text style={styles.check}>✓</Text>}
+                  {item.code === i18n.language && <Text style={dynStyles.check}>✓</Text>}
                 </TouchableOpacity>
               )}
             />
@@ -59,26 +62,28 @@ export default function LanguageSwitcher() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   flag: { fontSize: 20 },
-  triggerLabel: { flex: 1, color: '#f1f5f9', fontSize: 15 },
-  chevron: { color: '#64748b', fontSize: 18 },
+  triggerLabel: { flex: 1, color: colors.text, fontSize: 15 },
+  chevron: { color: colors.textSecondary, fontSize: 18 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bg,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 20,
@@ -86,7 +91,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sheetTitle: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 1,
@@ -103,9 +108,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 4,
   },
-  optionSelected: { backgroundColor: 'rgba(6, 182, 212, 0.12)' },
+  optionSelected: { backgroundColor: colors.accent + '20' },
   optionFlag: { fontSize: 22 },
-  optionLabel: { flex: 1, color: '#e2e8f0', fontSize: 16 },
-  optionLabelSelected: { color: '#00FF9C', fontWeight: '600' },
-  check: { color: '#00FF9C', fontSize: 16, fontWeight: '700' },
+  optionLabel: { flex: 1, color: colors.text, fontSize: 16 },
+  optionLabelSelected: { color: colors.accent, fontWeight: '600' },
+  check: { color: colors.accent, fontSize: 16, fontWeight: '700' },
 });

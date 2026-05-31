@@ -13,12 +13,15 @@ import {
   toggleRemixLike,
   incrementRemixPlays
 } from '../services/remixService';
+import { useTheme } from '../context/ThemeContext';
 
 /**
  * Card per mostrare i remix nel feed principale
  * Usa questo componente nel tuo home feed insieme ai normali sound cards
  */
 export default function RemixFeedCard({ remix, onPlay }) {
+  const { colors } = useTheme();
+  const dynStyles = useMemo(() => createStyles(colors), [colors]);
   const [isLiked, setIsLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(remix.likes || 0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -88,26 +91,26 @@ export default function RemixFeedCard({ remix, onPlay }) {
   };
 
   return (
-    <View style={styles.card}>
+    <View style={dynStyles.card}>
       {/* Gradient Badge */}
       <LinearGradient
         colors={['#8b5cf6', '#a855f7']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.remixBadge}
+        style={dynStyles.remixBadge}
       >
-        <Text style={styles.remixBadgeText}>REMIX</Text>
+        <Text style={dynStyles.remixBadgeText}>REMIX</Text>
       </LinearGradient>
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{remix.userAvatar || '🎵'}</Text>
+      <View style={dynStyles.header}>
+        <View style={dynStyles.userInfo}>
+          <View style={dynStyles.avatar}>
+            <Text style={dynStyles.avatarText}>{remix.userAvatar || '🎵'}</Text>
           </View>
-          <View style={styles.userDetails}>
-            <Text style={styles.username}>{remix.username || 'Artista'}</Text>
-            <Text style={styles.timestamp}>
+          <View style={dynStyles.userDetails}>
+            <Text style={dynStyles.username}>{remix.username || 'Artista'}</Text>
+            <Text style={dynStyles.timestamp}>
               {formatDate(remix.createdAt)}
             </Text>
           </View>
@@ -115,106 +118,106 @@ export default function RemixFeedCard({ remix, onPlay }) {
         
         {/* Status */}
         {remix.isProcessed ? (
-          <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Pronto</Text>
+          <View style={dynStyles.statusBadge}>
+            <View style={dynStyles.statusDot} />
+            <Text style={dynStyles.statusText}>Pronto</Text>
           </View>
         ) : (
-          <View style={[styles.statusBadge, { backgroundColor: 'rgba(234,179,8,0.12)', borderColor: 'rgba(234,179,8,0.3)' }]}>
-            <View style={[styles.statusDot, { backgroundColor: '#eab308' }]} />
-            <Text style={[styles.statusText, { color: '#eab308' }]}>Processing</Text>
+          <View style={[dynStyles.statusBadge, { backgroundColor: 'rgba(234,179,8,0.12)', borderColor: 'rgba(234,179,8,0.3)' }]}>
+            <View style={[dynStyles.statusDot, { backgroundColor: '#eab308' }]} />
+            <Text style={[dynStyles.statusText, { color: '#eab308' }]}>Processing</Text>
           </View>
         )}
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{remix.title}</Text>
+      <View style={dynStyles.content}>
+        <Text style={dynStyles.title}>{remix.title}</Text>
         {remix.description && (
-          <Text style={styles.description} numberOfLines={2}>
+          <Text style={dynStyles.description} numberOfLines={2}>
             {remix.description}
           </Text>
         )}
 
         {/* Tracks Info */}
-        <View style={styles.tracksInfo}>
-          <View style={styles.trackBubble}>
-            <Text style={styles.trackBubbleText}>
+        <View style={dynStyles.tracksInfo}>
+          <View style={dynStyles.trackBubble}>
+            <Text style={dynStyles.trackBubbleText}>
               {remix.tracksCount} {remix.tracksCount === 1 ? 'traccia' : 'tracce'}
             </Text>
           </View>
-          <View style={styles.trackBubble}>
-            <Text style={styles.trackBubbleText}>
+          <View style={dynStyles.trackBubble}>
+            <Text style={dynStyles.trackBubbleText}>
               ⏱️ {remix.totalDuration?.toFixed(0)}s
             </Text>
           </View>
         </View>
 
         {/* Player */}
-        <View style={styles.player}>
+        <View style={dynStyles.player}>
           <TouchableOpacity
             style={[
-              styles.playButton,
-              !remix.isProcessed && styles.playButtonDisabled
+              dynStyles.playButton,
+              !remix.isProcessed && dynStyles.playButtonDisabled
             ]}
             onPress={handlePlay}
             disabled={!remix.isProcessed || isPlaying}
           >
             <LinearGradient
               colors={['#8b5cf6', '#a855f7']}
-              style={styles.playButtonGradient}
+              style={dynStyles.playButtonGradient}
             >
               <Feather name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={styles.waveform}>
+          <View style={dynStyles.waveform}>
             {waveHeights.map((h, i) => (
               <View
                 key={i}
                 style={[
-                  styles.waveBar,
+                  dynStyles.waveBar,
                   {
                     height: h,
-                    backgroundColor: remix.isProcessed ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                    backgroundColor: remix.isProcessed ? '#a855f7' : (colors.textSecondary + '30'),
                   },
                 ]}
               />
             ))}
           </View>
 
-          <Text style={styles.duration}>
+          <Text style={dynStyles.duration}>
             {remix.totalDuration?.toFixed(0) || 0}s
           </Text>
         </View>
 
         {/* Actions */}
-        <View style={styles.actions}>
-          <View style={styles.actionsLeft}>
+        <View style={dynStyles.actions}>
+          <View style={dynStyles.actionsLeft}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={dynStyles.actionButton}
               onPress={handleLike}
             >
-              <Feather name="heart" size={14} color={isLiked ? '#ef4444' : '#94a3b8'} />
-              <Text style={styles.actionText}>{localLikes}</Text>
+              <Feather name="heart" size={14} color={isLiked ? '#ef4444' : colors.textSecondary} />
+              <Text style={dynStyles.actionText}>{localLikes}</Text>
             </TouchableOpacity>
 
-            <View style={styles.actionButton}>
-              <Feather name="play" size={14} color="#94a3b8" />
-              <Text style={styles.actionText}>{remix.plays || 0}</Text>
+            <View style={dynStyles.actionButton}>
+              <Feather name="play" size={14} color={colors.textSecondary} />
+              <Text style={dynStyles.actionText}>{remix.plays || 0}</Text>
             </View>
 
-            <View style={styles.actionButton}>
-              <Feather name="share-2" size={14} color="#94a3b8" />
-              <Text style={styles.actionText}>{remix.shares || 0}</Text>
+            <View style={dynStyles.actionButton}>
+              <Feather name="share-2" size={14} color={colors.textSecondary} />
+              <Text style={dynStyles.actionText}>{remix.shares || 0}</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.moreButton}
+            style={dynStyles.moreButton}
             onPress={() => Alert.alert('Info', 'Dettagli remix')}
           >
-            <Text style={styles.moreButtonText}>•••</Text>
+            <Text style={dynStyles.moreButtonText}>•••</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -222,13 +225,13 @@ export default function RemixFeedCard({ remix, onPlay }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   card: {
-    backgroundColor: '#161616',
+    backgroundColor: colors.bgCard,
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   remixBadge: {
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
   remixBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#001A0D',
+    color: '#fff',
     letterSpacing: 0.5,
   },
   header: {
@@ -274,11 +277,11 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   timestamp: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -310,12 +313,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 6,
   },
   description: {
     fontSize: 13,
-    color: '#cbd5e1',
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 18,
   },
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   trackBubble: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
   trackBubbleText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#cbd5e1',
+    color: colors.textSecondary,
   },
   player: {
     flexDirection: 'row',
@@ -375,7 +378,7 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: colors.border,
   },
   actionsLeft: {
     flexDirection: 'row',
@@ -400,19 +403,19 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: colors.textSecondary,
   },
   moreButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreButtonText: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
 });

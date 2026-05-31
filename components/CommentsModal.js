@@ -9,12 +9,26 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { getComments, addComment } from '../services/firebaseService';
+import { useTheme } from '../context/ThemeContext';
 
 export const CommentsModal = ({ visible, soundId, onClose }) => {
+  const { colors } = useTheme();
+  const dynStyles = React.useMemo(() => createStyles(colors), [colors]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,67 +71,67 @@ export const CommentsModal = ({ visible, soundId, onClose }) => {
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={dynStyles.container}
       >
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>💬 Commenti</Text>
+        <View style={dynStyles.modalContent}>
+          <View style={dynStyles.header}>
+            <Text style={dynStyles.headerTitle}>💬 Commenti</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>✕</Text>
+              <Text style={dynStyles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
 
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#00FF9C" />
+            <View style={dynStyles.loadingContainer}>
+              <ActivityIndicator color={colors.accent || "#00FF9C"} />
             </View>
           ) : (
             <FlatList
               data={comments}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.commentsList}
+              contentContainerStyle={dynStyles.commentsList}
               renderItem={({ item }) => (
-                <View style={styles.commentItem}>
-                  <View style={styles.commentHeader}>
-                    <Text style={styles.commentAvatar}>{item.userAvatar}</Text>
-                    <View style={styles.commentInfo}>
-                      <Text style={styles.commentUsername}>{item.username}</Text>
-                      <Text style={styles.commentTime}>
+                <View style={dynStyles.commentItem}>
+                  <View style={dynStyles.commentHeader}>
+                    <Text style={dynStyles.commentAvatar}>{item.userAvatar}</Text>
+                    <View style={dynStyles.commentInfo}>
+                      <Text style={dynStyles.commentUsername}>{item.username}</Text>
+                      <Text style={dynStyles.commentTime}>
                         {item.createdAt.toLocaleString()}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.commentText}>{item.text}</Text>
+                  <Text style={dynStyles.commentText}>{item.text}</Text>
                 </View>
               )}
               ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>Nessun commento ancora</Text>
-                  <Text style={styles.emptySubtext}>Sii il primo a commentare!</Text>
+                <View style={dynStyles.emptyState}>
+                  <Text style={dynStyles.emptyText}>Nessun commento ancora</Text>
+                  <Text style={dynStyles.emptySubtext}>Sii il primo a commentare!</Text>
                 </View>
               }
             />
           )}
 
-          <View style={styles.inputContainer}>
+          <View style={dynStyles.inputContainer}>
             <TextInput
-              style={styles.input}
+              style={dynStyles.input}
               placeholder="Scrivi un commento..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.textSecondary || "#94a3b8"}
               value={newComment}
               onChangeText={setNewComment}
               multiline
               maxLength={500}
             />
             <TouchableOpacity
-              style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+              style={[dynStyles.sendButton, sending && dynStyles.sendButtonDisabled]}
               onPress={handleSend}
               disabled={sending || !newComment.trim()}
             >
               {sending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.bg} />
               ) : (
-                <Text style={styles.sendButtonText}>➤</Text>
+                <Text style={dynStyles.sendButtonText}>➤</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -127,14 +141,14 @@ export const CommentsModal = ({ visible, soundId, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#161616',
+    backgroundColor: colors.bg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '80%',
@@ -145,16 +159,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
   },
   closeButton: {
     fontSize: 24,
-    color: '#94a3b8',
+    color: colors.textSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -165,10 +179,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   commentItem: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -185,15 +201,15 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   commentTime: {
     fontSize: 11,
-    color: '#64748b',
+    color: colors.textSecondary,
   },
   commentText: {
     fontSize: 14,
-    color: '#cbd5e1',
+    color: colors.text,
     lineHeight: 20,
   },
   emptyState: {
@@ -202,33 +218,35 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textSecondary,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.07)',
+    borderTopColor: colors.border,
     gap: 12,
   },
   input: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 12,
-    color: '#fff',
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     maxHeight: 100,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#00FF9C',
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -237,6 +255,6 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: 20,
-    color: '#fff',
+    color: colors.bg,
   },
 });
