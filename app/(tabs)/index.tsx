@@ -3437,7 +3437,7 @@ if (loading) {
       <Modal visible={showBattleThemePicker} transparent animationType="slide" onRequestClose={() => setShowBattleThemePicker(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.3)' }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' }}>⚔️ Scegli il tema</Text>
             <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 4 }}>30 secondi a testa — poi il pubblico vota</Text>
             {['🌧️ Suono della pioggia', '🌆 Rumore della città', '🌊 Onde del mare', '🎵 Improvvisazione musicale', '🌙 Suono della notte', '🌿 Natura selvaggia'].map(theme => (
               <TouchableOpacity
@@ -3527,7 +3527,7 @@ if (loading) {
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(168,85,247,0.4)' }}>
               <Text style={{ fontSize: 36 }}>{incomingCollab.hostAvatar}</Text>
-              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
+              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800' }}>🎙 Invito Collab!</Text>
               <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>
                 {incomingCollab.hostName} ti invita a una {incomingCollab.mode === 'sync' ? 'sessione sync' : 'sessione a turni'}
               </Text>
@@ -3556,7 +3556,7 @@ if (loading) {
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(249,115,22,0.4)' }}>
               <Text style={{ fontSize: 40 }}>⚔️</Text>
-              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
+              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800' }}>Sei stato sfidato!</Text>
               <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>
                 {incomingBattle.challengerName} ti ha lanciato una Sound Battle
               </Text>
