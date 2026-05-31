@@ -1785,7 +1785,7 @@ if (loading) {
 
   return (
     <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
       <LinearGradient
         colors={activeTab === 'home' ? colors.gradientBg : colors.gradientBgAlt}
         style={StyleSheet.absoluteFill}
