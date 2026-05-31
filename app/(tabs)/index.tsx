@@ -1890,14 +1890,16 @@ if (loading) {
             <View style={s.feedSectionHeader}>
               <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => setFeedMode('for-you')}>
-                  <Text style={[s.feedSectionTitle, feedMode !== 'for-you' && { color: colors.textSecondary }]}>
+                  <Text style={[s.feedSectionTitle, feedMode === 'for-you' ? { color: colors.textAccent } : { color: colors.textMuted, opacity: 0.6 }]}>
                     {t('feed.forYou')}
                   </Text>
+                  {feedMode === 'for-you' && <View style={{ height: 3, borderRadius: 2, marginTop: 4, backgroundColor: colors.textAccent }} />}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setFeedMode('following')}>
-                  <Text style={[s.feedSectionTitle, feedMode !== 'following' && { color: colors.textSecondary }]}>
+                  <Text style={[s.feedSectionTitle, feedMode === 'following' ? { color: colors.textAccent } : { color: colors.textMuted, opacity: 0.6 }]}>
                     {t('feed.following')}
                   </Text>
+                  {feedMode === 'following' && <View style={{ height: 3, borderRadius: 2, marginTop: 4, backgroundColor: colors.textAccent }} />}
                 </TouchableOpacity>
               </View>
               <View style={s.feedSectionCounter}>
