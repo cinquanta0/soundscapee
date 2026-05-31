@@ -234,7 +234,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>{isOwnProfile ? 'I Miei Remix' : 'Remix'} ({remixes.length})</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{isOwnProfile ? 'I Miei Remix' : 'Remix'} ({remixes.length})</Text>
         {isOwnProfile && (
           <TouchableOpacity style={styles.createButton} onPress={onOpenRemixStudio}>
             <Text style={styles.createButtonText}>Nuovo</Text>
@@ -246,10 +246,10 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
       {remixes.length === 0 ? (
         <View style={styles.emptyState}>
           <Feather name="sliders" size={40} color="#00FF9C" style={{ marginBottom: 12 }} />
-          <Text style={styles.emptyText}>Nessun remix ancora</Text>
+          <Text style={[styles.emptyText, { color: colors.text }]}>Nessun remix ancora</Text>
           {isOwnProfile && (
             <>
-              <Text style={styles.emptySubtext}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Crea il tuo primo remix mixando i tuoi suoni!</Text>
               <TouchableOpacity style={styles.emptyButton} onPress={onOpenRemixStudio}>
                 <Text style={styles.emptyButtonText}>Inizia a Remixare</Text>
               </TouchableOpacity>

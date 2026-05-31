@@ -117,7 +117,7 @@ export const light: ThemeColors = {
   textDisabled:  '#8A93B6',
 
   iconInactive:  '#3A4260',   // icone inattive scure su sfondo chiaro
-  textAccent:    '#0A6B7A',   // teal scuro — contrasto 7:1 su bianco
+  textAccent:    '#1D4ED8',   // blu scuro — contrasto 6.3:1 su bianco
 
   border:        'rgba(0,0,0,0.10)',
   borderSubtle:  'rgba(0,0,0,0.05)',
