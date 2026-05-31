@@ -147,7 +147,13 @@
     "exactLocation": "Emplacement exact",
     "privacySecurity": "Confidentialité et Sécurité",
     "useApproxLocation": "Utiliser la position approximative",
-    "approxLocationDesc": "Protège votre confidentialité en masquant les coordonnées exactes."
+    "approxLocationDesc": "Protège votre confidentialité en masquant les coordonnées exactes.",
+    "visibility": "Visibilité",
+    "visPublic": "Public",
+    "visFollowers": "Abonnés",
+    "visPrivate": "Privé",
+    "allowShare": "Autoriser le partage",
+    "chooseBackground": "Choisir le fond de profil"
   },
   "podcast": {
     "title": "Nouveau Podcast",
@@ -676,7 +682,24 @@
     "newBtn": "Nouveau",
     "statsTitle": "Statistiques",
     "tracksRmx": "Pistes/Rmx",
-    "totSec": "Total Sec"
+    "totSec": "Total Sec",
+    "noRemixYet": "Aucun remix encore",
+    "noDescription": "Aucune description",
+    "processing": "Traitement audio en cours...",
+    "loading": "Chargement...",
+    "tracksLabel": "Pistes",
+    "durationLabel": "Durée",
+    "createdAtLabel": "Créé",
+    "publicLabel": "Public",
+    "yes": "Oui",
+    "no": "Non",
+    "processed": "Traité",
+    "inProcessing": "En traitement...",
+    "deleteConfirmMsg": "Voulez-vous vraiment supprimer ce remix ?",
+    "saveLocally": "Sauvegarder localement",
+    "publish": "Publier",
+    "trackCount": "pistes",
+    "clearAll": "Tout effacer"
   },
   "stories": {
     "newStatus": "Nouveau statut 🎵",

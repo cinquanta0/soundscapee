@@ -542,7 +542,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Pulisci',
+          text: t('remix.clearAll'),
           style: 'destructive',
           onPress: async () => {
             await stopPlayback();
@@ -587,8 +587,8 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
           <ActivityIndicator size="small" color="#fff" />
           <Text style={styles.processingText}>
             {processingStatus === 'processing'
-              ? 'Elaborazione audio in corso...'
-              : 'Caricamento...'}
+              ? t('remix.processing')
+              : t('remix.loading')}
           </Text>
         </View>
       )}
@@ -865,13 +865,13 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                 style={[styles.saveModalButton, styles.confirmButton]}
                 onPress={saveRemix}
               >
-                <Text style={styles.accentButtonText}>Locale</Text>
+                <Text style={styles.accentButtonText}>{t('remix.saveLocally')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveModalButton, styles.publishButton]}
                 onPress={publishRemix}
               >
-                <Text style={styles.accentButtonText}>Pubblica</Text>
+                <Text style={styles.accentButtonText}>{t('remix.publish')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -912,7 +912,7 @@ export default function RemixScreen({ availableSounds = [], onClose }) {
                       <View style={styles.remixItemInfo}>
                         <Text style={styles.remixItemTitle}>{remix.name}</Text>
                         <Text style={styles.remixItemMeta}>
-                          {remix.tracks.length} tracce · {formatTime(remix.totalDuration)}
+                          {remix.tracks.length} {t('remix.trackCount')} · {formatTime(remix.totalDuration)}
                         </Text>
                         <Text style={styles.remixItemDate}>
                           {new Date(remix.createdAt).toLocaleDateString()}

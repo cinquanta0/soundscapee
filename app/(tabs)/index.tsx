@@ -2615,7 +2615,7 @@ if (loading) {
               )}
 
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ color: colors.text, fontSize: 13, marginBottom: 8 }}>Visibilità</Text>
+                <Text style={{ color: colors.text, fontSize: 13, marginBottom: 8 }}>{t('upload.visibility')}</Text>
                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                   {['public', 'followers', 'private'].map(vis => (
                     <TouchableOpacity
@@ -2627,7 +2627,7 @@ if (loading) {
                       onPress={() => setNewSoundVisibility(vis)}
                     >
                       <Text style={{ color: colors.text, fontSize: 11, fontWeight: '600' }}>
-                        {vis === 'public' ? 'Pubblico' : vis === 'followers' ? 'Followers' : 'Privato'}
+                        {vis === 'public' ? t('upload.visPublic') : vis === 'followers' ? t('upload.visFollowers') : t('upload.visPrivate')}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -2635,7 +2635,7 @@ if (loading) {
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.text, fontSize: 13 }}>Permetti condivisione</Text>
+                <Text style={{ color: colors.text, fontSize: 13 }}>{t('upload.allowShare')}</Text>
                 <Switch
                   value={newSoundAllowShare}
                   onValueChange={setNewSoundAllowShare}
@@ -3454,7 +3454,7 @@ if (loading) {
       <Modal visible={showThemeModal} transparent animationType="slide" onRequestClose={() => setShowThemeModal(false)}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' }}>
           <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderTopColor: colors.borderSubtle }}>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>Scegli sfondo profilo</Text>
+            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 }}>{t('upload.chooseBackground')}</Text>
             <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20 }}>{t('settings.themeSaved')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
               {PROFILE_THEMES.map(theme => {

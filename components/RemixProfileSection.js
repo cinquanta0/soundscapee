@@ -170,9 +170,9 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
   const handleDelete = async (remixId) => {
     Alert.alert(
       t('remix.deleteRemix'),
-      'Vuoi davvero eliminare questo remix?',
+      t('remix.deleteConfirmMsg'),
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Elimina',
           style: 'destructive',
@@ -251,7 +251,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
       {remixes.length === 0 ? (
         <View style={dynStyles.emptyState}>
           <Feather name="sliders" size={40} color={colors.textAccent} style={{ marginBottom: 12 }} />
-          <Text style={dynStyles.emptyText}>Nessun remix ancora</Text>
+          <Text style={dynStyles.emptyText}>{t('remix.noRemixYet')}</Text>
           {isOwnProfile && (
             <>
               <Text style={dynStyles.emptySubtext}>{t('remix.createFirstRemix')}</Text>
@@ -336,30 +336,30 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
                 </View>
               ) : (
                 <View style={[dynStyles.statusBadge, { backgroundColor: 'rgba(234,179,8,0.15)', marginBottom: 12 }]}>
-                  <Text style={[dynStyles.statusText, { color: '#ca8a04' }]}>⏳ In elaborazione...</Text>
+                  <Text style={[dynStyles.statusText, { color: '#ca8a04' }]}>⏳ {t('remix.inProcessing')}</Text>
                 </View>
               )}
 
               <Text style={dynStyles.detailsDescription}>
-                {selectedRemix.description || 'Nessuna descrizione'}
+                {selectedRemix.description || t('remix.noDescription')}
               </Text>
 
               <View style={dynStyles.detailsInfo}>
                 <View style={dynStyles.infoRow}>
-                  <Text style={dynStyles.infoLabel}>📊 Tracce:</Text>
+                  <Text style={dynStyles.infoLabel}>📊 {t('remix.tracksLabel')}:</Text>
                   <Text style={dynStyles.infoValue}>{selectedRemix.tracksCount}</Text>
                 </View>
                 <View style={dynStyles.infoRow}>
-                  <Text style={dynStyles.infoLabel}>⏱️ Durata:</Text>
+                  <Text style={dynStyles.infoLabel}>⏱️ {t('remix.durationLabel')}:</Text>
                   <Text style={dynStyles.infoValue}>{(selectedRemix.totalDuration ?? 0).toFixed(1)}s</Text>
                 </View>
                 <View style={dynStyles.infoRow}>
-                  <Text style={dynStyles.infoLabel}>📅 Creato:</Text>
+                  <Text style={dynStyles.infoLabel}>📅 {t('remix.createdAtLabel')}:</Text>
                   <Text style={dynStyles.infoValue}>{formatDate(selectedRemix.createdAt)}</Text>
                 </View>
                 <View style={dynStyles.infoRow}>
-                  <Text style={dynStyles.infoLabel}>👁️ Pubblico:</Text>
-                  <Text style={dynStyles.infoValue}>{selectedRemix.isPublic ? '✓ Sì' : '✗ No'}</Text>
+                  <Text style={dynStyles.infoLabel}>👁️ {t('remix.publicLabel')}:</Text>
+                  <Text style={dynStyles.infoValue}>{selectedRemix.isPublic ? '✓ ' + t('remix.yes') : '✗ ' + t('remix.no')}</Text>
                 </View>
               </View>
 
@@ -380,7 +380,7 @@ export default function RemixProfileSection({ onOpenRemixStudio, userId = null }
 
               {selectedRemix.isProcessed && (
                 <View style={dynStyles.statusBadge}>
-                  <Text style={dynStyles.statusText}>✅ Processato</Text>
+                  <Text style={dynStyles.statusText}>✅ {t('remix.processed')}</Text>
                 </View>
               )}
             </View>

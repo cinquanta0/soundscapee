@@ -530,7 +530,7 @@ function LeaderboardRow({ item, rank, isPlaying, busy, onPlay }: { item: any; ra
       </View>
       <View style={lb.rowInfo}>
         <Text style={lb.rowTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={lb.rowMeta}>{item.username} · {(item.listens || 0).toLocaleString()} ascolti</Text>
+        <Text style={lb.rowMeta}>{item.username} · {(item.listens || 0).toLocaleString()} {t('explore.listensCount')}</Text>
       </View>
       <View style={[lb.rowPlay, isPlaying && lb.rowPlayActive]}>
         <Feather name={isPlaying ? 'pause' : 'play'} size={15} color={isPlaying ? ACCENT.cyan : colors.textSecondary} style={!isPlaying ? { marginLeft: 1 } : undefined} />
