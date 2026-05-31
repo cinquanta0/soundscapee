@@ -396,7 +396,10 @@
       "permissionMsg": "Le GPS est requis pour voir les sons à proximité",
       "cannotLoad": "Impossible de charger les sons à proximité",
       "cannotPlay": "Impossible de lire le son"
-    }
+    },
+    "share": "Partager",
+    "report": "Signaler",
+    "block": "Bloquer"
   },
   "challenges": {
     "title": "🏆 Défis Sonores",

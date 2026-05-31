@@ -433,7 +433,7 @@ export default function MapScreen() {
                       </View>
                     ) : null}
                     <View style={[s.metaChip, { backgroundColor: getMoodColor(selectedSound.mood) + '22' }]}>
-                      <Text style={[s.metaChipText, { color: getMoodColor(selectedSound.mood) }]}>{selectedSound.mood}</Text>
+                      <Text style={[s.metaChipText, { color: getMoodColor(selectedSound.mood) }]}>{selectedSound.mood ? t(`moods.${selectedSound.mood.toLowerCase()}`, selectedSound.mood) : ''}</Text>
                     </View>
                   </View>
                 </View>
@@ -463,20 +463,19 @@ export default function MapScreen() {
                 </View>
               </View>
 
-              {/* Azioni Secondarie */}
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, justifyContent: 'space-between' }}>
                 <TouchableOpacity style={s.actionIconBtn} onPress={() => handleShare(selectedSound)}>
                   <Feather name="share" size={18} color="#94a3b8" />
-                  <Text style={s.actionIconText}>{t('map.share', 'Condividi')}</Text>
+                  <Text style={s.actionIconText}>{t('map.share')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.actionIconBtn} onPress={() => handleReport(selectedSound)}>
                   <Feather name="flag" size={18} color="#94a3b8" />
-                  <Text style={s.actionIconText}>{t('map.report', 'Segnala')}</Text>
+                  <Text style={s.actionIconText}>{t('map.report')}</Text>
                 </TouchableOpacity>
                 {selectedSound.userId !== auth.currentUser?.uid && (
                   <TouchableOpacity style={s.actionIconBtn} onPress={() => handleBlockUser(selectedSound.userId)}>
                     <Feather name="slash" size={18} color="#ef4444" />
-                    <Text style={s.actionIconTextRed}>{t('map.block', 'Blocca')}</Text>
+                    <Text style={s.actionIconTextRed}>{t('map.block')}</Text>
                   </TouchableOpacity>
                 )}
               </View>

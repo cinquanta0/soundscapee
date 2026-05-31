@@ -396,7 +396,10 @@
       "permissionMsg": "GPS ist erforderlich, um nahe Klänge zu sehen",
       "cannotLoad": "Nahe Klänge können nicht geladen werden",
       "cannotPlay": "Klang kann nicht abgespielt werden"
-    }
+    },
+    "share": "Teilen",
+    "report": "Melden",
+    "block": "Blockieren"
   },
   "challenges": {
     "title": "🏆 Klang-Herausforderungen",

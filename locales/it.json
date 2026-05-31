@@ -396,7 +396,10 @@
       "permissionMsg": "Serve il GPS per vedere i suoni vicini",
       "cannotLoad": "Impossibile caricare i suoni vicini",
       "cannotPlay": "Impossibile riprodurre il suono"
-    }
+    },
+    "share": "Condividi",
+    "report": "Segnala",
+    "block": "Blocca"
   },
   "challenges": {
     "title": "🏆 Sound Challenges",

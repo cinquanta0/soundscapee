@@ -396,7 +396,10 @@
       "permissionMsg": "GPS is required to see nearby sounds",
       "cannotLoad": "Unable to load nearby sounds",
       "cannotPlay": "Unable to play the sound"
-    }
+    },
+    "share": "Share",
+    "report": "Report",
+    "block": "Block"
   },
   "challenges": {
     "title": "🏆 Sound Challenges",

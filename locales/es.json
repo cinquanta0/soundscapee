@@ -396,7 +396,10 @@
       "permissionMsg": "Se necesita GPS para ver sonidos cercanos",
       "cannotLoad": "No se pueden cargar los sonidos cercanos",
       "cannotPlay": "No se puede reproducir el sonido"
-    }
+    },
+    "share": "Compartir",
+    "report": "Reportar",
+    "block": "Bloquear"
   },
   "challenges": {
     "title": "🏆 Retos de Sonido",

@@ -396,7 +396,10 @@
       "permissionMsg": "GPS é necessário para ver sons próximos",
       "cannotLoad": "Não é possível carregar sons próximos",
       "cannotPlay": "Não é possível reproduzir o som"
-    }
+    },
+    "share": "Compartilhar",
+    "report": "Denunciar",
+    "block": "Bloquear"
   },
   "challenges": {
     "title": "🏆 Desafios de Som",
