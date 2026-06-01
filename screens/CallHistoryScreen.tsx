@@ -15,7 +15,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth } from '../firebaseConfig';
 import { db } from '../firebaseConfig';
 import { getCallHistory, Call } from '../services/callService';
-import { visiblePhotoFromSnap } from '../services/firebaseService';
+import { visiblePhotoFromSnap, getMyFollowingSet } from '../services/firebaseService';
 import { useCall } from '../context/CallContext';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeColors } from '../constants/themes';
@@ -77,11 +77,12 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
           return c.callerId === myUid ? [c.calleeId] : [c.callerId];
         }))].filter(Boolean);
         const fetchedPhotos: Record<string, string | null> = {};
+        const followingSet = await getMyFollowingSet(); // 1 sola query, riusata
         await Promise.all(uids.map(async (uid) => {
           if (uid in _callHistoryPhotoCache) { fetchedPhotos[uid] = _callHistoryPhotoCache[uid]; return; }
           try {
             const snap = await getDoc(doc(db, 'users', uid));
-            const photo = (await visiblePhotoFromSnap(snap, uid)) ?? null;
+            const photo = (await visiblePhotoFromSnap(snap, uid, followingSet)) ?? null;
             _callHistoryPhotoCache[uid] = photo;
             fetchedPhotos[uid] = photo;
           } catch { _callHistoryPhotoCache[uid] = null; fetchedPhotos[uid] = null; }

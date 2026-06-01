@@ -12,7 +12,7 @@ import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
 import { listenBlockedUsers } from '../services/blockService';
-import { visiblePhotoFromSnap } from '../services/firebaseService';
+import { visiblePhotoFromSnap, getMyFollowingSet } from '../services/firebaseService';
 import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
@@ -212,10 +212,11 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
     toCheck.forEach(c => fetchedPhotosRef.current.add(c.otherUserId));
     Promise.all(toCheck.map(c => getDoc(doc(db, 'users', c.otherUserId))))
       .then(async snaps => {
+        const followingSet = await getMyFollowingSet(); // 1 sola query, riusata per tutti
         const resolved: Record<string, string | undefined> = {};
         await Promise.all(snaps.map(async (snap, i) => {
           const uid = toCheck[i].otherUserId;
-          resolved[uid] = await visiblePhotoFromSnap(snap, uid);
+          resolved[uid] = await visiblePhotoFromSnap(snap, uid, followingSet);
         }));
         setConversations(prev =>
           prev.map(c => (c.otherUserId in resolved)

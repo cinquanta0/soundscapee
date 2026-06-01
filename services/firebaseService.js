@@ -650,6 +650,7 @@ export const toggleFollow = async (targetUserId) => {
       batch.update(followerRef, { followingCount: increment(-1) });
       batch.update(followingRef, { followersCount: increment(-1) });
       await batch.commit();
+      _followingSet = null; // invalida cache following
       return false;
     } else {
       // Follow — tutto in un batch atomico
@@ -661,6 +662,7 @@ export const toggleFollow = async (targetUserId) => {
       batch.update(followerRef, { followingCount: increment(1) });
       batch.update(followingRef, { followersCount: increment(1) });
       await batch.commit();
+      _followingSet = null; // invalida cache following
       return true;
     }
   } catch (error) {
@@ -688,13 +690,45 @@ export const isFollowing = async (targetUserId) => {
   }
 };
 
+// Cache del Set "chi seguo" (followingId di tutti i miei follow), con TTL 60s.
+// Evita una getDoc(follows) per OGNI foto in liste (messaggi/chiamate/gruppo):
+// una sola query e poi controllo in-memory.
+let _followingSet = null;
+let _followingSetTime = 0;
+let _followingSetUid = null;
+const FOLLOWING_TTL_MS = 60_000;
+
+export const getMyFollowingSet = async () => {
+  const myUid = auth.currentUser?.uid;
+  if (!myUid) return new Set();
+  const now = Date.now();
+  if (_followingSet && _followingSetUid === myUid && (now - _followingSetTime) < FOLLOWING_TTL_MS) {
+    return _followingSet;
+  }
+  try {
+    const snap = await getDocs(query(collection(db, 'follows'), where('followerId', '==', myUid)));
+    const set = new Set();
+    snap.forEach((d) => { const fid = d.data()?.followingId; if (fid) set.add(fid); });
+    _followingSet = set;
+    _followingSetTime = now;
+    _followingSetUid = myUid;
+    return set;
+  } catch {
+    return _followingSet && _followingSetUid === myUid ? _followingSet : new Set();
+  }
+};
+
+// Invalida la cache following (chiamare dopo follow/unfollow per coerenza immediata)
+export const invalidateFollowingCache = () => { _followingSet = null; };
+
 /**
  * Decide se la foto profilo di un utente è visibile per l'utente corrente,
  * rispettando photoVisibility: 'public' → sempre; 'followers' → solo se io
  * seguo l'utente; 'private' → mai (eccetto me stesso).
  * Accetta uno snapshot Firestore già letto (per non rifare la query).
+ * Se passi `followingSet` (da getMyFollowingSet) evita la query per-item.
  */
-export const visiblePhotoFromSnap = async (snap, otherUserId) => {
+export const visiblePhotoFromSnap = async (snap, otherUserId, followingSet = null) => {
   const data = snap?.data?.();
   const photo = data?.profilePicture || undefined;
   if (!photo) return undefined;
@@ -703,20 +737,21 @@ export const visiblePhotoFromSnap = async (snap, otherUserId) => {
   if (otherUserId === myUid) return photo;
   if (vis === 'public') return photo;
   if (vis === 'followers') {
-    const iFollow = await isFollowing(otherUserId).catch(() => false);
-    return iFollow ? photo : undefined;
+    const set = followingSet || await getMyFollowingSet();
+    return set.has(otherUserId) ? photo : undefined;
   }
   return undefined;
 };
 
 /**
  * Come sopra ma parte dall'uid: legge il documento utente e applica la regola.
+ * Passa `followingSet` (da getMyFollowingSet) per evitare query follows per-item.
  */
-export const getVisiblePhoto = async (otherUserId) => {
+export const getVisiblePhoto = async (otherUserId, followingSet = null) => {
   if (!otherUserId) return undefined;
   try {
     const snap = await getDoc(doc(db, 'users', otherUserId));
-    return await visiblePhotoFromSnap(snap, otherUserId);
+    return await visiblePhotoFromSnap(snap, otherUserId, followingSet);
   } catch {
     return undefined;
   }
