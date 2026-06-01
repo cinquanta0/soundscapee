@@ -37,7 +37,8 @@
       "ott": "Okt",
       "nov": "Nov",
       "dic": "Dez"
-    }
+    },
+    "share": "Teilen"
   },
   "auth": {
     "login": "Anmelden",
@@ -256,7 +257,9 @@
       "cannotLoadPlaylists": "Playlists können nicht geladen werden.",
       "cannotCreatePlaylist": "Playlist kann nicht erstellt werden.",
       "cannotAddToPlaylist": "Podcast kann nicht zur Playlist hinzugefügt werden."
-    }
+    },
+    "enterFullscreen": "Vollbild",
+    "exitFullscreen": "Vollbild verlassen"
   },
   "profile": {
     "sounds": "Klänge",
@@ -863,7 +866,9 @@
       "cannotSelectFile": "Datei kann nicht ausgewählt werden",
       "micPermissionDenied": "Mikrofonberechtigung verweigert",
       "cannotStartRecording": "Aufnahme kann nicht gestartet werden",
-      "cannotUpdatePhoto": "Fehler beim Aktualisieren des Fotos"
+      "cannotUpdatePhoto": "Fehler beim Aktualisieren des Fotos",
+      "approveAfterGradeFailed": "Note gespeichert, aber Genehmigung fehlgeschlagen. Versuche es erneut.",
+      "loadFailed": "Laden fehlgeschlagen. Überprüfe deine Verbindung."
     },
     "onboarding": {
       "slide1Title": "Willkommen in der ITS-Schule",
@@ -930,7 +935,9 @@
     "audioNotAvailable": "Audio nicht verfügbar",
     "stop": "Stop",
     "play": "Abspielen",
-    "selectLessonAudio": "Wähle eine Lektion aus, um das Audio anzuhören."
+    "selectLessonAudio": "Wähle eine Lektion aus, um das Audio anzuhören.",
+    "lessonPublished": "Lektion veröffentlicht!",
+    "submissionSent": "Abgabe gesendet!"
   },
   "chat": {
     "voiceMessages": "Sprachnachrichten",

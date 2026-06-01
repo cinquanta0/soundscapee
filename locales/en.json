@@ -37,7 +37,8 @@
       "ott": "Oct",
       "nov": "Nov",
       "dic": "Dec"
-    }
+    },
+    "share": "Share"
   },
   "auth": {
     "login": "Login",
@@ -256,7 +257,9 @@
       "cannotLoadPlaylists": "Unable to load playlists.",
       "cannotCreatePlaylist": "Unable to create playlist.",
       "cannotAddToPlaylist": "Unable to add podcast to playlist."
-    }
+    },
+    "enterFullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
   },
   "profile": {
     "sounds": "Sounds",
@@ -863,7 +866,9 @@
       "cannotSelectFile": "Unable to select file",
       "micPermissionDenied": "Microphone permission denied",
       "cannotStartRecording": "Unable to start recording",
-      "cannotUpdatePhoto": "Error updating photo"
+      "cannotUpdatePhoto": "Error updating photo",
+      "approveAfterGradeFailed": "Grade saved but approval failed. Try approving again.",
+      "loadFailed": "Loading failed. Check your connection."
     },
     "onboarding": {
       "slide1Title": "Welcome to ITS School",
@@ -930,7 +935,9 @@
     "audioNotAvailable": "Audio not available",
     "stop": "Stop",
     "play": "Play",
-    "selectLessonAudio": "Select a lesson to listen to its audio."
+    "selectLessonAudio": "Select a lesson to listen to its audio.",
+    "lessonPublished": "Lesson published!",
+    "submissionSent": "Submission sent!"
   },
   "chat": {
     "voiceMessages": "voice messages",

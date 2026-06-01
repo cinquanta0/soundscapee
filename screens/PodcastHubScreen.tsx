@@ -26,6 +26,7 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
   const [view, setView] = useState<PodcastView>('feed');
   const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<{ id: string; name: string } | null>(null);
+  const [schoolFullscreen, setSchoolFullscreen] = useState(false);
 
   if (view === 'podcastDetail' && selectedPodcastId) {
     return (
@@ -52,6 +53,26 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
     );
   }
 
+  // Full-screen Scuola/ITS: nasconde hero+tab, lascia tutto lo spazio alla schermata
+  const isSchoolFull = view === 'school' && schoolFullscreen;
+
+  if (isSchoolFull) {
+    return (
+      <View style={styles.container}>
+        <ITSSchoolScreen />
+        <TouchableOpacity
+          style={styles.exitFullBtn}
+          onPress={() => setSchoolFullscreen(false)}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={t('podcast.exitFullscreen', 'Esci da schermo intero')}
+        >
+          <Feather name="minimize-2" size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {!compact && (
@@ -73,7 +94,7 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
             <TouchableOpacity
               key={tab.id}
               style={[styles.tabCard, compact && styles.tabCardCompact, active && styles.tabCardActive]}
-              onPress={() => setView(tab.id)}
+              onPress={() => { setView(tab.id); setSchoolFullscreen(false); }}
               activeOpacity={0.9}
             >
               <View style={[styles.tabIconWrap, compact && styles.tabIconWrapCompact, active && styles.tabIconWrapActive]}>
@@ -85,6 +106,18 @@ export default function PodcastHubScreen({ compact = false }: { compact?: boolea
           );
         })}
       </View>
+
+      {/* Bottone "schermo intero" — solo quando la tab Scuola/ITS è attiva */}
+      {view === 'school' && (
+        <TouchableOpacity
+          style={styles.fullscreenBar}
+          onPress={() => setSchoolFullscreen(true)}
+          activeOpacity={0.8}
+        >
+          <Feather name="maximize-2" size={14} color="#67E8F9" />
+          <Text style={styles.fullscreenBarTxt}>{t('podcast.enterFullscreen', 'Schermo intero')}</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.content}>
         {view === 'feed' && <PodcastScreen compact={compact} />}
@@ -213,6 +246,45 @@ function createStyles(colors: ThemeColors) {
     content: {
       flex: 1,
       minHeight: 0,
+    },
+    // Barra "Schermo intero" sopra ITS quando la tab è attiva
+    fullscreenBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      paddingVertical: 8,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(103,232,249,0.24)',
+      backgroundColor: 'rgba(103,232,249,0.08)',
+    },
+    fullscreenBarTxt: {
+      color: '#67E8F9',
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    // FAB per uscire dal full-screen — in basso a destra (ergonomico, no status bar)
+    exitFullBtn: {
+      position: 'absolute',
+      bottom: 24,
+      right: 18,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(20,30,60,0.92)',
+      borderWidth: 1,
+      borderColor: 'rgba(103,232,249,0.4)',
+      zIndex: 50,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      elevation: 8,
     },
   });
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, TextInput, StyleSheet,
   FlatList, ActivityIndicator, Alert, ScrollView,
-  useWindowDimensions, Clipboard, Image,
+  useWindowDimensions, Clipboard, Image, Share,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -207,6 +207,8 @@ export default function ITSSchoolScreen() {
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordSecondsRef = useRef(0);
   const [uploadingClassPhoto, setUploadingClassPhoto] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [audioMode, setAudioMode] = useState<'search' | 'record' | 'file'>('search');
 
   const clearLocalAudio = () => { setLocalAudioUri(null); setLocalAudioName(''); };
 
@@ -284,6 +286,12 @@ export default function ITSSchoolScreen() {
     return () => {
       lessonSoundRef.current?.unloadAsync().catch(() => {});
       lessonSoundRef.current = null;
+      // Pulisci registrazione e timer in corso allo smontaggio (no leak)
+      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+      }
     };
   }, []);
 
@@ -296,6 +304,8 @@ export default function ITSSchoolScreen() {
   }, [roleMode]);
 
   useEffect(() => {
+    // Niente fetch su query vuota (evita ricerca inutile al mount/svuotamento)
+    if (!search.trim()) { setResults([]); return; }
     const timer = setTimeout(() => {
       searchSounds(search).then(setResults).catch(() => setResults([]));
     }, 300);
@@ -320,7 +330,10 @@ export default function ITSSchoolScreen() {
 
   const refreshClassData = async (classId: string, mode: RoleMode) => {
     setLoading(true);
+    setLoadError(false);
     try {
+      // Le due fetch principali NON usano il fallback-vuoto silenzioso:
+      // se falliscono davvero (rete giù) vogliamo distinguere errore da "lista vuota".
       const [lessonList, approvedFeed] = await Promise.all([
         withTimeout(getClassLessons(classId), [] as SchoolLesson[]),
         withTimeout(getApprovedClassFeed(classId), [] as any[]),
@@ -343,7 +356,8 @@ export default function ITSSchoolScreen() {
       const firstLessonId = lessonList[0]?.id ?? null;
       setSelectedLessonId((prev) => (prev && lessonList.some((l) => l.id === prev) ? prev : firstLessonId));
     } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message || t('school.errors.cannotUpdate'));
+      setLoadError(true);
+      Alert.alert(t('common.error'), e?.message || t('school.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -416,7 +430,9 @@ export default function ITSSchoolScreen() {
         audioUri: localAudioUri || undefined,
       });
       setLessonTitle(''); setLessonDesc(''); setPickedAudio(null); clearLocalAudio();
+      setAudioMode('search');
       await refreshClassData(activeClassId, 'teacher');
+      Alert.alert('✅', t('school.lessonPublished', 'Lezione pubblicata!'));
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('school.errors.cannotPublishLesson'));
     } finally { setBusy(false); }
@@ -437,8 +453,10 @@ export default function ITSSchoolScreen() {
         audioUri: localAudioUri || undefined,
       });
       setSubTitle(''); setSubDesc(''); setPickedAudio(null); clearLocalAudio();
+      setAudioMode('search');
       await refreshClassData(activeClassId, 'student');
       setSection('mine');
+      Alert.alert('✅', t('school.submissionSent', 'Consegna inviata!'));
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('school.errors.cannotSubmit'));
     } finally { setBusy(false); }
@@ -451,13 +469,24 @@ export default function ITSSchoolScreen() {
       Alert.alert(t('school.gradeRequired'), t('school.gradeRequiredMsg'));
       return;
     }
+    if (gradeValue < 0 || gradeValue > 100) {
+      Alert.alert(t('school.invalidVote'), t('school.invalidVoteMsg'));
+      return;
+    }
     setBusy(true);
+    let graded = false;
     try {
       await gradeSubmission(submissionId, gradeValue, gradeNoteById[submissionId] ?? '');
+      graded = true;
       await approveSubmission(submissionId);
       if (activeClassId) await refreshClassData(activeClassId, 'teacher');
     } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message || t('school.errors.cannotApproveSubmission'));
+      // Se il voto è stato salvato ma l'approvazione è fallita, dillo chiaramente:
+      // il dato non è perso, basta ripremere Approva.
+      const msg = graded
+        ? t('school.errors.approveAfterGradeFailed', 'Voto salvato ma approvazione non riuscita. Riprova ad approvare.')
+        : (e?.message || t('school.errors.cannotApproveSubmission'));
+      Alert.alert(t('common.error'), msg);
     } finally { setBusy(false); }
   };
 
@@ -478,7 +507,7 @@ export default function ITSSchoolScreen() {
 
   const handleGrade = async (submissionId: string) => {
     const gradeValue = Number(gradeById[submissionId] ?? '');
-    if (Number.isNaN(gradeValue)) {
+    if (Number.isNaN(gradeValue) || gradeValue < 0 || gradeValue > 100) {
       Alert.alert(t('school.invalidVote'), t('school.invalidVoteMsg'));
       return;
     }
@@ -509,8 +538,25 @@ export default function ITSSchoolScreen() {
   };
 
   const copyClassCode = (code: string) => {
-    Clipboard.setString(code);
-    Alert.alert('', t('school.codeCopied'));
+    // Clipboard del core RN è deprecato e può essere undefined su build recenti:
+    // chiamata difensiva, fallback su Share/Alert per non crashare mai.
+    const cb: any = Clipboard;
+    if (cb && typeof cb.setString === 'function') {
+      try {
+        cb.setString(code);
+        Alert.alert('', t('school.codeCopied'));
+        return;
+      } catch {}
+    }
+    // Fallback: mostra il codice così l'utente lo copia/condivide a mano
+    Alert.alert(
+      t('school.classCode', 'Codice classe'),
+      code,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.share', 'Condividi'), onPress: () => Share.share({ message: code }).catch(() => {}) },
+      ],
+    );
   };
 
   const toggleLessonAudio = async () => {
@@ -564,6 +610,11 @@ export default function ITSSchoolScreen() {
   };
 
   const handleStartRecording = async () => {
+    // Guard anti doppio-tap: se una registrazione è già in corso, esci
+    // (su iOS due Audio.Recording.createAsync insieme lanciano un errore).
+    if (recordingRef.current || isRecording) return;
+    // Pulisci un eventuale timer orfano prima di crearne uno nuovo
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (perm.status !== 'granted') {
@@ -585,21 +636,29 @@ export default function ITSSchoolScreen() {
     } catch (err: any) {
       Alert.alert(t('common.error'), t('school.errors.cannotStartRecording'));
       setIsRecording(false);
+      recordingRef.current = null;
+      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
     }
   };
 
   const handleStopRecording = async () => {
     if (!recordingRef.current) return;
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    setIsRecording(false);
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
       if (uri) {
         setLocalAudioUri(uri);
         setLocalAudioName(t('school.audioRecorded'));
+      } else {
+        Alert.alert(t('common.error'), t('school.errors.cannotStartRecording'));
       }
-    } catch (err) {}
-    setIsRecording(false);
-    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    } catch (err) {
+      Alert.alert(t('common.error'), t('school.errors.cannotStartRecording'));
+    }
   };
 
   const handleUpdateClassPhoto = async () => {
@@ -690,7 +749,6 @@ export default function ITSSchoolScreen() {
   );
 
   // ── Audio picker ─────────────────────────────────────────────────────────────
-  const [audioMode, setAudioMode] = useState<'search' | 'record' | 'file'>('search');
 
   const renderAudioPicker = () => (
     <View style={{ marginTop: 8 }}>
@@ -897,10 +955,10 @@ export default function ITSSchoolScreen() {
                 <Text style={s.memberInitialTxt}>{m.userId[0]?.toUpperCase()}</Text>
               </View>
               <Text style={s.memberUid} numberOfLines={1}>{m.userId}</Text>
-              <TouchableOpacity style={s.approveBtn} onPress={() => handleApproveMember(m.userId)} disabled={busy}>
+              <TouchableOpacity style={s.approveBtn} onPress={() => handleApproveMember(m.userId)} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('common.confirm', 'Conferma')}>
                 <Text style={{ color: C.green, fontSize: 15, fontWeight: '800' }}>✓</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.rejectBtn} onPress={() => handleRejectMember(m.userId)} disabled={busy}>
+              <TouchableOpacity style={s.rejectBtn} onPress={() => handleRejectMember(m.userId)} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
                 <Text style={{ color: C.red, fontSize: 13, fontWeight: '800' }}>✕</Text>
               </TouchableOpacity>
             </View>

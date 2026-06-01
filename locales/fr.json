@@ -37,7 +37,8 @@
       "ott": "oct",
       "nov": "nov",
       "dic": "déc"
-    }
+    },
+    "share": "Partager"
   },
   "auth": {
     "login": "Se connecter",
@@ -256,7 +257,9 @@
       "cannotLoadPlaylists": "Impossible de charger les playlists.",
       "cannotCreatePlaylist": "Impossible de créer la playlist.",
       "cannotAddToPlaylist": "Impossible d'ajouter le podcast à la playlist."
-    }
+    },
+    "enterFullscreen": "Plein écran",
+    "exitFullscreen": "Quitter le plein écran"
   },
   "profile": {
     "sounds": "Sons",
@@ -863,7 +866,9 @@
       "cannotSelectFile": "Impossible de sélectionner le fichier",
       "micPermissionDenied": "Permission du microphone refusée",
       "cannotStartRecording": "Impossible de démarrer l'enregistrement",
-      "cannotUpdatePhoto": "Erreur lors de la mise à jour de la photo"
+      "cannotUpdatePhoto": "Erreur lors de la mise à jour de la photo",
+      "approveAfterGradeFailed": "Note enregistrée mais l'approbation a échoué. Réessayez d'approuver.",
+      "loadFailed": "Échec du chargement. Vérifiez votre connexion."
     },
     "onboarding": {
       "slide1Title": "Bienvenue à l'École ITS",
@@ -930,7 +935,9 @@
     "audioNotAvailable": "Audio non disponible",
     "stop": "Stop",
     "play": "Lecture",
-    "selectLessonAudio": "Sélectionnez une leçon pour écouter son audio."
+    "selectLessonAudio": "Sélectionnez une leçon pour écouter son audio.",
+    "lessonPublished": "Leçon publiée !",
+    "submissionSent": "Devoir envoyé !"
   },
   "chat": {
     "voiceMessages": "messages vocaux",
