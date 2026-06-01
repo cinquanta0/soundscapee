@@ -270,7 +270,7 @@ export function FeedQuickActions({ onHowItWorks, onNewDrop }: QuickActionsProps)
   );
 }
 
-export function FeedSoundCard({
+function FeedSoundCardImpl({
   post,
   avatar,
   moodColor,
@@ -424,6 +424,24 @@ export function FeedSoundCard({
     </LinearGradient>
   );
 }
+
+// Memoizzata: si re-renderizza solo se cambiano i DATI rilevanti, non le callback
+// inline (che il parent ricrea ad ogni tick di progress). Così durante la
+// riproduzione di un audio le altre card NON si ridisegnano.
+export const FeedSoundCard = React.memo(FeedSoundCardImpl, (prev, next) => {
+  // NB: `avatar` è un elemento JSX ricreato dal parent ad ogni render; non lo
+  // confrontiamo (il suo contenuto dipende da post, già confrontato). Idem callback.
+  return (
+    prev.post === next.post &&
+    prev.isPlaying === next.isPlaying &&
+    prev.playProgress === next.playProgress &&
+    prev.playPosition === next.playPosition &&
+    prev.liked === next.liked &&
+    prev.busy === next.busy &&
+    prev.moodColor === next.moodColor &&
+    prev.timeLabel === next.timeLabel
+  );
+});
 
 export function FeedEmptyState() {
   const { t } = useTranslation();

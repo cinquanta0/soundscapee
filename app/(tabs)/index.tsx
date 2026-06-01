@@ -1908,15 +1908,18 @@ if (loading) {
             </View>
 
             {filteredPosts.map(post => {
+              const isThisPlaying = playingId === post.id;
               return (
                 <FeedSoundCard
                   key={post.id}
                   post={post}
                   avatar={<AppAvatar avatar={post.userAvatar} username={post.username} size={42} photo={post.userPhoto} />}
                   moodColor={getMoodColor(post.mood)}
-                  isPlaying={playingId === post.id}
-                  playProgress={playProgress}
-                  playPosition={playPosition}
+                  isPlaying={isThisPlaying}
+                  // Solo la card in riproduzione riceve il progress che cambia ogni tick:
+                  // le altre ricevono valori fissi → non si re-renderizzano durante il play.
+                  playProgress={isThisPlaying ? playProgress : 0}
+                  playPosition={isThisPlaying ? playPosition : 0}
                   liked={likedSounds.has(post.id)}
                   busy={soundActionBusy}
                   timeLabel={`${timeAgo(post.createdAt)}${post.location ? ' • 📍' : ''}`}
