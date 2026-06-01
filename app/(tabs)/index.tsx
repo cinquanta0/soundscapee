@@ -3682,7 +3682,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     borderColor: 'rgba(139,92,255,0.22)',
   },
   feedSectionCounterText: {
-    color: '#4F7CFF',
+    color: colors.textAccent,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -4129,7 +4129,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
   },
   profileEyebrow: {
     alignSelf: 'flex-start',
-    color: '#4F7CFF',
+    color: colors.textAccent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -4279,7 +4279,7 @@ function createStyles(colors: import('../../constants/themes').ThemeColors) {
     borderColor: 'rgba(139,92,255,0.22)',
   },
   profileSectionBadgeText: {
-    color: '#4F7CFF',
+    color: colors.textAccent,
     fontSize: 14,
     fontWeight: '800',
   },

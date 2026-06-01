@@ -24,7 +24,7 @@ function buildC(colors: ThemeColors) {
     textDim: colors.textSecondary,
     textFaint: colors.textMuted,
     cyan: colors.textAccent,
-    blue: colors.blue,
+    blue: colors.textAccent,
     lime: '#D9FF5A',
     purple: colors.purple,
     pink: colors.pink,
