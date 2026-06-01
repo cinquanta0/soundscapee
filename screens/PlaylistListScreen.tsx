@@ -230,7 +230,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(0,255,156,0.15)', borderWidth: 1,
       borderColor: 'rgba(0,255,156,0.4)',
     },
-    newBtnTxt: { color: '#00FF9C', fontSize: 13, fontWeight: '700' },
+    newBtnTxt: { color: colors.greenText, fontSize: 13, fontWeight: '700' },
 
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     emptyContainer: { flexGrow: 1 },
@@ -245,7 +245,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 20, paddingVertical: 9, borderRadius: 20,
       borderWidth: 1, borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.1)',
     },
-    retryTxt: { color: '#00FF9C', fontSize: 13, fontWeight: '600' },
+    retryTxt: { color: colors.greenText, fontSize: 13, fontWeight: '600' },
 
     // Row
     row: {

@@ -1606,7 +1606,7 @@ function createScStyles(colors: ThemeColors) { return StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(139,92,255,0.22)',
-    color: '#4F7CFF',
+    color: colors.textAccent,
     fontSize: 14,
     fontWeight: '800',
     paddingTop: 8,

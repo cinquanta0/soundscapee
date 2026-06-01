@@ -250,7 +250,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4,
     },
-    playerNavTxt: { flex: 1, fontSize: 12, color: '#00FF9C', fontFamily: 'monospace' },
+    playerNavTxt: { flex: 1, fontSize: 12, color: colors.greenText, fontFamily: 'monospace' },
     playerCloseTxt: { color: colors.textMuted, fontSize: 16, paddingLeft: 12 },
   });
 }

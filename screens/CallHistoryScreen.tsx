@@ -123,10 +123,10 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
       return { label: t('call.missed'), color: '#FF5C79', icon: 'phone-missed' };
     }
     if (call.callerId === uid) {
-      return { label: t('call.outgoing'), color: '#67E8F9', icon: 'phone-outgoing' };
+      return { label: t('call.outgoing'), color: colors.textAccent, icon: 'phone-outgoing' };
     }
-    return { label: t('call.incoming'), color: '#00FF9C', icon: 'phone-incoming' };
-  }, []);
+    return { label: t('call.incoming'), color: colors.greenText, icon: 'phone-incoming' };
+  }, [colors, t]);
 
   const renderItem = ({ item }: { item: Call }) => {
     const { name, avatar, otherUid } = getOtherParty(item);
@@ -165,7 +165,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
               style={s.callBtn}
               onPress={() => initiateCall(otherUid, name, avatar || '🎵')}
             >
-              <Feather name="phone" size={16} color="#00FF9C" />
+              <Feather name="phone" size={16} color={colors.greenText} />
             </TouchableOpacity>
           )}
         </View>

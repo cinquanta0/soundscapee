@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
 import SchoolOnboarding from '../components/SchoolOnboarding';
 import {
@@ -153,6 +154,7 @@ const st = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ITSSchoolScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const hPad = width > 900 ? 28 : 16;
   const maxW = width > 900 ? 860 : width > 680 ? 760 : undefined;
@@ -1076,7 +1078,7 @@ export default function ITSSchoolScreen() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {showOnboarding && <SchoolOnboarding onComplete={completeOnboarding} />}
 
       {/* Top gold accent line */}
