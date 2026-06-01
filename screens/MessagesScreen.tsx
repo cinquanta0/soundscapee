@@ -12,6 +12,7 @@ import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
 import { listenBlockedUsers } from '../services/blockService';
+import { isFollowing } from '../services/firebaseService';
 import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
@@ -25,6 +26,27 @@ interface OtherUser {
   displayName: string;
   username: string;
   avatar: string;
+}
+
+// Decide se la foto profilo di un utente è visibile per me, rispettando photoVisibility.
+// public → sempre; followers → solo se io lo seguo; private → mai (a meno che sia io stesso).
+async function visiblePhotoFromSnap(snap: any, otherUserId: string): Promise<string | undefined> {
+  const data = snap?.data?.();
+  const photo: string | undefined = data?.profilePicture || undefined;
+  if (!photo) return undefined;
+  const vis: string = data?.photoVisibility ?? 'public';
+  const myUid = auth.currentUser?.uid;
+  if (otherUserId === myUid) return photo;          // me stesso
+  if (vis === 'public') return photo;
+  if (vis === 'followers') {
+    try {
+      const iFollow = await isFollowing(otherUserId); // io seguo lui?
+      return iFollow ? photo : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;                                  // private
 }
 
 function timeAgo(d: Date, t: (key: string, opts?: object) => string) {
@@ -203,21 +225,23 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   }, [me?.uid, blockedIds]);
 
   useEffect(() => {
-    const missing = conversations.filter(
-      c => !c.otherUserPhoto && !fetchedPhotosRef.current.has(c.otherUserId),
-    );
-    if (missing.length === 0) return;
-    missing.forEach(c => fetchedPhotosRef.current.add(c.otherUserId));
-    Promise.all(missing.map(c => getDoc(doc(db, 'users', c.otherUserId))))
-      .then(snaps => {
-        const photoMap: Record<string, string> = {};
-        snaps.forEach((snap, i) => {
-          const photo = snap.data()?.profilePicture;
-          if (photo) photoMap[missing[i].otherUserId] = photo;
-        });
-        if (Object.keys(photoMap).length === 0) return;
+    // Verifica la visibilità della foto per OGNI conversazione non ancora controllata.
+    // Non ci si fida di otherUserPhoto salvato nella conversazione (photo_{uid}):
+    // se l'utente ha reso la foto privata/solo-follower, qui viene rimossa.
+    const toCheck = conversations.filter(c => !fetchedPhotosRef.current.has(c.otherUserId));
+    if (toCheck.length === 0) return;
+    toCheck.forEach(c => fetchedPhotosRef.current.add(c.otherUserId));
+    Promise.all(toCheck.map(c => getDoc(doc(db, 'users', c.otherUserId))))
+      .then(async snaps => {
+        const resolved: Record<string, string | undefined> = {};
+        await Promise.all(snaps.map(async (snap, i) => {
+          const uid = toCheck[i].otherUserId;
+          resolved[uid] = await visiblePhotoFromSnap(snap, uid);
+        }));
         setConversations(prev =>
-          prev.map(c => photoMap[c.otherUserId] ? { ...c, otherUserPhoto: photoMap[c.otherUserId] } : c),
+          prev.map(c => (c.otherUserId in resolved)
+            ? { ...c, otherUserPhoto: resolved[c.otherUserId] }
+            : c),
         );
       })
       .catch(() => {});
@@ -233,9 +257,11 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
   }, [activeChat?.userId]);
 
   useEffect(() => {
-    if (!activeChat?.userId) { setActiveChatPhoto(undefined); return; }
-    getDoc(doc(db, 'users', activeChat.userId))
-      .then(snap => setActiveChatPhoto(snap.data()?.profilePicture || undefined))
+    setActiveChatPhoto(undefined); // reset subito: evita di mostrare la foto della chat precedente
+    if (!activeChat?.userId) return;
+    const uid = activeChat.userId;
+    getDoc(doc(db, 'users', uid))
+      .then(async snap => setActiveChatPhoto(await visiblePhotoFromSnap(snap, uid)))
       .catch(() => {});
   }, [activeChat?.userId]);
 
@@ -246,7 +272,7 @@ export default function MessagesScreen({ initialChat, onViewProfile }: Props) {
         otherUserId={activeChat.userId}
         otherUserName={activeChat.userName}
         otherUserAvatar={activeChat.userAvatar}
-        otherUserPhoto={activeChatPhoto ?? activeChat.userPhoto}
+        otherUserPhoto={activeChatPhoto}
         onBack={() => setActiveChat(null)}
         onViewProfile={onViewProfile}
       />
