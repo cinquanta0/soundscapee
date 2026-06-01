@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeColors } from '../constants/themes';
 import {
@@ -40,6 +41,7 @@ export default function GroupCallSetupModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { initiateGroupCall } = useCall();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const st = useMemo(() => createStyles(colors), [colors]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -134,14 +136,14 @@ export default function GroupCallSetupModal({
             <Feather name="x" size={22} color="#F7F8FF" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={st.title}>{mode === 'invite' ? 'Aggiungi partecipanti' : 'Chiamata di gruppo'}</Text>
-            <Text style={st.subtitle}>Seleziona fino a {availableSlots} amici</Text>
+            <Text style={st.title}>{mode === 'invite' ? t('groupCall.addParticipants') : t('groupCall.groupCallTitle')}</Text>
+            <Text style={st.subtitle}>{t('groupCall.selectUpTo', { count: availableSlots })}</Text>
           </View>
         </View>
 
         {selected.size > 0 && (
           <View style={st.selectedBar}>
-            <Text style={st.selectedCount}>{selected.size} selezionat{selected.size === 1 ? 'o' : 'i'}</Text>
+            <Text style={st.selectedCount}>{selected.size === 1 ? t('groupCall.selectedOne', { count: selected.size }) : t('groupCall.selectedMany', { count: selected.size })}</Text>
           </View>
         )}
 
@@ -152,8 +154,8 @@ export default function GroupCallSetupModal({
         ) : visibleFriends.length === 0 ? (
           <View style={st.center}>
             <Feather name="users" size={48} color="#333" />
-            <Text style={st.emptyTxt}>Nessun amico disponibile</Text>
-            <Text style={st.emptySubtxt}>Hai gia raggiunto il limite o invitato tutti</Text>
+            <Text style={st.emptyTxt}>{t('groupCall.noFriends')}</Text>
+            <Text style={st.emptySubtxt}>{t('groupCall.limitReached')}</Text>
           </View>
         ) : (
           <FlatList
@@ -175,10 +177,10 @@ export default function GroupCallSetupModal({
           ) : (
             <Text style={st.startBtnTxt}>
               {selected.size === 0
-                ? 'Seleziona almeno un amico'
+                ? t('groupCall.selectAtLeastOne')
                 : mode === 'invite'
-                  ? `➕ Invita (${selected.size})`
-                  : `📞 Chiama (${selected.size + 1} persone)`}
+                  ? t('groupCall.invite', { count: selected.size })
+                  : t('groupCall.callPeople', { count: selected.size + 1 })}
             </Text>
           )}
         </TouchableOpacity>

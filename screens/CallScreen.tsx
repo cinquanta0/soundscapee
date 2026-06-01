@@ -188,6 +188,7 @@ function ParticipantList({
   myUid?: string;
   onRecall?: (uid: string, profile: { name: string; avatar: string }) => void;
 }) {
+  const { t } = useTranslation();
   const entries = Object.entries(participantProfiles);
 
   return (
@@ -237,7 +238,7 @@ function ParticipantList({
                 style={s.recallBtn}
               >
                 <Feather name="phone" size={12} color="#00FF9C" />
-                <Text style={s.recallBtnText}>Richiama</Text>
+                <Text style={s.recallBtnText}>{t('call2.recall')}</Text>
               </TouchableOpacity>
             )}
 
@@ -434,7 +435,7 @@ export default function CallScreen() {
           {!isGroup && phase !== 'ended' && (
             <View style={s.e2eBadge}>
               <Feather name="lock" size={10} color="rgba(103,232,249,0.55)" />
-              <Text style={s.e2eBadgeTxt}>Cifrata end-to-end</Text>
+              <Text style={s.e2eBadgeTxt}>{t('call2.encrypted')}</Text>
             </View>
           )}
 
@@ -490,7 +491,7 @@ export default function CallScreen() {
                 >
                   <Feather name="phone-off" size={28} color="#fff" />
                 </TouchableOpacity>
-                <Text style={s.btnLabel}>Rifiuta</Text>
+                <Text style={s.btnLabel}>{t('call2.decline')}</Text>
               </View>
 
               <View style={s.btnCol}>
@@ -501,7 +502,7 @@ export default function CallScreen() {
                 >
                   <Feather name="phone" size={28} color="#fff" />
                 </TouchableOpacity>
-                <Text style={s.btnLabel}>Rispondi</Text>
+                <Text style={s.btnLabel}>{t('call2.answer')}</Text>
               </View>
             </View>
           )}
@@ -517,7 +518,7 @@ export default function CallScreen() {
                 >
                   <Feather name="x" size={28} color="#fff" />
                 </TouchableOpacity>
-                <Text style={s.btnLabel}>Chiudi</Text>
+                <Text style={s.btnLabel}>{t('call2.close')}</Text>
               </View>
 
               <View style={s.btnCol}>
@@ -528,7 +529,7 @@ export default function CallScreen() {
                 >
                   <Feather name="phone" size={28} color="#fff" />
                 </TouchableOpacity>
-                <Text style={s.btnLabel}>Entra qui</Text>
+                <Text style={s.btnLabel}>{t('call2.joinHere')}</Text>
               </View>
             </View>
           )}

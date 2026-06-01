@@ -300,7 +300,14 @@
       "cannotSave": "No se puede guardar el perfil",
       "cannotFollow": "No se puede realizar esta acción.",
       "cannotOpen": "No se puede abrir el perfil"
-    }
+    },
+    "preparing": "Preparando tu perfil",
+    "background": "Fondo",
+    "report": "Reportar",
+    "profilePhoto": "Foto de perfil",
+    "useAvatar": "Usar avatar en su lugar",
+    "tapToAddPhoto": "Toca para añadir foto",
+    "whoSeesPhoto": "Quién ve la foto de perfil"
   },
   "settings": {
     "title": "Configuración",
@@ -324,7 +331,8 @@
     },
     "themeDark": "🌙 Tema oscuro",
     "themeLight": "☀️ Tema claro",
-    "themeSaved": "Tema guardado automáticamente"
+    "themeSaved": "Tema guardado automáticamente",
+    "appearance": "Apariencia"
   },
   "explore": {
     "searchPlaceholder": "Buscar sonidos, usuarios...",
@@ -436,7 +444,12 @@
       "cannotLoadSounds": "No se pueden cargar los sonidos",
       "cannotPlay": "No se puede reproducir el sonido",
       "alreadyVoted": "Ya votaste por este sonido"
-    }
+    },
+    "removeChallenge": "Quitar reto",
+    "chooseSound": "Elige un sonido",
+    "noSound": "No hay sonido disponible",
+    "noSoundHint": "Graba un sonido desde el inicio y vuelve aquí para participar.",
+    "send": "Enviar"
   },
   "communities": {
     "title": "🎵 Comunidades",
@@ -447,7 +460,7 @@
     "membersAndSounds": "{{members}} miembros • {{sounds}} sonidos",
     "joined": "✅ ¡Unido!",
     "left": "👋 Saliste de la comunidad",
-    "createTitle": "Crear Comunidad",
+    "createTitle": "Crear comunidad",
     "namePlaceholder": "Nombre de la comunidad",
     "descriptionPlaceholder": "Descripción",
     "selected": "Seleccionaste: {{name}}",
@@ -457,7 +470,8 @@
       "nameRequired": "Introduce un nombre",
       "cannotLoad": "No se pueden cargar las comunidades",
       "cannotJoin": "No se puede unirse a la comunidad"
-    }
+    },
+    "title2": "🎵 Comunidades"
   },
   "timeMachine": {
     "title": "Máquina del Tiempo de Sonidos",
@@ -505,7 +519,10 @@
       "cannotLoad": "No se pueden cargar los comentarios",
       "cannotSend": "No se puede enviar el comentario",
       "cannotDelete": "No se puede eliminar el comentario"
-    }
+    },
+    "header": "💬 Comentarios",
+    "empty": "Aún no hay comentarios",
+    "emptyHint": "¡Sé el primero en comentar!"
   },
   "notifications": {
     "title": "🔔 Notificaciones",
@@ -572,7 +589,7 @@
   },
   "radio": {
     "title": "Radio en Vivo",
-    "onAir": "EN DIRECTO",
+    "onAir": "🎙 en directo",
     "live": "EN VIVO",
     "liveBtn": "Ir en Vivo",
     "goLive": "Ir en Vivo 🔴",
@@ -626,7 +643,18 @@
       "cannotLoad": "No se pudo cargar la pista.",
       "cannotStart": "No se pudo iniciar la transmisión.",
       "cannotOpen": "No se pudo abrir el selector."
-    }
+    },
+    "allTracksPlayed": "Se han reproducido todas las pistas.",
+    "addPause": "Añadir pausa:",
+    "terminate": "⬛  Terminar",
+    "noMessages": "aún no hay mensajes",
+    "remove": "Quitar",
+    "cohost": "Cohost",
+    "add": "✓ Añadir",
+    "hostedBy": "presentado por @{{name}}",
+    "youAreCohost": "🎙 ¡Eres cohost!",
+    "suggest": "🎵 Sugerir",
+    "suggestSound": "🎵 Sugiere un sonido"
   },
   "remix": {
     "title": "Remix Studio",
@@ -1051,7 +1079,8 @@
       "recordingInProgress": "Grabación en curso",
       "stopBeforeLeaving": "Para antes de salir",
       "stopBeforeCancelling": "Para antes de cancelar"
-    }
+    },
+    "votes": "votos"
   },
   "collab": {
     "invitedTo": "te invita a una",
@@ -1241,5 +1270,32 @@
         "body": "Recibe notificaciones de\nnuevos sonidos en la\ncomunidad"
       }
     }
+  },
+  "groupCall": {
+    "selectUpTo": "Selecciona hasta {{count}} amigos",
+    "noFriends": "No hay amigos disponibles",
+    "limitReached": "Has alcanzado el límite o invitado a todos",
+    "selectAtLeastOne": "Selecciona al menos un amigo",
+    "addParticipants": "Añadir participantes",
+    "groupCallTitle": "Llamada grupal",
+    "selectedOne": "{{count}} seleccionado",
+    "selectedMany": "{{count}} seleccionados",
+    "invite": "➕ Invitar ({{count}})",
+    "callPeople": "📞 Llamar ({{count}} personas)"
+  },
+  "forceUpdate": {
+    "updateTitle": "Actualizar MIUSLYK",
+    "updateNow": "Actualizar ahora",
+    "maintenance": "Mantenimiento en curso",
+    "body": "Esta versión ya no es compatible.\nDescarga la última versión para continuar.",
+    "maintenanceBody": "MIUSLYK está temporalmente desconectado por mejoras.\n¡Vuelve pronto!"
+  },
+  "call2": {
+    "recall": "Volver a llamar",
+    "encrypted": "Cifrado de extremo a extremo",
+    "decline": "Rechazar",
+    "answer": "Responder",
+    "close": "Cerrar",
+    "joinHere": "Unirse aquí"
   }
 }

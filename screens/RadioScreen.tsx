@@ -1413,14 +1413,14 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
               {playlistEnded ? '✓ PLAYLIST TERMINATA' : isInGap ? t('radio.pause') : t('radio.nowOnAir')}
             </Text>
             {playlistEnded ? (
-              <Text style={hm.playlistEndedTxt}>Tutte le tracce sono state riprodotte.</Text>
+              <Text style={hm.playlistEndedTxt}>{t('radio.allTracksPlayed')}</Text>
             ) : isInGap ? (
               <View>
                 <Text style={hm.gapCountdown}>⏸  {gapRemaining}s</Text>
                 {hasNext && <Text style={hm.gapNext}>{t('radio.nowPlaying').toLowerCase()}: {room.playlist[room.currentTrackIndex + 1]?.name.replace(/\.[^.]+$/, '')}</Text>}
                 {/* Bottoni estendi pausa */}
                 <View style={hm.extendGapRow}>
-                  <Text style={hm.extendGapLabel}>Aggiungi pausa:</Text>
+                  <Text style={hm.extendGapLabel}>{t('radio.addPause')}</Text>
                   {[5, 15, 30].map(sec => (
                     <TouchableOpacity
                       key={sec}
@@ -1459,7 +1459,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                 : <Text style={hm.skipTxt}>{hasNext ? `⏭  Prossima${(currentTrack?.gapAfter ?? 0) > 0 ? ` (pausa ${currentTrack?.gapAfter}s)` : ''}` : '✓  Ultima traccia'}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={hm.stopBtn} onPress={handleEnd} disabled={ending}>
-              {ending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={hm.stopTxt}>⬛  Termina</Text>}
+              {ending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={hm.stopTxt}>{t('radio.terminate')}</Text>}
             </TouchableOpacity>
           </View>
           <Text style={hm.queueTitle}>{t('radio.queue')}</Text>
@@ -1514,7 +1514,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
             ListEmptyComponent={
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 36, marginBottom: 12 }}>💬</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>{t('radio.noMessages')}</Text>
               </View>
             }
           />
@@ -1542,7 +1542,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   <Text style={{ fontSize: 18 }}>🎙</Text>
                   <Text style={hm.handName}>{handRaises.find(h => h.userId === uid)?.userName ?? uid.slice(0, 8)}</Text>
                   <TouchableOpacity style={hm.dismissBtn} onPress={() => handleRemoveCohost(uid)}>
-                    <Text style={hm.dismissTxt}>Rimuovi</Text>
+                    <Text style={hm.dismissTxt}>{t('radio.remove')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -1559,7 +1559,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   <Text style={hm.handName}>{h.userName}</Text>
                   <View style={hm.handBtns}>
                     <TouchableOpacity style={[hm.pickBtn, { borderColor: 'rgba(0,255,156,0.4)', backgroundColor: 'rgba(0,255,156,0.12)' }]} onPress={() => handleAddCohost(h)}>
-                      <Text style={[hm.pickBtnTxt, { color: '#00FF9C' }]}>Cohost</Text>
+                      <Text style={[hm.pickBtnTxt, { color: '#00FF9C' }]}>{t('radio.cohost')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={hm.dismissBtn} onPress={() => handleDismiss(h)}>
                       <Text style={hm.dismissTxt}>{t('common.remove')}</Text>
@@ -1615,7 +1615,7 @@ function HostRadioModal({ room: initialRoom, onClose }: { room: RadioRoom; onClo
                   </View>
                   <View style={hm.handBtns}>
                     <TouchableOpacity style={hm.pickBtn} onPress={() => handleApproveSuggestion(s)}>
-                      <Text style={hm.pickBtnTxt}>✓ Aggiungi</Text>
+                      <Text style={hm.pickBtnTxt}>{t('radio.add')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={hm.ignoreBtn} onPress={() => handleRejectSuggestion(s)}>
                       <Text style={hm.ignoreBtnTxt}>✕</Text>
@@ -2074,10 +2074,10 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           )}
           <Text style={lm.stationName}>{room.title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Text style={lm.hostLine}>condotta da @{room.hostName}</Text>
+            <Text style={lm.hostLine}>{t('radio.hostedBy', { name: room.hostName })}</Text>
             {room.hostMicLive && (
               <View style={lm.micLiveBadge}>
-                <Text style={lm.micLiveTxt}>🎙 in diretta</Text>
+                <Text style={lm.micLiveTxt}>{t('radio.onAir')}</Text>
               </View>
             )}
           </View>
@@ -2085,7 +2085,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           {/* Cohost banner */}
           {isCohost && (
             <View style={[lm.pickedBanner, { borderColor: 'rgba(0,255,156,0.3)', backgroundColor: 'rgba(0,255,156,0.1)' }]}>
-              <Text style={[lm.pickedBannerTxt, { color: '#00FF9C' }]}>🎙 Sei cohost!</Text>
+              <Text style={[lm.pickedBannerTxt, { color: '#00FF9C' }]}>{t('radio.youAreCohost')}</Text>
             </View>
           )}
           {/* Scelto banner */}
@@ -2134,7 +2134,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <Text style={lm.listenerTxt}>🎧 {room.listenerCount} {t('radio.listeners')}</Text>
             <TouchableOpacity style={lm.suggestBtn} onPress={openSuggest}>
-              <Text style={lm.suggestBtnTxt}>🎵 Suggerisci</Text>
+              <Text style={lm.suggestBtnTxt}>{t('radio.suggest')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -2157,7 +2157,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ backgroundColor: '#0D0D1A', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, maxHeight: '70%' }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>🎵 Suggerisci un suono</Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>{t('radio.suggestSound')}</Text>
             <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', marginBottom: 16 }}>scegli uno dei tuoi suoni caricati</Text>
             {loadingSounds ? (
               <ActivityIndicator color="#FF2D55" style={{ marginTop: 20 }} />
@@ -2213,7 +2213,7 @@ function RadioListenerModal({ room: initialRoom, onClose }: { room: RadioRoom; o
             ListEmptyComponent={
               <View style={{ alignItems: 'center', marginTop: 60 }}>
                 <Text style={{ fontSize: 36, marginBottom: 12 }}>💬</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>nessun messaggio ancora</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: 'monospace' }}>{t('radio.noMessages')}</Text>
               </View>
             }
           />

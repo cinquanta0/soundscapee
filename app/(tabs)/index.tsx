@@ -1956,7 +1956,7 @@ if (loading) {
         <View style={s.profileLoadingOrb}>
           <ActivityIndicator size="large" color={colors.textAccent} />
         </View>
-        <Text style={s.profileLoadingText}>Sto preparando il profilo</Text>
+        <Text style={s.profileLoadingText}>{t('profile.preparing')}</Text>
       </View>
     )}
 
@@ -1981,7 +1981,7 @@ if (loading) {
           onPress={() => setShowThemeModal(true)}
         >
           <Feather name="image" size={13} color="rgba(255,255,255,0.7)" />
-          <Text style={s.profileThemeButtonText}>Sfondo</Text>
+          <Text style={s.profileThemeButtonText}>{t('profile.background')}</Text>
         </TouchableOpacity>
       )}
       {(() => {
@@ -2163,7 +2163,7 @@ if (loading) {
               onPress={() => openReport(userProfile.id, 'profile')}
             >
               <Feather name="flag" size={14} color="#94a3b8" />
-              <Text style={[s.profileButtonPrimaryText, { color: '#94a3b8' }]}>Segnala</Text>
+              <Text style={[s.profileButtonPrimaryText, { color: '#94a3b8' }]}>{t('profile.report')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2823,7 +2823,7 @@ if (loading) {
               </View>
 
               <View style={s.settingsSection}>
-                <Text style={s.settingsSectionTitle}>Aspetto</Text>
+                <Text style={s.settingsSectionTitle}>{t('settings.appearance')}</Text>
                 <TouchableOpacity
                   style={s.settingsItem}
                   onPress={toggleTheme}
@@ -3083,7 +3083,7 @@ if (loading) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Foto profilo */}
-        <Text style={s.editLabel}>Foto profilo</Text>
+        <Text style={s.editLabel}>{t('profile.profilePhoto')}</Text>
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <TouchableOpacity onPress={handlePickProfilePicture} disabled={uploadingPicture} style={{ position: 'relative' }}>
             {editProfilePicture ? (
@@ -3099,15 +3099,15 @@ if (loading) {
           </TouchableOpacity>
           {editProfilePicture ? (
             <TouchableOpacity onPress={handleRemoveProfilePicture} style={{ marginTop: 8 }}>
-              <Text style={{ color: colors.textMuted, fontSize: 11, textDecorationLine: 'underline' }}>Usa avatar invece</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 11, textDecorationLine: 'underline' }}>{t('profile.useAvatar')}</Text>
             </TouchableOpacity>
           ) : (
-            <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 8 }}>Tocca per aggiungere foto</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 8 }}>{t('profile.tapToAddPhoto')}</Text>
           )}
         </View>
 
         {/* Visibilità foto profilo */}
-        <Text style={s.editLabel}>Chi vede la foto profilo</Text>
+        <Text style={s.editLabel}>{t('profile.whoSeesPhoto')}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
           {(['public', 'followers', 'private'] as const).map(vis => (
             <TouchableOpacity

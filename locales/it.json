@@ -300,7 +300,14 @@
       "cannotSave": "Impossibile salvare il profilo",
       "cannotFollow": "Impossibile eseguire la richiesta.",
       "cannotOpen": "Impossibile aprire il profilo"
-    }
+    },
+    "preparing": "Sto preparando il profilo",
+    "background": "Sfondo",
+    "report": "Segnala",
+    "profilePhoto": "Foto profilo",
+    "useAvatar": "Usa avatar invece",
+    "tapToAddPhoto": "Tocca per aggiungere foto",
+    "whoSeesPhoto": "Chi vede la foto profilo"
   },
   "settings": {
     "title": "Impostazioni",
@@ -324,7 +331,8 @@
     },
     "themeDark": "🌙 Tema scuro",
     "themeLight": "☀️ Tema chiaro",
-    "themeSaved": "Tema salvato automaticamente"
+    "themeSaved": "Tema salvato automaticamente",
+    "appearance": "Aspetto"
   },
   "explore": {
     "searchPlaceholder": "Cerca suoni, utenti...",
@@ -436,7 +444,12 @@
       "cannotLoadSounds": "Impossibile caricare i suoni",
       "cannotPlay": "Impossibile riprodurre il suono",
       "alreadyVoted": "Hai già votato questo suono"
-    }
+    },
+    "removeChallenge": "Rimuovi sfida",
+    "chooseSound": "Scegli un sound",
+    "noSound": "Nessun sound disponibile",
+    "noSoundHint": "Registra un sound dalla home e torna qui per partecipare.",
+    "send": "Invia"
   },
   "communities": {
     "title": "🎵 Communities",
@@ -457,7 +470,8 @@
       "nameRequired": "Inserisci un nome",
       "cannotLoad": "Impossibile caricare le community",
       "cannotJoin": "Impossibile iscriversi alla community"
-    }
+    },
+    "title2": "🎵 Communities"
   },
   "timeMachine": {
     "title": "Sound Time Machine",
@@ -505,7 +519,10 @@
       "cannotLoad": "Impossibile caricare i commenti",
       "cannotSend": "Impossibile inviare il commento",
       "cannotDelete": "Impossibile eliminare il commento"
-    }
+    },
+    "header": "💬 Commenti",
+    "empty": "Nessun commento ancora",
+    "emptyHint": "Sii il primo a commentare!"
   },
   "notifications": {
     "title": "🔔 Notifiche",
@@ -572,7 +589,7 @@
   },
   "radio": {
     "title": "Radio Live",
-    "onAir": "ON AIR",
+    "onAir": "🎙 in diretta",
     "live": "LIVE",
     "liveBtn": "Vai Live",
     "goLive": "Vai Live 🔴",
@@ -626,7 +643,18 @@
       "cannotLoad": "Impossibile caricare la traccia.",
       "cannotStart": "Impossibile avviare la trasmissione.",
       "cannotOpen": "Impossibile aprire il selettore."
-    }
+    },
+    "allTracksPlayed": "Tutte le tracce sono state riprodotte.",
+    "addPause": "Aggiungi pausa:",
+    "terminate": "⬛  Termina",
+    "noMessages": "nessun messaggio ancora",
+    "remove": "Rimuovi",
+    "cohost": "Cohost",
+    "add": "✓ Aggiungi",
+    "hostedBy": "condotta da @{{name}}",
+    "youAreCohost": "🎙 Sei cohost!",
+    "suggest": "🎵 Suggerisci",
+    "suggestSound": "🎵 Suggerisci un suono"
   },
   "remix": {
     "title": "Remix Studio",
@@ -1051,7 +1079,8 @@
       "recordingInProgress": "Registrazione in corso",
       "stopBeforeLeaving": "Fermati prima di uscire",
       "stopBeforeCancelling": "Fermati prima di annullare"
-    }
+    },
+    "votes": "voti"
   },
   "collab": {
     "invitedTo": "ti invita a una",
@@ -1241,5 +1270,32 @@
         "body": "Ricevi notifiche dai\nnuovi suoni della\ncommunity"
       }
     }
+  },
+  "groupCall": {
+    "selectUpTo": "Seleziona fino a {{count}} amici",
+    "noFriends": "Nessun amico disponibile",
+    "limitReached": "Hai già raggiunto il limite o invitato tutti",
+    "selectAtLeastOne": "Seleziona almeno un amico",
+    "addParticipants": "Aggiungi partecipanti",
+    "groupCallTitle": "Chiamata di gruppo",
+    "selectedOne": "{{count}} selezionato",
+    "selectedMany": "{{count}} selezionati",
+    "invite": "➕ Invita ({{count}})",
+    "callPeople": "📞 Chiama ({{count}} persone)"
+  },
+  "forceUpdate": {
+    "updateTitle": "Aggiorna MIUSLYK",
+    "updateNow": "Aggiorna ora",
+    "maintenance": "Manutenzione in corso",
+    "body": "Questa versione non è più supportata.\nScarica l'ultima versione per continuare.",
+    "maintenanceBody": "MIUSLYK è temporaneamente offline per miglioramenti.\nTorna tra poco!"
+  },
+  "call2": {
+    "recall": "Richiama",
+    "encrypted": "Cifrata end-to-end",
+    "decline": "Rifiuta",
+    "answer": "Rispondi",
+    "close": "Chiudi",
+    "joinHere": "Entra qui"
   }
 }

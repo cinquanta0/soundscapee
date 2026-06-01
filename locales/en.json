@@ -300,7 +300,14 @@
       "cannotSave": "Unable to save profile",
       "cannotFollow": "Unable to perform this action.",
       "cannotOpen": "Unable to open profile"
-    }
+    },
+    "preparing": "Preparing your profile",
+    "background": "Background",
+    "report": "Report",
+    "profilePhoto": "Profile photo",
+    "useAvatar": "Use avatar instead",
+    "tapToAddPhoto": "Tap to add photo",
+    "whoSeesPhoto": "Who sees the profile photo"
   },
   "settings": {
     "title": "Settings",
@@ -324,7 +331,8 @@
     },
     "themeDark": "🌙 Dark theme",
     "themeLight": "☀️ Light theme",
-    "themeSaved": "Theme saved automatically"
+    "themeSaved": "Theme saved automatically",
+    "appearance": "Appearance"
   },
   "explore": {
     "searchPlaceholder": "Search sounds, users...",
@@ -436,7 +444,12 @@
       "cannotLoadSounds": "Unable to load sounds",
       "cannotPlay": "Unable to play the sound",
       "alreadyVoted": "You already voted for this sound"
-    }
+    },
+    "removeChallenge": "Remove challenge",
+    "chooseSound": "Choose a sound",
+    "noSound": "No sound available",
+    "noSoundHint": "Record a sound from home and come back here to join.",
+    "send": "Send"
   },
   "communities": {
     "title": "🎵 Communities",
@@ -457,7 +470,8 @@
       "nameRequired": "Please enter a name",
       "cannotLoad": "Unable to load communities",
       "cannotJoin": "Unable to join the community"
-    }
+    },
+    "title2": "🎵 Communities"
   },
   "timeMachine": {
     "title": "Sound Time Machine",
@@ -505,7 +519,10 @@
       "cannotLoad": "Unable to load comments",
       "cannotSend": "Unable to send the comment",
       "cannotDelete": "Cannot delete comment"
-    }
+    },
+    "header": "💬 Comments",
+    "empty": "No comments yet",
+    "emptyHint": "Be the first to comment!"
   },
   "notifications": {
     "title": "🔔 Notifications",
@@ -572,7 +589,7 @@
   },
   "radio": {
     "title": "Radio Live",
-    "onAir": "ON AIR",
+    "onAir": "🎙 on air",
     "live": "LIVE",
     "liveBtn": "Go Live",
     "goLive": "Go Live 🔴",
@@ -626,7 +643,18 @@
       "cannotLoad": "Could not load track.",
       "cannotStart": "Could not start broadcast.",
       "cannotOpen": "Could not open selector."
-    }
+    },
+    "allTracksPlayed": "All tracks have been played.",
+    "addPause": "Add pause:",
+    "terminate": "⬛  End",
+    "noMessages": "no messages yet",
+    "remove": "Remove",
+    "cohost": "Cohost",
+    "add": "✓ Add",
+    "hostedBy": "hosted by @{{name}}",
+    "youAreCohost": "🎙 You're cohost!",
+    "suggest": "🎵 Suggest",
+    "suggestSound": "🎵 Suggest a sound"
   },
   "remix": {
     "title": "Remix Studio",
@@ -1051,7 +1079,8 @@
       "recordingInProgress": "Recording in progress",
       "stopBeforeLeaving": "Stop before leaving",
       "stopBeforeCancelling": "Stop before cancelling"
-    }
+    },
+    "votes": "votes"
   },
   "collab": {
     "invitedTo": "invites you to a",
@@ -1241,5 +1270,32 @@
         "body": "Get notifications from\nnew sounds in the\ncommunity"
       }
     }
+  },
+  "groupCall": {
+    "selectUpTo": "Select up to {{count}} friends",
+    "noFriends": "No friends available",
+    "limitReached": "You've reached the limit or invited everyone",
+    "selectAtLeastOne": "Select at least one friend",
+    "addParticipants": "Add participants",
+    "groupCallTitle": "Group call",
+    "selectedOne": "{{count}} selected",
+    "selectedMany": "{{count}} selected",
+    "invite": "➕ Invite ({{count}})",
+    "callPeople": "📞 Call ({{count}} people)"
+  },
+  "forceUpdate": {
+    "updateTitle": "Update MIUSLYK",
+    "updateNow": "Update now",
+    "maintenance": "Maintenance in progress",
+    "body": "This version is no longer supported.\nDownload the latest version to continue.",
+    "maintenanceBody": "MIUSLYK is temporarily offline for improvements.\nCheck back soon!"
+  },
+  "call2": {
+    "recall": "Call back",
+    "encrypted": "End-to-end encrypted",
+    "decline": "Decline",
+    "answer": "Answer",
+    "close": "Close",
+    "joinHere": "Join here"
   }
 }

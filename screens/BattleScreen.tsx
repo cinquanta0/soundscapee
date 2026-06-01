@@ -44,6 +44,7 @@ function PlayerCard({ name, avatar, photo, votes, trackDone, isRecording, isWinn
   name: string; avatar: string; photo?: string; votes: number; trackDone: boolean;
   isRecording: boolean; isWinner: boolean; color: string;
 }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
   const pulse = useRef(new Animated.Value(1)).current;
@@ -74,7 +75,7 @@ function PlayerCard({ name, avatar, photo, votes, trackDone, isRecording, isWinn
       {isRecording && <Text style={[s.recBadge, { color }]}>LIVE REC</Text>}
       <View style={[s.votesBubble, { backgroundColor: `${color}18`, borderColor: `${color}44` }]}>
         <Text style={[s.votesCount, { color }]}>{votes}</Text>
-        <Text style={s.votesLabel}>votes</Text>
+        <Text style={s.votesLabel}>{t('battle.votes')}</Text>
       </View>
     </Animated.View>
   );

@@ -390,7 +390,7 @@ export default function ChallengesScreen() {
                     }}
                   >
                     <Feather name="trash-2" size={13} color={C.error} style={{ marginRight: 6 }} />
-                    <Text style={s.removeChallengeButtonText}>Rimuovi sfida</Text>
+                    <Text style={s.removeChallengeButtonText}>{t('challenges.removeChallenge')}</Text>
                   </TouchableOpacity>
                 )}
               </LinearGradient>
@@ -499,7 +499,7 @@ export default function ChallengesScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Scegli un sound</Text>
+              <Text style={s.modalTitle}>{t('challenges.chooseSound')}</Text>
               <TouchableOpacity onPress={handleCloseSoundPicker}>
                 <Feather name="x" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -512,8 +512,8 @@ export default function ChallengesScreen() {
             ) : userSounds.length === 0 ? (
               <View style={[s.emptyState, { flex: 1 }]}>
                 <Feather name="mic" size={48} color={colors.textMuted} style={{ marginBottom: S.lg }} />
-                <Text style={s.emptyText}>Nessun sound disponibile</Text>
-                <Text style={s.emptySubtext}>Registra un sound dalla home e torna qui per partecipare.</Text>
+                <Text style={s.emptyText}>{t('challenges.noSound')}</Text>
+                <Text style={s.emptySubtext}>{t('challenges.noSoundHint')}</Text>
               </View>
             ) : (
               <ScrollView style={s.soundsList}>
@@ -540,7 +540,7 @@ export default function ChallengesScreen() {
                         ) : (
                           <>
                             <Feather name="send" size={13} color="#fff" style={{ marginRight: 4 }} />
-                            <Text style={s.submitButtonText}>Invia</Text>
+                            <Text style={s.submitButtonText}>{t('challenges.send')}</Text>
                           </>
                         )}
                       </TouchableOpacity>

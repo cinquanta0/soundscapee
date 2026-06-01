@@ -10,6 +10,7 @@ import { ActivityIndicator, Animated, Dimensions, Linking, PanResponder, Platfor
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
+import { useTranslation } from 'react-i18next';
 import { initI18n } from '../i18n';
 import { registerForPushNotifications, listenUserNotifications } from '../services/notificationService';
 import { notificationBannerBus } from '../services/notificationBannerBus';
@@ -265,30 +266,27 @@ const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.cuc
 const STORE_URL_IOS = 'https://apps.apple.com/app/miuslyk/id0'; // aggiorna con l'ID reale
 
 function ForceUpdateScreen() {
+  const { t } = useTranslation();
   const storeUrl = Platform.OS === 'ios' ? STORE_URL_IOS : STORE_URL_ANDROID;
   return (
     <View style={fu.container}>
       <Text style={fu.emoji}>🔄</Text>
-      <Text style={fu.title}>Aggiorna MIUSLYK</Text>
-      <Text style={fu.body}>
-        Questa versione non è più supportata.{'\n'}
-        {"Scarica l'ultima versione per continuare."}
-      </Text>
+      <Text style={fu.title}>{t('forceUpdate.updateTitle')}</Text>
+      <Text style={fu.body}>{t('forceUpdate.body')}</Text>
       <TouchableOpacity style={fu.button} onPress={() => Linking.openURL(storeUrl)}>
-        <Text style={fu.buttonText}>Aggiorna ora</Text>
+        <Text style={fu.buttonText}>{t('forceUpdate.updateNow')}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 function MaintenanceScreen() {
+  const { t } = useTranslation();
   return (
     <View style={fu.container}>
       <Text style={fu.emoji}>🔧</Text>
-      <Text style={fu.title}>Manutenzione in corso</Text>
-      <Text style={fu.body}>
-        {"MIUSLYK è temporaneamente offline per miglioramenti.\nTorna tra poco!"}
-      </Text>
+      <Text style={fu.title}>{t('forceUpdate.maintenance')}</Text>
+      <Text style={fu.body}>{t('forceUpdate.maintenanceBody')}</Text>
     </View>
   );
 }

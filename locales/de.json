@@ -300,7 +300,14 @@
       "cannotSave": "Profil kann nicht gespeichert werden",
       "cannotFollow": "Aktion kann nicht ausgeführt werden.",
       "cannotOpen": "Profil kann nicht geöffnet werden"
-    }
+    },
+    "preparing": "Profil wird vorbereitet",
+    "background": "Hintergrund",
+    "report": "Melden",
+    "profilePhoto": "Profilfoto",
+    "useAvatar": "Avatar verwenden",
+    "tapToAddPhoto": "Tippen, um Foto hinzuzufügen",
+    "whoSeesPhoto": "Wer das Profilfoto sieht"
   },
   "settings": {
     "title": "Einstellungen",
@@ -324,7 +331,8 @@
     },
     "themeDark": "🌙 Dunkles Design",
     "themeLight": "☀️ Helles Design",
-    "themeSaved": "Design automatisch gespeichert"
+    "themeSaved": "Design automatisch gespeichert",
+    "appearance": "Darstellung"
   },
   "explore": {
     "searchPlaceholder": "Klänge, Benutzer suchen...",
@@ -436,7 +444,12 @@
       "cannotLoadSounds": "Klänge können nicht geladen werden",
       "cannotPlay": "Klang kann nicht abgespielt werden",
       "alreadyVoted": "Du hast bereits für diesen Klang abgestimmt"
-    }
+    },
+    "removeChallenge": "Challenge entfernen",
+    "chooseSound": "Wähle einen Sound",
+    "noSound": "Kein Sound verfügbar",
+    "noSoundHint": "Nimm einen Sound von der Startseite auf und komm zurück, um teilzunehmen.",
+    "send": "Senden"
   },
   "communities": {
     "title": "🎵 Communities",
@@ -457,7 +470,8 @@
       "nameRequired": "Bitte gib einen Namen ein",
       "cannotLoad": "Communities können nicht geladen werden",
       "cannotJoin": "Community kann nicht beigetreten werden"
-    }
+    },
+    "title2": "🎵 Communities"
   },
   "timeMachine": {
     "title": "Klang-Zeitmaschine",
@@ -505,7 +519,10 @@
       "cannotLoad": "Kommentare können nicht geladen werden",
       "cannotSend": "Kommentar kann nicht gesendet werden",
       "cannotDelete": "Kommentar kann nicht gelöscht werden"
-    }
+    },
+    "header": "💬 Kommentare",
+    "empty": "Noch keine Kommentare",
+    "emptyHint": "Sei der Erste, der kommentiert!"
   },
   "notifications": {
     "title": "🔔 Benachrichtigungen",
@@ -572,7 +589,7 @@
   },
   "radio": {
     "title": "Radio Live",
-    "onAir": "ON AIR",
+    "onAir": "🎙 live",
     "live": "LIVE",
     "liveBtn": "Live gehen",
     "goLive": "Live gehen 🔴",
@@ -626,7 +643,18 @@
       "cannotLoad": "Track konnte nicht geladen werden.",
       "cannotStart": "Sendung konnte nicht gestartet werden.",
       "cannotOpen": "Auswahl konnte nicht geöffnet werden."
-    }
+    },
+    "allTracksPlayed": "Alle Titel wurden abgespielt.",
+    "addPause": "Pause hinzufügen:",
+    "terminate": "⬛  Beenden",
+    "noMessages": "noch keine Nachrichten",
+    "remove": "Entfernen",
+    "cohost": "Co-Host",
+    "add": "✓ Hinzufügen",
+    "hostedBy": "moderiert von @{{name}}",
+    "youAreCohost": "🎙 Du bist Co-Host!",
+    "suggest": "🎵 Vorschlagen",
+    "suggestSound": "🎵 Einen Sound vorschlagen"
   },
   "remix": {
     "title": "Remix Studio",
@@ -1051,7 +1079,8 @@
       "recordingInProgress": "Aufnahme läuft",
       "stopBeforeLeaving": "Stopp bevor du gehst",
       "stopBeforeCancelling": "Stopp bevor du abbrichst"
-    }
+    },
+    "votes": "Stimmen"
   },
   "collab": {
     "invitedTo": "lädt dich ein zu einer",
@@ -1241,5 +1270,32 @@
         "body": "Erhalte Benachrichtigungen über\nneue Sounds in der\nCommunity"
       }
     }
+  },
+  "groupCall": {
+    "selectUpTo": "Wähle bis zu {{count}} Freunde",
+    "noFriends": "Keine Freunde verfügbar",
+    "limitReached": "Du hast das Limit erreicht oder alle eingeladen",
+    "selectAtLeastOne": "Wähle mindestens einen Freund",
+    "addParticipants": "Teilnehmer hinzufügen",
+    "groupCallTitle": "Gruppenanruf",
+    "selectedOne": "{{count}} ausgewählt",
+    "selectedMany": "{{count}} ausgewählt",
+    "invite": "➕ Einladen ({{count}})",
+    "callPeople": "📞 Anrufen ({{count}} Personen)"
+  },
+  "forceUpdate": {
+    "updateTitle": "MIUSLYK aktualisieren",
+    "updateNow": "Jetzt aktualisieren",
+    "maintenance": "Wartung läuft",
+    "body": "Diese Version wird nicht mehr unterstützt.\nLade die neueste Version herunter, um fortzufahren.",
+    "maintenanceBody": "MIUSLYK ist vorübergehend für Verbesserungen offline.\nSchau bald wieder vorbei!"
+  },
+  "call2": {
+    "recall": "Zurückrufen",
+    "encrypted": "Ende-zu-Ende-verschlüsselt",
+    "decline": "Ablehnen",
+    "answer": "Annehmen",
+    "close": "Schließen",
+    "joinHere": "Hier beitreten"
   }
 }
