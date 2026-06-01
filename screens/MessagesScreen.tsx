@@ -12,7 +12,7 @@ import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import { Conversazione, listenConversazioni, convId } from '../services/messaggiService';
 import { listenBlockedUsers } from '../services/blockService';
-import { isFollowing } from '../services/firebaseService';
+import { visiblePhotoFromSnap } from '../services/firebaseService';
 import ChatScreen from './ChatScreen';
 import CallHistoryScreen from './CallHistoryScreen';
 import GroupCallSetupModal from './GroupCallSetupModal';
@@ -26,27 +26,6 @@ interface OtherUser {
   displayName: string;
   username: string;
   avatar: string;
-}
-
-// Decide se la foto profilo di un utente è visibile per me, rispettando photoVisibility.
-// public → sempre; followers → solo se io lo seguo; private → mai (a meno che sia io stesso).
-async function visiblePhotoFromSnap(snap: any, otherUserId: string): Promise<string | undefined> {
-  const data = snap?.data?.();
-  const photo: string | undefined = data?.profilePicture || undefined;
-  if (!photo) return undefined;
-  const vis: string = data?.photoVisibility ?? 'public';
-  const myUid = auth.currentUser?.uid;
-  if (otherUserId === myUid) return photo;          // me stesso
-  if (vis === 'public') return photo;
-  if (vis === 'followers') {
-    try {
-      const iFollow = await isFollowing(otherUserId); // io seguo lui?
-      return iFollow ? photo : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-  return undefined;                                  // private
 }
 
 function timeAgo(d: Date, t: (key: string, opts?: object) => string) {

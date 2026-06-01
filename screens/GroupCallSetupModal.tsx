@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
-import { getFriendsList } from '../services/firebaseService';
+import { getFriendsList, getVisiblePhoto } from '../services/firebaseService';
 import { useCall } from '../context/CallContext';
 import { ParticipantProfile } from '../services/callService';
 
@@ -58,7 +58,16 @@ export default function GroupCallSetupModal({
     setLoading(true);
     setSelected(new Set());
     getFriendsList(uid)
-      .then((list: Friend[]) => setFriends(list))
+      .then(async (list: Friend[]) => {
+        // Rispetta photoVisibility: nascondi la foto degli amici che l'hanno
+        // resa privata/solo-follower (qui sono amici quindi seguo, ma 'private' resta nascosta).
+        const filtered = await Promise.all(list.map(async (f) => {
+          if (!f.profilePicture) return f;
+          const visible = await getVisiblePhoto(f.id);
+          return { ...f, profilePicture: visible ?? null };
+        }));
+        setFriends(filtered);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [visible]);

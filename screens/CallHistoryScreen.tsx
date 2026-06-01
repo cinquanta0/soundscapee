@@ -15,6 +15,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth } from '../firebaseConfig';
 import { db } from '../firebaseConfig';
 import { getCallHistory, Call } from '../services/callService';
+import { visiblePhotoFromSnap } from '../services/firebaseService';
 import { useCall } from '../context/CallContext';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeColors } from '../constants/themes';
@@ -80,7 +81,7 @@ export default function CallHistoryScreen({ userId, onClose }: Props) {
           if (uid in _callHistoryPhotoCache) { fetchedPhotos[uid] = _callHistoryPhotoCache[uid]; return; }
           try {
             const snap = await getDoc(doc(db, 'users', uid));
-            const photo = snap.data()?.profilePicture ?? null;
+            const photo = (await visiblePhotoFromSnap(snap, uid)) ?? null;
             _callHistoryPhotoCache[uid] = photo;
             fetchedPhotos[uid] = photo;
           } catch { _callHistoryPhotoCache[uid] = null; fetchedPhotos[uid] = null; }

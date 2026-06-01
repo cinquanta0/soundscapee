@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useCall } from '../context/CallContext';
 import { auth } from '../firebaseConfig';
 import { listenForCallUpdates } from '../services/callService';
+import { visiblePhotoFromSnap } from '../services/firebaseService';
 import GroupCallSetupModal from './GroupCallSetupModal';
 
 // ---------------------------------------------------------------------------
@@ -309,7 +310,7 @@ export default function CallScreen() {
     const remoteUid = call.callerId === myUid ? call.calleeId : call.callerId;
     if (!remoteUid) { setRemotePhoto(null); return; }
     getDoc(doc(db, 'users', remoteUid))
-      .then((snap) => setRemotePhoto(snap.data()?.profilePicture ?? null))
+      .then(async (snap) => setRemotePhoto((await visiblePhotoFromSnap(snap, remoteUid)) ?? null))
       .catch(() => setRemotePhoto(null));
   }, [call?.id, call?.type]);
 

@@ -688,6 +688,40 @@ export const isFollowing = async (targetUserId) => {
   }
 };
 
+/**
+ * Decide se la foto profilo di un utente è visibile per l'utente corrente,
+ * rispettando photoVisibility: 'public' → sempre; 'followers' → solo se io
+ * seguo l'utente; 'private' → mai (eccetto me stesso).
+ * Accetta uno snapshot Firestore già letto (per non rifare la query).
+ */
+export const visiblePhotoFromSnap = async (snap, otherUserId) => {
+  const data = snap?.data?.();
+  const photo = data?.profilePicture || undefined;
+  if (!photo) return undefined;
+  const vis = data?.photoVisibility ?? 'public';
+  const myUid = auth.currentUser?.uid;
+  if (otherUserId === myUid) return photo;
+  if (vis === 'public') return photo;
+  if (vis === 'followers') {
+    const iFollow = await isFollowing(otherUserId).catch(() => false);
+    return iFollow ? photo : undefined;
+  }
+  return undefined;
+};
+
+/**
+ * Come sopra ma parte dall'uid: legge il documento utente e applica la regola.
+ */
+export const getVisiblePhoto = async (otherUserId) => {
+  if (!otherUserId) return undefined;
+  try {
+    const snap = await getDoc(doc(db, 'users', otherUserId));
+    return await visiblePhotoFromSnap(snap, otherUserId);
+  } catch {
+    return undefined;
+  }
+};
+
 // ==================== FRIEND REQUESTS ====================
 
 const sortedFriendId = (a, b) => [a, b].sort().join('_');
