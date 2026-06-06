@@ -1328,11 +1328,8 @@ const handlePlay = async (item: any) => {
   // Check if user liked sound
   const checkLikedSounds = async () => {
     try {
-      const liked = new Set();
-      for (const sound of sounds) {
-        const isLiked = await hasUserLiked(sound.id);
-        if (isLiked) liked.add(sound.id);
-      }
+      const results = await Promise.all(sounds.map(s => hasUserLiked(s.id)));
+      const liked = new Set(sounds.filter((_, i) => results[i]).map(s => s.id));
       setLikedSounds(liked);
     } catch (error) {
       console.error('Error checking liked sounds:', error);
@@ -1567,19 +1564,19 @@ const handleSaveProfile = async () => {
   };
 
   // Filter sounds
-  const filteredPosts = sounds.filter(post => {
+  const filteredPosts = useMemo(() => sounds.filter(post => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = (post.title ?? '').toLowerCase().includes(q) ||
       (post.description ?? '').toLowerCase().includes(q);
     const matchesMood = filterMood === 'all' || post.mood === filterMood;
     const isNotBlocked = !myBlockedUsers.includes(post.userId);
-    
-    const isFollowingOrMe = feedMode === 'for-you' || 
-      post.userId === auth.currentUser?.uid || 
+
+    const isFollowingOrMe = feedMode === 'for-you' ||
+      post.userId === auth.currentUser?.uid ||
       myFollowingList.includes(post.userId);
 
     return matchesSearch && matchesMood && isNotBlocked && isFollowingOrMe;
-  });
+  }), [sounds, searchQuery, filterMood, myBlockedUsers, feedMode, myFollowingList]);
 
   // Format time ago — gestisce Firestore Timestamp, Date JS e numeri
   const timeAgo = (date: any) => {

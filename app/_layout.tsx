@@ -66,7 +66,7 @@ function RejoinBanner() {
         const newY = Math.max(cur.top + 4, Math.min(rawY, height - cur.bottom - 54));
         const newPos = { x: newX, y: newY };
         posRef.current = newPos;
-        Animated.spring(pan, { toValue: newPos, useNativeDriver: false, bounciness: 4 }).start();
+        Animated.spring(pan, { toValue: newPos, useNativeDriver: true, bounciness: 4 }).start();
       },
     })
   ).current;

@@ -48,12 +48,12 @@ const IRIS = ['#67E8F9', '#818CF8', '#C084FC', '#F472B6', '#67E8F9'] as [string,
 
 // ─── NavItem ──────────────────────────────────────────────────────────────────
 
-function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPress: () => void }) {
+const NavItem = React.memo(function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPress: () => void }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
-  const pressIn  = () => Animated.spring(scale, { toValue: 0.82, useNativeDriver: true, speed: 28, bounciness: 4 }).start();
-  const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 28, bounciness: 4 }).start();
+  const pressIn  = useCallback(() => Animated.spring(scale, { toValue: 0.82, useNativeDriver: true, speed: 28, bounciness: 4 }).start(), [scale]);
+  const pressOut = useCallback(() => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 28, bounciness: 4 }).start(), [scale]);
 
   return (
     <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={1} style={styles.itemTouch}>
@@ -65,7 +65,7 @@ function NavItem({ tab, isActive, onPress }: { tab: Tab; isActive: boolean; onPr
       </Animated.View>
     </TouchableOpacity>
   );
-}
+});
 
 // ─── Glass Pill ───────────────────────────────────────────────────────────────
 // On iOS: the bar is already blurred → pill is a lighter "lens" over the blur.
@@ -119,7 +119,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
     const idx = TABS.findIndex((t) => t.id === activeTab);
     if (idx < 0 || tabWidthRef.current === 0) return;
     activeIdxRef.current = idx;
-    Animated.spring(pillX, { toValue: idx * tabWidthRef.current, useNativeDriver: false, speed: 14, bounciness: 9 }).start();
+    Animated.spring(pillX, { toValue: idx * tabWidthRef.current, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
   }, [activeTab, pillX]);
 
   const onBarLayout = useCallback((e: any) => {
@@ -133,10 +133,15 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
     const c = Math.max(0, Math.min(idx, TABS.length - 1));
     activeIdxRef.current = c;
     onTabChange(TABS[c].id);
-    Animated.spring(pillX, { toValue: c * tabWidthRef.current, useNativeDriver: false, speed: 14, bounciness: 9 }).start();
+    Animated.spring(pillX, { toValue: c * tabWidthRef.current, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
   }, [pillX, onTabChange]);
 
-  const responderHandlers = {
+  const tabPressHandlers = useMemo(
+    () => TABS.map((_, idx) => () => snapToIndex(idx)),
+    [snapToIndex]
+  );
+
+  const responderHandlers = useMemo(() => ({
     onStartShouldSetResponder: () => false,
     onStartShouldSetResponderCapture: () => false,
     onMoveShouldSetResponder: (e: any) => Math.abs(e.nativeEvent.pageX - touchStartX.current) > 6,
@@ -152,7 +157,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
       snapToIndex(Math.round(pillXValue.current / tabWidthRef.current));
     },
     onResponderTerminate: () => { isDragging.current = false; },
-  };
+  }), [pillX, snapToIndex]);
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -194,7 +199,7 @@ export default function BottomNavBar({ activeTab, onTabChange }: BottomNavBarPro
               key={tab.id}
               tab={tab}
               isActive={activeTab === tab.id}
-              onPress={() => snapToIndex(idx)}
+              onPress={tabPressHandlers[idx]}
             />
           ))}
         </View>

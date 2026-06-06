@@ -1308,7 +1308,8 @@ export const getNearbySounds = async (center, radiusInKm = 10) => {
         where('isPublic', '==', true),   // ✅ 1. where equality
         orderBy('geohash'),               // ✅ 2. orderBy
         where('geohash', '>=', b[0]),    // ✅ 3. where range start
-        where('geohash', '<=', b[1])     // ✅ 4. where range end
+        where('geohash', '<=', b[1]),    // ✅ 4. where range end
+        limit(30)                         // max 30 per range → ~120 suoni totali, mai unbounded
       );
       promises.push(getDocs(q));
     }
@@ -1569,7 +1570,8 @@ export async function getActiveChallenges() {
       collection(db, 'challenges'),
       where('isActive', '==', true),
       where('endDate', '>', now),
-      orderBy('endDate', 'asc')
+      orderBy('endDate', 'asc'),
+      limit(50)
     );
 
     const snapshot = await getDocs(q);

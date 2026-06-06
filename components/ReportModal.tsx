@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db as firestoreDb, auth } from '../firebaseConfig';
 import { useTheme } from '../context/ThemeContext';
 
@@ -50,20 +50,22 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
     setLoading(true);
     try {
       const myUid = auth.currentUser.uid;
-      
-      const q = query(
-        collection(firestoreDb, 'reports'),
-        where('userId', '==', myUid),
-        where('targetId', '==', targetId)
+
+      // Usa ID deterministico per evitare duplicati senza query composita
+      const reportId = `${myUid}_${targetId}`;
+      const reportRef = doc(firestoreDb, 'reports', reportId);
+
+      // Controlla duplicati con singola lettura (no indice composito richiesto)
+      const snap = await getDocs(
+        query(collection(firestoreDb, 'reports'), where('userId', '==', myUid))
       );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      if (snap.docs.some(d => d.data().targetId === targetId)) {
         Alert.alert(t('common.info', 'Info'), t('report.alreadyReported', 'Hai già inviato una segnalazione per questo contenuto.'));
         onClose();
         return;
       }
 
-      await addDoc(collection(firestoreDb, 'reports'), {
+      await setDoc(reportRef, {
         userId: myUid,
         targetId,
         targetType,
