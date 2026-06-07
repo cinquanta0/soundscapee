@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
@@ -94,6 +95,11 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
         <View style={dynStyles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <View style={dynStyles.modalContent}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ flexGrow: 1 }}
+              >
               {sent ? (
                 <View style={dynStyles.sentContainer}>
                   <View style={dynStyles.checkIconWrapper}>
@@ -156,6 +162,7 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
                   </TouchableOpacity>
                 </>
               )}
+              </ScrollView>
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -178,6 +185,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 24,
     borderTopWidth: 1,
     borderColor: colors.border,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
