@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db as firestoreDb, auth } from '../firebaseConfig';
 import { useTheme } from '../context/ThemeContext';
 
@@ -55,11 +55,8 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
       const reportId = `${myUid}_${targetId}`;
       const reportRef = doc(firestoreDb, 'reports', reportId);
 
-      // Controlla duplicati con singola lettura (no indice composito richiesto)
-      const snap = await getDocs(
-        query(collection(firestoreDb, 'reports'), where('userId', '==', myUid))
-      );
-      if (snap.docs.some(d => d.data().targetId === targetId)) {
+      const existing = await getDoc(reportRef);
+      if (existing.exists()) {
         Alert.alert(t('common.info', 'Info'), t('report.alreadyReported', 'Hai già inviato una segnalazione per questo contenuto.'));
         onClose();
         return;
@@ -204,11 +201,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.bgCard,
   },
   reasonBtnActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accent + '20',
+    borderColor: colors.textAccent,
+    backgroundColor: colors.textAccent + '20',
   },
   reasonText: { color: colors.textSecondary, fontSize: 13 },
-  reasonTextActive: { color: colors.accent, fontWeight: '600' },
+  reasonTextActive: { color: colors.textAccent, fontWeight: '600' },
   input: {
     backgroundColor: colors.bgCard,
     borderWidth: 1,
@@ -222,13 +219,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlignVertical: 'top'
   },
   submitBtn: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.textAccent,
     padding: 14,
     borderRadius: 10,
     alignItems: 'center',
   },
   submitBtnDisabled: {
-    backgroundColor: colors.accent + '50',
+    backgroundColor: colors.textAccent + '50',
   },
   submitBtnText: { color: colors.bg, fontWeight: '700', fontSize: 15 },
   sentContainer: { alignItems: 'center', padding: 20, gap: 12 },
