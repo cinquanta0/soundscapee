@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db as firestoreDb, auth } from '../firebaseConfig';
 import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ReportModalProps {
   visible: boolean;
@@ -31,6 +32,7 @@ interface ReportModalProps {
 export default function ReportModal({ visible, onClose, targetId, targetType, onReportSuccess }: ReportModalProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const dynStyles = React.useMemo(() => createStyles(colors), [colors]);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
@@ -94,7 +96,7 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
       <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
         <View style={dynStyles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={dynStyles.modalContent}>
+            <View style={[dynStyles.modalContent, { paddingBottom: 24 + insets.bottom }]}>
               <ScrollView
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
