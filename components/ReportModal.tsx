@@ -55,8 +55,8 @@ export default function ReportModal({ visible, onClose, targetId, targetType, on
       const reportId = `${myUid}_${targetId}`;
       const reportRef = doc(firestoreDb, 'reports', reportId);
 
-      const existing = await getDoc(reportRef);
-      if (existing.exists()) {
+      const existing = await getDoc(reportRef).catch(() => null);
+      if (existing?.exists()) {
         Alert.alert(t('common.info', 'Info'), t('report.alreadyReported', 'Hai già inviato una segnalazione per questo contenuto.'));
         onClose();
         return;
